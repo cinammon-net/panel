@@ -1,15 +1,32 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head, usePage, router } from '@inertiajs/react';
-import { ChevronDown, ChevronUp, Lock, LockOpen, Server, HeartPulse, HeartOff, HeartCrack, Eye, EyeOff, ServerOff, MapPinned, Router, Pencil } from 'lucide-react';
+import { Head, router, usePage } from '@inertiajs/react';
+import {
+    ChevronDown,
+    ChevronUp,
+    Eye,
+    EyeOff,
+    HeartCrack,
+    HeartOff,
+    HeartPulse,
+    Lock,
+    LockOpen,
+    MapPinned,
+    Pencil,
+    Router,
+    Server,
+    ServerOff,
+} from 'lucide-react';
+
 interface NodeItem {
     id: number;
     name: string;
-    fqdn : string;
+    fqdn: string;
     ssl: boolean;
     servers: number;
     public: boolean;
     health: string;
 }
+
 interface Pagination<T> {
     data: T[];
     current_page: number;
@@ -29,7 +46,6 @@ export default function Nodes() {
         filters: { search?: string; sort?: string; direction?: string; per_page?: number };
     }>().props;
 
-
     const handleSort = (column: string) => {
         const isSameField = filters.sort === column;
         const newDirection = isSameField && filters.direction === 'asc' ? 'desc' : 'asc';
@@ -47,7 +63,6 @@ export default function Nodes() {
             },
         );
     };
-    
 
     return (
         <AppLayout breadcrumbs={[{ title: 'Nodes', href: '/nodes' }]}>
@@ -71,9 +86,9 @@ export default function Nodes() {
                     </div>
                 </div>
 
-                {/* Tabla vacía */}
-                <div className="overflow-hidden rounded-lg border border-cyan-300 bg-white shadow-none transition dark:border-cyan-700 dark:bg-neutral-950 dark:shadow-[0_0_10px_#0ff3]">
-                    <table className="w-full table-fixed text-sm">
+                {/* Tabla responsive */}
+                <div className="overflow-x-auto rounded-lg border border-cyan-300 bg-white shadow-none transition dark:border-cyan-700 dark:bg-neutral-950 dark:shadow-[0_0_10px_#0ff3]">
+                    <table className="min-w-full table-auto text-sm">
                         <thead className="border-b border-cyan-500 bg-cyan-900 text-cyan-200">
                             <tr>
                                 <th className="w-[60px] px-4 py-2 text-left">Health</th>
