@@ -159,9 +159,9 @@ export default function CreateEgg() {
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`border-b-2 px-4 pb-2 ${
+                                className={`w-full border-b-2 px-4 pb-2 sm:w-auto ${
                                     activeTab === tab.id ? 'border-cyan-500 text-cyan-500' : 'border-transparent hover:text-cyan-400'
-                                } transition`}
+                                } text-center transition`}
                             >
                                 {tab.title}
                             </button>
@@ -384,10 +384,113 @@ export default function CreateEgg() {
 
                         {activeTab === 'variables' && (
                             <div>
-                                <button className="mb-4 rounded bg-cyan-600 px-4 py-2 hover:bg-cyan-700" onClick={addNewVariable}>
+                                <button
+                                    className="mb-4 rounded bg-cyan-600 px-4 py-2 hover:bg-cyan-700"
+                                    onClick={() =>
+                                        setVariables([
+                                            ...variables,
+                                            {
+                                                name: '',
+                                                description: '',
+                                                envVariable: '',
+                                                defaultValue: '',
+                                                userPermissions: { viewable: false, editable: false },
+                                                rules: '',
+                                            },
+                                        ])
+                                    }
+                                >
                                     Add New Variable
                                 </button>
-                                {/* ...input de variables igual... */}
+
+                                {variables.map((variable, index) => (
+                                    <div key={index} className="mb-4 rounded border border-cyan-700 bg-black p-4 text-cyan-300">
+                                        <input
+                                            type="text"
+                                            placeholder="Name"
+                                            value={variable.name}
+                                            onChange={(e) => {
+                                                const newVars = [...variables];
+                                                newVars[index].name = e.target.value;
+                                                setVariables(newVars);
+                                            }}
+                                            className="mb-2 w-full rounded border border-cyan-600 bg-black p-2"
+                                        />
+                                        <textarea
+                                            placeholder="Description"
+                                            value={variable.description}
+                                            onChange={(e) => {
+                                                const newVars = [...variables];
+                                                newVars[index].description = e.target.value;
+                                                setVariables(newVars);
+                                            }}
+                                            rows={2}
+                                            className="mb-2 w-full rounded border border-cyan-600 bg-black p-2"
+                                        />
+                                        <input
+                                            type="text"
+                                            placeholder="Environment Variable"
+                                            value={variable.envVariable}
+                                            onChange={(e) => {
+                                                const newVars = [...variables];
+                                                newVars[index].envVariable = e.target.value;
+                                                setVariables(newVars);
+                                            }}
+                                            className="mb-2 w-full rounded border border-cyan-600 bg-black p-2"
+                                        />
+                                        <input
+                                            type="text"
+                                            placeholder="Default Value"
+                                            value={variable.defaultValue}
+                                            onChange={(e) => {
+                                                const newVars = [...variables];
+                                                newVars[index].defaultValue = e.target.value;
+                                                setVariables(newVars);
+                                            }}
+                                            className="mb-2 w-full rounded border border-cyan-600 bg-black p-2"
+                                        />
+
+                                        <div className="mb-2 flex gap-4">
+                                            <label className="flex items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={variable.userPermissions?.viewable || false}
+                                                    onChange={(e) => {
+                                                        const newVars = [...variables];
+                                                        newVars[index].userPermissions.viewable = e.target.checked;
+                                                        setVariables(newVars);
+                                                    }}
+                                                />
+                                                Viewable
+                                            </label>
+
+                                            <label className="flex items-center gap-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={variable.userPermissions?.editable || false}
+                                                    onChange={(e) => {
+                                                        const newVars = [...variables];
+                                                        newVars[index].userPermissions.editable = e.target.checked;
+                                                        setVariables(newVars);
+                                                    }}
+                                                />
+                                                Editable
+                                            </label>
+                                        </div>
+
+                                        <input
+                                            type="text"
+                                            placeholder="Rules"
+                                            value={variable.rules}
+                                            onChange={(e) => {
+                                                const newVars = [...variables];
+                                                newVars[index].rules = e.target.value;
+                                                setVariables(newVars);
+                                            }}
+                                            className="w-full rounded border border-cyan-600 bg-black p-2"
+                                        />
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>
