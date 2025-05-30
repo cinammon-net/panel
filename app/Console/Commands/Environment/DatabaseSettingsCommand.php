@@ -17,7 +17,7 @@ class DatabaseSettingsCommand extends Command
         'mysql' => 'MySQL',
     ];
 
-    protected $description = 'Configure database settings for the Panel.';
+    protected $description = 'Configure database settings for the cinammon.';
 
     protected $signature = 'p:environment:database
                             {--driver= : The database driver backend to use.}
@@ -27,73 +27,62 @@ class DatabaseSettingsCommand extends Command
                             {--username= : Username to use when connecting to the MySQL/ MariaDB server.}
                             {--password= : Password to use for the MySQL/ MariaDB database.}';
 
-    /** @var array<array-key, mixed> */
     protected array $variables = [];
 
-    /**
-     * DatabaseSettingsCommand constructor.
-     */
     public function __construct(private DatabaseManager $database, private Kernel $console)
     {
         parent::__construct();
     }
 
-    /**
-     * Handle command execution.
-     */
     public function handle(): int
     {
-        $this->error('Changing the database driver will NOT move any database data!');
-        $this->error('Please make sure you made a database backup first!');
-        $this->error('After changing the driver you will have to manually move the old data to the new database.');
-        if (!$this->confirm('Do you want to continue?')) {
+        // Cyber Banner
+        if ($this->hasGum()) {
+            system(<<<'EOD'
+gum style \
+--border double \
+--margin "1 2" \
+--padding "1 4" \
+--align center \
+--width 60 \
+--border-foreground "#ff00ff" \
+--foreground "#00ffe0" \
+":: CINAMMON DATABASE SETUP ::
+
+> Protocol: CYBER_ENV_INIT
+> Mode: INTERACTIVE
+> Status: READY"
+EOD);
+        } else {
+            $this->line("\033[1;95m:: CINAMMON DATABASE SETUP ::\033[0m");
+            $this->line("\033[1;96m> Protocol: CYBER_ENV_INIT\033[0m");
+            $this->line("\033[1;96m> Mode: INTERACTIVE\033[0m");
+            $this->line("\033[1;96m> Status: READY\033[0m");
+        }
+
+        if (!$this->gumConfirm("¿Continuar con la configuración?")) {
+            $this->error("Operación cancelada por el usuario.");
             return 1;
         }
 
-        $selected = config('database.default', 'sqlite');
-        $this->variables['DB_CONNECTION'] = $this->option('driver') ?? $this->choice(
-            'Database Driver',
-            self::DATABASE_DRIVERS,
-            array_key_exists($selected, self::DATABASE_DRIVERS) ? $selected : null
-        );
+        $driver = $this->gumChoose(['sqlite', 'mariadb', 'mysql']);
+        if (!$driver) {
+            $this->error("No se seleccionó ningún driver.");
+            return 1;
+        }
 
-        if ($this->variables['DB_CONNECTION'] === 'mysql') {
-            $this->output->note(trans('commands.database_settings.DB_HOST_note'));
-            $this->variables['DB_HOST'] = $this->option('host') ?? $this->ask(
-                'Database Host',
-                config('database.connections.mysql.host', '127.0.0.1')
-            );
+        $this->variables['DB_CONNECTION'] = $driver;
 
-            $this->variables['DB_PORT'] = $this->option('port') ?? $this->ask(
-                'Database Port',
-                config('database.connections.mysql.port', 3306)
-            );
-
-            $this->variables['DB_DATABASE'] = $this->option('database') ?? $this->ask(
-                'Database Name',
-                config('database.connections.mysql.database', 'panel')
-            );
-
-            $this->output->note(trans('commands.database_settings.DB_USERNAME_note'));
-            $this->variables['DB_USERNAME'] = $this->option('username') ?? $this->ask(
-                'Database Username',
-                config('database.connections.mysql.username', 'pelican')
-            );
-
-            $askForMySQLPassword = true;
-            if (!empty(config('database.connections.mysql.password')) && $this->input->isInteractive()) {
-                $this->variables['DB_PASSWORD'] = config('database.connections.mysql.password');
-                $askForMySQLPassword = $this->confirm(trans('commands.database_settings.DB_PASSWORD_note'));
-            }
-
-            if ($askForMySQLPassword) {
-                $this->variables['DB_PASSWORD'] = $this->option('password') ?? $this->secret('Database Password');
-            }
+        if (in_array($driver, ['mysql', 'mariadb'])) {
+            $this->variables['DB_HOST'] = $this->gumInput('Host: ', '127.0.0.1');
+            $this->variables['DB_PORT'] = $this->gumInput('Puerto: ', '3306');
+            $this->variables['DB_DATABASE'] = $this->gumInput('Base de datos: ', 'cinammon');
+            $this->variables['DB_USERNAME'] = $this->gumInput('Usuario: ', 'root');
+            $this->variables['DB_PASSWORD'] = $this->gumInput('Contraseña: ', '', true);
 
             try {
-                // Test connection
-                config()->set('database.connections._panel_command_test', [
-                    'driver' => 'mysql',
+                config()->set('database.connections._gum_test', [
+                    'driver' => $driver,
                     'host' => $this->variables['DB_HOST'],
                     'port' => $this->variables['DB_PORT'],
                     'database' => $this->variables['DB_DATABASE'],
@@ -104,90 +93,71 @@ class DatabaseSettingsCommand extends Command
                     'strict' => true,
                 ]);
 
-                $this->database->connection('_panel_command_test')->getPdo();
-            } catch (\PDOException $exception) {
-                $this->output->error(sprintf('Unable to connect to the MySQL server using the provided credentials. The error returned was "%s".', $exception->getMessage()));
-                $this->output->error(trans('commands.database_settings.DB_error_2'));
+                $this->line("\033[1;94m[STATUS]\033[0m Probando conexión con {$driver}...");
+                $this->database->connection('_gum_test')->getPdo();
+                $this->line("\033[1;92m[OK]\033[0m Conexión exitosa.");
+            } catch (\PDOException $e) {
+                $this->error("[ERROR] Conexión fallida: " . $e->getMessage());
 
-                if ($this->confirm(trans('commands.database_settings.go_back'))) {
-                    $this->database->disconnect('_panel_command_test');
-
+                if ($this->gumConfirm("¿Intentar de nuevo?")) {
+                    $this->database->disconnect('_gum_test');
                     return $this->handle();
                 }
 
                 return 1;
             }
-        } elseif ($this->variables['DB_CONNECTION'] === 'mariadb') {
-            $this->output->note(trans('commands.database_settings.DB_HOST_note'));
-            $this->variables['DB_HOST'] = $this->option('host') ?? $this->ask(
-                'Database Host',
-                config('database.connections.mariadb.host', '127.0.0.1')
-            );
+        } elseif ($driver === 'sqlite') {
+            $this->variables['DB_DATABASE'] = $this->gumInput('Ruta del archivo .sqlite: ', 'database.sqlite');
+        }
 
-            $this->variables['DB_PORT'] = $this->option('port') ?? $this->ask(
-                'Database Port',
-                config('database.connections.mariadb.port', 3306)
-            );
-
-            $this->variables['DB_DATABASE'] = $this->option('database') ?? $this->ask(
-                'Database Name',
-                config('database.connections.mariadb.database', 'panel')
-            );
-
-            $this->output->note(trans('commands.database_settings.DB_USERNAME_note'));
-            $this->variables['DB_USERNAME'] = $this->option('username') ?? $this->ask(
-                'Database Username',
-                config('database.connections.mariadb.username', 'pelican')
-            );
-
-            $askForMariaDBPassword = true;
-            if (!empty(config('database.connections.mariadb.password')) && $this->input->isInteractive()) {
-                $this->variables['DB_PASSWORD'] = config('database.connections.mariadb.password');
-                $askForMariaDBPassword = $this->confirm(trans('commands.database_settings.DB_PASSWORD_note'));
-            }
-
-            if ($askForMariaDBPassword) {
-                $this->variables['DB_PASSWORD'] = $this->option('password') ?? $this->secret('Database Password');
-            }
-
-            try {
-                // Test connection
-                config()->set('database.connections._panel_command_test', [
-                    'driver' => 'mariadb',
-                    'host' => $this->variables['DB_HOST'],
-                    'port' => $this->variables['DB_PORT'],
-                    'database' => $this->variables['DB_DATABASE'],
-                    'username' => $this->variables['DB_USERNAME'],
-                    'password' => $this->variables['DB_PASSWORD'],
-                    'charset' => 'utf8mb4',
-                    'collation' => 'utf8mb4_unicode_ci',
-                    'strict' => true,
-                ]);
-
-                $this->database->connection('_panel_command_test')->getPdo();
-            } catch (\PDOException $exception) {
-                $this->output->error(sprintf('Unable to connect to the MariaDB server using the provided credentials. The error returned was "%s".', $exception->getMessage()));
-                $this->output->error(trans('commands.database_settings.DB_error_2'));
-
-                if ($this->confirm(trans('commands.database_settings.go_back'))) {
-                    $this->database->disconnect('_panel_command_test');
-
-                    return $this->handle();
-                }
-
-                return 1;
-            }
-        } elseif ($this->variables['DB_CONNECTION'] === 'sqlite') {
-            $this->variables['DB_DATABASE'] = $this->option('database') ?? $this->ask(
-                'Database Path',
-                (string) env('DB_DATABASE', 'database.sqlite')
-            );
+        if (!$this->gumConfirm("¿Guardar configuración en .env?")) {
+            $this->error("No se guardó la configuración.");
+            return 1;
         }
 
         $this->writeToEnvironment($this->variables);
-
-        $this->info($this->console->output());
+        $this->line("\033[1;92m[OK]\033[0m Configuración guardada correctamente.");
+        $this->line("\033[1;90m:: Proceso completado. Puedes cerrar la terminal.\033[0m");
 
         return 0;
+    }
+
+    protected function gumConfirm(string $message): bool
+    {
+        if ($this->hasGum()) {
+            exec("gum confirm \"$message\"", $_, $exitCode);
+            return $exitCode === 0;
+        }
+
+        return $this->confirm($message);
+    }
+
+    protected function gumInput(string $prompt, string $default = '', bool $password = false): string
+    {
+        if ($this->hasGum()) {
+            $command = $password
+                ? "gum input --password --prompt \"$prompt\""
+                : "gum input --placeholder \"$default\" --prompt \"$prompt\"";
+            $result = trim(shell_exec($command));
+            return $result !== '' ? $result : $default;
+        }
+
+        return $password
+            ? $this->secret($prompt) ?? $default
+            : $this->ask($prompt, $default);
+    }
+
+    protected function gumChoose(array $options): ?string
+    {
+        if ($this->hasGum()) {
+            return trim(shell_exec("gum choose " . implode(' ', $options)));
+        }
+
+        return $this->choice('Elige un driver', $options);
+    }
+
+    protected function hasGum(): bool
+    {
+        return trim(shell_exec("command -v gum")) !== '';
     }
 }
