@@ -60,7 +60,7 @@ class Reload extends Command
 
         // Ejecutar npm rebuild para reconstruir los módulos de Node
         $this->comment('Rebuilding npm packages...');
-        $npmRebuild = $this->executeCommand('npm rebuild');
+        $npmRebuild = $this->executeCommand('npm run build');
         if ($npmRebuild !== 0) {
             $this->updateLoadingBar('❌ NPM rebuild failed!');
             return;
