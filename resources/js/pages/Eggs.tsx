@@ -4,6 +4,7 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ChevronDown, ChevronUp, Copy, Egg, Pencil, Server, Trash2, Upload } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+
 interface Egg {
     id: number;
     uuid: string;
@@ -46,28 +47,16 @@ export default function Eggs() {
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        router.get(
-            '/eggs',
-            { search, sort: filters.sort, direction: filters.direction, per_page: filters.per_page },
-            { preserveScroll: true, preserveState: true },
-        );
+        router.get('/eggs', { search, ...filters }, { preserveScroll: true, preserveState: true });
     };
 
     const handleSort = () => {
         const newDirection = filters.direction === 'asc' ? 'desc' : 'asc';
-        router.get(
-            '/eggs',
-            { search, sort: 'name', direction: newDirection, per_page: filters.per_page },
-            { preserveScroll: true, preserveState: true },
-        );
+        router.get('/eggs', { ...filters, sort: 'name', direction: newDirection }, { preserveScroll: true, preserveState: true });
     };
 
     const toggleSelectAll = () => {
-        if (allSelected) {
-            setSelectedEggs([]);
-        } else {
-            setSelectedEggs(eggs.data.map((egg) => egg.id));
-        }
+        setSelectedEggs(allSelected ? [] : eggs.data.map((egg) => egg.id));
     };
 
     const toggleSelect = (id: number) => {
@@ -78,7 +67,6 @@ export default function Eggs() {
         if (data.file) {
             const formData = new FormData();
             formData.append('file', data.file);
-
             router.post('/eggs/import', formData, {
                 preserveScroll: true,
                 preserveState: false,
@@ -87,9 +75,7 @@ export default function Eggs() {
                     toast('Archivo importado correctamente');
                     setIsImportModalOpen(false);
                 },
-                onError: (errors) => {
-                    toast('Error al importar: ' + JSON.stringify(errors));
-                },
+                onError: (errors) => toast('Error al importar: ' + JSON.stringify(errors)),
             });
         } else {
             toast('Importar desde URL no implementado');
@@ -366,7 +352,7 @@ export default function Eggs() {
                                         </button>
                                     </th>
                                     <th className="px-4 py-3 text-left font-semibold">Servers</th>
-                                    <th className="px-4 py-3 text-right font-semibold">Actions</th>
+                                    <th className="hidden px-4 py-3 text-right font-semibold sm:table-cell">Actions</th>
                                 </tr>
                             </thead>
 
@@ -413,7 +399,7 @@ export default function Eggs() {
                                                 </div>
                                             </td>
 
-                                            <td className="px-4 py-4 text-right">
+                                            <td className="hidden px-4 py-4 text-right sm:table-cell">
                                                 <div className="flex items-center justify-end gap-3" onClick={(e) => e.stopPropagation()}>
                                                     <button
                                                         title="Edit"
@@ -524,4 +510,3 @@ export default function Eggs() {
         </AppLayout>
     );
 }
-
