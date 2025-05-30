@@ -3,146 +3,150 @@
 namespace App\Console\Commands\Environment;
 
 use App\Traits\EnvironmentWriterTrait;
-use Illuminate\Console\Command; 
+use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 
 class EmailSettingsCommand extends Command
 {
     use EnvironmentWriterTrait;
 
-    protected $description = 'Set or update the email sending configuration for the Panel.';
+    protected $description = 'Set or update the email sending configuration for the Cinammon Panel.';
 
-    protected $signature = 'p:environment:mail
-                            {--driver= : The mail driver to use.}
-                            {--email= : Email address that messages from the Panel will originate from.}
-                            {--from= : The name emails from the Panel will appear to be from.}
-                            {--encryption=}
-                            {--host=}
-                            {--port=}
-                            {--endpoint=}
-                            {--username=}
-                            {--password=}';
+    protected $signature = 'p:environment:mail';
 
-    /** @var array<array-key, mixed> */
     protected array $variables = [];
 
-    /**
-     * Handle command execution.
-     *
-     * 
-     */
     public function handle(): void
     {
-        $this->variables['MAIL_MAILER'] = $this->option('driver') ?? $this->choice(
-            trans('command/messages.environment.mail.ask_driver'),
-            [
-                'log' => 'Log',
-                'smtp' => 'SMTP Server',
-                'sendmail' => 'sendmail Binary',
-                'mailgun' => 'Mailgun',
-                'mandrill' => 'Mandrill',
-                'postmark' => 'Postmark',
-            ],
-            env('MAIL_MAILER', env('MAIL_DRIVER', 'smtp')),
-        );
+        $this->renderCyberBanner();
 
-        $method = 'setup' . Str::studly($this->variables['MAIL_MAILER']) . 'DriverVariables';
+        $driver = $this->hasGum()
+            ? trim(shell_exec("gum choose smtp log sendmail mailgun mandrill postmark"))
+            : $this->choice('Selecciona el driver de correo', ['smtp', 'log', 'sendmail', 'mailgun', 'mandrill', 'postmark'], 'smtp');
+
+        $this->variables['MAIL_MAILER'] = $driver;
+
+        $method = 'setup' . Str::studly($driver) . 'DriverVariables';
         if (method_exists($this, $method)) {
             $this->{$method}();
         }
 
-        $this->variables['MAIL_FROM_ADDRESS'] = $this->option('email') ?? $this->ask(
-            trans('command/messages.environment.mail.ask_mail_from'),
-            config('mail.from.address')
-        );
+        $fromEmail = $this->gumInput("Dirección de correo remitente", "soporte@cinammon.net");
+        $fromName  = $this->gumInput("Nombre del remitente", "Cinammon Panel");
 
-        $this->variables['MAIL_FROM_NAME'] = $this->option('from') ?? $this->ask(
-            trans('command/messages.environment.mail.ask_mail_name'),
-            config('mail.from.name')
-        );
+        $this->variables['MAIL_FROM_ADDRESS'] = "\"{$fromEmail}\"";
+        $this->variables['MAIL_FROM_NAME'] = "\"{$fromName}\"";
 
-        $this->writeToEnvironment($this->variables);
 
-        $this->call('queue:restart');
-
-        $this->line('Updating stored environment configuration file.');
-        $this->line('');
+        if ($this->gumConfirm("¿Guardar configuración en .env?")) {
+            $this->writeToEnvironment($this->variables);
+            $this->callSilent('queue:restart');
+            $this->line("\033[1;92m[OK]\033[0m Configuración guardada correctamente.");
+        } else {
+            $this->error("No se guardó la configuración.");
+        }
     }
 
-    /**
-     * Handle variables for SMTP driver.
-     */
     private function setupSmtpDriverVariables(): void
     {
-        $this->variables['MAIL_HOST'] = $this->option('host') ?? $this->ask(
-            trans('command/messages.environment.mail.ask_smtp_host'),
-            config('mail.mailers.smtp.host')
-        );
+        $this->variables['MAIL_HOST'] = $this->gumInput("SMTP Host", "smtp.example.com");
+        $this->variables['MAIL_PORT'] = $this->gumInput("Puerto", "587");
+        $this->variables['MAIL_USERNAME'] = $this->gumInput("Usuario SMTP");
+        $this->variables['MAIL_PASSWORD'] = $this->gumInput("Contraseña SMTP", '', true);
 
-        $this->variables['MAIL_PORT'] = $this->option('port') ?? $this->ask(
-            trans('command/messages.environment.mail.ask_smtp_port'),
-            config('mail.mailers.smtp.port')
-        );
-
-        $this->variables['MAIL_USERNAME'] = $this->option('username') ?? $this->ask(
-            trans('command/messages.environment.mail.ask_smtp_username'),
-            config('mail.mailers.smtp.username')
-        );
-
-        $this->variables['MAIL_PASSWORD'] = $this->option('password') ?? $this->secret(
-            trans('command/messages.environment.mail.ask_smtp_password')
-        );
-
-        $this->variables['MAIL_SCHEME'] = $this->option('encryption') ?? $this->choice(
-            trans('command/messages.environment.mail.ask_encryption'),
-            ['tls' => 'TLS', 'ssl' => 'SSL', '' => 'None'],
-            config('mail.mailers.smtp.encryption', 'tls')
-        );
+        $this->variables['MAIL_SCHEME'] = $this->hasGum()
+            ? trim(shell_exec("gum choose tls ssl none"))
+            : $this->choice("Encriptación", ['tls', 'ssl', 'none'], 'tls');
     }
 
-    /**
-     * Handle variables for mailgun driver.
-     */
     private function setupMailgunDriverVariables(): void
     {
-        $this->variables['MAILGUN_DOMAIN'] = $this->option('host') ?? $this->ask(
-            trans('command/messages.environment.mail.ask_mailgun_domain'),
-            config('services.mailgun.domain')
-        );
-
-        $this->variables['MAILGUN_SECRET'] = $this->option('password') ?? $this->ask(
-            trans('command/messages.environment.mail.ask_mailgun_secret'),
-            config('services.mailgun.secret')
-        );
-
-        $this->variables['MAILGUN_ENDPOINT'] = $this->option('endpoint') ?? $this->ask(
-            trans('command/messages.environment.mail.ask_mailgun_endpoint'),
-            config('services.mailgun.endpoint')
-        );
+        $this->variables['MAILGUN_DOMAIN'] = $this->gumInput("Mailgun Domain");
+        $this->variables['MAILGUN_SECRET'] = $this->gumInput("Mailgun Secret");
+        $this->variables['MAILGUN_ENDPOINT'] = $this->gumInput("Mailgun Endpoint", "api.mailgun.net");
     }
 
-    /**
-     * Handle variables for mandrill driver.
-     */
     private function setupMandrillDriverVariables(): void
     {
-        $this->variables['MANDRILL_SECRET'] = $this->option('password') ?? $this->ask(
-            trans('command/messages.environment.mail.ask_mandrill_secret'),
-            config('services.mandrill.secret')
-        );
+        $this->variables['MANDRILL_SECRET'] = $this->gumInput("Mandrill Secret");
     }
 
-    /**
-     * Handle variables for postmark driver.
-     */
     private function setupPostmarkDriverVariables(): void
     {
+        $user = $this->gumInput("Postmark Token");
         $this->variables['MAIL_DRIVER'] = 'smtp';
         $this->variables['MAIL_HOST'] = 'smtp.postmarkapp.com';
         $this->variables['MAIL_PORT'] = 587;
-        $this->variables['MAIL_USERNAME'] = $this->variables['MAIL_PASSWORD'] = $this->option('username') ?? $this->ask(
-            trans('command/messages.environment.mail.ask_postmark_username'),
-            config('mail.username')
-        );
+        $this->variables['MAIL_USERNAME'] = $user;
+        $this->variables['MAIL_PASSWORD'] = $user;
+    }
+
+    private function gumInput(string $label, string $default = '', bool $password = false): string
+    {
+        if ($this->hasGum()) {
+            $cmd = $password
+                ? "gum input --password --prompt \"$label\""
+                : "gum input --placeholder \"$default\" --prompt \"$label\"";
+
+            $result = trim(shell_exec($cmd));
+            return $result !== '' ? $result : $default;
+        }
+
+        return $password
+            ? $this->secret($label) ?? $default
+            : $this->ask($label, $default);
+    }
+
+    private function gumConfirm(string $msg): bool
+    {
+        if ($this->hasGum()) {
+            exec("gum confirm \"$msg\"", $_, $exitCode);
+            return $exitCode === 0;
+        }
+
+        return $this->confirm($msg);
+    }
+
+    private function hasGum(): bool
+    {
+        return trim(shell_exec("command -v gum")) !== '';
+    }
+
+    private function renderCyberBanner(): void
+    {
+        if ($this->hasGum()) {
+            system(<<<'EOD'
+gum style \
+--border double \
+--margin "1 2" \
+--padding "1 4" \
+--align center \
+--width 60 \
+--border-foreground "#00ffe0" \
+--foreground "#ff00ff" \
+":: CINAMMON MAIL CONFIGURATION ::
+
+> Protocol: MAIL_ENV_INIT
+> Mode: INTERACTIVE
+> Status: AWAITING INPUT"
+EOD);
+        } else {
+            $cyan = "\033[1;96m";
+            $magenta = "\033[1;95m";
+            $reset = "\033[0m";
+
+            $border = "{$magenta}╔" . str_repeat("═", 56) . "╗{$reset}";
+            $empty  = "{$magenta}║{$reset}" . str_repeat(" ", 56) . "{$magenta}║{$reset}";
+
+            $this->line($border);
+            $this->line($empty);
+            $this->line("{$magenta}║{$reset}" . str_pad(":: CINAMMON MAIL CONFIGURATION ::", 56, " ", STR_PAD_BOTH) . "{$magenta}║{$reset}");
+            $this->line($empty);
+            $this->line("{$magenta}║{$reset}{$cyan}  > Protocol: MAIL_ENV_INIT     {$reset}" . str_repeat(" ", 17) . "{$magenta}║{$reset}");
+            $this->line("{$magenta}║{$reset}{$cyan}  > Mode: INTERACTIVE            {$reset}" . str_repeat(" ", 17) . "{$magenta}║{$reset}");
+            $this->line("{$magenta}║{$reset}{$cyan}  > Status: AWAITING INPUT       {$reset}" . str_repeat(" ", 17) . "{$magenta}║{$reset}");
+            $this->line($empty);
+            $this->line("{$magenta}╚" . str_repeat("═", 56) . "╝{$reset}");
+        }
     }
 }
