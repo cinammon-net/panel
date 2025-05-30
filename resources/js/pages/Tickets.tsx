@@ -49,7 +49,7 @@ export default function Tickets() {
             <Toaster position="top-center" richColors />
 
             <div className="min-h-screen bg-white p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
-                <div className="mb-6 flex items-center justify-between border-b border-yellow-600 pb-4">
+                <div className="flex items-center justify-between border-yellow-600 pb-4">
                     <h1 className="text-3xl font-semibold tracking-widest text-yellow-700 drop-shadow-none dark:text-yellow-400 dark:drop-shadow-[0_0_5px_#facc15]">
                         TICKETS
                     </h1>
