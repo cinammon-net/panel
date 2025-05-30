@@ -66,7 +66,8 @@ export default function Nodes() {
 
     return (
         <AppLayout breadcrumbs={[{ title: 'Nodes', href: '/nodes' }]}>
-            <Head title="Nodes">
+            <Head>
+                <title>Nodes</title>
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet" />
             </Head>
 
