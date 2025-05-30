@@ -212,7 +212,6 @@ export default function EditNode() {
         fetchConfig();
     }, []); 
     return (
-        
         <AppLayout
             breadcrumbs={[
                 { title: 'Nodes', href: '/nodes' },
@@ -231,7 +230,7 @@ export default function EditNode() {
                 </div>
 
                 <div className="rounded-lg border-2 border-cyan-600 md:px-0">
-                    <ol className="scrollbar-hide grid w-full grid-cols-4 gap-x-2 overflow-x-auto overflow-y-hidden rounded-t-lg border-b border-cyan-600 bg-black/90 p-2 text-cyan-500 dark:bg-black">
+                    <ol className="scrollbar-hide grid w-full grid-cols-1 gap-x-2 overflow-x-auto overflow-y-hidden rounded-t-lg border-b border-cyan-600 bg-black/90 p-2 text-cyan-500 md:grid-cols-4 dark:bg-black">
                         <li className="relative flex h-full items-center">
                             <button
                                 type="button"
@@ -288,7 +287,7 @@ export default function EditNode() {
 
                     {/* Overview Section */}
                     {activeSection === 'overview' && (
-                        <div className="md:px-0">
+                        <div className="p-4 md:px-0">
                             {/* Aquí va todo el contenido de la sección Overview */}
                             <div className="flex flex-col gap-2 p-3 px-3">
                                 <fieldset className="rounded-lg border border-cyan-700 p-4">
@@ -372,7 +371,7 @@ export default function EditNode() {
                             <div className="md:px-0">
                                 <div className="mb-5 flex flex-col gap-4 px-6">
                                     <div className="flex flex-col gap-6 p-6 md:flex-row">
-                                        <div className="grid grid-cols-3 gap-6">
+                                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                                             {/* FQDN */}
                                             <div>
                                                 <label className="mb-1 block text-sm font-semibold" htmlFor="fqdn">
@@ -386,7 +385,7 @@ export default function EditNode() {
                                                         type="text"
                                                         value={formData.fqdn}
                                                         onChange={handleChange}
-                                                        className="border-l bg-transparent px-4 py-2 text-sm text-cyan-600 focus:outline-none dark:text-cyan-400"
+                                                        className="w-full border-l bg-transparent px-4 py-2 text-sm text-cyan-600 focus:outline-none dark:text-cyan-400"
                                                     />
                                                 </div>
                                             </div>
@@ -407,7 +406,7 @@ export default function EditNode() {
                                                         {dnsIp}
                                                     </span>
                                                 </label>
-                                                <div className="flex gap-2">
+                                                <div className="flex flex-wrap justify-center gap-4 md:flex-nowrap md:justify-start">
                                                     <button
                                                         className={`flex w-full cursor-pointer items-center gap-3 rounded border px-4 py-2 text-sm font-semibold select-none ${
                                                             dnsValid
@@ -519,7 +518,8 @@ export default function EditNode() {
                                         </div>
                                     </div>
                                     {/* Submit Button */}
-                                    <div className="mt-6 flex justify-end">
+                                    <div className="mt-6 flex justify-center md:justify-end">
+                                        {' '}
                                         <button
                                             type="button"
                                             onClick={handleSubmit}
@@ -537,10 +537,10 @@ export default function EditNode() {
                     {/* Advanced Settings Section */}
                     {activeSection === 'advancedSettings' && (
                         <div className="md:px-0">
-                            <div className="mt-6 mb-6 flex flex-col gap-4 px-6">
+                            <div className="mt-6 mb-6 flex flex-col gap-5 px-6">
                                 {/* Node Settings Section */}
-                                <div className="grid grid-cols-1 gap-6">
-                                    <div className="grid grid-cols-2 gap-6">
+                                <div className="flex flex-col gap-6">
+                                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                         {/* Node Name */}
                                         <div>
                                             <label htmlFor="name" className="mb-1 block text-sm font-semibold text-white">
@@ -586,9 +586,9 @@ export default function EditNode() {
                                                 onMouseEnter={() => setActiveTooltip('uploadLimit')}
                                                 onMouseLeave={() => setActiveTooltip(null)}
                                                 htmlFor="uploadLimit"
-                                                className="mb-1 block flex items-center gap-169 text-sm font-semibold text-white"
+                                                className="end mb-1 block flex items-center gap-36 text-sm font-semibold text-white"
                                             >
-                                                <div>
+                                                <div className="w-full">
                                                     Upload Limit <span className="text-red-500">*</span>
                                                 </div>
                                                 <div
@@ -615,7 +615,7 @@ export default function EditNode() {
                                                     value={node.upload_limit}
                                                     onChange={(e) => setNode({ ...node, upload_limit: Number(e.target.value) })}
                                                     className="w-full bg-transparent p-2 pl-3 text-cyan-300 placeholder-cyan-600 focus:outline-none"
-                                                    style={{ border: 'none' }} // quitamos border para que solo se vea el contenedor
+                                                    style={{ border: 'none' }}
                                                 />
 
                                                 {/* Unidad con línea vertical */}
@@ -629,7 +629,7 @@ export default function EditNode() {
                                         </div>
                                     </div>
                                     {/* SFTP Settings Section */}
-                                    <div className="mt-6 grid grid-cols-4 gap-6">
+                                    <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
                                         {/* SFTP Port */}
                                         <div>
                                             <label htmlFor="sftpPort" className="mb-1 block text-sm font-semibold text-white">
@@ -644,7 +644,7 @@ export default function EditNode() {
                                                     value={node.sftp_port}
                                                     onChange={(e) => setNode({ ...node, sftp_port: Number(e.target.value) })}
                                                     className="w-full bg-transparent p-2 pl-3 text-cyan-300 placeholder-cyan-600 focus:outline-none"
-                                                    style={{ border: 'none' }} // quitamos border para que solo se vea el contenedor
+                                                    style={{ border: 'none' }}
                                                 />
                                             </div>
                                             <p className="mt-1 text-xs text-gray-400">
@@ -665,7 +665,7 @@ export default function EditNode() {
                                                     value={node.sftp_alias}
                                                     onChange={(e) => setNode({ ...node, sftp_alias: e.target.value })}
                                                     className="w-full bg-transparent p-2 pl-3 text-cyan-300 placeholder-cyan-600 focus:outline-none"
-                                                    style={{ border: 'none' }} // quitamos border para que solo se vea el contenedor
+                                                    style={{ border: 'none' }}
                                                 />
                                             </div>
                                             <p className="mt-1 text-xs text-gray-400">
@@ -676,7 +676,7 @@ export default function EditNode() {
                                         {/* Use for Deployments */}
                                         <div>
                                             <label className="mb-1 block text-sm font-semibold text-white">Use for Deployments?</label>
-                                            <div className="flex gap-2">
+                                            <div className="flex flex-wrap gap-4 md:flex-nowrap">
                                                 <button
                                                     type="button"
                                                     className={`flex w-full cursor-pointer items-center gap-3 rounded border px-4 py-2 text-sm font-semibold select-none ${
@@ -707,7 +707,7 @@ export default function EditNode() {
                                             <label
                                                 onMouseEnter={() => setActiveTooltip('maintenance')}
                                                 onMouseLeave={() => setActiveTooltip(null)}
-                                                className="mb-1 block flex end items-center gap-22 text-sm font-semibold text-white"
+                                                className="end mb-1 block flex items-center gap-26 text-sm font-semibold text-white"
                                             >
                                                 Maintenance Mode
                                                 <div
@@ -725,7 +725,7 @@ export default function EditNode() {
                                                 </div>
                                             </label>
 
-                                            <div className="flex gap-2">
+                                            <div className="flex flex-wrap justify-center gap-2 md:flex-nowrap md:justify-start">
                                                 <button
                                                     type="button"
                                                     className={`flex w-full cursor-pointer items-center gap-3 rounded border px-4 py-2 text-sm font-semibold select-none ${
@@ -753,10 +753,8 @@ export default function EditNode() {
                                         </div>
                                     </div>
 
-                                    <div></div>
-
                                     {/* Memory, Disk, CPU */}
-                                    <div className="mt-6 grid grid-cols-[100px_160px_170px_350px_170px_270px] items-center gap-x-4 gap-y-6 text-sm text-white">
+                                    <div className="mt-4 grid grid-cols-1 items-center gap-x-2 gap-y-4 text-sm text-white md:grid-cols-[100px_160px_170px_350px_170px_270px]">
                                         {/* Memory */}
                                         <span>
                                             Memory <span className="text-red-500">*</span>
@@ -790,7 +788,7 @@ export default function EditNode() {
                                                 <span className="justify-self-end pr-2 whitespace-nowrap">
                                                     Memory Limit <span className="text-red-500">*</span>
                                                 </span>
-                                                <div className="relative flex items-center">
+                                                <div className="relative flex items-center gap-2">
                                                     <input
                                                         type="number"
                                                         value={memoryLimit}
@@ -810,7 +808,7 @@ export default function EditNode() {
                                                 <span className="justify-self-end pr-2 whitespace-nowrap">
                                                     Overallocate <span className="text-red-500">*</span>
                                                 </span>
-                                                <div className="relative flex items-center">
+                                                <div className="relative flex items-center gap-2">
                                                     <input
                                                         type="number"
                                                         value={memoryOverallocate}
@@ -992,15 +990,14 @@ export default function EditNode() {
                                             </>
                                         )}
                                     </div>
-
-                                    <div className="mt-6 flex justify-end">
-                                        <button
-                                            type="submit"
-                                            className="rounded bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-700"
-                                        >
-                                            Save Changes
-                                        </button>
-                                    </div>
+                                </div>
+                                <div className="mt-6 flex justify-end">
+                                    <button
+                                        type="submit"
+                                        className="rounded bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-700"
+                                    >
+                                        Save Changes
+                                    </button>
                                 </div>
                             </div>
                         </div>
