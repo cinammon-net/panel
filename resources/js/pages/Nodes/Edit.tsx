@@ -754,244 +754,251 @@ export default function EditNode() {
                                     </div>
 
                                     {/* Memory, Disk, CPU */}
-                                    <div className="mt-4 grid grid-cols-1 items-center gap-x-2 gap-y-4 text-sm text-white md:grid-cols-[100px_160px_170px_350px_170px_270px]">
+                                    <div className="mt-6 grid grid-cols-1 gap-6 text-sm text-white sm:grid-cols-2 md:grid-cols-3">
                                         {/* Memory */}
-                                        <span>
-                                            Memory <span className="text-red-500">*</span>
-                                        </span>
-                                        <div className="flex gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => setMemory('unlimited')}
-                                                className={`flex w-full cursor-pointer items-center gap-3 rounded border px-4 py-2 text-sm font-semibold transition-colors select-none ${
-                                                    memory === 'unlimited'
-                                                        ? 'border-green-500 bg-green-600 text-white dark:bg-green-700/80 dark:text-white dark:hover:bg-green-800'
-                                                        : 'border-cyan-700 bg-cyan-800 text-cyan-400 hover:bg-cyan-700 hover:text-white dark:bg-cyan-900/40 dark:text-cyan-300 dark:hover:bg-cyan-700/60'
-                                                }`}
-                                            >
-                                                Unlimited
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setMemory('limited')}
-                                                className={`flex w-full cursor-pointer items-center gap-3 rounded border px-4 py-2 text-sm font-semibold transition-colors select-none ${
-                                                    memory === 'limited'
-                                                        ? 'border-[#ff9f00] bg-[#ff9f00] text-white dark:bg-[#cc8700] dark:text-white dark:hover:bg-[#e0a629]'
-                                                        : 'border-cyan-700 bg-cyan-800 text-cyan-400 hover:bg-cyan-700 hover:text-white dark:bg-cyan-900/40 dark:text-cyan-300 dark:hover:bg-cyan-700/60'
-                                                }`}
-                                            >
-                                                Limited
-                                            </button>
-                                        </div>
-                                        {memory === 'limited' ? (
-                                            <>
-                                                <span className="justify-self-end pr-2 whitespace-nowrap">
-                                                    Memory Limit <span className="text-red-500">*</span>
-                                                </span>
-                                                <div className="relative flex items-center gap-2">
-                                                    <input
-                                                        type="number"
-                                                        value={memoryLimit}
-                                                        onChange={(e) => setMemoryLimit(e.target.value)}
-                                                        placeholder="0"
-                                                        className="w-full rounded-sm border border-gray-600 bg-[#222222] px-2 py-1 pr-12 text-white placeholder-gray-400 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        disabled
-                                                        className="absolute top-0 right-0 bottom-0 flex items-center rounded-sm border border-gray-600 bg-[#222222] px-3 text-xs text-gray-300"
-                                                    >
-                                                        MiB
-                                                    </button>
-                                                </div>
+                                        <div>
+                                            <span>
+                                                Memory <span className="text-red-500">*</span>
+                                            </span>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setMemory('unlimited')}
+                                                    className={`flex w-full cursor-pointer items-center gap-3 rounded border px-4 py-2 text-sm font-semibold transition-colors select-none ${
+                                                        memory === 'unlimited'
+                                                            ? 'border-green-500 bg-green-600 text-white dark:bg-green-700/80 dark:text-white dark:hover:bg-green-800'
+                                                            : 'border-cyan-700 bg-cyan-800 text-cyan-400 hover:bg-cyan-700 hover:text-white dark:bg-cyan-900/40 dark:text-cyan-300 dark:hover:bg-cyan-700/60'
+                                                    }`}
+                                                >
+                                                    Unlimited
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setMemory('limited')}
+                                                    className={`flex w-full cursor-pointer items-center gap-3 rounded border px-4 py-2 text-sm font-semibold transition-colors select-none ${
+                                                        memory === 'limited'
+                                                            ? 'border-[#ff9f00] bg-[#ff9f00] text-white dark:bg-[#cc8700] dark:text-white dark:hover:bg-[#e0a629]'
+                                                            : 'border-cyan-700 bg-cyan-800 text-cyan-400 hover:bg-cyan-700 hover:text-white dark:bg-cyan-900/40 dark:text-cyan-300 dark:hover:bg-cyan-700/60'
+                                                    }`}
+                                                >
+                                                    Limited
+                                                </button>
+                                            </div>
+                                            {memory === 'limited' ? (
+                                                <>
+                                                    <span className="justify-self-end pr-2 whitespace-nowrap">
+                                                        Memory Limit <span className="text-red-500">*</span>
+                                                    </span>
+                                                    <div className="relative flex items-center gap-2">
+                                                        <input
+                                                            type="number"
+                                                            value={memoryLimit}
+                                                            onChange={(e) => setMemoryLimit(e.target.value)}
+                                                            placeholder="0"
+                                                            className="w-full rounded-sm border border-gray-600 bg-[#222222] px-2 py-1 pr-12 text-white placeholder-gray-400 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            disabled
+                                                            className="absolute top-0 right-0 bottom-0 flex items-center rounded-sm border border-gray-600 bg-[#222222] px-3 text-xs text-gray-300"
+                                                        >
+                                                            MiB
+                                                        </button>
+                                                    </div>
 
-                                                <span className="justify-self-end pr-2 whitespace-nowrap">
-                                                    Overallocate <span className="text-red-500">*</span>
-                                                </span>
-                                                <div className="relative flex items-center gap-2">
-                                                    <input
-                                                        type="number"
-                                                        value={memoryOverallocate}
-                                                        onChange={(e) => setMemoryOverallocate(e.target.value)}
-                                                        placeholder="0"
-                                                        className="w-full rounded-sm border border-gray-600 bg-[#222222] px-2 py-1 pr-10 text-white placeholder-gray-400 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        disabled
-                                                        className="absolute top-0 right-0 bottom-0 flex items-center rounded-sm border border-gray-600 bg-[#222222] px-3 text-xs text-gray-300"
-                                                    >
-                                                        %
-                                                    </button>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span></span>
-                                                <span></span>
-                                                <span></span>
-                                                <span></span>
-                                            </>
-                                        )}
+                                                    <span className="justify-self-end pr-2 whitespace-nowrap">
+                                                        Overallocate <span className="text-red-500">*</span>
+                                                    </span>
+                                                    <div className="relative flex items-center gap-2">
+                                                        <input
+                                                            type="number"
+                                                            value={memoryOverallocate}
+                                                            onChange={(e) => setMemoryOverallocate(e.target.value)}
+                                                            placeholder="0"
+                                                            className="w-full rounded-sm border border-gray-600 bg-[#222222] px-2 py-1 pr-10 text-white placeholder-gray-400 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            disabled
+                                                            className="absolute top-0 right-0 bottom-0 flex items-center rounded-sm border border-gray-600 bg-[#222222] px-3 text-xs text-gray-300"
+                                                        >
+                                                            %
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span></span>
+                                                    <span></span>
+                                                    <span></span>
+                                                    <span></span>
+                                                </>
+                                            )}
+                                        </div>
                                         {/* Disk */}
-                                        <span>
-                                            Disk <span className="text-red-500">*</span>
-                                        </span>
-                                        <div className="flex gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => setDisk('unlimited')}
-                                                className={`flex w-full cursor-pointer items-center gap-3 rounded border px-4 py-2 text-sm font-semibold transition-colors select-none ${
-                                                    disk === 'unlimited'
-                                                        ? 'border-green-500 bg-green-600 text-white dark:bg-green-700/80 dark:text-white dark:hover:bg-green-800'
-                                                        : 'border-cyan-700 bg-cyan-800 text-cyan-400 hover:bg-cyan-700 hover:text-white dark:bg-cyan-900/40 dark:text-cyan-300 dark:hover:bg-cyan-700/60'
-                                                }`}
-                                            >
-                                                Unlimited
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setDisk('limited')}
-                                                className={`flex w-full cursor-pointer items-center gap-3 rounded border px-4 py-2 text-sm font-semibold transition-colors select-none ${
-                                                    disk === 'limited'
-                                                        ? 'border-[#ff9f00] bg-[#ff9f00] text-white dark:bg-[#cc8400]/80 dark:text-white dark:hover:bg-[#e6a600]'
-                                                        : 'border-cyan-700 bg-cyan-800 text-cyan-400 hover:bg-cyan-700 hover:text-white dark:bg-cyan-900/40 dark:text-cyan-300 dark:hover:bg-cyan-700/60'
-                                                }`}
-                                            >
-                                                Limited
-                                            </button>
-                                        </div>
-                                        {disk === 'limited' ? (
-                                            <>
-                                                <span className="justify-self-end pr-2 whitespace-nowrap">
-                                                    Disk Limit <span className="text-red-500">*</span>
-                                                </span>
-                                                <div className="relative flex items-center">
-                                                    <input
-                                                        type="number"
-                                                        value={diskLimit}
-                                                        onChange={(e) => setDiskLimit(e.target.value)}
-                                                        placeholder="0"
-                                                        className="w-full rounded-sm border border-gray-600 bg-[#222222] px-2 py-1 pr-12 text-white placeholder-gray-400 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        disabled
-                                                        className="absolute top-0 right-0 bottom-0 flex items-center rounded-sm border border-gray-600 bg-[#222222] px-3 text-xs text-gray-300"
-                                                    >
-                                                        MiB
-                                                    </button>
-                                                </div>
+                                        <div>
+                                            <span>
+                                                Disk <span className="text-red-500">*</span>
+                                            </span>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setDisk('unlimited')}
+                                                    className={`flex w-full cursor-pointer items-center gap-3 rounded border px-4 py-2 text-sm font-semibold transition-colors select-none ${
+                                                        disk === 'unlimited'
+                                                            ? 'border-green-500 bg-green-600 text-white dark:bg-green-700/80 dark:text-white dark:hover:bg-green-800'
+                                                            : 'border-cyan-700 bg-cyan-800 text-cyan-400 hover:bg-cyan-700 hover:text-white dark:bg-cyan-900/40 dark:text-cyan-300 dark:hover:bg-cyan-700/60'
+                                                    }`}
+                                                >
+                                                    Unlimited
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setDisk('limited')}
+                                                    className={`flex w-full cursor-pointer items-center gap-3 rounded border px-4 py-2 text-sm font-semibold transition-colors select-none ${
+                                                        disk === 'limited'
+                                                            ? 'border-[#ff9f00] bg-[#ff9f00] text-white dark:bg-[#cc8400]/80 dark:text-white dark:hover:bg-[#e6a600]'
+                                                            : 'border-cyan-700 bg-cyan-800 text-cyan-400 hover:bg-cyan-700 hover:text-white dark:bg-cyan-900/40 dark:text-cyan-300 dark:hover:bg-cyan-700/60'
+                                                    }`}
+                                                >
+                                                    Limited
+                                                </button>
+                                            </div>
+                                            {disk === 'limited' ? (
+                                                <>
+                                                    <span className="justify-self-end pr-2 whitespace-nowrap">
+                                                        Disk Limit <span className="text-red-500">*</span>
+                                                    </span>
+                                                    <div className="relative flex items-center">
+                                                        <input
+                                                            type="number"
+                                                            value={diskLimit}
+                                                            onChange={(e) => setDiskLimit(e.target.value)}
+                                                            placeholder="0"
+                                                            className="w-full rounded-sm border border-gray-600 bg-[#222222] px-2 py-1 pr-12 text-white placeholder-gray-400 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            disabled
+                                                            className="absolute top-0 right-0 bottom-0 flex items-center rounded-sm border border-gray-600 bg-[#222222] px-3 text-xs text-gray-300"
+                                                        >
+                                                            MiB
+                                                        </button>
+                                                    </div>
 
-                                                <span className="justify-self-end pr-2 whitespace-nowrap">
-                                                    Overallocate <span className="text-red-500">*</span>
-                                                </span>
-                                                <div className="relative flex items-center">
-                                                    <input
-                                                        type="number"
-                                                        value={diskOverallocate}
-                                                        onChange={(e) => setDiskOverallocate(e.target.value)}
-                                                        placeholder="0"
-                                                        className="w-full rounded-sm border border-gray-600 bg-[#222222] px-2 py-1 pr-10 text-white placeholder-gray-400 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        disabled
-                                                        className="absolute top-0 right-0 bottom-0 flex items-center rounded-sm border border-gray-600 bg-[#222222] px-3 text-xs text-gray-300"
-                                                    >
-                                                        %
-                                                    </button>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span></span>
-                                                <span></span>
-                                                <span></span>
-                                                <span></span>
-                                            </>
-                                        )}
+                                                    <span className="justify-self-end pr-2 whitespace-nowrap">
+                                                        Overallocate <span className="text-red-500">*</span>
+                                                    </span>
+                                                    <div className="relative flex items-center">
+                                                        <input
+                                                            type="number"
+                                                            value={diskOverallocate}
+                                                            onChange={(e) => setDiskOverallocate(e.target.value)}
+                                                            placeholder="0"
+                                                            className="w-full rounded-sm border border-gray-600 bg-[#222222] px-2 py-1 pr-10 text-white placeholder-gray-400 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            disabled
+                                                            className="absolute top-0 right-0 bottom-0 flex items-center rounded-sm border border-gray-600 bg-[#222222] px-3 text-xs text-gray-300"
+                                                        >
+                                                            %
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span></span>
+                                                    <span></span>
+                                                    <span></span>
+                                                    <span></span>
+                                                </>
+                                            )}
+                                        </div>
+
                                         {/* CPU */}
-                                        <span>
-                                            CPU <span className="text-red-500">*</span>
-                                        </span>
-                                        <div className="flex gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => setCpu('unlimited')}
-                                                className={`flex w-full cursor-pointer items-center gap-3 rounded border px-4 py-2 text-sm font-semibold transition-colors select-none ${
-                                                    cpu === 'unlimited'
-                                                        ? 'border-green-500 bg-green-600 text-white dark:bg-green-700/80 dark:text-white dark:hover:bg-green-800'
-                                                        : 'border-cyan-700 bg-cyan-800 text-cyan-400 hover:bg-cyan-700 hover:text-white dark:bg-cyan-900/40 dark:text-cyan-300 dark:hover:bg-cyan-700/60'
-                                                }`}
-                                            >
-                                                Unlimited
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setCpu('limited')}
-                                                className={`flex w-full cursor-pointer items-center gap-3 rounded border px-4 py-2 text-sm font-semibold transition-colors select-none ${
-                                                    cpu === 'limited'
-                                                        ? 'border-[#ff9f00] bg-[#ff9f00] text-white dark:bg-[#cc8400]/80 dark:text-white dark:hover:bg-[#e6a600]'
-                                                        : 'border-cyan-700 bg-cyan-800 text-cyan-400 hover:bg-cyan-700 hover:text-white dark:bg-cyan-900/40 dark:text-cyan-300 dark:hover:bg-cyan-700/60'
-                                                }`}
-                                            >
-                                                Limited
-                                            </button>
-                                        </div>
-                                        {cpu === 'limited' ? (
-                                            <>
-                                                <span className="justify-self-end pr-2 whitespace-nowrap">
-                                                    CPU Limit <span className="text-red-500">*</span>
-                                                </span>
-                                                <div className="relative flex items-center">
-                                                    <input
-                                                        type="number"
-                                                        value={cpuLimit}
-                                                        onChange={(e) => setCpuLimit(e.target.value)}
-                                                        placeholder="0"
-                                                        className="w-full rounded-sm border border-gray-600 bg-[#222222] px-2 py-1 pr-12 text-white placeholder-gray-400 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        disabled
-                                                        className="absolute top-0 right-0 bottom-0 flex items-center rounded-sm border border-gray-600 bg-[#222222] px-3 text-xs text-gray-300"
-                                                    >
-                                                        %
-                                                    </button>
-                                                </div>
+                                        <div>
+                                            <span>
+                                                CPU <span className="text-red-500">*</span>
+                                            </span>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setCpu('unlimited')}
+                                                    className={`flex w-full cursor-pointer items-center gap-3 rounded border px-4 py-2 text-sm font-semibold transition-colors select-none ${
+                                                        cpu === 'unlimited'
+                                                            ? 'border-green-500 bg-green-600 text-white dark:bg-green-700/80 dark:text-white dark:hover:bg-green-800'
+                                                            : 'border-cyan-700 bg-cyan-800 text-cyan-400 hover:bg-cyan-700 hover:text-white dark:bg-cyan-900/40 dark:text-cyan-300 dark:hover:bg-cyan-700/60'
+                                                    }`}
+                                                >
+                                                    Unlimited
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setCpu('limited')}
+                                                    className={`flex w-full cursor-pointer items-center gap-3 rounded border px-4 py-2 text-sm font-semibold transition-colors select-none ${
+                                                        cpu === 'limited'
+                                                            ? 'border-[#ff9f00] bg-[#ff9f00] text-white dark:bg-[#cc8400]/80 dark:text-white dark:hover:bg-[#e6a600]'
+                                                            : 'border-cyan-700 bg-cyan-800 text-cyan-400 hover:bg-cyan-700 hover:text-white dark:bg-cyan-900/40 dark:text-cyan-300 dark:hover:bg-cyan-700/60'
+                                                    }`}
+                                                >
+                                                    Limited
+                                                </button>
+                                            </div>
+                                            {cpu === 'limited' ? (
+                                                <>
+                                                    <span className="justify-self-end pr-2 whitespace-nowrap">
+                                                        CPU Limit <span className="text-red-500">*</span>
+                                                    </span>
+                                                    <div className="relative flex items-center">
+                                                        <input
+                                                            type="number"
+                                                            value={cpuLimit}
+                                                            onChange={(e) => setCpuLimit(e.target.value)}
+                                                            placeholder="0"
+                                                            className="w-full rounded-sm border border-gray-600 bg-[#222222] px-2 py-1 pr-12 text-white placeholder-gray-400 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            disabled
+                                                            className="absolute top-0 right-0 bottom-0 flex items-center rounded-sm border border-gray-600 bg-[#222222] px-3 text-xs text-gray-300"
+                                                        >
+                                                            %
+                                                        </button>
+                                                    </div>
 
-                                                <span className="justify-self-end pr-2 whitespace-nowrap">
-                                                    Overallocate <span className="text-red-500">*</span>
-                                                </span>
-                                                <div className="relative flex items-center">
-                                                    <input
-                                                        type="number"
-                                                        value={cpuOverallocate}
-                                                        onChange={(e) => setCpuOverallocate(e.target.value)}
-                                                        placeholder="0"
-                                                        className="w-full rounded-sm border border-gray-600 bg-[#222222] px-2 py-1 pr-10 text-white placeholder-gray-400 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        disabled
-                                                        className="absolute top-0 right-0 bottom-0 flex items-center rounded-sm border border-gray-600 bg-[#222222] px-3 text-xs text-gray-300"
-                                                    >
-                                                        %
-                                                    </button>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span></span>
-                                                <span></span>
-                                                <span></span>
-                                                <span></span>
-                                            </>
-                                        )}
+                                                    <span className="justify-self-end pr-2 whitespace-nowrap">
+                                                        Overallocate <span className="text-red-500">*</span>
+                                                    </span>
+                                                    <div className="relative flex items-center">
+                                                        <input
+                                                            type="number"
+                                                            value={cpuOverallocate}
+                                                            onChange={(e) => setCpuOverallocate(e.target.value)}
+                                                            placeholder="0"
+                                                            className="w-full rounded-sm border border-gray-600 bg-[#222222] px-2 py-1 pr-10 text-white placeholder-gray-400 focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            disabled
+                                                            className="absolute top-0 right-0 bottom-0 flex items-center rounded-sm border border-gray-600 bg-[#222222] px-3 text-xs text-gray-300"
+                                                        >
+                                                            %
+                                                        </button>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span></span>
+                                                    <span></span>
+                                                    <span></span>
+                                                    <span></span>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="mt-6 flex justify-end">
+                                <div className=" flex justify-end">
                                     <button
                                         type="submit"
                                         className="rounded bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-700"
