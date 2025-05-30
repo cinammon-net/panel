@@ -157,12 +157,11 @@ export default function Servers() {
                     {/* Table */}
                     <div className="bg-cyan overflow-hidden shadow-none transition dark:border-cyan-700 dark:bg-neutral-950 dark:shadow-[0_0_10px_#0ff3]">
                         <div className="min-w-full table-auto text-sm">
-                            <table className="min-w-full table-auto text-sm">
+                            <table className="w-full table-fixed text-sm">
                                 <thead className="border-b border-cyan-500 bg-cyan-900 text-cyan-200">
                                     <tr>
-                                        <th className="px-4 py-2 text-left">Conditions</th>
-
-                                        <th className="px-4 py-2 text-left">
+                                        <th className="w-[100px] px-4 py-2 text-left">Conditions</th>
+                                        <th className="w-1/6 px-4 py-2 text-left">
                                             <button
                                                 onClick={() => handleSort('name')}
                                                 className="flex items-center gap-2 text-cyan-400 hover:text-cyan-100"
@@ -179,8 +178,7 @@ export default function Servers() {
                                                 )}
                                             </button>
                                         </th>
-
-                                        <th className="px-4 py-2 text-left">
+                                        <th className="w-1/6 px-4 py-2 text-left">
                                             <button
                                                 onClick={() => handleSort('egg')}
                                                 className="flex items-center gap-2 text-cyan-400 hover:text-cyan-100"
@@ -197,8 +195,7 @@ export default function Servers() {
                                                 )}
                                             </button>
                                         </th>
-
-                                        <th className="px-4 py-2 text-left">
+                                        <th className="w-1/6 px-4 py-2 text-left">
                                             <button
                                                 onClick={() => handleSort('username')}
                                                 className="flex items-center gap-2 text-cyan-400 hover:text-cyan-100"
@@ -215,8 +212,7 @@ export default function Servers() {
                                                 )}
                                             </button>
                                         </th>
-
-                                        <th className="px-4 py-2 text-left">
+                                        <th className="w-1/6 px-4 py-2 text-left">
                                             <button
                                                 onClick={() => handleSort('allocation')}
                                                 className="flex items-center gap-2 text-cyan-400 hover:text-cyan-100"
@@ -233,8 +229,7 @@ export default function Servers() {
                                                 )}
                                             </button>
                                         </th>
-
-                                        <th className="px-4 py-2 text-left">
+                                        <th className="w-[100px] px-4 py-2 text-left">
                                             <button
                                                 onClick={() => handleSort('backups')}
                                                 className="flex items-center gap-2 text-cyan-400 hover:text-cyan-100"
@@ -251,14 +246,14 @@ export default function Servers() {
                                                 )}
                                             </button>
                                         </th>
+                                        <th className="w-[120px] px-4 py-2 text-right">Actions</th>
                                     </tr>
                                 </thead>
-
                                 <tbody>
                                     {groupBy === 'none' ? (
                                         servers.data.length === 0 ? (
                                             <tr>
-                                                <td colSpan={6} className="px-4 py-4 text-center text-cyan-600">
+                                                <td colSpan={7} className="px-4 py-4 text-center text-cyan-600">
                                                     No servers found.
                                                 </td>
                                             </tr>
@@ -280,10 +275,11 @@ export default function Servers() {
                                                             {item.status}
                                                         </span>
                                                     </td>
-                                                    <td className="px-4 py-2">{item.name}</td>
-                                                    <td className="px-4 py-2">{item.egg}</td>
-                                                    <td className="px-4 py-2">{item.username}</td>
-                                                    <td className="px-4 py-2">{item.allocation}</td>
+                                                    <td className="truncate px-4 py-2">{item.name}</td>
+                                                    <td className="truncate px-4 py-2">{item.egg}</td>
+                                                    <td className="truncate px-4 py-2">{item.username}</td>
+                                                    <td className="truncate px-4 py-2">{item.allocation}</td>
+                                                    <td className="px-4 py-2">{item.database ?? '-'}</td>
                                                     <td className="px-4 py-2 text-right">
                                                         <div className="flex justify-end gap-3" onClick={(e) => e.stopPropagation()}>
                                                             <button title="Edit" className="text-cyan-300 hover:text-cyan-100">
@@ -301,19 +297,18 @@ export default function Servers() {
                                             ))
                                         )
                                     ) : (
-                                        (sortedGroups.length > 0 ? sortedGroups : ['']).map((key) => (
+                                        sortedGroups.map((key) => (
                                             <React.Fragment key={key}>
                                                 <tr className="bg-black">
-                                                    <td colSpan={6} className="border-b border-cyan-800 px-4 py-2 text-sm font-bold text-cyan-400">
+                                                    <td colSpan={7} className="border-b border-cyan-800 px-4 py-2 text-sm font-bold text-cyan-400">
                                                         {groupBy === 'node' && `Node ${key}`}
                                                         {groupBy === 'egg' && `Egg ${key}`}
                                                         {groupBy === 'username' && `User ${key}`}
                                                     </td>
                                                 </tr>
-
                                                 {(groupedServers[key] ?? []).length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={6} className="px-4 py-4 text-center text-cyan-600">
+                                                        <td colSpan={7} className="px-4 py-4 text-center text-cyan-600">
                                                             No servers found.
                                                         </td>
                                                     </tr>
@@ -335,10 +330,11 @@ export default function Servers() {
                                                                     {item.status}
                                                                 </span>
                                                             </td>
-                                                            <td className="px-4 py-2">{item.name}</td>
-                                                            <td className="px-4 py-2">{item.egg}</td>
-                                                            <td className="px-4 py-2">{item.username}</td>
-                                                            <td className="px-4 py-2">{item.allocation}</td>
+                                                            <td className="truncate px-4 py-2">{item.name}</td>
+                                                            <td className="truncate px-4 py-2">{item.egg}</td>
+                                                            <td className="truncate px-4 py-2">{item.username}</td>
+                                                            <td className="truncate px-4 py-2">{item.allocation}</td>
+                                                            <td className="px-4 py-2">{item.database ?? '-'}</td>
                                                             <td className="px-4 py-2 text-right">
                                                                 <div className="flex justify-end gap-3" onClick={(e) => e.stopPropagation()}>
                                                                     <button title="Edit" className="text-cyan-300 hover:text-cyan-100">
