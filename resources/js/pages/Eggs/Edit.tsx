@@ -313,12 +313,14 @@ export default function EditEgg() {
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet" />
             </Head>
             <div className="min-h-screen bg-white p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
-                <div className="mb-6 flex items-center justify-between">
-                    <h1 className="text-3xl font-semibold tracking-widest text-cyan-400 drop-shadow-[0_0_8px_#0ff]">Edit {generalData.name}</h1>
-                    <div className="flex gap-2">
+                <div className="mb-6 flex flex-col items-center justify-between gap-4 sm:flex-row sm:gap-2">
+                    <h1 className="w-full text-center text-3xl font-semibold tracking-widest text-cyan-400 drop-shadow-[0_0_8px_#0ff] sm:w-auto sm:text-left">
+                        Edit {generalData.name}
+                    </h1>
+                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                         <button
                             type="button"
-                            className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+                            className="w-full rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 sm:w-auto"
                             onClick={() => {
                                 if (confirm(`¿Seguro que quieres eliminar el Egg "${generalData.name}"? Esta acción no se puede deshacer.`)) {
                                     router.delete(`/eggs/${generalData.id}`, {
@@ -338,14 +340,14 @@ export default function EditEgg() {
 
                         <button
                             type="button"
-                            className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+                            className="w-full rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 sm:w-auto"
                             onClick={() => toast.warning('Export functionality is not implemented yet.')}
                         >
                             Export
                         </button>
                         <button
                             type="button"
-                            className="rounded bg-blue-400 px-4 py-2 text-white hover:bg-blue-500"
+                            className="w-full rounded bg-blue-400 px-4 py-2 text-white hover:bg-blue-500 sm:w-auto"
                             onClick={() => setIsImportModalOpen(true)}
                         >
                             Import
@@ -353,21 +355,25 @@ export default function EditEgg() {
 
                         <EggFormModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} onSubmit={handleImportEgg} />
 
-                        <button type="button" className="rounded bg-cyan-600 px-4 py-2 text-black hover:bg-cyan-700" onClick={handleUpdateEgg}>
+                        <button
+                            type="button"
+                            className="w-full rounded bg-cyan-600 px-4 py-2 text-black hover:bg-cyan-700 sm:w-auto"
+                            onClick={handleUpdateEgg}
+                        >
                             Save changes
                         </button>
                     </div>
                 </div>
 
                 {/* Tabs */}
-                <div className="mb-6 flex space-x-4 border-b border-cyan-700">
+                <div className="mb-6 flex flex-wrap gap-4 border-b border-cyan-700">
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
-                            className={`border-b-2 px-4 pb-2 ${
+                            className={`w-full border-b-2 px-4 pb-2 sm:w-auto ${
                                 activeTab === tab.id ? 'border-cyan-500 text-cyan-500' : 'border-transparent hover:text-cyan-400'
-                            } transition`}
+                            } text-center transition`}
                         >
                             {tab.title}
                         </button>
