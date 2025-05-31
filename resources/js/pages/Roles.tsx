@@ -88,7 +88,11 @@ export default function Roles() {
 
                             <tbody>
                                 {roles.data.map((role) => (
-                                    <tr key={role.id} className="border-t border-pink-700 hover:bg-pink-300/10">
+                                    <tr
+                                        key={role.id}
+                                        className="cursor-pointer border-t border-pink-700 hover:bg-pink-300/10"
+                                        onClick={() => (window.location.href = `/roles/${role.id}/edit`)}
+                                    >
                                         <td className="px-4 py-3 font-semibold text-pink-500">{role.name}</td>
                                         <td className="px-4 py-3 text-pink-500">
                                             {role.has_all_permissions ? (
@@ -121,7 +125,7 @@ export default function Roles() {
                                                 <span className="text-neutral-500 italic">–</span>
                                             )}
                                         </td>
-                                        <td className="px-4 py-3 text-right">
+                                        <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                                             <Link href={`/roles/${role.id}/edit`} className="inline-flex items-center text-pink-300 hover:text-white">
                                                 <Pencil className="h-4 w-4" />
                                             </Link>
