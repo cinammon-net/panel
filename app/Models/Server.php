@@ -9,37 +9,48 @@ class Server extends Model
 {
     use HasFactory;
 
+    // Especificamos la tabla que este modelo usará
     protected $table = 'servers';
 
+    // Campos que pueden ser asignados masivamente
     protected $fillable = [
-        'uuid', 'uuidShort', 'node', 'name','active', 'owner', 'memory', 'swap',
-        'disk', 'io', 'cpu', 'egg_id','oom_disabled', 'ip', 'port',
-        'service', 'option', 'startup', 'daemonSecret', 'username', 'installed',
+        'uuid', 'uuid_short', 'node_id', 'name',
+        'active', 'owner_id', 'memory', 'swap',
+        'disk', 'io', 'cpu', 'egg_id',
+        'oom_disabled', 'ip', 'port', 'service',
+        'option', 'startup', 'daemon_secret',
+        'username', 'installed_at', 
+        'description', 'status',
+        'database_limit', 'allocation_limit',
+        'threads', 'backup_limit', 'docker_labels',
+        'allocation_id', 'primary_allocation',
+        'additional_allocations', 'run_install_script',
+        'start_after_install', 'bungee_version',
+        'bungee_jar_file', 'cpu_pinning', 'swap_memory',
     ];
 
     /**
-     * Relación: Egg al que pertenece el servidor
+     * Relación: Egg al que pertenece el servidor.
      */
     public function egg()
     {
-        return $this->belongsTo(Egg::class);
+        return $this->belongsTo(Egg::class); // Un servidor pertenece a un solo Egg
     }
 
     /**
-     * Relación opcional: Nodo al que pertenece el servidor
-     * (si el campo 'node' es una foreign key, puedes hacer esto)
+     * Relación: Nodo al que pertenece el servidor.
      */
     public function node()
     {
-        return $this->belongsTo(Node::class, 'node');
+        return $this->belongsTo(Node::class, 'node_id');  // Un servidor pertenece a un solo Nodo
     }
 
     /**
-     * Relación opcional: Usuario que es dueño del servidor
-     * (si tienes una tabla 'users' con ID igual al campo 'owner')
+     * Relación: Usuario propietario del servidor.
      */
     public function ownerUser()
     {
-        return $this->belongsTo(User::class, 'owner');
+        return $this->belongsTo(User::class, 'owner_id');  // Un servidor pertenece a un solo propietario (usuario)
     }
+
 }
