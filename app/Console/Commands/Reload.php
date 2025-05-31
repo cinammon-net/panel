@@ -11,6 +11,9 @@ class Reload extends Command
 
     public function handle(): void
     {
+        // Limpiar la consola antes de comenzar
+        $this->line("\033[H\033[J"); // Esto limpia la consola
+
         // Iniciar el proceso con el estilo de barra de carga
         $this->line($this->loadingBar('Starting Reload Changes process...'));
 
@@ -125,6 +128,7 @@ class Reload extends Command
         // Imprimir el mensaje de inicio de la barra
         $this->output->write($message . "\n");
         $this->output->write("[");
+
         for ($i = 0; $i < $barLength; $i++) {
             usleep(50000); // Pausa para simular carga
             $filledLength = $i + 1;
