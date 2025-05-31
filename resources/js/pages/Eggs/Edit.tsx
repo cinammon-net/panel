@@ -6,6 +6,7 @@ import { Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+
 import EggFormModal from '@/components/EggFormModal';
 const tabs = [
     { id: 'config', title: 'Configuration' },
@@ -13,6 +14,7 @@ const tabs = [
     { id: 'variables', title: 'Egg Variables' },
     { id: 'install', title: 'Install Script' },
 ];
+
 
 // Decodifica JSON para mostrar formateado sin errores
 function decodeJsonString(str: string | undefined) {
@@ -39,6 +41,8 @@ function parseDockerImages(raw: any) {
         return [];
     }
 }
+
+
 
 export default function EditEgg() {
     type FlashType = { success?: string; error?: string };
@@ -385,7 +389,7 @@ export default function EditEgg() {
                     {activeTab === 'config' && (
                         <section className="space-y-6">
                             {/* Configuración básica */}
-                            <div className="grid grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                                 <div>
                                     <label className="mb-1 block text-sm font-semibold" htmlFor="name">
                                         Name*
@@ -401,7 +405,6 @@ export default function EditEgg() {
                                     />
                                     <p className="mt-1 text-xs text-cyan-500">A simple, human-readable name to use as an identifier for this Egg.</p>
                                 </div>
-
                                 <div>
                                     <label className="mb-1 block text-sm font-semibold" htmlFor="uuid">
                                         Egg UUID
@@ -417,7 +420,6 @@ export default function EditEgg() {
                                         This is the globally unique identifier for this Egg which Wings uses as an identifier.
                                     </p>
                                 </div>
-
                                 <div>
                                     <label className="mb-1 block text-sm font-semibold" htmlFor="id">
                                         Egg ID
@@ -432,7 +434,7 @@ export default function EditEgg() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                 <div>
                                     <label className="mb-1 block text-sm font-semibold" htmlFor="description">
                                         Description
@@ -486,7 +488,7 @@ export default function EditEgg() {
                                 </p>
                             </div>
 
-                            <div className="grid grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                                 <div>
                                     <label className="mb-1 block text-sm font-semibold" htmlFor="file_denylist">
                                         File Denylist
@@ -520,7 +522,7 @@ export default function EditEgg() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                 <div>
                                     <label className="mb-1 block text-sm font-semibold" htmlFor="tags">
                                         Tags
@@ -543,9 +545,11 @@ export default function EditEgg() {
                                         The URL to check for updates to this Egg. If left blank, no update checking will be performed.
                                     </p>
                                 </div>
+                            </div>
 
-                                <section className="col-span-2 mt-6">
-                                    <h2 className="mb-4 font-semibold text-cyan-400">Docker Images</h2>
+                            <section className="mt-6">
+                                <h2 className="mb-4 font-semibold text-cyan-400">Docker Images</h2>
+                                <div className="overflow-x-auto">
                                     <table className="w-full border-collapse overflow-hidden rounded-lg border border-cyan-700 text-cyan-400">
                                         <thead>
                                             <tr className="rounded-t-lg border-b border-cyan-600 bg-[#1a1a1a] text-center text-sm">
@@ -556,42 +560,39 @@ export default function EditEgg() {
                                         </thead>
                                         <tbody className="text-center">
                                             {(Array.isArray(generalData.docker_images) ? generalData.docker_images : []).map(
-                                                (img: { name: string; uri: string }, i: number) => (
-                                                    <tr key={i} className={i % 2 === 0 ? 'bg-[#121212]' : 'bg-[#1a1a1a]'}>
+                                                (
+                                                    img: { name: string | number | readonly string[] | undefined; uri: string | number | readonly string[] | undefined; },
+                                                    index: number
+                                                ) => (
+                                                    <tr key={index} className={index % 2 === 0 ? 'bg-[#121212]' : 'bg-[#1a1a1a]'}>
                                                         <td className="border-b border-cyan-700 px-3 py-1.5 text-white">
-                                                            <div className="flex items-center justify-center">
-                                                                <input
-                                                                    type="text"
-                                                                    value={img.name}
-                                                                    onChange={(e) => updateDockerImage(i, 'name', e.target.value)}
-                                                                    className="w-full bg-transparent text-center text-white focus:outline-none"
-                                                                />
-                                                            </div>
+                                                            <input
+                                                                type="text"
+                                                                value={img.name}
+                                                                onChange={(e) => updateDockerImage(index, 'name', e.target.value)}
+                                                                className="w-full bg-transparent text-center text-white focus:outline-none"
+                                                            />
                                                         </td>
                                                         <td className="border-b border-cyan-700 px-3 py-1.5 break-all text-cyan-400">
-                                                            <div className="flex items-center justify-center">
-                                                                <input
-                                                                    type="text"
-                                                                    value={img.uri}
-                                                                    onChange={(e) => updateDockerImage(i, 'uri', e.target.value)}
-                                                                    className="w-full bg-transparent text-center text-cyan-400 focus:outline-none"
-                                                                />
-                                                            </div>
+                                                            <input
+                                                                type="text"
+                                                                value={img.uri}
+                                                                onChange={(e) => updateDockerImage(index, 'uri', e.target.value)}
+                                                                className="w-full bg-transparent text-center text-cyan-400 focus:outline-none"
+                                                            />
                                                         </td>
                                                         <td className="border-b border-cyan-700 px-3 py-1.5">
-                                                            <div className="flex items-center justify-center">
-                                                                <button
-                                                                    type="button"
-                                                                    className="rounded bg-red-600 px-2 py-1 text-white transition hover:bg-red-700"
-                                                                    onClick={() => removeDockerImage(i)}
-                                                                    aria-label={`Remove Docker Image ${img.name}`}
-                                                                >
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </button>
-                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                className="rounded bg-red-600 px-2 py-1 text-white transition hover:bg-red-700"
+                                                                onClick={() => removeDockerImage(index)}
+                                                                aria-label={`Remove Docker Image ${img.name}`}
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </button>
                                                         </td>
                                                     </tr>
-                                                ),
+                                                )
                                             )}
                                         </tbody>
                                         <tfoot>
@@ -608,14 +609,14 @@ export default function EditEgg() {
                                             </tr>
                                         </tfoot>
                                     </table>
-                                    <p className="mt-2 text-xs text-cyan-500">The docker images available to servers using this Egg.</p>
-                                </section>
-                            </div>
+                                </div>
+                                <p className="mt-2 text-xs text-cyan-500">The docker images available to servers using this Egg.</p>
+                            </section>
                         </section>
                     )}
                     {activeTab === 'process' && (
                         <section className="space-y-6 text-cyan-400">
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                 <div>
                                     <label className="mb-1 block text-sm font-semibold" htmlFor="copyFrom">
                                         Copy Settings From
@@ -635,7 +636,6 @@ export default function EditEgg() {
                                             </option>
                                         ))}
                                     </select>
-
                                     <p className="mt-1 text-xs text-cyan-400">
                                         If you would like to default to settings from another Egg select it from the menu above.
                                     </p>
@@ -656,7 +656,7 @@ export default function EditEgg() {
                                 </div>
                             </div>
 
-                            <div className="mt-4 grid grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                                 <div>
                                     <label className="mb-1 block text-sm font-semibold" htmlFor="startConfig">
                                         Start Configuration
@@ -685,7 +685,7 @@ export default function EditEgg() {
                                     />
                                 </div>
 
-                                <div>
+                                <div className="md:col-span-2">
                                     <label className="mb-1 block text-sm font-semibold" htmlFor="logConfig">
                                         Log Configuration
                                     </label>
@@ -705,7 +705,7 @@ export default function EditEgg() {
                     {activeTab === 'variables' && (
                         <section>
                             {/* Botones para colapsar y expandir */}
-                            <div className="mb-4 flex gap-2">
+                            <div className="mb-4 flex flex-wrap gap-2">
                                 <button type="button" onClick={collapseAll} className="rounded bg-cyan-600 px-4 py-2 hover:bg-cyan-700">
                                     Collapse All
                                 </button>
@@ -714,7 +714,7 @@ export default function EditEgg() {
                                 </button>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 {variables.map((variable, index) => (
                                     <div key={index} className="relative rounded border border-cyan-700 bg-[#121212] p-4 text-cyan-300">
                                         {/* Botón eliminar */}
@@ -781,7 +781,7 @@ export default function EditEgg() {
                                                     <legend className="px-2 text-sm font-semibold text-cyan-600 dark:text-cyan-400">
                                                         Users Permissions
                                                     </legend>
-                                                    <div className="flex items-center gap-4">
+                                                    <div className="flex flex-wrap items-center gap-4">
                                                         <label className="flex items-center gap-2">
                                                             <input
                                                                 type="checkbox"
@@ -831,7 +831,7 @@ export default function EditEgg() {
 
                     {activeTab === 'install' && (
                         <div className="space-y-6">
-                            <div className="grid grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
                                 <div>
                                     <label className="mb-1 block text-sm font-semibold" htmlFor="copySettings">
                                         Copy Settings From
@@ -885,7 +885,7 @@ export default function EditEgg() {
                                 </div>
                             </div>
 
-                            <div className="col-span-3 mt-4">
+                            <div className="mt-4">
                                 <label className="mb-1 block text-sm font-semibold" htmlFor="installScript">
                                     Install Script
                                 </label>
