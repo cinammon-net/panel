@@ -4,7 +4,7 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { Activity, BadgeInfo, BookOpenCheck, Bookmark, Database, Egg, FolderGit2, HeartPulse, KeyRound, LayoutGrid, Radio, Server, Settings, Ticket, Users, Webhook } from 'lucide-react';
+import { Activity, BadgeInfo, BookOpenCheck, Bookmark, Database, Egg, FolderGit2, HeartPulse, KeyRound, LayoutGrid,  Radio, Server, Settings, Ticket, Users, Webhook, } from 'lucide-react'; 
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -43,38 +43,41 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+
     return (
-        <Sidebar
-            collapsible="icon"
-            variant="inset"
-            className="border-r border-neutral-300 bg-white font-[Orbitron] transition-colors dark:border-pink-500 dark:bg-black"
-        >
-            <SidebarHeader className="border-b border-neutral-300 dark:border-pink-500">
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
-                            <Link href="/dashboard" prefetch>
-                                <div className="flex items-center justify-center gap-2">
-                                    <AppLogo />
-                                </div>
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            </SidebarHeader>
+        <>
+            <Sidebar
+                collapsible="icon"
+                variant="floating"
+                className="z-40 border-r border-neutral-300 bg-white font-[Orbitron] transition-colors dark:border-pink-500 dark:bg-neutral-900"
+            >
+                <SidebarHeader className="border-b border-neutral-300 dark:border-pink-500">
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <SidebarMenuButton size="lg" asChild>
+                                <Link href="/dashboard" prefetch>
+                                    <div className="flex items-center justify-center gap-2">
+                                        <AppLogo />
+                                    </div>
+                                </Link>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
+                </SidebarHeader>
 
-            <SidebarContent className="pt-6">
-                <div className="space-y-2 [&_a]:flex [&_a]:items-center [&_a]:gap-3 [&_a]:rounded-md [&_a]:px-3 [&_a]:py-2 [&_a]:transition-all [&_a]:hover:bg-neutral-100 [&_a]:hover:text-black dark:[&_a]:hover:bg-pink-500/10 dark:[&_a]:hover:text-pink-400">
-                    <NavMain items={mainNavItems} />
-                </div>
-            </SidebarContent>
+                <SidebarContent className="pt-6">
+                    <div className="space-y-2 [&_a]:flex [&_a]:items-center [&_a]:gap-3 [&_a]:rounded-md [&_a]:px-3 [&_a]:py-2 [&_a]:transition-all [&_a]:hover:bg-neutral-100 [&_a]:hover:text-black dark:[&_a]:hover:bg-pink-500/10 dark:[&_a]:hover:text-pink-400">
+                        <NavMain items={mainNavItems} />
+                    </div>
+                </SidebarContent>
 
-            <SidebarFooter className="mt-auto border-t border-neutral-300 dark:border-pink-500">
-                <div className="space-y-2 [&_a]:flex [&_a]:items-center [&_a]:gap-3 [&_a]:rounded-md [&_a]:px-3 [&_a]:py-2 [&_a]:transition-all [&_a]:hover:bg-neutral-100 [&_a]:hover:text-black dark:[&_a]:hover:bg-pink-500/10 dark:[&_a]:hover:text-pink-400">
-                    <NavFooter items={footerNavItems} />
-                </div>
-                <NavUser />
-            </SidebarFooter>
-        </Sidebar>
+                <SidebarFooter className="mt-auto border-t border-neutral-300 dark:border-pink-500">
+                    <div className="space-y-2 [&_a]:flex [&_a]:items-center [&_a]:gap-3 [&_a]:rounded-md [&_a]:px-3 [&_a]:py-2 [&_a]:transition-all [&_a]:hover:bg-neutral-100 [&_a]:hover:text-black dark:[&_a]:hover:bg-pink-500/10 dark:[&_a]:hover:text-pink-400">
+                        <NavFooter items={footerNavItems} />
+                    </div>
+                    <NavUser />
+                </SidebarFooter>
+            </Sidebar>
+        </>
     );
 }
