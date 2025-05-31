@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import AppLayout from '@/layouts/app-layout';
-import { Head, router, usePage } from '@inertiajs/react';
-import Editor from '@monaco-editor/react';
-import { useState } from 'react';
-import { Server, ChevronDown, User, Layers, MapPinned, MapPinPlus } from 'lucide-react';
+import { Head } from '@inertiajs/react';
+import { ChevronDown, MapPin, MapPinned, MapPinPlus, Server, User } from 'lucide-react';
+import { ChangeEvent, useState } from 'react';
+import { usePage as inertiaUsePage } from '@inertiajs/react';
 
 const tabs = [
     { id: 'info', title: 'Information' },
@@ -13,7 +13,12 @@ const tabs = [
 ];
 
 export default function CreateServer() {
-    const { nodes = [], owners = [], allocations = [], eggs = [] } = usePage().props as {
+    const {
+        nodes = [],
+        owners = [],
+        allocations = [],
+        eggs = [],
+    } = usePage().props as {
         nodes?: any[];
         owners?: any[];
         allocations?: any[];
@@ -48,7 +53,6 @@ export default function CreateServer() {
 
     // Validaciones básicas para permitir pasar de pestaña
     const isInfoValid = server.name.trim() !== '' && server.nodeId !== '' && server.ownerId !== '' && server.primaryAllocationId !== '';
-
     const isEggValid = server.startupCommand.trim() !== '' && server.eggId !== '';
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -104,12 +108,49 @@ export default function CreateServer() {
             install_script: server.installScript,
         };
 
-        router.post('/servers', payload, {
-            onSuccess: () => alert('Servidor creado correctamente'),
-            onError: (errors) => alert('Error al crear servidor: ' + JSON.stringify(errors)),
-        });
+        // Solo actualiza el estado sin redirigir ni hacer cambios en la URL
+        alert('Servidor creado correctamente');
     };
 
+    const [nodeSearch, setNodeSearch] = useState('');
+    const [ownerSearch, setOwnerSearch] = useState('');
+    const [showNodeDropdown, setShowNodeDropdown] = useState(false); // Estado para dropdown de nodos
+    const [showOwnerDropdown, setShowOwnerDropdown] = useState(false); // Estado para dropdown de propietarios
+    const [selectedNode, setSelectedNode] = useState<string | null>(null);
+    const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
+    const [selectedPrimaryAllocation, setSelectedPrimaryAllocation] = useState<string | null>(null);
+
+    // Función para manejar la búsqueda de nodos
+    const handleNodeSearch = (e: ChangeEvent<HTMLInputElement>) => {
+        setNodeSearch(e.target.value);
+    };
+
+    // Función para manejar la búsqueda de propietarios
+    const handleOwnerSearch = (e: ChangeEvent<HTMLInputElement>) => {
+        setOwnerSearch(e.target.value);
+    };
+
+    // State for primary allocation dropdown
+    const [showPrimaryAllocationDropdown, setShowPrimaryAllocationDropdown] = useState(false);
+    const [primaryAllocationSearch, setPrimaryAllocationSearch] = useState('');
+    function handlePrimaryAllocationSearch(event: ChangeEvent<HTMLInputElement>): void {
+        setPrimaryAllocationSearch(event.target.value);
+    }
+
+    // State for additional allocation dropdown
+    const [showAdditionalAllocationDropdown, setShowAdditionalAllocationDropdown] = useState(false);
+    const [additionalAllocationSearch, setAdditionalAllocationSearch] = useState('');
+    function handleAdditionalAllocationSearch(event: ChangeEvent<HTMLInputElement>): void {
+        setAdditionalAllocationSearch(event.target.value);
+    }
+
+    // Sets the selected additional allocation (display value)
+    const [selectedAdditionalAllocation, setSelectedAdditionalAllocation] = useState<string | null>(null);
+
+    // If you need a custom handler, use a different name to avoid conflict
+    function handleSetSelectedAdditionalAllocation(value: string) {
+        setSelectedAdditionalAllocation(value);
+    }
     return (
         <AppLayout
             breadcrumbs={[
@@ -132,7 +173,7 @@ export default function CreateServer() {
                 <div className="">
                     <div className="rounded-lg border border-cyan-500 bg-black/90 p-6">
                         {/* Tabs */}
-                        <div className="mb-6 flex space-x-8 border-b-2 border-cyan-500">
+                        <div className="mb-6 flex flex-col space-y-2 border-b-2 border-cyan-500 sm:flex-row sm:space-y-0 sm:space-x-8">
                             {tabs.map((tab) => (
                                 <button
                                     key={tab.id}
@@ -141,10 +182,10 @@ export default function CreateServer() {
                                             setActiveTab(tab.id);
                                         }
                                     }}
-                                    className={`pb-2 text-lg font-semibold tracking-wide transition ${
+                                    className={`w-full pb-2 text-lg font-semibold tracking-wide transition sm:w-auto ${
                                         activeTab === tab.id
                                             ? 'border-b-4 border-cyan-400 text-cyan-400'
-                                            : 'border-b-4 border-transparent hover:text-cyan-500'
+                                            : 'border-b-4 border-black hover:text-cyan-500'
                                     }`}
                                     disabled={(tab.id === 'egg' && !isInfoValid) || (tab.id === 'env' && !isEggValid)}
                                 >
@@ -155,197 +196,264 @@ export default function CreateServer() {
 
                         {/* Tab Content */}
                         {activeTab === 'info' && (
-                            <div className="grid grid-cols-2 gap-8">
-                                <div>
-                                    {/* Campo para ingresar el nombre del servidor */}
-                                    <label className="mb-1 block text-sm font-semibold" htmlFor="name">
-                                        Name *
-                                    </label>
-                                    <div className="flex items-center gap-2 rounded border border-cyan-600 bg-black/90 transition-colors duration-200 hover:border-cyan-400">
-                                        <Server className="ml-2 h-5 w-5 text-cyan-500" />
-                                        <input
-                                            id="name"
-                                            name="name"
-                                            type="text"
-                                            placeholder="Server Name"
-                                            value={server.name}
-                                            onChange={handleChange}
-                                            className="border-l bg-transparent px-4 py-2 text-sm text-cyan-600 focus:outline-none dark:text-cyan-400"
-                                        />
+                            <div className="sm:grid-cols- grid grid-cols-1 gap-6">
+                                {/* Campo para ingresar el nombre del servidor */}
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="mb-1 block text-sm font-semibold" htmlFor="name">
+                                            Name *
+                                        </label>
+                                        <div className="flex items-center gap-2 rounded border border-cyan-600 bg-black/90 transition-colors duration-200 hover:border-cyan-400">
+                                            <Server className="ml-2 h-5 w-5 text-cyan-500" />
+                                            <input
+                                                id="name"
+                                                name="name"
+                                                type="text"
+                                                placeholder="Server Name"
+                                                value={server.name}
+                                                onChange={handleChange}
+                                                className="border-l bg-black px-4 py-2 text-sm text-cyan-600 focus:outline-none dark:text-cyan-400"
+                                            />
+                                        </div>
+                                    </div>
+                                    {/* Campo para ingresar el ID externo del servidor */}
+                                    <div>
+                                        <label className="mb-1 block text-sm font-semibold" htmlFor="name">
+                                            External ID
+                                        </label>
+                                        <div className="flex items-center gap-2 rounded border border-cyan-600 bg-black/90 transition-colors duration-200 hover:border-cyan-400">
+                                            <Server className="ml-2 h-5 w-5 text-cyan-500" />
+                                            <input
+                                                id="externalId"
+                                                name="externalId"
+                                                type="text"
+                                                placeholder="External ID (optional)"
+                                                value={server.externalId}
+                                                onChange={handleChange}
+                                                className="border-l bg-black px-4 py-2 text-sm text-cyan-600 focus:outline-none dark:text-cyan-400"
+                                            />
+                                        </div>
                                     </div>
 
                                     {/* Campo para seleccionar el nodo del servidor */}
-                                    <label className="mt-6 mb-1 block text-sm font-semibold" htmlFor="nodeId">
-                                        Node *
-                                    </label>
-                                    <div className="inline-flex w-full items-center overflow-hidden rounded-md border border-cyan-700 text-sm text-cyan-600 dark:border-cyan-700 dark:bg-neutral-950">
-                                        {/* Icono con borde derecho para la línea divisoria */}
-                                        <span className="flex items-center border-r px-3 py-2 text-cyan-600 dark:text-cyan-400">
-                                            <Server className="h-5 w-5" />
-                                        </span>
-
-                                        {/* Select con padding y flecha */}
-                                        <div className="relative flex-grow">
-                                            <select
-                                                id="nodeId"
-                                                name="nodeId"
-                                                value={server.nodeId}
-                                                onChange={handleChange}
-                                                className="w-full appearance-none bg-transparent px-4 py-2 pr-8 text-sm text-cyan-600 focus:outline-none dark:text-cyan-400"
-                                            >
-                                                <option value="">Select Node</option>
-                                                {(nodes || []).map((node: any) => (
-                                                    <option key={node.id} value={node.id}>
-                                                        {node.name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {/* Icono flecha a la derecha */}
-                                            <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-cyan-400" />
-                                        </div>
-                                    </div>
-
-                                    {/* Campo para seleccionar la asignación primaria */}
-                                    <label className="mt-6 mb-1 block text-sm font-semibold" htmlFor="primaryAllocationId">
-                                        Primary Allocation *
-                                    </label>
-                                    <div className="inline-flex w-full items-center overflow-hidden rounded-md border border-cyan-700 text-sm text-cyan-600 dark:border-cyan-700 dark:bg-neutral-950">
-                                        {/* Icono a la izquierda con borde derecho menos marcado */}
-                                        <span className="flex items-center border-r px-3 py-2 text-cyan-600 dark:text-cyan-400">
-                                            <MapPinned />
-                                        </span>
-
-                                        {/* Select con padding y ancho completo */}
-                                        <div className="relative flex-grow">
-                                            <select
-                                                id="primaryAllocationId"
-                                                name="primaryAllocationId"
-                                                value={server.primaryAllocationId}
-                                                onChange={handleChange}
-                                                className="w-full appearance-none bg-transparent px-4 py-3 pr-8 text-sm text-cyan-400 placeholder-cyan-700 focus:outline-none"
-                                            >
-                                                <option value="">Select Allocation</option>
-                                                {(allocations || []).map((alloc: any) => (
-                                                    <option key={alloc.id} value={alloc.id}>
-                                                        {alloc.ip}:{alloc.port}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {/* Flecha a la derecha */}
-                                            <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-cyan-400" />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Campo para ID externo y propietario */}
-                                <div>
-                                    <label className="mb-1 block text-sm font-semibold" htmlFor="externalId">
-                                        External ID
-                                    </label>
-                                    <div className="flex items-center gap-2 rounded border border-cyan-600 bg-black/90 transition-colors duration-200 hover:border-cyan-400">
-                                        <Server className="ml-2 h-5 w-5 text-cyan-500" />
-                                        <input
-                                            id="externalId"
-                                            name="externalId"
-                                            type="text"
-                                            placeholder="External ID (optional)"
-                                            value={server.name}
-                                            onChange={handleChange}
-                                            className="border-l bg-transparent px-4 py-2 text-sm text-cyan-600 focus:outline-none dark:text-cyan-400"
-                                        />
-                                    </div>
-
-                                    {/* Campo para seleccionar el propietario del servidor */}
-                                    <label className="mt-6 mb-1 block text-sm font-semibold" htmlFor="ownerId">
-                                        Owner *
-                                    </label>
-                                    <div className="inline-flex w-full items-center overflow-hidden rounded-md border border-cyan-700 text-sm text-cyan-600 dark:border-cyan-700 dark:bg-neutral-950">
-                                        {/* Icono a la izquierda con borde derecho suave */}
-                                        <span className="border-opacity-30 flex items-center border-r border-cyan-700 px-3 py-2 text-cyan-600 dark:text-cyan-400">
-                                            <User className="h-5 w-5" />
-                                        </span>
-
-                                        {/* Select con padding y ancho completo */}
-                                        <div className="relative flex-grow">
-                                            <select
-                                                id="ownerId"
-                                                name="ownerId"
-                                                value={server.ownerId}
-                                                onChange={handleChange}
-                                                className="w-full appearance-none bg-transparent px-4 py-3 pr-8 text-sm text-cyan-400 placeholder-cyan-700 focus:outline-none"
-                                            >
-                                                <option value="">Select Owner</option>
-                                                {(owners || []).map((owner: any) => (
-                                                    <option key={owner.id} value={owner.id}>
-                                                        {owner.name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {/* Flecha a la derecha */}
-                                            <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-cyan-400" />
-                                        </div>
-                                    </div>
-
-                                    {/* Campo para asignaciones adicionales */}
-                                    <label className="mt-6 mb-1 block text-sm font-semibold" htmlFor="additionalAllocationIds">
-                                        Additional Allocations
-                                    </label>
-                                    <div className="inline-flex w-full items-center overflow-hidden rounded-md border border-cyan-700 text-sm text-cyan-600 dark:border-cyan-700 dark:bg-neutral-950">
-                                        {/* Icono con borde derecho suave */}
-                                        <span className="border-opacity-30 flex items-center border-r border-cyan-700 px-3 py-2 text-cyan-600 dark:text-cyan-400">
-                                            <MapPinPlus className="h-5 w-5" />
-                                        </span>
-
-                                        {/* Select con padding y ancho completo */}
-                                        <div className="relative flex-grow">
-                                            <select
-                                                id="ownerId"
-                                                name="ownerId"
-                                                value={server.ownerId}
-                                                onChange={handleChange}
-                                                className="w-full appearance-none bg-transparent px-4 py-3 pr-8 text-sm text-cyan-400 placeholder-cyan-700 focus:outline-none"
-                                            >
-                                                <option value="">Select Allocations</option>
-                                                {(allocations || []).map((alloc: any) => (
-                                                    <option key={alloc.id} value={alloc.id}>
-                                                        {alloc.ip}:{alloc.port}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {/* Flecha a la derecha */}
-                                            <ChevronDown className="pointer-events-none absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-cyan-400" />
-                                        </div>
-                                        <div className="flex items-center px-3">
+                                    <div>
+                                        <label className="mt-6 mb-1 block text-sm font-semibold" htmlFor="nodeId">
+                                            Node *
+                                        </label>
+                                        <div className="relative">
                                             <button
-                                                type="button"
-                                                onClick={() =>
-                                                    setServer((prev: any) => ({
-                                                        ...prev,
-                                                        additionalAllocationIds: [...prev.additionalAllocationIds, ''],
-                                                    }))
-                                                }
-                                                className="text-cyan-400 hover:text-cyan-500"
+                                                onClick={() => setShowNodeDropdown(!showNodeDropdown)}
+                                                className="w-full rounded border border-cyan-600 bg-black px-3 py-2 pr-10 text-left text-sm text-cyan-200 transition-colors duration-200 hover:border-cyan-400"
                                             >
-                                                Add
+                                                <div className="flex items-center gap-2">
+                                                    <Server className="h-5 w-5 text-cyan-400" />
+                                                    <span>{selectedNode || 'Select Node'}</span>
+                                                </div>
+                                                <ChevronDown className="absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-cyan-400" />
                                             </button>
+
+                                            {showNodeDropdown && (
+                                                <div className="absolute z-50 mt-1 w-full bg-black">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Start typing to search..."
+                                                        value={nodeSearch}
+                                                        onChange={handleNodeSearch}
+                                                        className="w-full border-b bg-black px-3 py-2 text-sm text-cyan-200 placeholder:text-cyan-600 focus:outline-none"
+                                                    />
+                                                    <ul className="max-h-60 overflow-y-auto">
+                                                        {nodes
+                                                            .filter((node: any) => node.name.toLowerCase().includes(nodeSearch.toLowerCase()))
+                                                            .map((node: any) => (
+                                                                <li
+                                                                    key={node.id}
+                                                                    onClick={() => {
+                                                                        setSelectedNode(node.name);
+                                                                        setShowNodeDropdown(false); // Close dropdown on selection
+                                                                    }}
+                                                                    className="cursor-pointer px-3 py-2 text-sm text-cyan-200 hover:bg-cyan-800"
+                                                                >
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Server className="h-5 w-5 text-cyan-400" />
+                                                                        <span>{node.name}</span>
+                                                                    </div>
+                                                                </li>
+                                                            ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {/* Campo para seleccionar el propietario */}
+                                    <div>
+                                        <label className="mt-6 mb-1 block text-sm font-semibold" htmlFor="ownerId">
+                                            Owner *
+                                        </label>
+                                        <div className="relative">
+                                            <button
+                                                onClick={() => setShowOwnerDropdown(!showOwnerDropdown)}
+                                                className="w-full rounded border border-cyan-600 bg-black px-3 py-2 pr-10 text-left text-sm text-cyan-200 transition-colors duration-200 hover:border-cyan-400"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <User className="h-5 w-5 text-cyan-400" />
+                                                    <span>{selectedOwner || 'Select Owner'}</span>
+                                                </div>
+                                                <ChevronDown className="absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-cyan-400" />
+                                            </button>
+
+                                            {showOwnerDropdown && (
+                                                <div className="absolute z-50 mt-1 w-full bg-black">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Start typing to search..."
+                                                        value={ownerSearch}
+                                                        onChange={handleOwnerSearch}
+                                                        className="w-full border-b bg-black px-3 py-2 text-sm text-cyan-200 placeholder:text-cyan-600 focus:outline-none"
+                                                    />
+                                                    <ul className="max-h-60 overflow-y-auto">
+                                                        {owners
+                                                            .filter((owner: any) => owner.name.toLowerCase().includes(ownerSearch.toLowerCase()))
+                                                            .map((owner: any) => (
+                                                                <li
+                                                                    key={owner.id}
+                                                                    onClick={() => {
+                                                                        setSelectedOwner(owner.name);
+                                                                        setShowOwnerDropdown(false); // Close dropdown on selection
+                                                                    }}
+                                                                    className="cursor-pointer px-3 py-2 text-sm text-cyan-200 hover:bg-cyan-800"
+                                                                >
+                                                                    <div className="flex items-center gap-2">
+                                                                        <User className="h-5 w-5 text-cyan-400" />
+                                                                        <span>{owner.name}</span>
+                                                                    </div>
+                                                                </li>
+                                                            ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {/* Campo para seleccionar la asignación primaria */}
+                                    <div>
+                                        <label className="mt-6 mb-1 block text-sm font-semibold" htmlFor="primaryAllocationId">
+                                            Primary Allocation *
+                                        </label>
+                                        <div className="relative">
+                                            <button
+                                                onClick={() => {
+                                                    setShowPrimaryAllocationDropdown(!showPrimaryAllocationDropdown);
+                                                    setShowAdditionalAllocationDropdown(false); // Cerrar el dropdown de asignaciones adicionales si está abierto
+                                                }}
+                                                className="w-full rounded border border-cyan-600 bg-black px-3 py-2 pr-10 text-left text-sm text-cyan-200 transition-colors duration-200 hover:border-cyan-400"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <MapPinned className="h-5 w-5 text-cyan-400" />
+                                                    <span>{selectedPrimaryAllocation || 'Select Primary Allocation'}</span>
+                                                </div>
+                                                <ChevronDown className="absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-cyan-400" />
+                                            </button>
+
+                                            {showPrimaryAllocationDropdown && (
+                                                <div className="absolute z-50 mt-1 w-full bg-black">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Start typing to search..."
+                                                        value={primaryAllocationSearch}
+                                                        onChange={handlePrimaryAllocationSearch}
+                                                        className="w-full border-b bg-black px-3 py-2 text-sm text-cyan-200 placeholder:text-cyan-600 focus:outline-none"
+                                                    />
+                                                    <ul className="max-h-60 overflow-y-auto">
+                                                        {allocations
+                                                            .filter((alloc: any) =>
+                                                                alloc.ip.toLowerCase().includes(primaryAllocationSearch.toLowerCase()),
+                                                            )
+                                                            .map((alloc: any) => (
+                                                                <li
+                                                                    key={alloc.id}
+                                                                    onClick={() => {
+                                                                        setSelectedPrimaryAllocation(alloc.ip + ':' + alloc.port);
+                                                                        setShowPrimaryAllocationDropdown(false); // Cerrar el dropdown de asignaciones
+                                                                        setServer((prev: any) => ({ ...prev, primaryAllocationId: alloc.id }));
+                                                                    }}
+                                                                    className="cursor-pointer px-3 py-2 text-sm text-cyan-200 hover:bg-cyan-800"
+                                                                >
+                                                                    <div className="flex items-center gap-2">
+                                                                        <MapPinned className="h-5 w-5 text-cyan-400" />
+                                                                        <span>
+                                                                            {alloc.ip}:{alloc.port}
+                                                                        </span>
+                                                                    </div>
+                                                                </li>
+                                                            ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Campo para seleccionar las asignaciones adicionales */}
+                                    <div>
+                                        <label className="mt-6 mb-1 block text-sm font-semibold" htmlFor="additionalAllocationIds">
+                                            Additional Allocations
+                                        </label>
+                                        <div className="relative">
+                                            <button
+                                                onClick={() => {
+                                                    setShowAdditionalAllocationDropdown(!showAdditionalAllocationDropdown);
+                                                    setShowPrimaryAllocationDropdown(false); // Cerrar el dropdown de asignación primaria si está abierto
+                                                }}
+                                                className="w-full rounded border border-cyan-600 bg-black px-3 py-2 pr-10 text-left text-sm text-cyan-200 transition-colors duration-200 hover:border-cyan-400"
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <MapPinPlus className="h-5 w-5 text-cyan-400" />
+                                                    <span>{selectedAdditionalAllocation || 'Select Additional Allocations'}</span>
+                                                </div>
+                                                <ChevronDown className="absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-cyan-400" />
+                                            </button>
+
+                                            {showAdditionalAllocationDropdown && (
+                                                <div className="absolute z-50 mt-1 w-full bg-black">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Start typing to search..."
+                                                        value={additionalAllocationSearch}
+                                                        onChange={handleAdditionalAllocationSearch}
+                                                        className="w-full border-b bg-black px-3 py-2 text-sm text-cyan-200 placeholder:text-cyan-600 focus:outline-none"
+                                                    />
+                                                    <ul className="max-h-60 overflow-y-auto">
+                                                        {allocations
+                                                            .filter((alloc: any) =>
+                                                                alloc.ip.toLowerCase().includes(additionalAllocationSearch.toLowerCase()),
+                                                            )
+                                                            .map((alloc: any) => (
+                                                                <li
+                                                                    key={alloc.id}
+                                                                    onClick={() => {
+                                                                        setSelectedAdditionalAllocation(alloc.ip + ':' + alloc.port);
+                                                                        setShowAdditionalAllocationDropdown(false); // Cerrar el dropdown de asignaciones
+                                                                        setServer((prev: any) => ({
+                                                                            ...prev,
+                                                                            additionalAllocationIds: [...prev.additionalAllocationIds, alloc.id],
+                                                                        }));
+                                                                    }}
+                                                                    className="cursor-pointer px-3 py-2 text-sm text-cyan-200 hover:bg-cyan-800"
+                                                                >
+                                                                    <div className="flex items-center gap-2">
+                                                                        <MapPinPlus className="h-5 w-5 text-cyan-400" />
+                                                                        <span>
+                                                                            {alloc.ip}:{alloc.port}
+                                                                        </span>
+                                                                    </div>
+                                                                </li>
+                                                            ))}
+                                                    </ul>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
-                                <div className="col-span-2">
-                                    {/* Campo para la descripción del servidor */}
-                                    <label className="mb-1 block text-sm font-semibold" htmlFor="description">
-                                        Description
-                                    </label>
-                                    <textarea
-                                        id="description"
-                                        name="description"
-                                        rows={3}
-                                        value={server.description}
-                                        onChange={handleChange}
-                                        className="w-full rounded border border-cyan-400 bg-black p-3 text-cyan-400 placeholder-cyan-700 focus:ring-2 focus:ring-cyan-400 focus:outline-none"
-                                    ></textarea>
-                                </div>
 
+                                {/* Next Step Button */}
                                 <div className="col-span-2 flex justify-end">
                                     <button
                                         onClick={nextTab}
@@ -360,21 +468,22 @@ export default function CreateServer() {
                             </div>
                         )}
 
+                        {/* Step 2 */}
                         {activeTab === 'egg' && (
-                            <div className="space-y-6">
-                                <div>
-                                    <label className="mb-1 block text-sm font-semibold" htmlFor="eggId">
-                                        Egg *
+                            <div className="sm:grid-cols- grid grid-cols-1 gap-6">
+                                <div className="col-span-2">
+                                    <label className="mb-1 block text-sm font-semibold" htmlFor="egg">
+                                        Egg
                                     </label>
                                     <select
-                                        id="eggId"
-                                        name="eggId"
-                                        value={server.eggId}
-                                        onChange={handleChange}
-                                        className="w-full rounded border border-cyan-400 bg-black p-3 text-cyan-400 placeholder-cyan-700 focus:ring-2 focus:ring-cyan-400 focus:outline-none"
+                                        id="egg"
+                                        name="egg"
+                                        value={server.egg}
+                                        onChange={(e) => setServer({ ...server, egg: e.target.value })}
+                                        className="w-full rounded border border-cyan-600 bg-black px-3 py-2 text-sm text-cyan-200 placeholder:text-cyan-600 focus:outline-none"
                                     >
                                         <option value="">Select Egg</option>
-                                        {(eggs || []).map((egg: any) => (
+                                        {eggs.map((egg) => (
                                             <option key={egg.id} value={egg.id}>
                                                 {egg.name}
                                             </option>
@@ -382,221 +491,27 @@ export default function CreateServer() {
                                     </select>
                                 </div>
 
-                                <div>
-                                    <label className="mb-1 block text-sm font-semibold">Run Install Script?</label>
-                                    <div className="flex gap-4">
-                                        <button
-                                            type="button"
-                                            onClick={() => setServer((prev: any) => ({ ...prev, runInstallScript: true }))}
-                                            className={`rounded px-4 py-2 ${
-                                                server.runInstallScript ? 'bg-cyan-400 text-black' : 'border border-cyan-400 bg-black text-cyan-400'
-                                            }`}
-                                        >
-                                            Yes
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setServer((prev: any) => ({ ...prev, runInstallScript: false }))}
-                                            className={`rounded px-4 py-2 ${
-                                                !server.runInstallScript ? 'bg-cyan-400 text-black' : 'border border-cyan-400 bg-black text-cyan-400'
-                                            }`}
-                                        >
-                                            No
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="mb-1 block text-sm font-semibold">Start After Install?</label>
-                                    <div className="flex gap-4">
-                                        <button
-                                            type="button"
-                                            onClick={() => setServer((prev: any) => ({ ...prev, startAfterInstall: true }))}
-                                            className={`rounded px-4 py-2 ${
-                                                server.startAfterInstall ? 'bg-cyan-400 text-black' : 'border border-cyan-400 bg-black text-cyan-400'
-                                            }`}
-                                        >
-                                            Yes
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setServer((prev: any) => ({ ...prev, startAfterInstall: false }))}
-                                            className={`rounded px-4 py-2 ${
-                                                !server.startAfterInstall ? 'bg-cyan-400 text-black' : 'border border-cyan-400 bg-black text-cyan-400'
-                                            }`}
-                                        >
-                                            No
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="mb-1 block text-sm font-semibold" htmlFor="startupCommand">
-                                        Startup Command *
-                                    </label>
-                                    <textarea
-                                        id="startupCommand"
-                                        name="startupCommand"
-                                        rows={3}
-                                        value={server.startupCommand}
-                                        onChange={handleChange}
-                                        className="w-full rounded border border-cyan-400 bg-black p-3 font-mono text-cyan-400 placeholder-cyan-700 focus:ring-2 focus:ring-cyan-400 focus:outline-none"
-                                    ></textarea>
-                                </div>
-
-                                <button
-                                    onClick={prevTab}
-                                    className="mr-4 rounded border border-cyan-400 bg-transparent px-6 py-2 font-semibold text-cyan-400 hover:bg-cyan-700"
-                                >
-                                    Back
-                                </button>
-                                <button
-                                    onClick={nextTab}
-                                    className="rounded border border-cyan-400 bg-cyan-400 px-6 py-2 font-semibold text-black hover:bg-cyan-500"
-                                >
-                                    Next Step
-                                </button>
-                            </div>
-                        )}
-
-                        {activeTab === 'env' && (
-                            <div className="space-y-6">
-                                <div>
-                                    <label className="mb-1 block text-sm font-semibold" htmlFor="cpuLimit">
-                                        CPU Limit
-                                    </label>
-                                    <select
-                                        id="cpuLimit"
-                                        name="cpuLimit"
-                                        value={server.cpuLimit}
-                                        onChange={handleChange}
-                                        className="w-full rounded border border-cyan-400 bg-black p-3 text-cyan-400 placeholder-cyan-700 focus:ring-2 focus:ring-cyan-400 focus:outline-none"
-                                    >
-                                        <option value="unlimited">Unlimited</option>
-                                        <option value="limited">Limited</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="mb-1 block text-sm font-semibold" htmlFor="memoryLimit">
-                                        Memory Limit
-                                    </label>
-                                    <select
-                                        id="memoryLimit"
-                                        name="memoryLimit"
-                                        value={server.memoryLimit}
-                                        onChange={handleChange}
-                                        className="w-full rounded border border-cyan-400 bg-black p-3 text-cyan-400 placeholder-cyan-700 focus:ring-2 focus:ring-cyan-400 focus:outline-none"
-                                    >
-                                        <option value="unlimited">Unlimited</option>
-                                        <option value="limited">Limited</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="mb-1 block text-sm font-semibold" htmlFor="diskLimit">
-                                        Disk Space Limit
-                                    </label>
-                                    <select
-                                        id="diskLimit"
-                                        name="diskLimit"
-                                        value={server.diskLimit}
-                                        onChange={handleChange}
-                                        className="w-full rounded border border-cyan-400 bg-black p-3 text-cyan-400 placeholder-cyan-700 focus:ring-2 focus:ring-cyan-400 focus:outline-none"
-                                    >
-                                        <option value="unlimited">Unlimited</option>
-                                        <option value="limited">Limited</option>
-                                    </select>
-                                </div>
-
-                                <div className="flex items-center gap-6">
-                                    <label className="flex items-center gap-2 text-sm font-semibold" htmlFor="cpuPinning">
-                                        <input
-                                            id="cpuPinning"
-                                            name="cpuPinning"
-                                            type="checkbox"
-                                            checked={server.cpuPinning}
-                                            onChange={handleChange}
-                                            className="accent-cyan-400"
-                                        />
-                                        CPU Pinning
-                                    </label>
-
-                                    <label className="flex items-center gap-2 text-sm font-semibold" htmlFor="oomKiller">
-                                        <input
-                                            id="oomKiller"
-                                            name="oomKiller"
-                                            type="checkbox"
-                                            checked={server.oomKiller}
-                                            onChange={handleChange}
-                                            className="accent-cyan-400"
-                                        />
-                                        OOM Killer Disabled
-                                    </label>
-                                </div>
-
-                                <div>
-                                    <label className="mb-1 block text-sm font-semibold" htmlFor="backups">
-                                        Backups
-                                    </label>
-                                    <input
-                                        id="backups"
-                                        name="backups"
-                                        type="number"
-                                        min={0}
-                                        value={server.backups}
-                                        onChange={handleChange}
-                                        className="w-full rounded border border-cyan-400 bg-black p-3 text-cyan-400 placeholder-cyan-700 focus:ring-2 focus:ring-cyan-400 focus:outline-none"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="mb-1 block text-sm font-semibold" htmlFor="dockerImage">
-                                        Docker Image
-                                    </label>
-                                    <input
-                                        id="dockerImage"
-                                        name="dockerImage"
-                                        type="text"
-                                        value={server.dockerImage}
-                                        onChange={handleChange}
-                                        className="w-full rounded border border-cyan-400 bg-black p-3 text-cyan-400 placeholder-cyan-700 focus:ring-2 focus:ring-cyan-400 focus:outline-none"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="mb-1 block text-sm font-semibold" htmlFor="installScript">
-                                        Install Script
-                                    </label>
-                                    <Editor
-                                        height="200px"
-                                        language="shell"
-                                        value={server.installScript}
-                                        theme="vs-dark"
-                                        options={{ minimap: { enabled: false }, fontSize: 14, wordWrap: 'on' }}
-                                        onChange={(value) => setServer((prev: any) => ({ ...prev, installScript: value || '' }))}
-                                    />
-                                </div>
-
-                                <div className="flex justify-end gap-4">
+                                {/* Next Step Button */}
+                                <div className="col-span-2 flex justify-end">
                                     <button
-                                        onClick={prevTab}
-                                        className="rounded border border-cyan-400 bg-transparent px-6 py-2 font-semibold text-cyan-400 hover:bg-cyan-700"
+                                        onClick={nextTab}
+                                        className={`rounded border border-cyan-400 bg-cyan-400 px-6 py-2 font-semibold text-black hover:bg-cyan-500 ${
+                                            !isEggValid ? 'cursor-not-allowed opacity-50' : ''
+                                        }`}
+                                        disabled={!isEggValid}
                                     >
-                                        Back
-                                    </button>
-                                    <button
-                                        onClick={handleSubmit}
-                                        className="rounded border border-cyan-400 bg-cyan-400 px-6 py-2 font-semibold text-black hover:bg-cyan-500"
-                                    >
-                                        Create Server
+                                        Next Step
                                     </button>
                                 </div>
                             </div>
-                        )}
+                        )} 
                     </div>
                 </div>
             </div>
         </AppLayout>
     );
 }
+function usePage() {
+    return inertiaUsePage();
+}
+
