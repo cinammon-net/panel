@@ -50,14 +50,12 @@ export default function Users() {
                     </div>
                 </div>
 
-                <div className="overflow-x-auto rounded-lg border border-pink-300 bg-white shadow-none transition dark:border-pink-700 dark:bg-neutral-950 dark:shadow-[0_0_10px_#f0f3]">
-                    <table className=" w-full table-auto text-sm">
+                <div className="overflow-x-auto rounded-lg border border-pink-500 bg-white dark:border-pink-600 dark:bg-black">
+                    <table className="w-full table-auto text-sm text-pink-800 dark:text-pink-300">
                         <thead className="display-table border-b border-pink-500 bg-pink-900 text-pink-200">
                             <tr>
                                 <th className="w-[60px] px-4 py-3 text-left"></th>
-                                <th className="w-1/5 px-4 py-3 text-left">
-                                    Name
-                                </th>
+                                <th className="w-1/5 px-4 py-3 text-left">name</th>
                                 <th className="w-1/4 px-4 py-3 text-left">Email</th>
                                 <th className="w-[80px] px-4 py-3 text-left">2FA</th>
                                 <th className="w-1/5 px-4 py-3 text-left">Roles</th>
