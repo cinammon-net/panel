@@ -37,13 +37,14 @@ export default function EditRole() {
                 <meta name="description" content="User management page" />
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet" />
             </Head>
+
             <div className="min-h-screen bg-white p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
-                <div className="mb-6 flex items-center justify-between">
+                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <h1 className="text-3xl font-semibold tracking-widest text-pink-800 drop-shadow-none dark:text-pink-400 dark:drop-shadow-[0_0_6px_#f0f]">
                         EDIT ROLE {role.name}
                     </h1>
 
-                    <div className="flex gap-3">
+                    <div className="flex flex-wrap gap-3">
                         {isDefault ? (
                             <button
                                 disabled
@@ -74,7 +75,11 @@ export default function EditRole() {
                     </div>
                 </div>
 
-                {errors && <div className="mb-4 rounded bg-red-600 px-4 py-2 text-sm text-white">{errors}</div>}
+                {errors && (
+                    <div className="mb-4 rounded border border-red-700 bg-red-600 px-4 py-2 text-sm text-white shadow-md dark:border-red-900">
+                        {errors}
+                    </div>
+                )}
 
                 <div className="mb-4">
                     <label className="mb-1 block font-semibold text-pink-700 dark:text-pink-300">Role Name</label>
@@ -87,7 +92,7 @@ export default function EditRole() {
                     />
                 </div>
 
-                <div className="mt-6 text-pink-700 dark:text-pink-300">
+                <div className="mt-6 text-sm text-pink-700 italic dark:text-pink-300">
                     {isDefault ? 'Este rol es predeterminado y no se puede modificar ni eliminar.' : 'Este rol puede ser editado y personalizado.'}
                 </div>
             </div>
