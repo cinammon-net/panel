@@ -196,7 +196,7 @@ export default function CreateServer() {
 
                         {/* Tab Content */}
                         {activeTab === 'info' && (
-                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                            <div className="sm:grid-cols grid-cols grid gap-6 lg:grid-cols-1">
                                 {/* Campo para ingresar el nombre del servidor */}
                                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                     <div>
@@ -452,18 +452,19 @@ export default function CreateServer() {
                                         </div>
                                     </div>
                                 </div>
-
-                                {/* Next Step Button */}
-                                <div className="col-span-1 flex justify-end sm:col-span-2">
-                                    <button
-                                        onClick={nextTab}
-                                        className={`rounded border border-cyan-400 bg-cyan-400 px-6 py-2 font-semibold text-black hover:bg-cyan-500 ${
-                                            !isInfoValid ? 'cursor-not-allowed opacity-50' : ''
-                                        }`}
-                                        disabled={!isInfoValid}
-                                    >
-                                        Next Step
-                                    </button>
+                                <div>
+                                    {/* Next Step Button */}
+                                    <div className="col-span-1 flex justify-end sm:col-span-2">
+                                        <button
+                                            onClick={nextTab}
+                                            className={`rounded border border-cyan-400 bg-cyan-400 px-6 py-2 font-semibold text-black hover:bg-cyan-500 ${
+                                                !isInfoValid ? 'cursor-not-allowed opacity-50' : ''
+                                            }`}
+                                            disabled={!isInfoValid}
+                                        >
+                                            Next Step
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )}
