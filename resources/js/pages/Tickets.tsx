@@ -98,7 +98,7 @@ export default function Tickets() {
                                                     onClick={() => router.get(`/tickets/${ticket.id}`)}
                                                     className="rounded border border-yellow-400 bg-yellow-400 p-1.5 text-black transition hover:bg-yellow-300 dark:border-yellow-500 dark:hover:bg-yellow-400"
                                                 >
-                                                    💬
+                                                    <MessageCirclePlus className="h-4 w-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(ticket.id)}
@@ -114,19 +114,19 @@ export default function Tickets() {
                                                     onClick={() => openModal(ticket)}
                                                     className="rounded border border-yellow-500 bg-yellow-500 px-2 py-1 text-xs text-black hover:bg-yellow-400 dark:border-yellow-600 dark:hover:bg-yellow-500"
                                                 >
-                                                    ✏️
+                                                    <Pencil className="h-4 w-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => router.get(`/tickets/${ticket.id}`)}
                                                     className="rounded border border-yellow-400 bg-yellow-400 px-2 py-1 text-xs text-black hover:bg-yellow-300 dark:border-yellow-500 dark:hover:bg-yellow-400"
                                                 >
-                                                    💬
+                                                    <MessageCirclePlus className="h-4 w-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(ticket.id)}
                                                     className="rounded border border-red-500 px-2 py-1 text-xs text-red-500 hover:bg-red-500 hover:text-white dark:hover:bg-red-600"
                                                 >
-                                                    🗑️
+                                                    <Trash2 className="h-4 w-4" />
                                                 </button>
                                             </div>
                                         </td>
