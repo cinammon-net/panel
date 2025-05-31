@@ -1,7 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, router, usePage } from '@inertiajs/react';
-import { ChevronDown, ChevronUp, Copy, Pencil, Trash2 } from 'lucide-react';
-import React, { useState } from 'react';
+import { ChevronDown, ChevronUp, Copy, Pencil, Trash2, Egg, User, MapPin, Database, Activity, Server } from 'lucide-react';import React, { useState } from 'react';
 
 interface ServerItem {
     id: number;
@@ -95,16 +94,13 @@ export default function Servers() {
                     </button>
                 </div>
 
-                <div className="overflow-hidden rounded-lg border border-cyan-300 bg-white shadow-none transition dark:border-cyan-700 dark:bg-neutral-950 dark:shadow-[0_0_10px_#0ff3]">
-                    {/* Search + GroupBy */}
-                    <form onSubmit={handleSearch} className="flex w-full items-center justify-between gap-4 px-4 py-2">
-                        {/* Agrupación + Orden */}
+                <div className="overflow-hidden rounded-lg border border-cyan-300 bg-white shadow-none transition dark:border-cyan-700 dark:bg-neutral-950">
+                    <form onSubmit={handleSearch} className="flex w-full items-center justify-between px-4 py-2 text-sm">
                         <div className="flex items-center gap-2">
-                            {/* Selector de agrupación */}
                             <select
                                 value={groupBy}
                                 onChange={(e) => setGroupBy(e.target.value as 'none' | 'node' | 'username' | 'egg')}
-                                className="rounded-md border border-cyan-700 px-4 py-2 text-sm focus:outline-none dark:border-cyan-700 dark:bg-neutral-950 dark:text-white"
+                                className="flex items-center gap-2 rounded-md border border-cyan-700 bg-black px-1 py-2 text-sm text-cyan-200"
                             >
                                 <option value="none">Group by</option>
                                 <option value="node">Node</option>
@@ -117,7 +113,7 @@ export default function Servers() {
                                 <button
                                     type="button"
                                     onClick={toggleGroupDirection}
-                                    className="flex items-center gap-2 rounded-md border border-cyan-700 bg-black px-4 py-2 text-sm text-cyan-200 shadow-[0_0_5px_#0ff] focus:outline-none"
+                                    className="flex items-center gap-2 rounded-md border border-cyan-700 bg-black px-4 py-2 text-sm text-cyan-200"
                                 >
                                     {groupDirection === 'asc' ? (
                                         <>
@@ -155,208 +151,140 @@ export default function Servers() {
                     </form>
 
                     {/* Table */}
-                    <div className="bg-cyan overflow-hidden shadow-none transition dark:border-cyan-700 dark:bg-neutral-950 dark:shadow-[0_0_10px_#0ff3]">
+                    <div className="bg-cyan overflow-hidden border-t border-cyan-600 shadow-none transition dark:border-cyan-700 dark:bg-neutral-950">
                         <div className="min-w-full table-auto text-sm">
                             <table className="w-full table-fixed text-sm">
-                                <thead className="border-b border-cyan-500 bg-cyan-900 text-cyan-200">
-                                    <tr>
-                                        <th className="w-[100px] px-4 py-2 text-left">Conditions</th>
-                                        <th className="w-1/6 px-4 py-2 text-left">
-                                            <button
-                                                onClick={() => handleSort('name')}
-                                                className="flex items-center gap-2 text-cyan-400 hover:text-cyan-100"
-                                            >
-                                                <span>Name</span>
-                                                {filters.sort === 'name' ? (
-                                                    filters.direction === 'asc' ? (
-                                                        <ChevronUp />
-                                                    ) : (
-                                                        <ChevronDown />
-                                                    )
-                                                ) : (
-                                                    <ChevronDown className="opacity-30" />
-                                                )}
+                                <thead>
+                                    <tr className="bg-cyan-900">
+                                        {/* CONDITIONS */}
+                                        <th className="px-4 py-2 text-left text-cyan-500">
+                                            <div className="flex items-center gap-1">
+                                                <span className="hidden sm:inline">Conditions</span>
+                                                <Activity className="h-4 w-4 sm:hidden" />
+                                            </div>
+                                        </th>
+
+                                        {/* NAME */}
+                                        <th className="px-4 py-2 text-left text-cyan-500">
+                                            <button onClick={() => handleSort('name')} className="flex items-center gap-1">
+                                                <span className="hidden sm:inline">Name</span>
+                                                <Server className="h-4 w-4 sm:hidden" />
+                                                {filters.sort === 'name' && (filters.direction === 'asc' ? <ChevronUp /> : <ChevronDown />)}
                                             </button>
                                         </th>
-                                        <th className="w-1/6 px-4 py-2 text-left">
-                                            <button
-                                                onClick={() => handleSort('egg')}
-                                                className="flex items-center gap-2 text-cyan-400 hover:text-cyan-100"
-                                            >
-                                                <span>Egg</span>
-                                                {filters.sort === 'egg' ? (
-                                                    filters.direction === 'asc' ? (
-                                                        <ChevronUp />
-                                                    ) : (
-                                                        <ChevronDown />
-                                                    )
-                                                ) : (
-                                                    <ChevronDown className="opacity-30" />
-                                                )}
+
+                                        {/* EGG */}
+                                        <th className="px-4 py-2 text-left text-cyan-500">
+                                            <button onClick={() => handleSort('egg')} className="flex items-center gap-1">
+                                                <span className="hidden sm:inline">Egg</span>
+                                                <Egg className="h-4 w-4 sm:hidden" />
+                                                {filters.sort === 'egg' && (filters.direction === 'asc' ? <ChevronUp /> : <ChevronDown />)}
                                             </button>
                                         </th>
-                                        <th className="w-1/6 px-4 py-2 text-left">
-                                            <button
-                                                onClick={() => handleSort('username')}
-                                                className="flex items-center gap-2 text-cyan-400 hover:text-cyan-100"
-                                            >
-                                                <span>Username</span>
-                                                {filters.sort === 'username' ? (
-                                                    filters.direction === 'asc' ? (
-                                                        <ChevronUp />
-                                                    ) : (
-                                                        <ChevronDown />
-                                                    )
-                                                ) : (
-                                                    <ChevronDown className="opacity-30" />
-                                                )}
+
+                                        {/* USERNAME */}
+                                        <th className="px-4 py-2 text-left text-cyan-500">
+                                            <button onClick={() => handleSort('username')} className="flex items-center gap-1">
+                                                <span className="hidden sm:inline">Username</span>
+                                                <User className="h-4 w-4 sm:hidden" />
+                                                {filters.sort === 'username' && (filters.direction === 'asc' ? <ChevronUp /> : <ChevronDown />)}
                                             </button>
                                         </th>
-                                        <th className="w-1/6 px-4 py-2 text-left">
-                                            <button
-                                                onClick={() => handleSort('allocation')}
-                                                className="flex items-center gap-2 text-cyan-400 hover:text-cyan-100"
-                                            >
-                                                <span>Primary Allocation</span>
-                                                {filters.sort === 'allocation' ? (
-                                                    filters.direction === 'asc' ? (
-                                                        <ChevronUp />
-                                                    ) : (
-                                                        <ChevronDown />
-                                                    )
-                                                ) : (
-                                                    <ChevronDown className="opacity-30" />
-                                                )}
+
+                                        {/* PRIMARY ALLOCATION */}
+                                        <th className="px-4 py-2 text-left text-cyan-500">
+                                            <button onClick={() => handleSort('allocation')} className="flex items-center gap-1">
+                                                <span className="hidden sm:inline ">Primary Allocation</span>
+                                                <MapPin className="h-4 w-4 sm:hidden" />
+                                                {filters.sort === 'allocation' && (filters.direction === 'asc' ? <ChevronUp /> : <ChevronDown />)}
                                             </button>
                                         </th>
-                                        <th className="w-[100px] px-4 py-2 text-left">
-                                            <button
-                                                onClick={() => handleSort('backups')}
-                                                className="flex items-center gap-2 text-cyan-400 hover:text-cyan-100"
-                                            >
-                                                <span>Backups</span>
-                                                {filters.sort === 'backups' ? (
-                                                    filters.direction === 'asc' ? (
-                                                        <ChevronUp />
-                                                    ) : (
-                                                        <ChevronDown />
-                                                    )
-                                                ) : (
-                                                    <ChevronDown className="opacity-30" />
-                                                )}
+
+                                        {/* BACKUPS */}
+                                        <th className="px-4 py-2 text-left text-cyan-500">
+                                            <button onClick={() => handleSort('backups')} className="flex items-center gap-1">
+                                                <span className="hidden sm:inline">Backups</span>
+                                                <Database className="h-4 w-4 sm:hidden" />
+                                                {filters.sort === 'backups' && (filters.direction === 'asc' ? <ChevronUp /> : <ChevronDown />)}
                                             </button>
                                         </th>
-                                        <th className="w-[120px] px-4 py-2 text-right">Actions</th>
+
+                                        <th className="px-4 py-2 text-left text-cyan-500"></th>
                                     </tr>
+
+                                    {/* Fila de agrupación dinámica con fondo consistente */}
+                                    {groupBy !== 'none' && (
+                                        <tr className="border-t border-cyan-700 bg-cyan-900">
+                                            <td colSpan={7} className="px-4 py-2 text-cyan-500">
+                                                {groupBy === 'node' && `Node`}
+                                                {groupBy === 'egg' && `Egg`}
+                                                {groupBy === 'username' && `User`}
+                                            </td>
+                                        </tr>
+                                    )}
                                 </thead>
+
                                 <tbody>
-                                    {groupBy === 'none' ? (
-                                        servers.data.length === 0 ? (
-                                            <tr>
-                                                <td colSpan={7} className="px-4 py-4 text-center text-cyan-600">
-                                                    No servers found.
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            servers.data.map((item) => (
-                                                <tr
-                                                    key={item.id}
-                                                    className="cursor-pointer border-t border-cyan-800 hover:bg-cyan-900/10"
-                                                    onClick={() => router.visit(`/servers/${item.id}/edit`)}
-                                                >
-                                                    <td className="px-4 py-2">
-                                                        <span
-                                                            className={`inline-block rounded px-2 py-1 text-xs font-bold ${
-                                                                item.status === 'offline'
-                                                                    ? 'border border-red-500 bg-red-900 text-red-400'
-                                                                    : 'border border-green-500 bg-green-900 text-green-400'
-                                                            }`}
-                                                        >
-                                                            {item.status}
-                                                        </span>
-                                                    </td>
-                                                    <td className="truncate px-4 py-2">{item.name}</td>
-                                                    <td className="truncate px-4 py-2">{item.egg}</td>
-                                                    <td className="truncate px-4 py-2">{item.username}</td>
-                                                    <td className="truncate px-4 py-2">{item.allocation}</td>
-                                                    <td className="px-4 py-2">{item.database ?? '-'}</td>
-                                                    <td className="px-4 py-2 text-right">
-                                                        <div className="flex justify-end gap-3" onClick={(e) => e.stopPropagation()}>
-                                                            <button title="Edit" className="text-cyan-300 hover:text-cyan-100">
-                                                                <Pencil className="h-4 w-4" />
-                                                            </button>
-                                                            <button title="Duplicate" className="text-blue-400 hover:text-blue-200">
-                                                                <Copy className="h-4 w-4" />
-                                                            </button>
-                                                            <button title="Delete" className="text-pink-400 hover:text-pink-200">
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        )
-                                    ) : (
-                                        sortedGroups.map((key) => (
-                                            <React.Fragment key={key}>
-                                                <tr className="bg-black">
-                                                    <td colSpan={7} className="border-b border-cyan-800 px-4 py-2 text-sm font-bold text-cyan-400">
-                                                        {groupBy === 'node' && `Node ${key}`}
-                                                        {groupBy === 'egg' && `Egg ${key}`}
-                                                        {groupBy === 'username' && `User ${key}`}
-                                                    </td>
-                                                </tr>
-                                                {(groupedServers[key] ?? []).length === 0 ? (
-                                                    <tr>
-                                                        <td colSpan={7} className="px-4 py-4 text-center text-cyan-600">
-                                                            No servers found.
+                                    {sortedGroups.map((groupName) => (
+                                        <React.Fragment key={groupName}>
+                                            {/* Fila de servidores */}
+                                            {(groupedServers[groupName] ?? []).length > 0 ? (
+                                                groupedServers[groupName].map((item) => (
+                                                    <tr
+                                                        key={item.id}
+                                                        className="cursor-pointer border-t border-cyan-800 hover:bg-cyan-900/10"
+                                                        onClick={() => router.visit(`/servers/${item.id}/edit`)}
+                                                    >
+                                                        <td className="px-4 py-2">
+                                                            <span
+                                                                className={`inline-block rounded px-2 py-1 text-xs font-bold ${
+                                                                    item.status === 'offline'
+                                                                        ? 'border border-red-500 bg-red-900 text-red-400'
+                                                                        : 'border border-green-500 bg-green-900 text-green-400'
+                                                                }`}
+                                                            >
+                                                                {item.status}
+                                                            </span>
+                                                        </td>
+                                                        <td className="truncate px-4 py-2">{item.name}</td>
+                                                        <td className="truncate px-4 py-2">{item.egg}</td>
+                                                        <td className="truncate px-4 py-2">{item.username}</td>
+                                                        <td className="truncate px-4 py-2">{item.allocation}</td>
+                                                        <td className="px-4 py-2">{item.database ?? '-'}</td>
+                                                        <td className="px-4 py-2 text-right">
+                                                            <div className="flex justify-end gap-3" onClick={(e) => e.stopPropagation()}>
+                                                                <button title="Edit" className="text-cyan-300 hover:text-cyan-100">
+                                                                    <Pencil className="h-4 w-4" />
+                                                                </button>
+                                                                <button title="Duplicate" className="text-blue-400 hover:text-blue-200">
+                                                                    <Copy className="h-4 w-4" />
+                                                                </button>
+                                                                <button title="Delete" className="text-pink-400 hover:text-pink-200">
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     </tr>
-                                                ) : (
-                                                    groupedServers[key].map((item) => (
-                                                        <tr
-                                                            key={item.id}
-                                                            className="cursor-pointer border-t border-cyan-800 hover:bg-cyan-900/10"
-                                                            onClick={() => router.visit(`/servers/${item.id}/edit`)}
-                                                        >
-                                                            <td className="px-4 py-2">
-                                                                <span
-                                                                    className={`inline-block rounded px-2 py-1 text-xs font-bold ${
-                                                                        item.status === 'offline'
-                                                                            ? 'border border-red-500 bg-red-900 text-red-400'
-                                                                            : 'border border-green-500 bg-green-900 text-green-400'
-                                                                    }`}
-                                                                >
-                                                                    {item.status}
-                                                                </span>
-                                                            </td>
-                                                            <td className="truncate px-4 py-2">{item.name}</td>
-                                                            <td className="truncate px-4 py-2">{item.egg}</td>
-                                                            <td className="truncate px-4 py-2">{item.username}</td>
-                                                            <td className="truncate px-4 py-2">{item.allocation}</td>
-                                                            <td className="px-4 py-2">{item.database ?? '-'}</td>
-                                                            <td className="px-4 py-2 text-right">
-                                                                <div className="flex justify-end gap-3" onClick={(e) => e.stopPropagation()}>
-                                                                    <button title="Edit" className="text-cyan-300 hover:text-cyan-100">
-                                                                        <Pencil className="h-4 w-4" />
-                                                                    </button>
-                                                                    <button title="Duplicate" className="text-blue-400 hover:text-blue-200">
-                                                                        <Copy className="h-4 w-4" />
-                                                                    </button>
-                                                                    <button title="Delete" className="text-pink-400 hover:text-pink-200">
-                                                                        <Trash2 className="h-4 w-4" />
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))
-                                                )}
-                                            </React.Fragment>
-                                        ))
-                                    )}
+                                                ))
+                                            ) : (
+                                                <tr>
+                                                    <td colSpan={7} className="px-4 py-4 text-center text-cyan-600">
+                                                        No servers found in{' '}
+                                                        {groupBy === 'node'
+                                                            ? `Node ${groupName}`
+                                                            : groupBy === 'egg'
+                                                              ? `Egg ${groupName}`
+                                                              : `User ${groupName}`}
+                                                        .
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </React.Fragment>
+                                    ))}
                                 </tbody>
                             </table>
-
+                        </div>
+                        <div className="bg-cyan-100 dark:bg-cyan-900">
                             {/* Pagination */}
                             {servers.links.length > 5 && (
                                 <div className="mt-6 flex justify-center p-4">
@@ -382,7 +310,7 @@ export default function Servers() {
                                                         );
                                                     }}
                                                     dangerouslySetInnerHTML={{ __html: link.label }}
-                                                    className={`rounded border px-3 py-1.5 text-xs transition ${link.active ? 'border-cyan-500 bg-cyan-500 text-white shadow-md' : 'border-cyan-700 bg-black text-cyan-400 hover:bg-cyan-800/30 hover:text-white'} ${!link.url ? 'cursor-not-allowed opacity-40' : ''}`}
+                                                    className={`rounded border px-3 py-1.5 text-xs transition ${link.active ? 'border-cyan-500 bg-cyan-500 text-white' : 'border-cyan-700 bg-black text-cyan-400 hover:bg-cyan-800/30 hover:text-white'} ${!link.url ? 'cursor-not-allowed opacity-40' : ''}`}
                                                 />
                                             </li>
                                         ))}
@@ -390,7 +318,7 @@ export default function Servers() {
                                 </div>
                             )}
 
-                            <div className="flex items-center justify-center border-t border-cyan-300 bg-white px-4 py-2 shadow-none transition dark:border-cyan-700 dark:bg-neutral-950 dark:shadow-[0_0_10px_#0ff3]">
+                            <div className="flex items-center justify-center border-t border-cyan-300 bg-white px-4 py-2 shadow-none transition dark:border-cyan-700 dark:bg-neutral-950">
                                 <div className="inline-flex items-center overflow-hidden rounded-md border border-cyan-700 text-sm text-cyan-600 dark:border-cyan-700 dark:bg-neutral-950">
                                     <span className="border-r px-4 py-2 text-sm text-cyan-600 dark:text-cyan-400">Per page</span>
                                     <div className="relative">
