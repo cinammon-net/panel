@@ -1,5 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, router, usePage, Link } from '@inertiajs/react';
+
 import { Copy, Eye, Mail, Pencil, Server, Trash2, UserCheck, UserRoundCheck, UserRoundX, UsersRound } from 'lucide-react';
 
 interface UserItem {
@@ -39,14 +40,24 @@ export default function Users() {
                     <h1 className="text-3xl font-semibold tracking-widest text-pink-800 drop-shadow-none dark:text-pink-400 dark:drop-shadow-[0_0_5px_#f0f]">
                         USERS
                     </h1>
+                    <div className="flex items-center gap-3">
+                        <Link
+                            href="/users/create"
+                            className="rounded border border-pink-400 bg-pink-100/50 px-4 py-1.5 text-sm text-pink-800 transition hover:bg-pink-200/70 dark:border-pink-500 dark:bg-pink-900/30 dark:text-pink-300 dark:hover:bg-pink-700/50"
+                        >
+                            + Create User
+                        </Link>
+                    </div>
                 </div>
 
-                <div className="overflow-hidden rounded-lg border border-pink-300 bg-white shadow-none transition dark:border-pink-700 dark:bg-neutral-950 dark:shadow-[0_0_10px_#f0f3]">
-                    <table className="w-full table-fixed text-sm">
-                        <thead className="border-b border-pink-500 bg-pink-900 text-pink-200 display-table">
+                <div className="overflow-x-auto rounded-lg border border-pink-300 bg-white shadow-none transition dark:border-pink-700 dark:bg-neutral-950 dark:shadow-[0_0_10px_#f0f3]">
+                    <table className=" w-full table-auto text-sm">
+                        <thead className="display-table border-b border-pink-500 bg-pink-900 text-pink-200">
                             <tr>
                                 <th className="w-[60px] px-4 py-3 text-left"></th>
-                                <th className="w-1/5 px-4 py-3 text-left">Username</th>
+                                <th className="w-1/5 px-4 py-3 text-left">
+                                    Name
+                                </th>
                                 <th className="w-1/4 px-4 py-3 text-left">Email</th>
                                 <th className="w-[80px] px-4 py-3 text-left">2FA</th>
                                 <th className="w-1/5 px-4 py-3 text-left">Roles</th>
