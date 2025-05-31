@@ -88,9 +88,9 @@ export default function Servers() {
                     </h1>
                     <button
                         onClick={() => router.visit('/servers/create')}
-                        className="rounded border border-purple-400 bg-purple-100/50 px-4 py-1.5 text-sm text-purple-800 transition hover:bg-purple-200/70 dark:border-purple-500 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-700/50"
+                        className="rounded border border-cyan-400 bg-cyan-100/50 px-4 py-1.5 text-sm text-cyan-800 transition hover:bg-cyan-200/70 dark:border-cyan-500 dark:bg-cyan-900/30 dark:text-cyan-300 dark:hover:bg-cyan-700/50"
                     >
-                        New Server
+                        + New Server
                     </button>
                 </div>
 
