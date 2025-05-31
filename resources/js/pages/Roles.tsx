@@ -1,7 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head, usePage } from '@inertiajs/react';
-import { Pencil, ShieldCheck, Users, ChevronUp, ChevronDown } from 'lucide-react';
-import { Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
+import { ChevronDown, ChevronUp, Pencil, ShieldCheck, Users } from 'lucide-react';
 
 interface Role {
     id: number;
@@ -11,6 +10,7 @@ interface Role {
     node?: string | null;
     has_all_permissions?: boolean;
 }
+
 interface Pagination<T> {
     data: T[];
     links: { url: string | null; label: string; active: boolean }[];
@@ -59,76 +59,78 @@ export default function Roles() {
                     </div>
                 </div>
 
-                <div className="bg-pink overflow-hidden rounded-lg border border-pink-300 shadow-none transition dark:border-pink-700 dark:bg-neutral-950 dark:shadow-[0_0_10px_#0ff3]">
-                    <table className="min-w-full table-auto text-sm">
-                        <thead className="border-b border-pink-500 bg-pink-900 text-pink-200">
-                            <tr>
-                                <th className="px-4 py-2 text-center">
-                                    <button onClick={() => handleSort('name')} className="flex items-center gap-1 text-pink-300 hover:text-white">
-                                        Role Name
-                                        {filters.sort === 'name' ? (
-                                            filters.direction === 'asc' ? (
-                                                <ChevronUp className="h-4 w-4" />
+                {/* SCROLL HORIZONTAL PARA TABLA */}
+                <div className="overflow-x-auto">
+                    <div className="bg-pink inline-block min-w-full overflow-hidden rounded-lg border border-pink-300 shadow-none transition dark:border-pink-700 dark:bg-neutral-950 dark:shadow-[0_0_10px_#0ff3]">
+                        <table className="min-w-full table-auto text-sm">
+                            <thead className="border-b border-pink-500 bg-pink-900 text-pink-200">
+                                <tr>
+                                    <th className="px-4 py-2 text-center">
+                                        <button onClick={() => handleSort('name')} className="flex items-center gap-1 text-pink-300 hover:text-white">
+                                            Role Name
+                                            {filters.sort === 'name' ? (
+                                                filters.direction === 'asc' ? (
+                                                    <ChevronUp className="h-4 w-4" />
+                                                ) : (
+                                                    <ChevronDown className="h-4 w-4" />
+                                                )
                                             ) : (
-                                                <ChevronDown className="h-4 w-4" />
-                                            )
-                                        ) : (
-                                            <ChevronDown className="h-4 w-4 opacity-30" />
-                                        )}
-                                    </button>
-                                </th>
-                                <th className="px-4 py-2 text-left font-semibold">Permissions</th>
-                                <th className="px-4 py-2 text-left font-semibold">Users</th>
-                                <th className="px-4 py-2 text-left font-semibold">Nodes</th>
-                                <th className="px-4 py-2 text-right font-semibold"></th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            {roles.data.map((role) => (
-                                <tr key={role.id} className="border-t border-pink-700 hover:bg-pink-300/10">
-                                    <td className="px-4 py-3 font-semibold text-pink-500">{role.name}</td>
-                                    <td className="px-4 py-3 text-pink-500">
-                                        {role.has_all_permissions ? (
-                                            <span className="inline-flex items-center gap-1 rounded border border-pink-400 px-2 py-0.5 text-xs font-medium text-pink-200 shadow-sm">
-                                                <ShieldCheck className="h-4 w-4" />
-                                                All
-                                            </span>
-                                        ) : role.permissions.length > 0 ? (
-                                            role.permissions.map((perm, index) => (
-                                                <span
-                                                    key={index}
-                                                    className="mr-1 inline-block rounded border border-pink-400 px-2 py-0.5 text-xs text-pink-200"
-                                                >
-                                                    {perm}
-                                                </span>
-                                            ))
-                                        ) : (
-                                            <span className="text-neutral-400 italic">–</span>
-                                        )}
-                                    </td>
-
-                                    <td className="px-4 py-3 text-pink-300">
-                                        <span className="inline-flex items-center gap-1">
-                                            <Users className="h-4 w-4" /> {role.users_count}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3 text-pink-300">
-                                        {role.node ? (
-                                            <span className="inline-flex items-center gap-1">{role.node}</span>
-                                        ) : (
-                                            <span className="text-neutral-500 italic">–</span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-3 text-right">
-                                        <Link href={`/roles/${role.id}/edit`} className="inline-flex items-center text-pink-300 hover:text-white">
-                                            <Pencil className="h-4 w-4" />
-                                        </Link>
-                                    </td>
+                                                <ChevronDown className="h-4 w-4 opacity-30" />
+                                            )}
+                                        </button>
+                                    </th>
+                                    <th className="px-4 py-2 text-left font-semibold">Permissions</th>
+                                    <th className="px-4 py-2 text-left font-semibold">Users</th>
+                                    <th className="px-4 py-2 text-left font-semibold">Nodes</th>
+                                    <th className="px-4 py-2 text-right font-semibold"></th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+
+                            <tbody>
+                                {roles.data.map((role) => (
+                                    <tr key={role.id} className="border-t border-pink-700 hover:bg-pink-300/10">
+                                        <td className="px-4 py-3 font-semibold text-pink-500">{role.name}</td>
+                                        <td className="px-4 py-3 text-pink-500">
+                                            {role.has_all_permissions ? (
+                                                <span className="inline-flex items-center gap-1 rounded border border-pink-400 px-2 py-0.5 text-xs font-medium text-pink-200 shadow-sm">
+                                                    <ShieldCheck className="h-4 w-4" />
+                                                    All
+                                                </span>
+                                            ) : role.permissions.length > 0 ? (
+                                                role.permissions.map((perm, index) => (
+                                                    <span
+                                                        key={index}
+                                                        className="mr-1 inline-block rounded border border-pink-400 px-2 py-0.5 text-xs text-pink-200"
+                                                    >
+                                                        {perm}
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                <span className="text-neutral-400 italic">–</span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-3 text-pink-300">
+                                            <span className="inline-flex items-center gap-1">
+                                                <Users className="h-4 w-4" /> {role.users_count}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3 text-pink-300">
+                                            {role.node ? (
+                                                <span className="inline-flex items-center gap-1">{role.node}</span>
+                                            ) : (
+                                                <span className="text-neutral-500 italic">–</span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-3 text-right">
+                                            <Link href={`/roles/${role.id}/edit`} className="inline-flex items-center text-pink-300 hover:text-white">
+                                                <Pencil className="h-4 w-4" />
+                                            </Link>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </AppLayout>
