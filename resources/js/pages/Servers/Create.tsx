@@ -165,7 +165,7 @@ export default function CreateServer() {
             <div className="min-h-screen bg-white p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
                 {/* Header */}
                 <div className="mb-6 flex items-center justify-between border-cyan-600">
-                    <h1 className="text-3xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400 dark:drop-shadow-[0_0_5px_#0ff]">
+                    <h1 className="text-2xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400 dark:drop-shadow-[0_0_5px_#0ff]">
                         CREATE SERVER
                     </h1>
                 </div>
@@ -196,9 +196,9 @@ export default function CreateServer() {
 
                         {/* Tab Content */}
                         {activeTab === 'info' && (
-                            <div className="sm:grid-cols- grid grid-cols-1 gap-6">
+                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                                 {/* Campo para ingresar el nombre del servidor */}
-                                <div className="grid grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                     <div>
                                         <label className="mb-1 block text-sm font-semibold" htmlFor="name">
                                             Name *
@@ -289,7 +289,7 @@ export default function CreateServer() {
                                         <label className="mt-6 mb-1 block text-sm font-semibold" htmlFor="ownerId">
                                             Owner *
                                         </label>
-                                        <div className="relative">
+                                        <div className="relative w-full">
                                             <button
                                                 onClick={() => setShowOwnerDropdown(!showOwnerDropdown)}
                                                 className="w-full rounded border border-cyan-600 bg-black px-3 py-2 pr-10 text-left text-sm text-cyan-200 transition-colors duration-200 hover:border-cyan-400"
@@ -302,7 +302,7 @@ export default function CreateServer() {
                                             </button>
 
                                             {showOwnerDropdown && (
-                                                <div className="absolute z-50 mt-1 w-full bg-black">
+                                                <div className="absolute z-50 mt-1 w-full bg-black sm:w-96">
                                                     <input
                                                         type="text"
                                                         placeholder="Start typing to search..."
@@ -454,7 +454,7 @@ export default function CreateServer() {
                                 </div>
 
                                 {/* Next Step Button */}
-                                <div className="col-span-2 flex justify-end">
+                                <div className="col-span-1 flex justify-end sm:col-span-2">
                                     <button
                                         onClick={nextTab}
                                         className={`rounded border border-cyan-400 bg-cyan-400 px-6 py-2 font-semibold text-black hover:bg-cyan-500 ${
@@ -504,7 +504,7 @@ export default function CreateServer() {
                                     </button>
                                 </div>
                             </div>
-                        )} 
+                        )}
                     </div>
                 </div>
             </div>
