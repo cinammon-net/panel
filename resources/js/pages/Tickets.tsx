@@ -61,13 +61,13 @@ export default function Tickets() {
                     </button>
                 </div>
 
-                <div className="overflow-hidden rounded-lg border border-yellow-300 bg-white shadow-none transition dark:border-yellow-700 dark:bg-neutral-950 dark:shadow-[0_0_10px_#facc1533]">
+                <div className="overflow-x-auto rounded-lg border border-yellow-300 bg-white shadow-none transition dark:border-yellow-700 dark:bg-neutral-950 dark:shadow-[0_0_10px_#facc1533]">
                     <table className="min-w-full table-auto text-sm">
                         <thead className="bg-yellow-100 tracking-wide text-yellow-700 uppercase dark:bg-yellow-900 dark:text-yellow-300">
                             <tr>
                                 <th className="px-4 py-3 text-left">ID</th>
                                 <th className="px-4 py-3 text-left">Asunto</th>
-                                <th className="px-4 py-3 text-left">Mensaje</th>
+                                <th className="hidden px-4 py-3 text-left sm:table-cell">Mensaje</th>
                                 <th className="px-4 py-3 text-left">Estado</th>
                                 <th className="px-4 py-3 text-right">Acciones</th>
                             </tr>
@@ -81,29 +81,54 @@ export default function Tickets() {
                                     >
                                         <td className="px-4 py-3 text-yellow-800 dark:text-yellow-100">{ticket.id}</td>
                                         <td className="px-4 py-3 text-yellow-800 dark:text-yellow-100">{ticket.subject}</td>
-                                        <td className="line-clamp-2 max-w-xs px-4 py-3 text-yellow-700 dark:text-yellow-200">
+                                        <td className="line-clamp-2 hidden max-w-xs px-4 py-3 text-yellow-700 sm:table-cell dark:text-yellow-200">
                                             {ticket.message || '—'}
                                         </td>
                                         <td className="px-4 py-3 text-yellow-600 capitalize dark:text-yellow-400">{ticket.status}</td>
-                                        <td className="flex justify-end gap-2 px-4 py-3">
-                                            <button
-                                                onClick={() => openModal(ticket)}
-                                                className="rounded border border-yellow-500 bg-yellow-500 p-1.5 text-black transition hover:bg-yellow-400 dark:border-yellow-600 dark:hover:bg-yellow-500"
-                                            >
-                                                <Pencil className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => router.get(`/tickets/${ticket.id}`)}
-                                                className="rounded border border-yellow-400 bg-yellow-400 p-1.5 text-black transition hover:bg-yellow-300 dark:border-yellow-500 dark:hover:bg-yellow-400"
-                                            >
-                                                💬
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(ticket.id)}
-                                                className="rounded border border-red-500 bg-transparent p-1.5 text-red-500 transition hover:bg-red-500 hover:text-white dark:hover:bg-red-600"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
+                                        <td className="px-4 py-3 text-right">
+                                            {/* Escritorio */}
+                                            <div className="hidden justify-end gap-2 sm:flex">
+                                                <button
+                                                    onClick={() => openModal(ticket)}
+                                                    className="rounded border border-yellow-500 bg-yellow-500 p-1.5 text-black transition hover:bg-yellow-400 dark:border-yellow-600 dark:hover:bg-yellow-500"
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => router.get(`/tickets/${ticket.id}`)}
+                                                    className="rounded border border-yellow-400 bg-yellow-400 p-1.5 text-black transition hover:bg-yellow-300 dark:border-yellow-500 dark:hover:bg-yellow-400"
+                                                >
+                                                    💬
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(ticket.id)}
+                                                    className="rounded border border-red-500 bg-transparent p-1.5 text-red-500 transition hover:bg-red-500 hover:text-white dark:hover:bg-red-600"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
+
+                                            {/* Móvil */}
+                                            <div className="mt-2 flex justify-end gap-1 sm:hidden">
+                                                <button
+                                                    onClick={() => openModal(ticket)}
+                                                    className="rounded border border-yellow-500 bg-yellow-500 px-2 py-1 text-xs text-black hover:bg-yellow-400 dark:border-yellow-600 dark:hover:bg-yellow-500"
+                                                >
+                                                    ✏️
+                                                </button>
+                                                <button
+                                                    onClick={() => router.get(`/tickets/${ticket.id}`)}
+                                                    className="rounded border border-yellow-400 bg-yellow-400 px-2 py-1 text-xs text-black hover:bg-yellow-300 dark:border-yellow-500 dark:hover:bg-yellow-400"
+                                                >
+                                                    💬
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(ticket.id)}
+                                                    className="rounded border border-red-500 px-2 py-1 text-xs text-red-500 hover:bg-red-500 hover:text-white dark:hover:bg-red-600"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
