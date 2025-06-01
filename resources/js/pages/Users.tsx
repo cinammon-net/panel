@@ -74,8 +74,11 @@ export default function Users() {
                                 </tr>
                             ) : (
                                 users.data.map((user) => (
-                                    <tr key={user.id} className="border-b border-pink-800 hover:bg-pink-900/10">
-                                        <td className="px-4 py-3">
+                                    <tr
+                                        key={user.id}
+                                        onClick={() => router.visit(`/users/${user.id}/edit`)}
+                                        className="cursor-pointer border-b border-pink-800 transition hover:bg-pink-900/20"
+                                    >                                         <td className="px-4 py-3">
                                             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-pink-700 font-bold text-white uppercase">
                                                 {user.name.charAt(0)}
                                             </div>
