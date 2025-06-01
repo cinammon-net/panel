@@ -7,8 +7,6 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
 use Laravel\Pail\ValueObjects\Origin\Console;
-
-use function Laravel\Prompts\error;
 use Symfony\Component\Yaml\Yaml;
 
 class NodeController extends Controller
@@ -17,22 +15,18 @@ class NodeController extends Controller
     {
         $query = Node::query();
 
-        // Búsqueda por nombre
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        // Campos permitidos para orden
         $sortable = ['name', 'fqdn', 'scheme', 'maintenance_mode'];
         $sort = in_array($request->get('sort'), $sortable) ? $request->get('sort') : 'name';
         $direction = $request->get('direction') === 'desc' ? 'desc' : 'asc';
         $query->orderBy($sort, $direction);
 
-        // Paginación
         $perPage = $request->integer('per_page', 25);
         $paginated = $query->paginate($perPage)->withQueryString();
 
-        // Formateo para el frontend
         $nodes = $paginated->getCollection()->map(function ($node) {
             return [
                 'id' => $node->id,
@@ -55,15 +49,20 @@ class NodeController extends Controller
 
     public function show($id)
     {
-        // Asegurarse de que el nodo exista
         $node = Node::find($id);
 
         if (!$node) {
             return redirect()->route('nodes.index')->with('error', 'Nodo no encontrado.');
         }
 
+        $resolvedIp = gethostbyname($node->fqdn);
+        if ($resolvedIp === $node->fqdn) {
+            $resolvedIp = null;
+        }
+
         return Inertia::render('NodeShow', [
             'node' => $node,
+            'resolvedIp' => $resolvedIp,
         ]);
     }
 
@@ -112,10 +111,8 @@ class NodeController extends Controller
         $validated['daemon_sftp_alias'] = $validated['sftp_alias'];
         unset($validated['sftp_alias']);
 
-        // Asignar un UUID antes de crear el registro
         $validated['uuid'] = (string) Str::uuid();
 
-        // Crear el nodo con el UUID generado
         Node::create($validated);
 
         return redirect()->route('nodes.index')->with('success', 'Nodo creado correctamente.');
@@ -123,19 +120,16 @@ class NodeController extends Controller
 
     public function edit($id)
     {
-        // Buscar el nodo por su ID
         $node = Node::findOrFail($id);
 
-        // Pasar los datos del nodo a la vista con Inertia
         return Inertia::render('Nodes/Edit', [
-            'node' => $node, 
+            'node' => $node,
         ]);
     }
 
     public function update(Request $request, $id)
     {
         try {
-            // Validación y actualización del nodo
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'fqdn' => 'required|string|max:255',
@@ -158,7 +152,6 @@ class NodeController extends Controller
 
             return redirect()->route('nodes.index')->with('success', 'Nodo actualizado correctamente.');
         } catch (\Illuminate\Validation\ValidationException $e) {
-            // Manejo de errores
             return redirect()->back()->with('error', 'Error al actualizar el nodo: ' . $e->getMessage());
         }
     }
@@ -189,29 +182,26 @@ class NodeController extends Controller
             'time_labels' => $nodes->pluck('time')->toArray(),
         ]);
     }
+
     public function showConfig()
     {
-        $configFilePath = '/path/to/config.yml';  // Asegúrate de que esta ruta sea la correcta
+        $configFilePath = '/path/to/config.yml';
 
         if (!file_exists($configFilePath)) {
             return response()->json(['error' => 'Configuration file not found'], 404);
         }
         $config = Yaml::parseFile($configFilePath);
         return response()->json($config);
-        return response()->json($config);
     }
 
     public function saveConfig(Request $request)
     {
-        // Validar que el contenido de la configuración sea una cadena válida
         $request->validate([
             'config' => 'required|string',
         ]);
 
-        // Ruta donde se guarda el archivo de configuración
         $configPath = storage_path('daemon/config.yml');
 
-        // Guardar la nueva configuración en el archivo
         file_put_contents($configPath, $request->config);
 
         return response()->json(['message' => 'Configuration saved successfully']);
