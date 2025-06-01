@@ -8,8 +8,7 @@ import { Bar } from 'react-chartjs-2';
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 export default function Dashboard() {
-    const [version, setVersion] = useState('...');
-
+    const [version, setVersion] = useState('1.0.0');
     const [chartData] = useState({
         labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
         datasets: [
@@ -47,7 +46,9 @@ export default function Dashboard() {
     }, []);
 
     return (
-        <AppLayout>
+        <AppLayout breadcrumbs={[ 
+            { title: 'Dashboard', href: '/dashboard' },
+        ]}>
             <Head title="Dashboard">
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet" />
             </Head>
