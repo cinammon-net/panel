@@ -96,7 +96,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/nodes/create', [NodeController::class, 'create'])->name('nodes.create');
     Route::post('/nodes', [NodeController::class, 'store'])->name('nodes.store');
     Route::get('/nodes/{node}/edit', [NodeController::class, 'edit'])->name('nodes.edit');
-    Route::put('/nodes/{node}', [NodeController::class, 'update'])->name('nodes.update');
     Route::delete('/nodes/{node}', [NodeController::class, 'destroy'])->name('nodes.destroy');
 
     // 🖥️ Network
