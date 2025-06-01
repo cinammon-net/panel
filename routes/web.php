@@ -28,8 +28,9 @@ Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::view('/sponsors', 'legal.sponsors')->name('sponsors');
 
 // 🔗 Rutas de autenticación social
-Route::get('login/discord', [DiscordController::class, 'redirectToDiscord'])->name('discord.login');
-Route::get('discord/callback', [DiscordController::class, 'handleDiscordCallback']);
+Route::get('/login/discord', [DiscordController::class, 'redirectToDiscord'])->name('discord.login');
+Route::get('/discord/callback', [DiscordController::class, 'handleDiscordCallback']); // Esta ruta no debe estar protegida por autenticación
+
 // 🔒 Rutas para el Daemon
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/daemon/config', [NodeController::class, 'showConfig'])->name('daemon.config');
