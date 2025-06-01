@@ -1,6 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, router, usePage } from '@inertiajs/react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -15,7 +14,6 @@ export default function CreateUser() {
     });
 
     const [errors, setErrors] = useState<string | null>(null);
-    const [dropdownOpen, setDropdownOpen] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -54,7 +52,6 @@ export default function CreateUser() {
                     toast.success('User created successfully');
                     setForm({ name: '', email: '', password: '', roles: [] });
                     setErrors(null);
-                    setDropdownOpen(false);
                 },
                 onError: (err) => {
                     const msg = typeof err === 'string' ? err : err?.name || 'Failed to create user';
@@ -92,87 +89,76 @@ export default function CreateUser() {
                 <div className="overflow-x-auto">
                     <div className="bg-pink inline-block min-w-full overflow-hidden rounded-lg border border-pink-300 shadow-none transition dark:border-pink-700 dark:bg-neutral-950 dark:shadow-[0_0_10px_#0ff3]">
                         <div className="grid grid-cols-1 gap-6 p-6 md:grid-cols-3">
-                            <div>
-                                <label className="block font-semibold text-pink-600 dark:text-pink-300">Username*</label>
-                                <input
-                                    type="text"
-                                    name="name"
-                                    placeholder="Cinammon"
-                                    required
-                                    value={form.name}
-                                    onChange={handleChange}
-                                    className="w-full rounded border border-pink-500 bg-gray-100 px-3 py-2 text-black dark:bg-neutral-900 dark:text-white"
-                                />
-                            </div>
-                            <div>
-                                <label className="block font-semibold text-pink-600 dark:text-pink-300">Email*</label>
-                                <input
-                                    type="email"
-                                    name="email"
-                                    placeholder="email@domain.es"
-                                    required
-                                    value={form.email}
-                                    onChange={handleChange}
-                                    className="w-full rounded border border-pink-500 bg-gray-100 px-3 py-2 text-black dark:bg-neutral-900 dark:text-white"
-                                />
-                            </div>
-                            <div>
-                                <label className="block font-semibold text-pink-600 dark:text-pink-300">Password*</label>
-                                <input
-                                    type="password"
-                                    name="password"
-                                    placeholder="*********"
-                                    value={form.password}
-                                    security="true"
-                                    autoComplete="new-password"
-                                    autoFocus
-                                    required
-                                    onChange={handleChange}
-                                    className="w-full rounded border border-pink-500 bg-gray-100 px-3 py-2 text-black dark:bg-neutral-900 dark:text-white"
-                                />
-                            </div>
                             <div className="col-span-1 md:col-span-3">
-                                {/* Dropdown de roles */}
-                                <div className="mt-6 mb-4">
-                                    <div className="mb-1 flex items-center gap-1">
-                                        <label className="font-semibold text-pink-600 dark:text-pink-300">Admin Roles</label>
-                                        <div className="group relative">
-                                            <span className="cursor-help text-sm text-pink-500 dark:text-pink-300">🛈</span>
-                                            <div className="absolute top-0 left-0 z-200 hidden w-100 rounded bg-white p-2 text-sm text-gray-700 shadow-lg group-hover:block dark:bg-neutral-800 dark:text-white">
-                                                Providing a user password is optional. New user email will prompt users to create a password the first
-                                                time they login.
-                                            </div>
+                                <fieldset className="rounded-lg border border-pink-700 p-4">
+                                    <legend className="px-2 text-sm font-semibold text-pink-600 dark:text-pink-400">User Information</legend>
+
+                                    <div className="grid grid-cols-1 gap-6  md:grid-cols-3">
+                                        <div>
+                                            <label className="block font-semibold text-pink-600 dark:text-pink-300">Username*</label>
+                                            <input
+                                                type="text"
+                                                name="name"
+                                                placeholder="Cinammon"
+                                                required
+                                                value={form.name}
+                                                onChange={handleChange}
+                                                className="w-full rounded border border-pink-500 bg-gray-100 px-3 py-2 text-black dark:bg-neutral-900 dark:text-white"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block font-semibold text-pink-600 dark:text-pink-300">Email*</label>
+                                            <input
+                                                type="email"
+                                                name="email"
+                                                placeholder="email@domain.es"
+                                                required
+                                                value={form.email}
+                                                onChange={handleChange}
+                                                className="w-full rounded border border-pink-500 bg-gray-100 px-3 py-2 text-black dark:bg-neutral-900 dark:text-white"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block font-semibold text-pink-600 dark:text-pink-300">Password*</label>
+                                            <input
+                                                type="password"
+                                                name="password"
+                                                placeholder="*********"
+                                                value={form.password}
+                                                security="true"
+                                                autoComplete="new-password"
+                                                autoFocus
+                                                required
+                                                onChange={handleChange}
+                                                className="w-full rounded border border-pink-500 bg-gray-100 px-3 py-2 text-black dark:bg-neutral-900 dark:text-white"
+                                            />
                                         </div>
                                     </div>
-                                    <div className="w-full-2/3">
-                                        <button
-                                            onClick={() => setDropdownOpen(!dropdownOpen)}
-                                            className="flex w-full items-center justify-between rounded border border-pink-500 bg-gray-100 px-3 py-2 text-left dark:bg-neutral-900 dark:text-white"
-                                        >
-                                            {form.roles.length > 0 ? `${form.roles.length} selected` : 'Select roles'}
-                                            {dropdownOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                                        </button>
+                                </fieldset>
+                            </div>
+                            <div className="col-span-1 mt-6 md:col-span-3">
+                                <fieldset className="rounded-lg border border-pink-700 p-4">
+                                    <legend className="px-2 text-sm font-semibold text-pink-600 dark:text-pink-400">Assign Roles</legend>
 
-                                        {dropdownOpen && (
-                                            <div className="absolute z-10 mt-2 max-h-20 w-210 overflow-y-auto rounded border border-pink-500 bg-white shadow-md dark:bg-neutral-800 dark:text-white">
-                                                {roles.map((role) => (
-                                                    <label
-                                                        key={role.id}
-                                                        className="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-pink-100 dark:hover:bg-pink-900/40"
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            className="accent-pink-600"
-                                                            checked={form.roles.includes(role.name)}
-                                                            onChange={() => toggleRole(role.name)}
-                                                        />
-                                                        {role.name}
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        )}
+                                    <div className="grid grid-cols-1 gap-3 pt-2 sm:grid-cols-2 md:grid-cols-3">
+                                        {roles.map((role) => (
+                                            <label
+                                                key={role.id}
+                                                className="flex cursor-pointer items-center gap-2 rounded-md border border-pink-400 bg-pink-100 px-3 py-2 text-sm text-pink-700 transition hover:bg-pink-200 dark:border-pink-700 dark:bg-pink-900/40 dark:text-pink-200 dark:hover:bg-pink-900"
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    className="accent-pink-600"
+                                                    checked={form.roles.includes(role.name)}
+                                                    onChange={() => toggleRole(role.name)}
+                                                />
+                                                {role.name}
+                                            </label>
+                                        ))}
                                     </div>
-                                </div>
+                                </fieldset>
                             </div>
                         </div>
                     </div>
