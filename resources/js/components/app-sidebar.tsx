@@ -95,7 +95,7 @@ export function AppSidebar() {
     return (
         <Sidebar
             collapsible="icon"
-            variant="inset"
+            variant="floating"
             className="border-r border-neutral-300 bg-white font-[Orbitron] transition-colors dark:border-pink-500 dark:bg-black"
         >
             <SidebarHeader className="border-b border-neutral-300 dark:border-pink-500">
