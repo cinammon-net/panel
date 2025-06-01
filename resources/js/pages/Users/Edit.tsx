@@ -51,7 +51,11 @@ export default function EditUser() {
     };
 
     return (
-        <AppLayout breadcrumbs={[{ title: 'Users', href: '/users' }]}>
+        <AppLayout breadcrumbs={[
+            { title: 'Users', href: '/users' },
+            { title: 'Edit', href: `/users/${user.id}/edit` },
+            { title: user.name, href: `/users/${user.id}` },
+            ]}>
             <Head title={`Edit ${user.name}`}>
                 <meta name="description" content="Roles management page" />
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet" />
@@ -60,7 +64,7 @@ export default function EditUser() {
             <div className="min-h-screen bg-white p-6 font-[Orbitron] text-black dark:bg-black dark:text-white">
                 <div className="mb-6 flex items-center justify-between">
                     <h1 className="text-3xl font-semibold tracking-widest text-pink-800 drop-shadow-none dark:text-pink-400 dark:drop-shadow-[0_0_6px_#f0f]">
-                        EDIT USER
+                        EDIT USER {user.name}
                     </h1>
                     <div className="flex items-center gap-3">
                         <button
