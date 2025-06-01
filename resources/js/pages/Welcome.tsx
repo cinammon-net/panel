@@ -8,8 +8,6 @@ import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Heart } from 'lucide-react'; // Para el icono de corazón
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
-import React from 'react';
 
 const CookieBanner: React.FC = () => {
     const [cookiesAccepted, setCookiesAccepted] = useState<boolean>(false);
@@ -68,38 +66,37 @@ export default function WelcomePanel() {
         });
     }, []);
 
-    const [images, setImages] = useState<string[]>([]); // Almacenar las URLs de las imágenes
-    const [loading, setLoading] = useState(true); // Para controlar el estado de carga
+    const [images] = useState<string[]>([
+        'https://www.cinammon.net/storage/gallery/Dashboard.png',
+        'https://www.cinammon.net/storage/gallery/Users.png',
+        'https://www.cinammon.net/storage/gallery/Nodes.png',
+        'https://www.cinammon.net/storage/gallery/Create%20Node.png',
+    ]);
 
-    const fetchImages = async () => {
-        try {
-            const res = await fetch('https://cinammon.net/gallery');
-            console.log('Status:', res.status); // Verifica el código de estado HTTP
-            if (!res.ok) {
-                throw new Error(`Error: ${res.status} - ${res.statusText}`);
-            }
+    // Estado para manejar la imagen seleccionada para el modal
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [zoom, setZoom] = useState<number>(1); // Estado para controlar el zoom
 
-            const data = await res.json();
-            console.log('Datos recibidos:', data); // Verifica el formato de los datos
-
-            if (Array.isArray(data)) {
-                setImages(data);
-            } else {
-                console.error('La respuesta no es un array de URLs de imágenes');
-            }
-        } catch (error) {
-            console.error('Error al obtener las imágenes:', error);
-            toast.error('❌ Error al obtener las imágenes');
-        } finally {
-            setLoading(false);
-        }
+    // Función para abrir el modal y mostrar la imagen seleccionada
+    const openModal = (imageUrl: string) => {
+        setSelectedImage(imageUrl);
+        setZoom(1); // Reseteamos el zoom al abrir el modal
     };
-    
-    useEffect(() => {
-        fetchImages();
-    }, []);
 
+    // Función para cerrar el modal
+    const closeModal = () => {
+        setSelectedImage(null);
+        setZoom(1); // Reseteamos el zoom al cerrar el modal
+    };
 
+    // Función para hacer zoom en la imagen
+    const handleZoomIn = () => {
+        setZoom((prevZoom) => prevZoom + 0.1); // Aumenta el zoom
+    };
+
+    const handleZoomOut = () => {
+        setZoom((prevZoom) => Math.max(1, prevZoom - 0.1)); // Disminuye el zoom, pero no menos de 1
+    };
     return (
         <>
             <Head title="Welcome">
@@ -319,28 +316,73 @@ export default function WelcomePanel() {
 
                 {/* SECCIÓN GALERÍA */}
                 <section className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
-                    <h2 className="text-3xl font-bold text-pink-400 sm:text-4xl" data-aos="fade-up">
-                        🖼️ Galería de Cinammon
-                    </h2>
+            <h2 className="text-3xl font-bold text-pink-400 sm:text-4xl" data-aos="fade-up">
+                🖼️ Galería de Cinammon
+            </h2>
 
-                    {/* Mostrar un mensaje mientras las imágenes están cargando */}
-                    {loading ? (
-                        <p className="col-span-full text-center text-lg font-bold text-white">Cargando imágenes...</p>
-                    ) : (
-                        <div className="grid max-w-6xl grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
-                            {/* Mapea las imágenes */}
-                            {images.map((imageUrl, index) => (
-                                <div key={index} className="overflow-hidden rounded-xl shadow-lg" data-aos="zoom-in" data-aos-delay={index * 100}>
-                                    <img
-                                        src={imageUrl} // Usa las URLs obtenidas
-                                        alt={`Cinammon vista ${index + 1}`}
-                                        className="h-60 w-full object-cover transition-transform duration-300 hover:scale-105"
-                                    />
-                                </div>
-                            ))}
+            {/* Muestra las imágenes en una cuadrícula */}
+            <div className="grid max-w-6xl grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
+                {images.map((imageUrl, index) => (
+                    <div
+                        key={index}
+                        className="overflow-hidden rounded-xl shadow-lg"
+                        data-aos="zoom-in"
+                        data-aos-delay={index * 100}
+                    >
+                        <img
+                            src={imageUrl}
+                            alt={`Cinammon vista ${index + 1}`}
+                            className="h-60 w-full object-cover transition-transform duration-300 hover:scale-105 cursor-pointer"
+                            onClick={() => openModal(imageUrl)} // Abre el modal con la imagen seleccionada
+                        />
+                    </div>
+                ))}
+            </div>
+
+            {/* Modal para mostrar la imagen seleccionada */}
+            {selectedImage && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90"
+                    onClick={closeModal}
+                >
+                    <div
+                        className="relative bg-black p-4 rounded-lg"
+                        onClick={(e) => e.stopPropagation()} // Evita que el modal se cierre al hacer clic en la imagen
+                    >
+                        <img
+                            src={selectedImage}
+                            alt="Imagen seleccionada"
+                            className="max-w-full max-h-screen object-contain"
+                            style={{ transform: `scale(${zoom})`, transition: 'transform 0.2s ease' }}
+                        />
+                        <div className="absolute top-0 right-0 p-2">
+                            <button
+                                className="text-white bg-black p-2 rounded-full"
+                                onClick={closeModal}
+                            >
+                                X
+                            </button>
                         </div>
-                    )}
-                </section>
+
+                        {/* Controles de zoom */}
+                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 mb-4 flex gap-4">
+                            <button
+                                className="text-white bg-black p-2 rounded-full"
+                                onClick={handleZoomIn}
+                            >
+                                +
+                            </button>
+                            <button
+                                className="text-white bg-black p-2 rounded-full"
+                                onClick={handleZoomOut}
+                            >
+                                -
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </section>
 
                 {/* SECCIÓN TESTIMONIOS */}
                 <section className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
