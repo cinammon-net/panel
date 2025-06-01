@@ -100,8 +100,6 @@ Route::middleware(['auth'])->group(function () {
 
     // Galería
     Route::get('/gallery', fn() => Inertia::render('Gallery'))->name('gallery.index');
-
-
     Route::post('/gallery/upload', function (Request $request) {
         $request->validate([
             'image' => 'required|image|max:4096',
@@ -131,16 +129,16 @@ Route::middleware(['auth'])->group(function () {
     })->name('gallery.list');
 
     Route::delete('/gallery/delete/{filename}', function ($filename) {
-        $path = 'public/gallery/' . $filename;
-
-        if (Storage::exists($path)) {
-            Storage::delete($path);
+        $path = storage_path('app/public/gallery/' . $filename); 
+    
+        if (file_exists($path)) {
+            unlink($path);
             return response()->json(['success' => true]);
         }
-
+    
         return response()->json(['error' => 'Archivo no encontrado'], 404);
     })->name('gallery.delete');
-
+    
 
     // Users
     Route::resource('users', UserController::class)->except(['show']);
