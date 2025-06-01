@@ -8,41 +8,31 @@ import { Bar } from 'react-chartjs-2';
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 export default function Dashboard() {
-    const [version, setVersion] = useState('1.0.0'); 
+    const [version, setVersion] = useState('...');
 
-    const chartData = {
-        labels: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
+    const [chartData] = useState({
+        labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
         datasets: [
             {
-                label: 'Usuarios activos',
-                data: [120, 150, 180, 200, 170, 220, 250],
-                backgroundColor: 'rgba(117, 26, 255, 0.6)',
-                borderColor: 'rgba(117, 26, 255, 1)',
-                borderWidth: 1,
-            },
-            {
-                label: 'Nuevos registros',
-                data: [30, 50, 40, 60, 70, 80, 90],
-                backgroundColor: 'rgba(0, 204, 255, 0.6)',
-                borderColor: 'rgba(0, 204, 255, 1)',
-                borderWidth: 1,
-            },
-            {
                 label: 'Instalaciones',
-                data: [20, 30, 25, 35, 40, 45, 50],
-                backgroundColor: 'rgba(255, 105, 180, 0.6)',
-                borderColor: 'rgba(255, 105, 180, 1)',
-                borderWidth: 1,
+                data: [120, 90, 110, 140, 130, 100, 125],
+                backgroundColor: 'rgba(180, 118, 255, 0.7)',
+                borderRadius: 5,
             },
             {
-                label: 'Servidores activos',
-                data: [10, 15, 20, 25, 30, 35, 40],
-                backgroundColor: 'rgba(138, 43, 226, 0.6)',
-                borderColor: 'rgba(138, 43, 226, 1)',
-                borderWidth: 1,
+                label: 'Usuarios Nuevos',
+                data: [60, 40, 80, 90, 75, 50, 70],
+                backgroundColor: 'rgba(90, 200, 250, 0.7)',
+                borderRadius: 5,
+            },
+            {
+                label: 'Errores',
+                data: [10, 5, 8, 6, 4, 9, 7],
+                backgroundColor: 'rgba(255, 100, 130, 0.7)',
+                borderRadius: 5,
             },
         ],
-    };
+    });
 
     const stats = [
         { name: 'Usuarios', value: '1.204', icon: Users, color: 'text-cyan-400' },
@@ -62,7 +52,7 @@ export default function Dashboard() {
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet" />
             </Head>
 
-            <div className="mx-auto w-full max-w-7xl space-y-10 px-6 py-10 font-[Orbitron,sans-serif] text-white">
+            <div className="min-h-screen w-full space-y-10 px-6 py-10 font-[Orbitron,sans-serif] text-white">
                 <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-br from-black via-[#0d0118] to-black" />
                 <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle,#751aff11_1px,transparent_1px)] bg-[length:18px_18px]" />
 
@@ -137,7 +127,7 @@ export default function Dashboard() {
                         <HelpCircle className="h-5 w-5 text-indigo-400" />
                         <h2 className="text-lg font-semibold text-white">¿Necesitas ayuda?</h2>
                     </div>
-                    <p className="mb-4 text-sm text-purple-400">Accede a la documentación o únete al Discord de soporte.</p>
+                    <p className="mb-4 text-sm text-purple-400">Accede a la documentación o únete al Discord de hikarinet.</p>
                     <div className="flex gap-2">
                         <a
                             href="https://wiki.cinammon.net"
@@ -148,7 +138,7 @@ export default function Dashboard() {
                         </a>
                         <a
                             href="https://discord.gg/hikarinet"
-                            className="rounded-md border border-purple-500 bg-purple-900/20 px-4 py-2 text-sm text-white hover:bg-purple-700/30"
+                            className="rounded-md bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-500"
                             target="_blank"
                         >
                             Discord
