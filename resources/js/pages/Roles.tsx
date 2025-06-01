@@ -91,7 +91,7 @@ export default function Roles() {
                                     <tr
                                         key={role.id}
                                         className="cursor-pointer border-t border-pink-700 hover:bg-pink-300/10"
-                                        onClick={() => (window.location.href = `/roles/${role.id}`)}
+                                        onClick={() => (window.location.href = `/roles/${role.id}/edit`)} // Redirigir al editar cuando se haga clic en el rol
                                     >
                                         <td className="px-4 py-3 font-semibold text-pink-500">{role.name}</td>
                                         <td className="px-4 py-3 text-pink-500">
