@@ -16,6 +16,7 @@ use App\Http\Controllers\TermsController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\EggVariableController;
+use App\Http\Controllers\NetworkController;
 
 // ───────────────────────────────────────
 // 🌐 Rutas públicas
@@ -95,13 +96,33 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/nodes/create', [NodeController::class, 'create'])->name('nodes.create');
     Route::post('/nodes', [NodeController::class, 'store'])->name('nodes.store');
     Route::get('/nodes/{node}/edit', [NodeController::class, 'edit'])->name('nodes.edit');
-    //Route::put('/nodes/{id}', [NodeController::class, 'update'])->name('nodes.update');
-    //Route::delete('/nodes/{id}', [NodeController::class, 'destroy'])->name('nodes.destroy');
+    Route::put('/nodes/{node}', [NodeController::class, 'update'])->name('nodes.update');
+    Route::delete('/nodes/{node}', [NodeController::class, 'destroy'])->name('nodes.destroy');
+
+    // 🖥️ Network
+    Route::get('/api/ips', [NetworkController::class, 'getIps']);
+
     Route::get('/nodes/cpu-data', [NodeController::class, 'getCpuData']);
     Route::get('/nodes/memory-data', [NodeController::class, 'getMemoryData']);
     Route::get('/nodes/storage-data', [NodeController::class, 'getStorageData']);
     // 🖥️ Servers
-    Route::resource('servers', ServerController::class);
+    Route::get('/api/network/ips', function () {
+        $ips = [];
+
+        foreach (explode("\n", shell_exec("ip -o -f inet addr show | awk '/scope global/ {print $4}'")) as $line) {
+            if (filter_var($line, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                $ips[] = explode('/', $line)[0];
+            }
+        }
+
+        foreach (explode("\n", shell_exec("ip -o -f inet6 addr show | awk '/scope global/ {print $4}'")) as $line) {
+            if (filter_var($line, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+                $ips[] = explode('/', $line)[0];
+            }
+        }
+
+        return response()->json(array_values(array_unique($ips)));
+    });
 
     // 👤 Users
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
