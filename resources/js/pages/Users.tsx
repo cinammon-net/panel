@@ -1,7 +1,8 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, router, usePage, Link } from '@inertiajs/react';
 
-import { Copy, Eye, Mail, Pencil, Server, Trash2, UserCheck, UserRoundCheck, UserRoundX, UsersRound } from 'lucide-react';
+import { Eye, Mail, Pencil, Server, Trash2, UserCheck, UserRoundCheck, UserRoundX, UsersRound } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface UserItem {
     id: number;
@@ -28,7 +29,18 @@ interface Pagination<T> {
 
 export default function Users() {
     const { users } = usePage<{ users: Pagination<UserItem> }>().props;
-
+    const deleteUser = (userId: number, userName: string) => {
+        router.delete(`/users/${userId}`, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                toast.success(`User ${userName} deleted successfully`);
+            },
+            onCancel: () => {
+                toast.info('User deletion canceled');
+            },
+        });
+    };
     return (
         <AppLayout breadcrumbs={[{ title: 'Users', href: '/users' }]}>
             <Head title="Users">
@@ -127,17 +139,12 @@ export default function Users() {
                                                 <button onClick={() => router.visit(`/users/${user.id}/edit`)}>
                                                     <Pencil className="h-4 w-4" />
                                                 </button>
-                                                <button onClick={() => alert('Duplicate not implemented')}>
-                                                    <Copy className="h-4 w-4 text-blue-400" />
-                                                </button>
+                                                
                                                 <button
-                                                    onClick={() =>
-                                                        confirm(`Are you sure you want to delete ${user.name}?`) &&
-                                                        router.delete(`/users/${user.id}`, {
-                                                            preserveScroll: true,
-                                                            preserveState: true,
-                                                        })
-                                                    }
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        deleteUser(user.id, user.name);
+                                                    }}
                                                 >
                                                     <Trash2 className="h-4 w-4 text-red-400" />
                                                 </button>
