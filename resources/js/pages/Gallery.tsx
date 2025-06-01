@@ -8,6 +8,7 @@ export default function Gallery() {
     const [images, setImages] = useState<{ url: string }[]>([]);
     const [loading, setLoading] = useState(false);
     const [file, setFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null); // Para mostrar la vista previa de la imagen
 
     // Cargar las imágenes desde el servidor
     const fetchImages = async () => {
@@ -15,8 +16,7 @@ export default function Gallery() {
         try {
             const res = await fetch('/gallery/list');
             const data = await res.json();
-            // Actualiza las URLs de las imágenes
-            setImages(data);
+            setImages(data); // Actualiza las URLs de las imágenes
         } catch {
             toast.error('❌ Error al cargar la galería');
         } finally {
@@ -27,6 +27,18 @@ export default function Gallery() {
     useEffect(() => {
         fetchImages();
     }, []);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            setFile(e.target.files[0]);
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result as string); // Establece la vista previa
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleUpload = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -51,15 +63,15 @@ export default function Gallery() {
             if (res.ok) {
                 fetchImages();
                 setFile(null);
+                setImagePreview(null); // Limpiar la vista previa
                 toast.success('✅ Imagen subida correctamente');
             } else {
                 const errorData = await res.json();
-                console.error(errorData);
                 toast.error(`❌ Error al subir la imagen: ${errorData.message || 'Desconocido'}`);
             }
         } catch (error) {
-            console.error(error);
             toast.error('❌ Error al subir la imagen');
+            console.error(error);
         }
     };
 
@@ -67,18 +79,24 @@ export default function Gallery() {
         const fileName = url.split('/').pop();
         if (!fileName || !confirm(`¿Eliminar ${fileName}?`)) return;
 
-        const res = await fetch(`/gallery/delete/${fileName}`, {
-            method: 'DELETE',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
-            },
-        });
+        try {
+            const res = await fetch(`/gallery/delete/${fileName}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
+                },
+            });
 
-        if (res.ok) {
-            fetchImages();
-            toast.success('🗑️ Imagen eliminada');
-        } else {
-            toast.error('❌ No se pudo eliminar la imagen');
+            if (!res.ok) {
+                const errorData = await res.json();
+                toast.error(`❌ No se pudo eliminar la imagen: ${errorData.message || 'Desconocido'}`);
+            } else {
+                fetchImages();
+                toast.success('🗑️ Imagen eliminada');
+            }
+        } catch (error) {
+            toast.error('❌ Error al eliminar la imagen');
+            console.error(error);
         }
     };
 
@@ -98,25 +116,34 @@ export default function Gallery() {
                     <p className="text-sm text-purple-500">Sube y gestiona imágenes del sistema Cinammon.</p>
                 </div>
 
+                {/* Formulario para subir imágenes */}
                 <form onSubmit={handleUpload} className="flex flex-wrap items-center gap-4">
                     <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-purple-600 bg-purple-600/10 px-4 py-2 text-purple-300 transition hover:bg-purple-600/20">
                         <ImagePlus className="h-5 w-5" />
                         <span>Seleccionar</span>
-                        <input type="file" accept="image/*" hidden onChange={(e) => setFile(e.target.files?.[0] || null)} />
+                        <input type="file" accept="image/*" hidden onChange={handleFileChange} />
                     </label>
 
                     <button
                         type="submit"
-                        disabled={!file}
+                        disabled={!file || loading}
                         className="flex items-center gap-2 rounded-lg bg-pink-600 px-4 py-2 text-white transition hover:bg-pink-700 disabled:opacity-30"
                     >
                         <Upload className="h-5 w-5" />
-                        Subir Imagen
+                        {loading ? 'Subiendo...' : 'Subir Imagen'}
                     </button>
 
                     {file && <p className="text-sm text-purple-400">📁 {file.name}</p>}
                 </form>
 
+                {/* Vista previa de la imagen seleccionada */}
+                {imagePreview && (
+                    <div className="mt-4">
+                        <img src={imagePreview} alt="Vista previa" className="h-60 w-full rounded-md object-cover" />
+                    </div>
+                )}
+
+                {/* Mostrar imágenes */}
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {loading ? (
                         <p className="col-span-full text-center text-lg font-bold text-white">Cargando...</p>
