@@ -8,6 +8,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Heart } from 'lucide-react'; // Para el icono de corazón
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import React from 'react';
 
 const CookieBanner: React.FC = () => {
     const [cookiesAccepted, setCookiesAccepted] = useState<boolean>(false);
@@ -24,6 +26,7 @@ const CookieBanner: React.FC = () => {
 
     if (cookiesAccepted) return null;
 
+    
     return (
         <div className="fixed bottom-0 left-0 z-50 w-full bg-black/70 p-4 text-center text-white">
             <p>
@@ -64,6 +67,38 @@ export default function WelcomePanel() {
             easing: 'ease-out',
         });
     }, []);
+
+    const [images, setImages] = useState<string[]>([]); // Almacenar las URLs de las imágenes
+    const [loading, setLoading] = useState(true); // Para controlar el estado de carga
+
+    const fetchImages = async () => {
+        try {
+            const res = await fetch('https://cinammon.net/gallery');
+            console.log('Status:', res.status); // Verifica el código de estado HTTP
+            if (!res.ok) {
+                throw new Error(`Error: ${res.status} - ${res.statusText}`);
+            }
+
+            const data = await res.json();
+            console.log('Datos recibidos:', data); // Verifica el formato de los datos
+
+            if (Array.isArray(data)) {
+                setImages(data);
+            } else {
+                console.error('La respuesta no es un array de URLs de imágenes');
+            }
+        } catch (error) {
+            console.error('Error al obtener las imágenes:', error);
+            toast.error('❌ Error al obtener las imágenes');
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    useEffect(() => {
+        fetchImages();
+    }, []);
+
 
     return (
         <>
@@ -287,17 +322,24 @@ export default function WelcomePanel() {
                     <h2 className="text-3xl font-bold text-pink-400 sm:text-4xl" data-aos="fade-up">
                         🖼️ Galería de Cinammon
                     </h2>
-                    <div className="grid max-w-6xl grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
-                        {[1, 2, 3, 4, 5, 6].map((i) => (
-                            <div key={i} className="overflow-hidden rounded-xl shadow-lg" data-aos="zoom-in" data-aos-delay={i * 100}>
-                                <img
-                                    src={`https://source.unsplash.com/random/800x600?sig=${i}&cinammon`}
-                                    alt={`Cinammon vista ${i}`}
-                                    className="h-60 w-full object-cover transition-transform duration-300 hover:scale-105"
-                                />
-                            </div>
-                        ))}
-                    </div>
+
+                    {/* Mostrar un mensaje mientras las imágenes están cargando */}
+                    {loading ? (
+                        <p className="col-span-full text-center text-lg font-bold text-white">Cargando imágenes...</p>
+                    ) : (
+                        <div className="grid max-w-6xl grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
+                            {/* Mapea las imágenes */}
+                            {images.map((imageUrl, index) => (
+                                <div key={index} className="overflow-hidden rounded-xl shadow-lg" data-aos="zoom-in" data-aos-delay={index * 100}>
+                                    <img
+                                        src={imageUrl} // Usa las URLs obtenidas
+                                        alt={`Cinammon vista ${index + 1}`}
+                                        className="h-60 w-full object-cover transition-transform duration-300 hover:scale-105"
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </section>
 
                 {/* SECCIÓN TESTIMONIOS */}
