@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, router, usePage, Link } from '@inertiajs/react';
 
-import { Eye, Mail, Pencil, Server, Trash2, UserCheck, UserRoundCheck, UserRoundX, UsersRound } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eye, Mail, Pencil, Server, Trash2, UserCheck, UserRoundCheck, UserRoundX, UsersRound } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface UserItem {
@@ -90,7 +90,9 @@ export default function Users() {
                                         key={user.id}
                                         onClick={() => router.visit(`/users/${user.id}/edit`)}
                                         className="cursor-pointer border-b border-pink-800 transition hover:bg-pink-900/20"
-                                    >                                         <td className="px-4 py-3">
+                                    >
+                                        {' '}
+                                        <td className="px-4 py-3">
                                             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-pink-700 font-bold text-white uppercase">
                                                 {user.name.charAt(0)}
                                             </div>
@@ -139,7 +141,7 @@ export default function Users() {
                                                 <button onClick={() => router.visit(`/users/${user.id}/edit`)}>
                                                     <Pencil className="h-4 w-4" />
                                                 </button>
-                                                
+
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -167,11 +169,17 @@ export default function Users() {
                                                 <button
                                                     key={index}
                                                     onClick={() => router.get(link.url || '', {}, { preserveScroll: true })}
-                                                    className={`px-3 py-1 rounded ${
+                                                    className={`rounded px-3 py-1 ${
                                                         link.active ? 'bg-pink-600 text-white' : 'bg-pink-200 text-pink-800 hover:bg-pink-300'
                                                     }`}
                                                 >
-                                                    {link.label}
+                                                    {link.label === 'Previous' ? (
+                                                        <ChevronLeft className="h-4 w-4" />
+                                                    ) : link.label === 'Next' ? (
+                                                        <ChevronRight className="h-4 w-4" />
+                                                    ) : (
+                                                        link.label
+                                                    )}
                                                 </button>
                                             ))}
                                         </nav>
@@ -179,6 +187,8 @@ export default function Users() {
                                 </td>
                             </tr>
                         </tfoot>
+
+                        
                     </table>
                 </div>
             </div>
