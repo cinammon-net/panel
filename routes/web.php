@@ -78,6 +78,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/nodes/memory-data', [NodeController::class, 'getMemoryData']);
     Route::get('/nodes/storage-data', [NodeController::class, 'getStorageData']);
 
+    // Servers
+    Route::resource('servers', ServerController::class)->except(['show']);
+    
     // Network
     Route::get('/api/ips', [NetworkController::class, 'getIps']);
     Route::get('/api/network/ips', function () {
