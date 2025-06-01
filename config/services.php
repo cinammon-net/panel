@@ -27,9 +27,9 @@ return [
     ],
 
     'discord' => [
-        'client_id' => env('DISCORD_CLIENT_ID'),
-        'client_secret' => env('DISCORD_CLIENT_SECRET'),
-        'redirect' => env('DISCORD_REDIRECT_URI'),
+        'client_id' => env('1378868648466317442'), 
+        'client_secret' => env('_KQ2HlG9JztRDrQxmelR6_oQttFDPVtx'),
+        'redirect' => env('https://cinammon.net/discord/callback')
     ],
 
     'github' => [
