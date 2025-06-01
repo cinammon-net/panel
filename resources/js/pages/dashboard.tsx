@@ -10,22 +10,22 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 export default function Dashboard() {
     const [version, setVersion] = useState('1.0.0');
     const [chartData] = useState({
-        labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
         datasets: [
             {
-                label: 'Instalaciones',
+                label: 'Installations',
                 data: [120, 90, 110, 140, 130, 100, 125],
                 backgroundColor: 'rgba(180, 118, 255, 0.7)',
                 borderRadius: 5,
             },
             {
-                label: 'Usuarios Nuevos',
+                label: 'New Users',
                 data: [60, 40, 80, 90, 75, 50, 70],
                 backgroundColor: 'rgba(90, 200, 250, 0.7)',
                 borderRadius: 5,
             },
             {
-                label: 'Errores',
+                label: 'Errors',
                 data: [10, 5, 8, 6, 4, 9, 7],
                 backgroundColor: 'rgba(255, 100, 130, 0.7)',
                 borderRadius: 5,
@@ -34,9 +34,9 @@ export default function Dashboard() {
     });
 
     const stats = [
-        { name: 'Usuarios', value: '1.204', icon: Users, color: 'text-cyan-400' },
-        { name: 'Servidores', value: '412', icon: Server, color: 'text-purple-400' },
-        { name: 'Instalaciones', value: '793', icon: Settings, color: 'text-pink-400' },
+        { name: 'Users', value: '1,204', icon: Users, color: 'text-cyan-400' },
+        { name: 'Servers', value: '412', icon: Server, color: 'text-purple-400' },
+        { name: 'Installations', value: '793', icon: Settings, color: 'text-pink-400' },
     ];
 
     useEffect(() => {
@@ -46,9 +46,7 @@ export default function Dashboard() {
     }, []);
 
     return (
-        <AppLayout breadcrumbs={[ 
-            { title: 'Dashboard', href: '/dashboard' },
-        ]}>
+        <AppLayout breadcrumbs={[{ title: 'Dashboard', href: '/dashboard' }]}>
             <Head title="Dashboard">
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet" />
             </Head>
@@ -59,7 +57,7 @@ export default function Dashboard() {
 
                 <div>
                     <h1 className="text-3xl font-bold tracking-widest text-purple-300 uppercase">Dashboard</h1>
-                    <p className="text-sm text-purple-500">Resumen del sistema Cinammon en tiempo real.</p>
+                    <p className="text-sm text-purple-500">Real-time system summary for Cinammon.</p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -82,7 +80,7 @@ export default function Dashboard() {
                 <div className="rounded-xl border border-purple-600/40 bg-black/30 p-6 shadow-[0_0_10px_#751aff44] backdrop-blur">
                     <div className="mb-4 flex items-center gap-3 text-purple-300">
                         <TrendingUp className="h-5 w-5" />
-                        <h2 className="text-xl font-semibold">Actividad semanal</h2>
+                        <h2 className="text-xl font-semibold">Weekly Activity</h2>
                     </div>
                     <Bar
                         data={chartData}
@@ -104,38 +102,38 @@ export default function Dashboard() {
                 <div className="rounded-xl border border-purple-600/40 bg-black/30 p-4 text-sm text-purple-300 shadow-[0_0_10px_#751aff44]">
                     <p className="flex items-center gap-2">
                         <Settings className="h-4 w-4 text-green-400" />
-                        Sistema en ejecución: <span className="font-bold text-white">{version}</span>
+                        System Running: <span className="font-bold text-white">{version}</span>
                     </p>
                 </div>
 
                 <div className="rounded-xl border border-purple-600/40 bg-black/30 p-6 shadow-[0_0_10px_#751aff44] backdrop-blur">
                     <div className="mb-3 flex items-center gap-3">
                         <Info className="h-5 w-5 text-blue-400" />
-                        <h2 className="text-lg font-semibold text-white">Información para desarrolladores</h2>
+                        <h2 className="text-lg font-semibold text-white">Developer Info</h2>
                     </div>
-                    <p className="mb-4 text-sm text-purple-400">Si encuentras un bug o fallo de seguridad, abre un reporte en GitHub.</p>
+                    <p className="mb-4 text-sm text-purple-400">If you find a bug or security issue, please report it on GitHub.</p>
                     <a
                         href="https://github.com/cinammon-net/panel/issues/new"
                         className="inline-block rounded-md border border-purple-500 bg-black px-4 py-2 text-sm text-purple-200 hover:bg-purple-700/20"
                         target="_blank"
                     >
-                        Abrir issue
+                        Open Issue
                     </a>
                 </div>
 
                 <div className="rounded-xl border border-purple-600/40 bg-black/30 p-6 shadow-[0_0_10px_#751aff44] backdrop-blur">
                     <div className="mb-3 flex items-center gap-3">
                         <HelpCircle className="h-5 w-5 text-indigo-400" />
-                        <h2 className="text-lg font-semibold text-white">¿Necesitas ayuda?</h2>
+                        <h2 className="text-lg font-semibold text-white">Need Help?</h2>
                     </div>
-                    <p className="mb-4 text-sm text-purple-400">Accede a la documentación o únete al Discord de hikarinet.</p>
+                    <p className="mb-4 text-sm text-purple-400">Check the documentation or join the Hikarinet Discord.</p>
                     <div className="flex gap-2">
                         <a
                             href="https://wiki.cinammon.net"
                             className="rounded-md border border-purple-500 bg-purple-900/20 px-4 py-2 text-sm text-white hover:bg-purple-700/40"
                             target="_blank"
                         >
-                            Documentación
+                            Documentation
                         </a>
                         <a
                             href="https://discord.gg/hikarinet"
