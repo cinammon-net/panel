@@ -154,6 +154,31 @@ export default function Users() {
                                 ))
                             )}
                         </tbody>
+
+                        <tfoot>
+                            <tr>
+                                <td colSpan={8}>
+                                    <div className="flex items-center justify-between px-4 py-3 text-sm text-pink-500">
+                                        <span>
+                                            Showing {users.data.length} of {users.total} users
+                                        </span>
+                                        <nav className="flex items-center gap-2">
+                                            {users.links.map((link, index) => (
+                                                <button
+                                                    key={index}
+                                                    onClick={() => router.get(link.url || '', {}, { preserveScroll: true })}
+                                                    className={`px-3 py-1 rounded ${
+                                                        link.active ? 'bg-pink-600 text-white' : 'bg-pink-200 text-pink-800 hover:bg-pink-300'
+                                                    }`}
+                                                >
+                                                    {link.label}
+                                                </button>
+                                            ))}
+                                        </nav>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
             </div>
