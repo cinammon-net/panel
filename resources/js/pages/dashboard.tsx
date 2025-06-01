@@ -124,7 +124,7 @@ export default function Dashboard() {
                     </div>
                     <p className="mb-4 text-sm text-purple-400">Si encuentras un bug o fallo de seguridad, abre un reporte en GitHub.</p>
                     <a
-                        href="https://github.com/pelican-dev/panel/issues/new"
+                        href="https://github.com/cinammon-net/panel/issues/new"
                         className="inline-block rounded-md border border-purple-500 bg-black px-4 py-2 text-sm text-purple-200 hover:bg-purple-700/20"
                         target="_blank"
                     >
