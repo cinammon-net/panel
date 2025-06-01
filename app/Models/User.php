@@ -9,6 +9,7 @@ use Spatie\Permission\Traits\HasRoles;
 use App\Models\Ticket;
 use App\Models\Role;
 
+
 class User extends Authenticatable
 {
     use HasFactory, Notifiable, HasRoles;
