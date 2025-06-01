@@ -3,7 +3,6 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 use App\Http\Controllers\EggController;
@@ -19,6 +18,8 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\EggVariableController;
 use App\Http\Controllers\NetworkController;
+use App\Http\Controllers\Auth\DiscordController;
+use Laravel\Socialite\Facades\Socialite;
 
 // 🌐 Rutas públicas
 Route::get('/', [WelcomeController::class, 'index'])->name('home');
@@ -26,6 +27,9 @@ Route::view('/terms', 'legal.terms')->name('terms');
 Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::view('/sponsors', 'legal.sponsors')->name('sponsors');
 
+// 🔗 Rutas de autenticación social
+Route::get('login/discord', [DiscordController::class, 'redirectToDiscord'])->name('discord.login');
+Route::get('discord/callback', [DiscordController::class, 'handleDiscordCallback']);
 // 🔒 Rutas para el Daemon
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/daemon/config', [NodeController::class, 'showConfig'])->name('daemon.config');
