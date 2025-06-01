@@ -2,6 +2,8 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 use App\Http\Controllers\EggController;
@@ -18,70 +20,49 @@ use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\EggVariableController;
 use App\Http\Controllers\NetworkController;
 
-// ───────────────────────────────────────
 // 🌐 Rutas públicas
-// ───────────────────────────────────────
-
 Route::get('/', [WelcomeController::class, 'index'])->name('home');
 Route::view('/terms', 'legal.terms')->name('terms');
 Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::view('/sponsors', 'legal.sponsors')->name('sponsors');
 
-// ───────────────────────────────────────
 // 🔒 Rutas para el Daemon
-// ───────────────────────────────────────
-
 Route::middleware(['auth:sanctum'])->group(function () {
-    // Mostrar configuración del daemon
     Route::get('/daemon/config', [NodeController::class, 'showConfig'])->name('daemon.config');
-
-    // Guardar cambios en el archivo de configuración del daemon
     Route::post('/daemon/save-config', [NodeController::class, 'saveConfig'])->name('daemon.saveConfig');
 });
-// ───────────────────────────────────────
-// 🔐 Rutas autenticadas y verificadas
-// ───────────────────────────────────────
 
+// 🔐 Rutas autenticadas y verificadas
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', fn() => Inertia::render('dashboard'))->name('dashboard');
     Route::get('/settings/appearance', [SettingsController::class, 'appearance'])->name('settings.appearance');
 });
 
-// ───────────────────────────────────────
 // 🔒 Rutas autenticadas (sin verificar email)
-// ───────────────────────────────────────
-
 Route::middleware(['auth'])->group(function () {
-    // 🔘 Aceptación de términos
+    // Aceptación de términos
     Route::get('/terms/accept', [TermsController::class, 'show'])->name('terms.accept');
     Route::post('/terms/accept', [TermsController::class, 'accept'])->name('terms.accept.post');
 
-    // 🔤 Fuente personalizada
+    // Fuente personalizada
     Route::post('/settings/font', function (Request $request) {
         $request->validate(['font' => 'required|string']);
         $request->user()->update(['font' => $request->font]);
         return back();
     })->name('settings.font');
 
-    // 📝 Reviews
-    Route::get('/reviews', [ReviewController::class, 'index'])->name('reviews.index');
-    Route::get('/reviews/create', [ReviewController::class, 'create'])->name('reviews.create');
-    Route::post('/reviews', [ReviewController::class, 'store'])->name('reviews.store');
-    Route::get('/reviews/{review}/edit', [ReviewController::class, 'edit'])->name('reviews.edit');
-    Route::put('/reviews/{review}', [ReviewController::class, 'update'])->name('reviews.update');
-    Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
+    // Reviews
+    Route::resource('reviews', ReviewController::class)->except(['show']);
 
-    // 📄 Posts
+    // Posts
     Route::resource('posts', PostController::class);
 
-    // 🎫 Tickets
+    // Tickets
     Route::resource('tickets', TicketController::class)->except(['create']);
     Route::post('/tickets/{ticket}/messages', [TicketController::class, 'storeMessage'])->name('tickets.message.store');
-    //Route::get('/tickets/{id}/edit', [TicketController::class, 'edit'])->name('tickets.edit');
-    //Route::put('/tickets/{id}/update', [TicketController::class, 'update'])->name('tickets.update');
     Route::delete('/tickets/{ticket}/messages/{message}', [TicketController::class, 'destroyMessage'])->name('tickets.messages.destroy');
 
-    // 🥚 Eggs
+    // Eggs
     Route::get('/eggs', [EggController::class, 'index'])->name('eggs.index');
     Route::get('/eggs/create', [EggController::class, 'create'])->name('eggs.create');
     Route::post('/eggs', [EggController::class, 'store'])->name('eggs.store');
@@ -91,30 +72,24 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/eggs/import', [EggController::class, 'import'])->name('eggs.import');
     Route::delete('/egg-variables/{id}', [EggVariableController::class, 'destroy'])->name('egg-variables.destroy');
 
-    // 🖧 Nodes
-    Route::resource('nodes', NodeController::class);
-    Route::get('/nodes/create', [NodeController::class, 'create'])->name('nodes.create');
-    Route::post('/nodes', [NodeController::class, 'store'])->name('nodes.store');
-    Route::get('/nodes/{node}/edit', [NodeController::class, 'edit'])->name('nodes.edit');
-    Route::delete('/nodes/{node}', [NodeController::class, 'destroy'])->name('nodes.destroy');
-
-    // 🖥️ Network
-    Route::get('/api/ips', [NetworkController::class, 'getIps']);
-
+    // Nodes
+    Route::resource('nodes', NodeController::class)->except(['show']);
     Route::get('/nodes/cpu-data', [NodeController::class, 'getCpuData']);
     Route::get('/nodes/memory-data', [NodeController::class, 'getMemoryData']);
     Route::get('/nodes/storage-data', [NodeController::class, 'getStorageData']);
-    // 🖥️ Servers
+
+    // Network
+    Route::get('/api/ips', [NetworkController::class, 'getIps']);
     Route::get('/api/network/ips', function () {
         $ips = [];
 
-        foreach (explode("\n", shell_exec("ip -o -f inet addr show | awk '/scope global/ {print $4}'")) as $line) {
+        foreach (explode("\n", shell_exec("ip -o -f inet addr show | awk '/scope global/ {print \$4}'")) as $line) {
             if (filter_var($line, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
                 $ips[] = explode('/', $line)[0];
             }
         }
 
-        foreach (explode("\n", shell_exec("ip -o -f inet6 addr show | awk '/scope global/ {print $4}'")) as $line) {
+        foreach (explode("\n", shell_exec("ip -o -f inet6 addr show | awk '/scope global/ {print \$4}'")) as $line) {
             if (filter_var($line, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
                 $ips[] = explode('/', $line)[0];
             }
@@ -123,22 +98,57 @@ Route::middleware(['auth'])->group(function () {
         return response()->json(array_values(array_unique($ips)));
     });
 
-    // 👤 Users
-    Route::get('/users', [UserController::class, 'index'])->name('users.index');
-    Route::post('/users', [UserController::class, 'store'])->name('users.store');
-    Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
-    Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit'); // ← ✅ AÑADIDO
-    Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
-    Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+    // Galería
+    Route::get('/gallery', fn() => Inertia::render('Gallery'))->name('gallery.index');
 
-    // 🛡 Roles
-    Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+
+    Route::post('/gallery/upload', function (Request $request) {
+        $request->validate([
+            'image' => 'required|image|max:4096',
+        ]);
+
+        $directory = storage_path('app/public/gallery');
+        if (!file_exists($directory)) {
+            mkdir($directory, 0775, true);
+        }
+
+        $file = $request->file('image');
+        $name = $file->getClientOriginalName();
+        $path = $file->storeAs('gallery', $name, 'public');
+
+        return response()->json(['path' => Storage::url($path)]);
+    })->name('gallery.upload');
+
+    Route::get('/gallery/list', function () {
+        $files = Storage::disk('public')->files('gallery');
+
+        $images = collect($files)->map(fn($file) => [
+            'url' => Storage::url($file),
+            'name' => basename($file),
+        ])->reverse()->values();
+
+        return response()->json($images);
+    })->name('gallery.list');
+
+    Route::delete('/gallery/delete/{filename}', function ($filename) {
+        $path = 'public/gallery/' . $filename;
+
+        if (Storage::exists($path)) {
+            Storage::delete($path);
+            return response()->json(['success' => true]);
+        }
+
+        return response()->json(['error' => 'Archivo no encontrado'], 404);
+    })->name('gallery.delete');
+
+
+    // Users
+    Route::resource('users', UserController::class)->except(['show']);
+
+    // Roles
     Route::resource('roles', RoleController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
 });
 
-// ───────────────────────────────────────
-// 🧩 Configuración adicional
-// ───────────────────────────────────────
-
+// Configuración adicional
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';
