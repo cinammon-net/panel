@@ -17,6 +17,7 @@ function validateDomain(domain: string): boolean {
 import CPU from '@/components/graphs/CPU';
 import Memory from '@/components/graphs/Memory';
 import Storage from '@/components/graphs/Strorage';
+import AllocationModal from '@/components/AllocationModal';
 
 export default function EditNode() {
     const { node } = usePage<{ node: any }>().props;
@@ -41,6 +42,8 @@ export default function EditNode() {
     const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
     const [maintenanceMode, setMaintenanceMode] = useState<'enabled' | 'disabled'>('disabled');
     const [useDeployments, setUseDeployments] = useState<'yes' | 'no'>('no');
+
+    const [isCreateAllocationModalOpen, setIsCreateAllocationModalOpen] = useState(false);
 
     interface SectionChangeHandler {
         (section: 'overview' | 'basicSettings' | 'advancedSettings' | 'configurationFile'): void;
@@ -211,6 +214,14 @@ export default function EditNode() {
 
         fetchConfig();
     }, []); 
+
+    // Add this function to handle allocation creation
+    function handleCreateAllocation(): void {
+        // TODO: Implement allocation creation logic here
+        toast.success('Allocation created');
+        setIsCreateAllocationModalOpen(false);
+    }
+
     return (
         <AppLayout
             breadcrumbs={[
@@ -998,7 +1009,7 @@ export default function EditNode() {
                                         </div>
                                     </div>
                                 </div>
-                                <div className=" flex justify-end">
+                                <div className="flex justify-end">
                                     <button
                                         type="submit"
                                         className="rounded bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-700"
@@ -1074,12 +1085,17 @@ export default function EditNode() {
                                     {/* Create Allocation Button */}
                                     <div className="flex justify-end">
                                         <button
-                                            type="button"
-                                            className="rounded bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-700"
-                                            onClick={() => {}}
+                                            onClick={() => setIsCreateAllocationModalOpen(true)}
+                                            className="rounded-lg border border-cyan-500 bg-cyan-100 px-4 py-2 text-sm font-semibold text-cyan-800 transition-all hover:scale-[1.03] hover:bg-cyan-200 dark:border-cyan-500 dark:bg-cyan-900/50 dark:text-cyan-300 dark:hover:bg-cyan-700/70"
                                         >
                                             Create Allocation
                                         </button>
+
+                                        <AllocationModal
+                                                isOpen={isCreateAllocationModalOpen}
+                                                onClose={() => setIsCreateAllocationModalOpen(false)}
+                                                onSubmit={handleCreateAllocation}
+                                                fqdn={node.fqdn} ipOptions={[]}                                        />
                                     </div>
                                 </div>
                                 {node.allocations && node.allocations.length > 0 ? (
