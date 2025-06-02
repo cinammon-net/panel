@@ -113,12 +113,60 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                         />
                         <Label htmlFor="remember">Recordarme</Label>
                     </div>
-                    <Button type="submit" className="mt-4 w-full bg-pink-600 transition-all hover:bg-pink-700 font-[Orbitron]" disabled={processing} tabIndex={4}>
+                    <Button
+                        type="submit"
+                        className="mt-4 w-full bg-pink-600 font-[Orbitron] transition-all hover:bg-pink-700"
+                        disabled={processing}
+                        tabIndex={4}
+                    >
                         {processing && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
                         Entrar al panel
                     </Button>
+
+                    <div className="flex justify-center">
+                        <a href="/auth/discord" title="Iniciar sesión con Discord">
+                            <img
+                                src="https://img.icons8.com/?size=100&id=61604&format=png&color=000000"
+                                alt="Discord Logo"
+                                className="h-6 w-6"
+                                draggable={false}
+                            />
+                        </a>
+                        <a href="/auth/github" title="Iniciar sesión con GitHub" className="ml-4">
+                            <img
+                                src="https://img.icons8.com/?size=100&id=52539&format=png&color=000000"
+                                alt="GitHub Logo"
+                                className="h-6 w-6"
+                                draggable={false}
+                            />
+                        </a>
+                        <a href="auth/gitlab" title="Iniciar sesión con GitLab" className="ml-4">
+                            <img
+                                src="https://img.icons8.com/?size=100&id=104145&format=png&color=000000"
+                                alt="GitLab Logo"
+                                className="h-6 w-6"
+                                draggable={false}
+                            />
+                        </a>
+                        <a href="/auth/google" title="Iniciar sesión con Google" className="ml-4">
+                            <img
+                                src="https://img.icons8.com/?size=100&id=48166&format=png&color=000000"
+                                alt="Google Logo"
+                                className="h-6 w-6"
+                                draggable={false}
+                            />
+                        </a>
+                        <a href="/auth/apple" title="Iniciar sesión con Apple" className="ml-4">
+                            <img
+                                src="https://img.icons8.com/?size=100&id=48112&format=png&color=000000"
+                                alt="Apple Logo"
+                                className="h-6 w-6"
+                                draggable={false}
+                            />
+                        </a>
+                    </div>
                 </div>
-                <div className="mt-6 text-center text-sm text-pink-300">
+                <div className="text-center text-sm text-pink-300">
                     ¿No tienes cuenta?{' '}
                     <TextLink href={route('register')} tabIndex={5} className="text-pink-400 hover:underline">
                         Regístrate
