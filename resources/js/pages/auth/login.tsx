@@ -98,7 +98,8 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                             autoComplete="current-password"
                             value={data.password}
                             onChange={(e) => setData('password', e.target.value)}
-                            placeholder="••••••••"
+                            placeholder="*********"
+                            autoFocus={true}
                             className="border-pink-600/30 bg-black/80 text-white focus:border-pink-500 focus-visible:ring-pink-500"
                         />
                         <InputError message={errors.password} />
@@ -124,7 +125,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                     </Button>
 
                     <div className="flex justify-center">
-                        <a href="/auth/discord" title="Iniciar sesión con Discord">
+                        <a href="/auth/discord/redirect" title="Iniciar sesión con Discord">
                             <img
                                 src="https://img.icons8.com/?size=100&id=61604&format=png&color=000000"
                                 alt="Discord Logo"
@@ -132,7 +133,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                 draggable={false}
                             />
                         </a>
-                        <a href="/auth/github" title="Iniciar sesión con GitHub" className="ml-4">
+                        <a href="/auth/github/redirect" title="Iniciar sesión con GitHub" className="ml-4">
                             <img
                                 src="https://img.icons8.com/?size=100&id=52539&format=png&color=000000"
                                 alt="GitHub Logo"
@@ -140,7 +141,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                 draggable={false}
                             />
                         </a>
-                        <a href="auth/gitlab" title="Iniciar sesión con GitLab" className="ml-4">
+                        <a href="auth/gitlab/redirect" title="Iniciar sesión con GitLab" className="ml-4">
                             <img
                                 src="https://img.icons8.com/?size=100&id=104145&format=png&color=000000"
                                 alt="GitLab Logo"
@@ -148,7 +149,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                 draggable={false}
                             />
                         </a>
-                        <a href="/auth/google" title="Iniciar sesión con Google" className="ml-4">
+                        <a href="/auth/google/redirect" title="Iniciar sesión con Google" className="ml-4">
                             <img
                                 src="https://img.icons8.com/?size=100&id=48166&format=png&color=000000"
                                 alt="Google Logo"
@@ -156,7 +157,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                                 draggable={false}
                             />
                         </a>
-                        <a href="/auth/apple" title="Iniciar sesión con Apple" className="ml-4">
+                        <a href="/auth/apple/redirect" title="Iniciar sesión con Apple" className="ml-4">
                             <img
                                 src="https://img.icons8.com/?size=100&id=48112&format=png&color=000000"
                                 alt="Apple Logo"
