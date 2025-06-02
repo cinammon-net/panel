@@ -63,16 +63,6 @@ Route::get('/auth/apple/callback', function () {
     // $user->token
 });
 
-Route::get('/auth/discord/redirect', function () {
-    return Socialite::driver('discord')->redirect();
-});
-
-Route::get('/auth/discord/callback', function () {
-    $user = Socialite::driver('discord')->user();
-
-    // $user->token
-});
-
 // 🔒 Rutas para el Daemon
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/daemon/config', [NodeController::class, 'showConfig'])->name('daemon.config');
