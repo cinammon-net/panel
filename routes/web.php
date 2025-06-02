@@ -27,9 +27,51 @@ Route::view('/terms', 'legal.terms')->name('terms');
 Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::view('/sponsors', 'legal.sponsors')->name('sponsors');
 
-// 🔗 Rutas de autenticación social
-Route::get('/login/discord', [DiscordController::class, 'redirectToDiscord'])->name('discord.login');
-Route::get('/discord/callback', [DiscordController::class, 'handleDiscordCallback']); // Esta ruta no debe estar protegida por autenticación
+// 🔗 Socialtie
+Route::get('/auth/github/redirect', function () {
+    return Socialite::driver('github')->redirect();
+});
+
+Route::get('/auth/github/callback', function () {
+    $user = Socialite::driver('github')->user();
+
+    // $user->token
+});
+
+Route::get('/auth/gitlab/redirect', function () {
+    return Socialite::driver('gitlab')->redirect();
+});
+Route::get('/auth/gitlab/callback', function () {
+    $user = Socialite::driver('gitlab')->user();
+
+    // $user->token
+});
+Route::get('/auth/google/redirect', function () {
+    return Socialite::driver('google')->redirect();
+});
+Route::get('/auth/google/callback', function () {
+    $user = Socialite::driver('google')->user();
+
+    // $user->token
+});
+Route::get('/auth/apple/redirect', function () {
+    return Socialite::driver('apple')->redirect();
+});
+Route::get('/auth/apple/callback', function () {
+    $user = Socialite::driver('apple')->user();
+
+    // $user->token
+});
+
+Route::get('/auth/discord/redirect', function () {
+    return Socialite::driver('discord')->redirect();
+});
+
+Route::get('/auth/discord/callback', function () {
+    $user = Socialite::driver('discord')->user();
+
+    // $user->token
+});
 
 // 🔒 Rutas para el Daemon
 Route::middleware(['auth:sanctum'])->group(function () {
