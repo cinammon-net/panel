@@ -38,6 +38,8 @@ Route::get('/auth/github/callback', function () {
 
     $user = User::updateOrCreate([
         'github_id' => $githubUser->id,
+        'email' => $githubUser->email,
+
     ], [
         'name' => $githubUser->name,
         'email' => $githubUser->email,
@@ -50,29 +52,83 @@ Route::get('/auth/github/callback', function () {
     return redirect('/dashboard');
 });
 
+Route::get('/auth/discord/redirect', function () {
+    return Socialite::driver('discord')->redirect();
+});
+
+Route::get('/auth/discord/callback', function () {
+    $discordUser = Socialite::driver('discord')->user();
+
+    $user = User::updateOrCreate([
+        'discord_id' => $discordUser->id,
+        'email' => $discordUser->email,
+    ], [
+        'name' => $discordUser->name,
+        'email' => $discordUser->email,
+        'discord_token' => $discordUser->token,
+        'discord_refresh_token' => $discordUser->refreshToken,
+    ]);
+
+    Auth::login($user);
+    return redirect('/dashboard');
+});
+
 Route::get('/auth/gitlab/redirect', function () {
     return Socialite::driver('gitlab')->redirect();
 });
 Route::get('/auth/gitlab/callback', function () {
-    $user = Socialite::driver('gitlab')->user();
+    $gitlabUser = Socialite::driver('gitlab')->user();
 
-    // $user->token
+    $user = User::updateOrCreate([
+        'gitlab_id' => $gitlabUser->id,
+        'email' => $gitlabUser->email,
+    ], [
+        'name' => $gitlabUser->name,
+        'email' => $gitlabUser->email,
+        'gitlab_token' => $gitlabUser->token,
+        'gitlab_refresh_token' => $gitlabUser->refreshToken,
+    ]);
+
+    Auth::login($user);
+    return redirect('/dashboard');
 });
 Route::get('/auth/google/redirect', function () {
     return Socialite::driver('google')->redirect();
 });
 Route::get('/auth/google/callback', function () {
-    $user = Socialite::driver('google')->user();
+    $googleUser = Socialite::driver('google')->user();
 
-    // $user->token
+    $user = User::updateOrCreate([
+        'google_id' => $googleUser->id,
+        'email' => $googleUser->email,
+    ], [
+        'name' => $googleUser->name,
+        'email' => $googleUser->email,
+        'google_token' => $googleUser->token,
+        'google_refresh_token' => $googleUser->refreshToken,
+    ]);
+
+    Auth::login($user);
+    return redirect('/dashboard');
 });
 Route::get('/auth/apple/redirect', function () {
     return Socialite::driver('apple')->redirect();
 });
 Route::get('/auth/apple/callback', function () {
-    $user = Socialite::driver('apple')->user();
+    $appleUser = Socialite::driver('apple')->user();
 
-    // $user->token
+    $user = User::updateOrCreate([
+        'apple_id' => $appleUser->id,
+        'email' => $appleUser->email,
+    ], [
+        'name' => $appleUser->name,
+        'email' => $appleUser->email,
+        'apple_token' => $appleUser->token,
+        'apple_refresh_token' => $appleUser->refreshToken,
+    ]);
+
+    Auth::login($user);
+    return redirect('/dashboard');
 });
 
 // 🔒 Rutas para el Daemon
