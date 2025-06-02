@@ -18,8 +18,9 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\EggVariableController;
 use App\Http\Controllers\NetworkController;
-use App\Http\Controllers\Auth\DiscordController;
 use Laravel\Socialite\Facades\Socialite;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 
 // 🌐 Rutas públicas
 Route::get('/', [WelcomeController::class, 'index'])->name('home');
@@ -33,9 +34,20 @@ Route::get('/auth/github/redirect', function () {
 });
 
 Route::get('/auth/github/callback', function () {
-    $user = Socialite::driver('github')->user();
+    $githubUser = Socialite::driver('github')->user();
 
-    // $user->token
+    $user = User::updateOrCreate([
+        'github_id' => $githubUser->id,
+    ], [
+        'name' => $githubUser->name,
+        'email' => $githubUser->email,
+        'github_token' => $githubUser->token,
+        'github_refresh_token' => $githubUser->refreshToken,
+    ]);
+
+    Auth::login($user);
+
+    return redirect('/dashboard');
 });
 
 Route::get('/auth/gitlab/redirect', function () {
