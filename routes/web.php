@@ -183,7 +183,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Servers
     Route::resource('servers', ServerController::class)->except(['show']);
-
+    Route::get('/remote/servers', [ServerController::class, 'index']);
     // Network
     Route::get('/api/ips', [NetworkController::class, 'getIps']);
     Route::get('/api/network/ips', function () {
