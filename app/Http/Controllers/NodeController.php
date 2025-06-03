@@ -136,6 +136,21 @@ class NodeController extends Controller
 
         return redirect()->route('nodes.index')->with('success', 'Nodo actualizado correctamente.');
     }
+    public function reset($nodeId)
+    {
+        $node = Node::findOrFail($nodeId);
+
+        // Resetea el token de autorización
+        $node->daemon_token = Str::random(60);
+
+        // Si quieres limpiar más cosas relacionadas al nodo, aquí hazlo
+        // Ejemplo: $node->servers()->delete();  // Si quieres eliminar servidores asociados (¡cuidado!)
+
+        $node->save();
+
+        return response()->json(['message' => 'Nodo reseteado correctamente']);
+    }
+
 
     public function configYaml($id)
     {
