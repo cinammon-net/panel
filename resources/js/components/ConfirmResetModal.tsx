@@ -27,7 +27,7 @@ export default function ConfirmResetModal({ isOpen, onCancel, nodeId, onResetSuc
   };
 
   return (
-    <div className="fixed inset-0 z-70 flex items-center justify-center bg-black bg-opacity-90">
+    <div className="fixed inset-0 z-70 flex items-center justify-center bg-black bg-transparent backdrop-blur-sm">
       <div className="max-w-md rounded border border-red-600 bg-black p-6 font-[Orbitron] text-cyan-400 relative">
         <div className="mb-4 flex justify-center">
           <div className="rounded-full bg-red-700 p-3 text-red-400">
