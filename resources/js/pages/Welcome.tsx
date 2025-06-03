@@ -496,7 +496,7 @@ export default function WelcomePanel() {
                     © {new Date().getFullYear()} cinammon.net — Todos los derechos reservados.
                 </div>
                 <a
-                    href="https://discord.gg/8J6Y3k4"
+                    href="https://discord.gg/hikarinet"
                     target="_blank"
                     className="fixed bottom-6 left-6 z-50 rounded-full bg-[#5865F2] p-3 shadow-lg transition hover:scale-110"
                     data-aos="fade-left"
