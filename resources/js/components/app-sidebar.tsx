@@ -1,20 +1,35 @@
 import { NavFooter } from '@/components/nav-footer';
-import { NavMain } from '@/components/nav-main';
+import { NavMain, NavItem } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
+import {
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+} from '@/components/ui/sidebar';
 import { Link } from '@inertiajs/react';
-import { Activity, BadgeInfo, BookOpenCheck, Bookmark, Database, Egg, FolderGit2, HeartPulse, KeyRound, LayoutGrid, Radio, Server, Settings, Ticket, Users, Webhook } from 'lucide-react';
+import {
+    Activity,
+    BadgeInfo,
+    BookOpenCheck,
+    Bookmark,
+    Database,
+    Egg,
+    FolderGit2,
+    HeartPulse,
+    KeyRound,
+    LayoutGrid,
+    Radio,
+    Server,
+    Settings,
+    Ticket,
+    Users,
+    Webhook,
+} from 'lucide-react';
 import AppLogo from './app-logo';
-import { LucideIcon } from 'lucide-react';
-
-type NavItem = {
-    title: string;
-    href: string;
-    icon: LucideIcon;
-    group: 'main' | 'servers' | 'users' | 'advanced' | 'extra';
-    groupColor: string;
-    roles?: string[];
-};
 
 const mainNavItems: NavItem[] = [
     {
@@ -23,29 +38,111 @@ const mainNavItems: NavItem[] = [
         icon: LayoutGrid,
         group: 'main',
         groupColor: 'text-purple-400',
-        roles: ['Admin', 'Moderator', 'Helper', 'Sponsors', 'Members'],
+        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin'],
+        permissions: ['view_server'],
     },
-    { title: 'Settings', href: '/settings', icon: Settings, group: 'main', groupColor: 'text-purple-400', roles: ['Admin'] },
+    {
+        title: 'Settings',
+        href: '/settings',
+        icon: Settings,
+        group: 'main',
+        groupColor: 'text-purple-400',
+        roles: ['Admin'],
+        permissions: ['view_settings'],
+    },
 
-    { title: 'Eggs', href: '/eggs', icon: Egg, group: 'servers', groupColor: 'text-blue-400', roles: ['Admin'] },
-    { title: 'Nodes', href: '/nodes', icon: Activity, group: 'servers', groupColor: 'text-blue-400', roles: ['Admin'] },
+    {
+        title: 'Eggs',
+        href: '/eggs',
+        icon: Egg,
+        group: 'servers',
+        groupColor: 'text-blue-400',
+        roles: ['Admin'],
+        permissions: ['view_list_egg'],
+    },
+    {
+        title: 'Nodes',
+        href: '/nodes',
+        icon: Activity,
+        group: 'servers',
+        groupColor: 'text-blue-400',
+        roles: ['Admin'],
+        permissions: ['view_list_node'],
+    },
     {
         title: 'Servers',
         href: '/servers',
         icon: Server,
         group: 'servers',
         groupColor: 'text-blue-400',
-        roles: ['Admin', 'Moderator', 'Helper', 'Sponsors', 'Members'],
+        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin'],
+        permissions: ['view_server'],
     },
 
-    { title: 'Roles', href: '/roles', icon: BadgeInfo, group: 'users', groupColor: 'text-pink-400', roles: ['Admin'] },
-    { title: 'Users', href: '/users', icon: Users, group: 'users', groupColor: 'text-pink-400', roles: ['Admin', 'Moderator'] },
+    {
+        title: 'Roles',
+        href: '/roles',
+        icon: BadgeInfo,
+        group: 'users',
+        groupColor: 'text-pink-400',
+        roles: ['Admin'],
+        permissions: ['view_user'],
+    },
+    {
+        title: 'Users',
+        href: '/users',
+        icon: Users,
+        group: 'users',
+        groupColor: 'text-pink-400',
+        roles: ['Admin', 'Moderator', 'Helper'], 
+        permissions: ['view_list_user'],
+    },
 
-    { title: 'Health', href: '/health', icon: HeartPulse, group: 'advanced', groupColor: 'text-orange-400', roles: ['Admin', 'Moderator', 'Helper'] },
-    { title: 'API Keys', href: '/api-keys', icon: KeyRound, group: 'advanced', groupColor: 'text-orange-400', roles: ['Admin'] },
-    { title: 'Database Host', href: '/database', icon: Database, group: 'advanced', groupColor: 'text-orange-400', roles: ['Admin'] },
-    { title: 'Mounts', href: '/mounts', icon: Radio, group: 'advanced', groupColor: 'text-orange-400', roles: ['Admin'] },
-    { title: 'Webhooks', href: '/webhooks', icon: Webhook, group: 'advanced', groupColor: 'text-orange-400', roles: ['Admin', 'Moderator'] },
+    {
+        title: 'Health',
+        href: '/health',
+        icon: HeartPulse,
+        group: 'advanced',
+        groupColor: 'text-orange-400',
+        roles: ['Admin', 'Moderator', 'Helper', 'Sponsors'],
+        permissions: ['view_health'],
+    },
+    {
+        title: 'API Keys',
+        href: '/api-keys',
+        icon: KeyRound,
+        group: 'advanced',
+        groupColor: 'text-orange-400',
+        roles: ['Admin'],
+        permissions: ['view_settings'],
+    },
+    {
+        title: 'Database Host',
+        href: '/database',
+        icon: Database,
+        group: 'advanced',
+        groupColor: 'text-orange-400',
+        roles: ['Admin'],
+        permissions: ['view_settings'],
+    },
+    {
+        title: 'Mounts',
+        href: '/mounts',
+        icon: Radio,
+        group: 'advanced',
+        groupColor: 'text-orange-400',
+        roles: ['Admin'],
+        permissions: ['view_mount'],
+    },
+    {
+        title: 'Webhooks',
+        href: '/webhooks',
+        icon: Webhook,
+        group: 'advanced',
+        groupColor: 'text-orange-400',
+        roles: ['Admin'],
+        permissions: ['view_webhook'],
+    },
 
     {
         title: 'Posts',
@@ -53,7 +150,8 @@ const mainNavItems: NavItem[] = [
         icon: Bookmark,
         group: 'extra',
         groupColor: 'text-yellow-400',
-        roles: ['Admin', 'Moderator', 'Helper', 'Sponsors', 'Members'],
+        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin'],
+        permissions: [],
     },
     {
         title: 'Tickets',
@@ -61,7 +159,8 @@ const mainNavItems: NavItem[] = [
         icon: Ticket,
         group: 'extra',
         groupColor: 'text-yellow-400',
-        roles: ['Admin', 'Moderator', 'Helper', 'Sponsors', 'Members'],
+        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin'],
+        permissions: [],
     },
     {
         title: 'Reviews',
@@ -69,10 +168,10 @@ const mainNavItems: NavItem[] = [
         icon: HeartPulse,
         group: 'extra',
         groupColor: 'text-yellow-400',
-        roles: ['Admin', 'Moderator', 'Helper', 'Sponsors', 'Members'],
+        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin'],
+        permissions: [],
     },
 ];
-  
 
 const footerNavItems: NavItem[] = [
     {
