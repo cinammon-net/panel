@@ -11,10 +11,9 @@ interface AutoDeployModalProps {
 }
 
 export default function AutoDeployModal({ isOpen, onClose, panelUrl, token, nodeId }: AutoDeployModalProps) {
-  if (!isOpen) return null;
-
   const [installType, setInstallType] = useState<'standalone' | 'docker'>('standalone');
-
+  
+  if (!isOpen) return null;
   const command =
     installType === 'standalone'
       ? `sudo wings configure --panel-url ${panelUrl} --token ${token} --node ${nodeId}`
