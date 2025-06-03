@@ -6,8 +6,8 @@ use App\Models\Node;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
-use Laravel\Pail\ValueObjects\Origin\Console;
 use Symfony\Component\Yaml\Yaml;
+
 
 class NodeController extends Controller
 {
@@ -59,11 +59,6 @@ class NodeController extends Controller
         if ($resolvedIp === $node->fqdn) {
             $resolvedIp = null;
         }
-
-        return Inertia::render('NodeShow', [
-            'node' => $node,
-            'resolvedIp' => $resolvedIp,
-        ]);
     }
 
     public function create()
@@ -205,5 +200,35 @@ class NodeController extends Controller
         file_put_contents($configPath, $request->config);
 
         return response()->json(['message' => 'Configuration saved successfully']);
+    }
+
+    public function configYaml($id)
+    {
+        $node = Node::findOrFail($id);
+
+        return response()->make(
+            <<<YAML
+debug: false
+uuid: {$node->uuid}
+token_id: {$node->daemon_token_id}
+token: {$node->daemon_token}
+api:
+  host: 0.0.0.0
+  port: 8080
+  ssl:
+    enabled: true
+    cert: /etc/letsencrypt/live/{$node->fqdn}/fullchain.pem
+    key: /etc/letsencrypt/live/{$node->fqdn}/privkey.pem
+upload_limit:
+system:
+  data: /var/lib/cinammon/volumes
+sftp:
+  bind_port:
+  allowed_mounts: []
+  remote: "https://{$node->fqdn}"
+YAML,
+            200,
+            ['Content-Type' => 'text/yaml', 'Content-Disposition' => 'attachment; filename="config.yml"']
+        );
     }
 }
