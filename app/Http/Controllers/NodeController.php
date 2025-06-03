@@ -6,6 +6,7 @@ use App\Models\Node;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
+use Laravel\Pail\ValueObjects\Origin\Console;
 use Symfony\Component\Yaml\Yaml;
 
 class NodeController extends Controller
@@ -46,6 +47,25 @@ class NodeController extends Controller
         ]);
     }
 
+    public function show($id)
+    {
+        $node = Node::find($id);
+
+        if (!$node) {
+            return redirect()->route('nodes.index')->with('error', 'Nodo no encontrado.');
+        }
+
+        $resolvedIp = gethostbyname($node->fqdn);
+        if ($resolvedIp === $node->fqdn) {
+            $resolvedIp = null;
+        }
+
+        return Inertia::render('NodeShow', [
+            'node' => $node,
+            'resolvedIp' => $resolvedIp,
+        ]);
+    }
+
     public function create()
     {
         return Inertia::render('Nodes/Create');
@@ -67,6 +87,9 @@ class NodeController extends Controller
             'memory' => 'required|string',
             'disk' => 'required|string',
             'cpu' => 'required|string',
+            'uuid' => 'uuid|unique:nodes,uuid',
+            'daemon_sftp' => 'nullable|integer',
+            'daemon_sftp_alias' => 'nullable|string',
         ]);
 
         $validated['scheme'] = $validated['ssl_mode'];
@@ -90,67 +113,86 @@ class NodeController extends Controller
 
         $validated['uuid'] = (string) Str::uuid();
 
-        // Aquí generamos los tokens alfanuméricos como strings
-        $validated['daemon_token_id'] = Str::random(16);  // string alfanumérico de 16 caracteres
-        $validated['daemon_token'] = Str::random(64);     // string alfanumérico de 64 caracteres
-
         Node::create($validated);
 
         return redirect()->route('nodes.index')->with('success', 'Nodo creado correctamente.');
     }
+
     public function edit($id)
     {
         $node = Node::findOrFail($id);
-        return Inertia::render('Nodes/Edit', ['node' => $node]);
+
+        return Inertia::render('Nodes/Edit', [
+            'node' => $node,
+        ]);
     }
 
     public function update(Request $request, $id)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'fqdn' => 'required|string|max:255',
-            'daemon_listen' => 'required|integer',
-            'ssl_mode' => 'required|string',
-            'maintenance_mode' => 'required|boolean',
-            'deployments' => 'required|boolean',
-            'upload_size' => 'nullable|integer|min:1024|max:2048000',
-            'sftp_port' => 'required|integer',
-            'sftp_alias' => 'nullable|string',
-            'tags' => 'nullable|string',
-            'memory' => 'required|string',
-            'disk' => 'required|string',
-            'cpu' => 'required|string',
-        ]);
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'fqdn' => 'required|string|max:255',
+                'daemon_listen' => 'required|integer',
+                'ssl_mode' => 'required|string',
+                'maintenance_mode' => 'required|boolean',
+                'deployments' => 'required|boolean',
+                'upload_size' => 'nullable|integer|min:1024|max:2048000',
+                'sftp_port' => 'required|integer',
+                'sftp_alias' => 'nullable|string',
+                'tags' => 'nullable|string',
+                'memory' => 'required|string',
+                'disk' => 'required|string',
+                'cpu' => 'required|string',
+                'uuid' => 'uuid|unique:nodes,uuid',
+            ]);
 
-        $validated['scheme'] = $validated['ssl_mode'];
-        unset($validated['ssl_mode']);
+            $node = Node::findOrFail($id);
+            $node->update($validated);
 
-        $validated['daemon_sftp'] = $validated['sftp_port'];
-        unset($validated['sftp_port']);
-
-        $validated['daemon_sftp_alias'] = $validated['sftp_alias'];
-        unset($validated['sftp_alias']);
-
-        $node = Node::findOrFail($id);
-        $node->update($validated);
-
-        return redirect()->route('nodes.index')->with('success', 'Nodo actualizado correctamente.');
+            return redirect()->route('nodes.index')->with('success', 'Nodo actualizado correctamente.');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()->with('error', 'Error al actualizar el nodo: ' . $e->getMessage());
+        }
     }
-    public function reset($nodeId)
+
+    public function getCpuData()
     {
-        $node = Node::findOrFail($nodeId);
-
-        // Resetea el token de autorización
-        $node->daemon_token = Str::random(60);
-
-        // Si quieres limpiar más cosas relacionadas al nodo, aquí hazlo
-        // Ejemplo: $node->servers()->delete();  // Si quieres eliminar servidores asociados (¡cuidado!)
-
-        $node->save();
-
-        return response()->json(['message' => 'Nodo reseteado correctamente']);
+        $nodes = Node::orderBy('time', 'desc')->take(10)->get();
+        return response()->json([
+            'cpu_usage' => $nodes->pluck('cpu')->toArray(),
+            'time_labels' => $nodes->pluck('time')->toArray(),
+        ]);
     }
 
+    public function getMemoryData()
+    {
+        $nodes = Node::orderBy('time', 'desc')->take(10)->get();
+        return response()->json([
+            'memory_usage' => $nodes->pluck('memory')->toArray(),
+            'time_labels' => $nodes->pluck('time')->toArray(),
+        ]);
+    }
+
+    public function getStorageData()
+    {
+        $nodes = Node::orderBy('time', 'desc')->take(10)->get();
+        return response()->json([
+            'disk_usage' => $nodes->pluck('disk')->toArray(),
+            'time_labels' => $nodes->pluck('time')->toArray(),
+        ]);
+    }
+
+    public function showConfig()
+    {
+        $configFilePath = '/path/to/config.yml';
+
+        if (!file_exists($configFilePath)) {
+            return response()->json(['error' => 'Configuration file not found'], 404);
+        }
+        $config = Yaml::parseFile($configFilePath);
+        return response()->json($config);
+    }
 
     public function configYaml($id)
     {
@@ -158,27 +200,30 @@ class NodeController extends Controller
 
         return response()->make(
             <<<YAML
-debug: false
-uuid: {$node->uuid}
-token_id: {$node->daemon_token_id}
-token: {$node->daemon_token}
-api:
-  host: 0.0.0.0
-  port: 8080
-  ssl:
-    enabled: true
-    cert: /etc/letsencrypt/live/{$node->fqdn}/fullchain.pem
-    key: /etc/letsencrypt/live/{$node->fqdn}/privkey.pem
-upload_limit:
-system:
-  data: /var/lib/cinammon/volumes
-sftp:
-  bind_port:
-  allowed_mounts: []
-  remote: "https://{$node->fqdn}"
-YAML,
+    debug: false
+    uuid: {$node->uuid}
+    token_id: {$node->daemon_token_id}
+    token: {$node->daemon_token}
+    api:
+      host: 0.0.0.0
+      port: 8080
+      ssl:
+        enabled: true
+        cert: /etc/letsencrypt/live/{$node->fqdn}/fullchain.pem
+        key: /etc/letsencrypt/live/{$node->fqdn}/privkey.pem
+    upload_limit:
+    system:
+      data: /var/lib/cinammon/volumes
+    sftp:
+      bind_port:
+      allowed_mounts: []
+      remote: "https://{$node->fqdn}"
+    YAML,
             200,
-            ['Content-Type' => 'text/yaml', 'Content-Disposition' => 'attachment; filename="config.yml"']
+            [
+                'Content-Type' => 'text/yaml',
+                'Content-Disposition' => 'attachment; filename="config.yml"',
+            ]
         );
     }
 }
