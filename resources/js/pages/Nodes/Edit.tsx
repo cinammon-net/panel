@@ -18,6 +18,7 @@ import CPU from '@/components/graphs/CPU';
 import Memory from '@/components/graphs/Memory';
 import Storage from '@/components/graphs/Strorage';
 import AllocationModal from '@/components/AllocationModal';
+import AutoDeployModal from '@/components/AutoDeployModal';
 
 export default function EditNode() {
     const { node } = usePage<{ node: any }>().props;
@@ -216,6 +217,7 @@ export default function EditNode() {
         setIsCreateAllocationModalOpen(false);
     }
 
+    const [isAutoDeployOpen, setIsAutoDeployOpen] = useState(false);
     return (
         <AppLayout
             breadcrumbs={[
@@ -1039,10 +1041,18 @@ export default function EditNode() {
 
                                 <div className="mt-4 flex flex-col gap-3 md:flex-row">
                                     <button
+                                        onClick={() => setIsAutoDeployOpen(true)}
                                         className="w-full rounded bg-cyan-600 px-2 py-2 text-sm font-semibold text-white hover:bg-cyan-700"
                                     >
                                         Auto Deploy Command
                                     </button>
+                                    <AutoDeployModal
+                                        isOpen={isAutoDeployOpen}
+                                        onClose={() => setIsAutoDeployOpen(false)}
+                                        panelUrl={`https://${formData.fqdn}`}
+                                        token={formData.daemon_token || ''}
+                                        nodeId={formData.id}
+                                    />
                                     <button
                                         className="w-full rounded bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
                                     >
