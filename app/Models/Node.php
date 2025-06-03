@@ -23,6 +23,8 @@ class Node extends Model
         'memory',
         'disk',
         'cpu',
-        'uuid'
+        'uuid',
+        'daemon_token_id',
+        'daemon_token'
     ];
 }
