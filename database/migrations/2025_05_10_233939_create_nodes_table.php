@@ -23,7 +23,7 @@ return new class extends Migration {
             $table->string('daemon_token')->nullable();
             $table->integer('daemon_listen')->default(8080);
             $table->integer('daemon_sftp')->default(2022);
-            $table->string('daemon_base')->default('/var/lib/pterodactyl');
+            $table->string('daemon_base')->default('/var/lib/cinammon');
 
             $table->timestamps();
 
