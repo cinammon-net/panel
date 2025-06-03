@@ -1031,9 +1031,10 @@ export default function EditNode() {
                                 <h2 className="mb-1 text-sm font-semibold text-cyan-400">Instructions</h2>
                                 <p className="text-sm text-cyan-500">
                                     Save this file to your daemon's root directory, named <code className="text-cyan-300">config.yml</code>
-                                </p>
-
-                                <div className="relative mt-4">
+                                    <br />
+                                    <span className="text-red-500">Note:</span> <span className='text-pink-500'>/etc/cinammon/config.yml</span>
+                                </p> 
+                                <div className="relative mt-2">
                                     <div className="absolute right-3 top-3 z-10 cursor-pointer text-xs text-cyan-400 hover:underline" onClick={() => {
                                         navigator.clipboard.writeText(yamlConfig);
                                         toast.success('Copied to clipboard');
@@ -1041,7 +1042,7 @@ export default function EditNode() {
                                         ⧉ Copy
                                     </div>
 
-                                    <pre className="w-full whitespace-pre-wrap break-words rounded border border-cyan-800 bg-black p-4 text-sm font-[Orbitron] text-cyan-300">
+                                    <pre className="w-full whitespace-pre-wrap break-words rounded border border-cyan-800 bg-black p-4 text-sm font-[Orbitron] text-pink-300">
                                         <code>{yamlConfig || 'Loading configuration...'}</code>
                                     </pre>
                                 </div>
