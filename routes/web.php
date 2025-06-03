@@ -28,6 +28,7 @@ Route::view('/terms', 'legal.terms')->name('terms');
 Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::view('/sponsors', 'legal.sponsors')->name('sponsors');
 
+Route::get('api/nodes/{id}/config-yaml', [NodeController::class, 'configYaml']);
 // 🔗 Socialtie
 Route::get('/auth/github/redirect', function () {
     return Socialite::driver('github')->redirect();
@@ -131,12 +132,6 @@ Route::get('/auth/apple/callback', function () {
     return redirect('/dashboard');
 });
 
-// 🔒 Rutas para el Daemon
-Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('/daemon/config', [NodeController::class, 'showConfig'])->name('daemon.config');
-    Route::post('/daemon/save-config', [NodeController::class, 'saveConfig'])->name('daemon.saveConfig');
-});
-
 // 🔐 Rutas autenticadas y verificadas
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', fn() => Inertia::render('dashboard'))->name('dashboard');
@@ -185,7 +180,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Servers
     Route::resource('servers', ServerController::class)->except(['show']);
-    
+
     // Network
     Route::get('/api/ips', [NetworkController::class, 'getIps']);
     Route::get('/api/network/ips', function () {
