@@ -29,6 +29,8 @@ Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::view('/sponsors', 'legal.sponsors')->name('sponsors');
 
 Route::get('api/nodes/{id}/config-yaml', [NodeController::class, 'configYaml']);
+Route::post('api/nodes/{node}/reset', [NodeController::class, 'reset']);
+
 // 🔗 Socialtie
 Route::get('/auth/github/redirect', function () {
     return Socialite::driver('github')->redirect();
