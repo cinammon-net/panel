@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\NodeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+
 
 // Rutas protegidas con Sanctum (las tuyas)
 Route::middleware('auth:sanctum')->group(function () {
