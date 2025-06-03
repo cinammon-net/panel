@@ -1,34 +1,60 @@
-import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
+import {
+    SidebarGroup,
+    SidebarGroupLabel,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+} from '@/components/ui/sidebar';
 import { Link, usePage } from '@inertiajs/react';
 import { LucideIcon } from 'lucide-react';
+
+type NavGroup = 'main' | 'servers' | 'users' | 'advanced' | 'extra';
 
 type NavItem = {
     title: string;
     href: string;
     icon: LucideIcon;
-    group: 'main' | 'servers' | 'users' | 'advanced' | 'extra';
+    group: NavGroup;
     groupColor: string;
     roles?: string[];
+    permissions?: string[];
 };
-
-type NavGroup = 'main' | 'servers' | 'users' | 'advanced' | 'extra';
 
 export function NavMain({ items = [] }: { items: NavItem[] }) {
     const page = usePage();
     const { auth } = page.props as {
-        auth?: { user?: { roles?: string[] } };
+        auth?: {
+            user?: {
+                roles?: string[];
+                permissions?: string[];
+            };
+        };
     };
+
     const userRoles: string[] = auth?.user?.roles ?? [];
+    const userPermissions: string[] = auth?.user?.permissions ?? [];
 
     const isOwner = userRoles.includes('Owner');
-    const isMember = userRoles.some((r) => ['Members', 'Sponsors', 'Helper', 'Moderator'].includes(r));
+    const isAdmin = userRoles.includes('Admin');
+    const isModerator = userRoles.includes('Moderator');
+    const isHelper = userRoles.includes('Helper');
+    const isSponsor = userRoles.includes('Sponsors');
+    const isMember = userRoles.includes('Members');
 
+    // Establecer los grupos permitidos según el rol
+    let allowedGroups: NavGroup[] = ['main'];
     if (isOwner) {
-        ['Admin', 'Moderator', 'Helper', 'Sponsors', 'Members'].forEach((role) => {
-            if (!userRoles.includes(role)) userRoles.push(role);
-        });
+        allowedGroups = ['main', 'servers', 'users', 'advanced', 'extra'];
+    } else if (isAdmin || isModerator) {
+        allowedGroups = ['main', 'servers', 'users', 'advanced', 'extra'];
+    } else if (isHelper) {
+        allowedGroups = ['main', 'servers', 'users', 'advanced'];
     }
-    const allowedGroups: NavGroup[] = isOwner ? ['main', 'servers', 'users', 'advanced', 'extra'] : isMember ? ['main', 'servers'] : ['main'];
+    else if (isSponsor) {
+        allowedGroups = ['main', 'servers', 'advanced', 'extra'];
+    } else if (isMember) {
+        allowedGroups = ['main', 'servers', 'extra'];
+    }
 
     const grouped: Record<NavGroup, NavItem[]> = {
         main: [],
@@ -39,12 +65,27 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
     };
 
     for (const item of items) {
-        const group = item.group as NavGroup;
+        const group = item.group;
         const allowedRoles = item.roles ?? [];
-        const hasAccess = isOwner || allowedRoles.length === 0 || allowedRoles.some((r) => userRoles.includes(r));
+        const requiredPermissions = item.permissions ?? [];
 
-        if (allowedGroups.includes(group) && hasAccess) {
+        const hasRoleAccess =
+            isOwner || allowedRoles.length === 0 || allowedRoles.some((r) => userRoles.includes(r));
+
+        const hasPermissionAccess =
+            isOwner || requiredPermissions.every((p) => userPermissions.includes(p));
+
+        console.log(`🔎 ${item.title}`);
+        console.log('  ▶ Rol requerido:', allowedRoles);
+        console.log('  ▶ Permisos requeridos:', requiredPermissions);
+        console.log('  ✅ Tiene rol permitido:', hasRoleAccess);
+        console.log('  ✅ Tiene permisos necesarios:', hasPermissionAccess);
+        console.log('  ✅ Grupo habilitado:', allowedGroups.includes(group));
+
+        if (allowedGroups.includes(group) && hasRoleAccess && hasPermissionAccess) {
             grouped[group].push(item);
+        } else {
+            console.warn(`⛔ NO SE MOSTRÓ: ${item.title}`);
         }
     }
 
@@ -61,7 +102,11 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                         <SidebarMenu>
                             {items.map((item) => (
                                 <SidebarMenuItem key={item.title}>
-                                    <SidebarMenuButton asChild isActive={item.href === page.url} tooltip={{ children: item.title }}>
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={item.href === page.url}
+                                        tooltip={{ children: item.title }}
+                                    >
                                         <Link href={item.href}>
                                             {item.icon && (
                                                 <item.icon
