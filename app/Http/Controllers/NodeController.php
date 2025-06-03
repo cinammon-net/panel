@@ -107,6 +107,8 @@ class NodeController extends Controller
         unset($validated['sftp_alias']);
 
         $validated['uuid'] = (string) Str::uuid();
+        $validated['daemon_token_id'] = Str::random(16);
+        $validated['daemon_token'] = Str::random(64);
 
         Node::create($validated);
 
