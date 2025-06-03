@@ -19,6 +19,7 @@ import Memory from '@/components/graphs/Memory';
 import Storage from '@/components/graphs/Strorage';
 import AllocationModal from '@/components/AllocationModal';
 import AutoDeployModal from '@/components/AutoDeployModal';
+import ConfirmResetModal from '@/components/ConfirmResetModal';
 
 export default function EditNode() {
     const { node } = usePage<{ node: any }>().props;
@@ -218,6 +219,12 @@ export default function EditNode() {
     }
 
     const [isAutoDeployOpen, setIsAutoDeployOpen] = useState(false);
+    const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+    function handleResetSuccess(): void {
+        setIsResetModalOpen(false);
+        toast.success('Nodo reseteado correctamente');
+    }
+
     return (
         <AppLayout
             breadcrumbs={[
@@ -1039,10 +1046,10 @@ export default function EditNode() {
                                     </pre>
                                 </div>
 
-                                <div className="mt-4 flex flex-col gap-3 md:flex-row">
+                                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <button
                                         onClick={() => setIsAutoDeployOpen(true)}
-                                        className="w-full rounded bg-cyan-600 px-2 py-2 text-sm font-semibold text-white hover:bg-cyan-700"
+                                        className="w-full rounded bg-cyan-600 px-1 py-2 text-sm font-semibold text-white hover:bg-cyan-700"
                                     >
                                         Auto Deploy Command
                                     </button>
@@ -1054,10 +1061,18 @@ export default function EditNode() {
                                         nodeId={formData.id}
                                     />
                                     <button
-                                        className="w-full rounded bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                                        onClick={() => setIsResetModalOpen(true)}
+                                        className="rounded bg-red-600 px-1 py-2 text-sm font-semibold text-white hover:bg-red-700"    
                                     >
                                         Reset Authorization Token
                                     </button>
+
+                                    <ConfirmResetModal
+                                        isOpen={isResetModalOpen}
+                                        onCancel={() => setIsResetModalOpen(false)}
+                                        nodeId={formData.id}
+                                        onResetSuccess={handleResetSuccess}
+                                    />
                                 </div>
                             </div>
                         </div>
