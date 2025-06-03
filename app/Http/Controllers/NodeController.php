@@ -193,7 +193,7 @@ class NodeController extends Controller
     token_id: {$node->daemon_token_id}
     token: {$node->daemon_token}
     api:
-      url: "https://{$node->fqdn}/api"
+      url: "https://{$node->fqdn}"
       host: 0.0.0.0
       port: 8080
       ssl:
