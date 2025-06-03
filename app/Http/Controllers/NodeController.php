@@ -8,7 +8,6 @@ use Inertia\Inertia;
 use Illuminate\Support\Str;
 use Symfony\Component\Yaml\Yaml;
 
-
 class NodeController extends Controller
 {
     public function index(Request $request)
@@ -47,20 +46,6 @@ class NodeController extends Controller
         ]);
     }
 
-    public function show($id)
-    {
-        $node = Node::find($id);
-
-        if (!$node) {
-            return redirect()->route('nodes.index')->with('error', 'Nodo no encontrado.');
-        }
-
-        $resolvedIp = gethostbyname($node->fqdn);
-        if ($resolvedIp === $node->fqdn) {
-            $resolvedIp = null;
-        }
-    }
-
     public function create()
     {
         return Inertia::render('Nodes/Create');
@@ -82,9 +67,6 @@ class NodeController extends Controller
             'memory' => 'required|string',
             'disk' => 'required|string',
             'cpu' => 'required|string',
-            'uuid' => 'uuid|unique:nodes,uuid',
-            'daemon_sftp' => 'nullable|integer',
-            'daemon_sftp_alias' => 'nullable|string',
         ]);
 
         $validated['scheme'] = $validated['ssl_mode'];
@@ -107,101 +89,52 @@ class NodeController extends Controller
         unset($validated['sftp_alias']);
 
         $validated['uuid'] = (string) Str::uuid();
-        $validated['daemon_token_id'] = Str::random(16);
-        $validated['daemon_token'] = Str::random(64);
+
+        // Aquí generamos los tokens alfanuméricos como strings
+        $validated['daemon_token_id'] = Str::random(16);  // string alfanumérico de 16 caracteres
+        $validated['daemon_token'] = Str::random(64);     // string alfanumérico de 64 caracteres
 
         Node::create($validated);
 
         return redirect()->route('nodes.index')->with('success', 'Nodo creado correctamente.');
     }
-
     public function edit($id)
     {
         $node = Node::findOrFail($id);
-
-        return Inertia::render('Nodes/Edit', [
-            'node' => $node,
-        ]);
+        return Inertia::render('Nodes/Edit', ['node' => $node]);
     }
 
     public function update(Request $request, $id)
     {
-        try {
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'fqdn' => 'required|string|max:255',
-                'daemon_listen' => 'required|integer',
-                'ssl_mode' => 'required|string',
-                'maintenance_mode' => 'required|boolean',
-                'deployments' => 'required|boolean',
-                'upload_size' => 'nullable|integer|min:1024|max:2048000',
-                'sftp_port' => 'required|integer',
-                'sftp_alias' => 'nullable|string',
-                'tags' => 'nullable|string',
-                'memory' => 'required|string',
-                'disk' => 'required|string',
-                'cpu' => 'required|string',
-                'uuid' => 'uuid|unique:nodes,uuid',
-            ]);
-
-            $node = Node::findOrFail($id);
-            $node->update($validated);
-
-            return redirect()->route('nodes.index')->with('success', 'Nodo actualizado correctamente.');
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return redirect()->back()->with('error', 'Error al actualizar el nodo: ' . $e->getMessage());
-        }
-    }
-
-    public function getCpuData()
-    {
-        $nodes = Node::orderBy('time', 'desc')->take(10)->get();
-        return response()->json([
-            'cpu_usage' => $nodes->pluck('cpu')->toArray(),
-            'time_labels' => $nodes->pluck('time')->toArray(),
-        ]);
-    }
-
-    public function getMemoryData()
-    {
-        $nodes = Node::orderBy('time', 'desc')->take(10)->get();
-        return response()->json([
-            'memory_usage' => $nodes->pluck('memory')->toArray(),
-            'time_labels' => $nodes->pluck('time')->toArray(),
-        ]);
-    }
-
-    public function getStorageData()
-    {
-        $nodes = Node::orderBy('time', 'desc')->take(10)->get();
-        return response()->json([
-            'disk_usage' => $nodes->pluck('disk')->toArray(),
-            'time_labels' => $nodes->pluck('time')->toArray(),
-        ]);
-    }
-
-    public function showConfig()
-    {
-        $configFilePath = '/path/to/config.yml';
-
-        if (!file_exists($configFilePath)) {
-            return response()->json(['error' => 'Configuration file not found'], 404);
-        }
-        $config = Yaml::parseFile($configFilePath);
-        return response()->json($config);
-    }
-
-    public function saveConfig(Request $request)
-    {
-        $request->validate([
-            'config' => 'required|string',
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'fqdn' => 'required|string|max:255',
+            'daemon_listen' => 'required|integer',
+            'ssl_mode' => 'required|string',
+            'maintenance_mode' => 'required|boolean',
+            'deployments' => 'required|boolean',
+            'upload_size' => 'nullable|integer|min:1024|max:2048000',
+            'sftp_port' => 'required|integer',
+            'sftp_alias' => 'nullable|string',
+            'tags' => 'nullable|string',
+            'memory' => 'required|string',
+            'disk' => 'required|string',
+            'cpu' => 'required|string',
         ]);
 
-        $configPath = storage_path('daemon/config.yml');
+        $validated['scheme'] = $validated['ssl_mode'];
+        unset($validated['ssl_mode']);
 
-        file_put_contents($configPath, $request->config);
+        $validated['daemon_sftp'] = $validated['sftp_port'];
+        unset($validated['sftp_port']);
 
-        return response()->json(['message' => 'Configuration saved successfully']);
+        $validated['daemon_sftp_alias'] = $validated['sftp_alias'];
+        unset($validated['sftp_alias']);
+
+        $node = Node::findOrFail($id);
+        $node->update($validated);
+
+        return redirect()->route('nodes.index')->with('success', 'Nodo actualizado correctamente.');
     }
 
     public function configYaml($id)
