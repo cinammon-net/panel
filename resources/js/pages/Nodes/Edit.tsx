@@ -44,7 +44,7 @@ export default function EditNode() {
     const [useDeployments, setUseDeployments] = useState<'yes' | 'no'>('no');
 
     const [isCreateAllocationModalOpen, setIsCreateAllocationModalOpen] = useState(false);
-
+    const [yamlConfig, setYamlConfig] = useState<string>('');
     interface SectionChangeHandler {
         (section: 'overview' | 'basicSettings' | 'advancedSettings' | 'configurationFile'): void;
     }
@@ -103,7 +103,6 @@ export default function EditNode() {
         }
     };
 
-    // Manejar los cambios en los campos del formulario
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type } = e.target;
 
@@ -129,7 +128,7 @@ export default function EditNode() {
             toast.error('Nodo no encontrado');
         } else {
             setFormData(node);
-            validateAndFetchIp(node.fqdn); // Validar el dominio al cargar el componente
+            validateAndFetchIp(node.fqdn);
         }
     }, [node]);
 
@@ -195,29 +194,24 @@ export default function EditNode() {
     }
 
     useEffect(() => {
-        // Define your token here, e.g., from props, context, or environment
-        const token = ''; // TODO: Replace with actual token retrieval logic
-
         const fetchConfig = async () => {
             try {
-                const response = await axios.get('/daemon/config', {
-                    headers: {
-                        Authorization: `Bearer ${token}`, // Si estás usando autenticación
-                    },
+                const response = await axios.get(`/api/nodes/${formData.id}/config-yaml`, {
+                    headers: { Accept: 'text/plain' },
+                    responseType: 'text',
                 });
-                console.log(response.data.config);
-                // Aquí puedes almacenar la configuración y mostrarla al usuario
+                setYamlConfig(response.data);
             } catch (error) {
                 console.error('Error fetching daemon config:', error);
+                toast.error('Error loading configuration file');
             }
         };
-
-        fetchConfig();
-    }, []); 
-
-    // Add this function to handle allocation creation
+    
+        if (activeSection === 'configurationFile') {
+            fetchConfig();
+        }
+    }, [activeSection, formData.id]);
     function handleCreateAllocation(): void {
-        // TODO: Implement allocation creation logic here
         toast.success('Allocation created');
         setIsCreateAllocationModalOpen(false);
     }
@@ -1023,8 +1017,39 @@ export default function EditNode() {
 
                     {/* Configuration File Section */}
                     {activeSection === 'configurationFile' && (
-                        <div className="md:px-0">
-                            <div className="mb-5 flex flex-col gap-4 px-6"></div>
+                        <div className="p-6 space-y-6">
+                            <div className="">
+                                <h2 className="mb-1 text-sm font-semibold text-cyan-400">Instructions</h2>
+                                <p className="text-sm text-cyan-500">
+                                    Save this file to your daemon's root directory, named <code className="text-cyan-300">config.yml</code>
+                                </p>
+
+                                <div className="relative mt-4">
+                                    <div className="absolute right-3 top-3 z-10 cursor-pointer text-xs text-cyan-400 hover:underline" onClick={() => {
+                                        navigator.clipboard.writeText(yamlConfig);
+                                        toast.success('Copied to clipboard');
+                                    }}>
+                                        ⧉ Copy
+                                    </div>
+
+                                    <pre className="w-full whitespace-pre-wrap break-words rounded border border-cyan-800 bg-black p-4 text-sm font-[Orbitron] text-cyan-300">
+                                        <code>{yamlConfig || 'Loading configuration...'}</code>
+                                    </pre>
+                                </div>
+
+                                <div className="mt-4 flex flex-col gap-3 md:flex-row">
+                                    <button
+                                        className="w-full rounded bg-cyan-600 px-2 py-2 text-sm font-semibold text-white hover:bg-cyan-700"
+                                    >
+                                        Auto Deploy Command
+                                    </button>
+                                    <button
+                                        className="w-full rounded bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                                    >
+                                        Reset Authorization Token
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
