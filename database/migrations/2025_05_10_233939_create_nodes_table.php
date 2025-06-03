@@ -21,9 +21,10 @@ return new class extends Migration {
             $table->integer('disk_overallocate')->default(0);
 
             $table->string('daemon_token')->nullable();
+            $table->string('daemon_token_id')->nullable();
             $table->integer('daemon_listen')->default(8080);
             $table->integer('daemon_sftp')->default(2022);
-            $table->string('daemon_base')->default('/var/lib/cinammon');
+            $table->string('daemon_base')->default('/var/lib/cinammon/volumes');
 
             $table->timestamps();
 
@@ -34,7 +35,6 @@ return new class extends Migration {
             $table->boolean('deployments')->default(false);
 
             $table->uuid('uuid')->unique();
-            $table->unsignedBigInteger('daemon_token_id')->nullable();
             $table->text('tags')->nullable();
 
             $table->integer('cpu')->nullable();
