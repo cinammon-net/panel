@@ -1,9 +1,9 @@
 <?php
 
-use App\Http\Controllers\NodeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\Api\RemoteController;
 
 
 // Rutas protegidas con Sanctum (las tuyas)
@@ -35,4 +35,8 @@ Route::get('/gallery/list', function () {
     ])->reverse()->values();
 
     return response()->json($images);
+});
+
+Route::middleware('daemon.auth')->group(function () {
+    Route::get('/remote/servers', [RemoteController::class, 'servers']);
 });
