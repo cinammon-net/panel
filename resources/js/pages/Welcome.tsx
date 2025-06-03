@@ -56,8 +56,6 @@ export default function WelcomePanel() {
     >().props;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
-    console.log('Reviews:', reviews);
-
     useEffect(() => {
         aos.init({
             duration: 800,
