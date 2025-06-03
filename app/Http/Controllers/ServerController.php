@@ -139,4 +139,21 @@ class ServerController extends Controller
 
         return response()->json(['message' => 'Servidor creado correctamente', 'server' => $server], 201);
     }
+
+    public function apiServers(Request $request)
+    {
+        $servers = Server::with('egg', 'node')->get()->map(function ($server) {
+            return [
+                'id' => $server->id,
+                'uuid' => $server->uuid,
+                'name' => $server->name,
+                'status' => $server->status ? 'online' : 'offline',
+                'node' => $server->node->name ?? null,
+                'egg' => $server->egg->name ?? null,
+                'allocation' => $server->ip . ':' . $server->port,
+            ];
+        });
+
+        return response()->json($servers);
+    }
 }
