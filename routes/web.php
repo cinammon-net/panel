@@ -29,6 +29,7 @@ Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::view('/sponsors', 'legal.sponsors')->name('sponsors');
 
 Route::get('api/nodes/{id}/config-yaml', [NodeController::class, 'configYaml']);
+oute::get('api/application/nodes/{id}/configuration', [NodeController::class, 'configYaml']);
 Route::post('api/nodes/{node}/reset', [NodeController::class, 'reset']);
 
 // 🔗 Socialtie
