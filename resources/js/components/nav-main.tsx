@@ -75,13 +75,6 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
         const hasPermissionAccess =
             isOwner || requiredPermissions.every((p) => userPermissions.includes(p));
 
-        console.log(`🔎 ${item.title}`);
-        console.log('  ▶ Rol requerido:', allowedRoles);
-        console.log('  ▶ Permisos requeridos:', requiredPermissions);
-        console.log('  ✅ Tiene rol permitido:', hasRoleAccess);
-        console.log('  ✅ Tiene permisos necesarios:', hasPermissionAccess);
-        console.log('  ✅ Grupo habilitado:', allowedGroups.includes(group));
-
         if (allowedGroups.includes(group) && hasRoleAccess && hasPermissionAccess) {
             grouped[group].push(item);
         } else {
