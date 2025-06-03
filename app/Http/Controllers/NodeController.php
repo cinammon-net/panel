@@ -183,45 +183,31 @@ class NodeController extends Controller
         ]);
     }
 
-    public function showConfig()
-    {
-        $configFilePath = '/path/to/config.yml';
-
-        if (!file_exists($configFilePath)) {
-            return response()->json(['error' => 'Configuration file not found'], 404);
-        }
-        $config = Yaml::parseFile($configFilePath);
-        return response()->json($config);
-    }
-
     public function configYaml($id)
     {
         $node = Node::findOrFail($id);
 
         $yaml = <<<YAML
-            debug: false
-            uuid: {$node->uuid}
-            token_id: {$node->daemon_token_id}
-            token: {$node->daemon_token}
-            api:
-              url: "https://{$node->fqdn}/api"
-              host: 0.0.0.0
-              port: 8080
-              ssl:
-                enabled: true
-                cert: /etc/letsencrypt/live/{$node->fqdn}/fullchain.pem
-                key: /etc/letsencrypt/live/{$node->fqdn}/privkey.pem
-            upload_limit:
-            system:
-              data: /var/lib/cinammon/volumes
-            sftp:
-              bind_port:
-              allowed_mounts: []
-              remote: "https://{$node->fqdn}"
-        YAML;
-
-        // Elimina la indentación común al inicio de cada línea
-        $yaml = preg_replace('/^[ \t]{' . min(array_map('strlen', array_filter(explode("\n", $yaml), 'trim'))) . '}+/m', '', $yaml);
+    debug: false
+    uuid: {$node->uuid}
+    token_id: {$node->daemon_token_id}
+    token: {$node->daemon_token}
+    api:
+      url: "https://{$node->fqdn}/api"
+      host: 0.0.0.0
+      port: 8080
+      ssl:
+        enabled: true
+        cert: /etc/letsencrypt/live/{$node->fqdn}/fullchain.pem
+        key: /etc/letsencrypt/live/{$node->fqdn}/privkey.pem
+    upload_limit:
+    system:
+      data: /var/lib/cinammon/volumes
+    sftp:
+      bind_port:
+      allowed_mounts: []
+      remote: "https://{$node->fqdn}"
+    YAML;
 
         return response()->make(
             $yaml,
