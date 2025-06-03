@@ -200,26 +200,26 @@ class NodeController extends Controller
 
         return response()->make(
             <<<YAML
-debug: false
-uuid: {$node->uuid}
-token_id: {$node->daemon_token_id}
-token: {$node->daemon_token}
-api:
-  url: "https://{$node->fqdn}/api"
-  host: 0.0.0.0
-  port: 8080
-  ssl:
-    enabled: true
-    cert: /etc/letsencrypt/live/{$node->fqdn}/fullchain.pem
-    key: /etc/letsencrypt/live/{$node->fqdn}/privkey.pem
-upload_limit:
-system:
-  data: /var/lib/cinammon/volumes
-sftp:
-  bind_port:
-  allowed_mounts: []
-  remote: "https://{$node->fqdn}"
-YAML,
+    debug: false
+    uuid: {$node->uuid}
+    token_id: {$node->daemon_token_id}
+    token: {$node->daemon_token}
+    api:
+      url: "https://{$node->fqdn}/api"
+      host: 0.0.0.0
+      port: 8080
+      ssl:
+        enabled: true
+        cert: /etc/letsencrypt/live/{$node->fqdn}/fullchain.pem
+        key: /etc/letsencrypt/live/{$node->fqdn}/privkey.pem
+    upload_limit:
+    system:
+      data: /var/lib/cinammon/volumes
+    sftp:
+      bind_port:
+      allowed_mounts: []
+      remote: "https://{$node->fqdn}"
+    YAML,
             200,
             [
                 'Content-Type' => 'text/yaml',
