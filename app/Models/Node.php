@@ -11,6 +11,7 @@ class Node extends Model
 
     protected $fillable = [
         'name',
+        'online',
         'fqdn',
         'daemon_listen',
         'scheme',

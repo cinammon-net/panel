@@ -9,12 +9,11 @@ return new class extends Migration {
     {
         Schema::create('nodes', function (Blueprint $table) {
             $table->id();
-
+            $table->boolean('online')->default(false);
             $table->boolean('public')->default(true);
             $table->string('name');
             $table->string('fqdn');
             $table->string('scheme')->default('https');
-
             $table->integer('memory')->nullable();
             $table->integer('memory_overallocate')->default(0);
             $table->integer('disk')->nullable();
