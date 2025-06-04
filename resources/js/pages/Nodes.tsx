@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 
 interface NodeItem {
+    status: string;
+    online: any;
     id: number;
     name: string;
     fqdn: string;
@@ -139,14 +141,15 @@ export default function Nodes() {
                                     className="cursor-pointer border-b border-cyan-200 transition hover:bg-cyan-100/50 dark:border-cyan-700 dark:hover:bg-cyan-800/40"
                                 >
                                     <td className="px-4 py-2">
-                                        {node.health === 'healthy' ? (
-                                            <HeartPulse className="h-5 w-5 text-green-500" />
-                                        ) : node.health === 'unhealthy' ? (
-                                            <HeartCrack className="h-5 w-5 text-yellow-500" />
-                                        ) : (
-                                            <HeartOff className="h-5 w-5 text-red-500" />
-                                        )}
+                                    {node.status === 'online' ? (
+                                        <HeartPulse className="h-5 w-5 text-green-500" />
+                                    ) : node.status === 'warning' ? (
+                                        <HeartCrack className="h-5 w-5 text-yellow-500" />
+                                    ) : (
+                                        <HeartOff className="h-5 w-5 text-red-500" />
+                                    )}
                                     </td>
+
                                     <td className="px-4 py-2">{node.name}</td>
                                     <td className="px-4 py-2">{node.fqdn}</td>
                                     <td className="px-4 py-2">
