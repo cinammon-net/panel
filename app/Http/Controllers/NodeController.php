@@ -185,7 +185,8 @@ uuid: {$node->uuid}
 token_id: {$node->daemon_token_id}
 token: {$node->daemon_token}
 api:
-  url: "https://{$node->fqdn}/remote"
+  url: "https://{$node->fqdn}"
+  base_path: "/remote"
   host: 0.0.0.0
   port: 8080
   ssl:
