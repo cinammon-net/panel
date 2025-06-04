@@ -37,4 +37,4 @@ Route::get('/gallery/list', function () {
     return response()->json($images);
 });
 
-Route::get('/remote/servers', [ServerController::class, 'apiServers']);
+Route::middleware('auth:sanctum')->get('/remote/servers', [ServerController::class, 'index']);
