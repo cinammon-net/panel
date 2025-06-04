@@ -183,6 +183,23 @@ class NodeController extends Controller
         ]);
     }
 
+    public function heartbeat($id)
+    {
+        $node = Node::findOrFail($id);
+        $node->status = 'online';  // O true en booleano, depende de tu esquema
+        $node->last_heartbeat = now(); // Puedes agregar este campo en tu tabla para controlar cuándo fue el último ping
+        $node->save();
+
+        return response()->json(['message' => 'Heartbeat recibido']);
+    }
+
+    public function checkOfflineNodes()
+    {
+        $timeout = now()->subMinutes(2);
+        Node::where('last_heartbeat', '<', $timeout)
+            ->update(['status' => 'offline']);
+    }
+
     public function configYaml($id)
     {
         $node = Node::findOrFail($id);
