@@ -180,6 +180,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/nodes/cpu-data', [NodeController::class, 'getCpuData']);
     Route::get('/nodes/memory-data', [NodeController::class, 'getMemoryData']);
     Route::get('/nodes/storage-data', [NodeController::class, 'getStorageData']);
+    Route::post('/nodes/{id}/heartbeat', [NodeController::class, 'heartbeat']);
 
     // Servers
     Route::resource('servers', ServerController::class)->except(['show']);
