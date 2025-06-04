@@ -192,11 +192,11 @@ api:
     enabled: true
     cert: /etc/letsencrypt/live/{$node->fqdn}/fullchain.pem
     key: /etc/letsencrypt/live/{$node->fqdn}/privkey.pem
-upload_limit:
+  upload_limit: 256
 system:
   data: /var/lib/cinammon/volumes
 sftp:
-  bind_port:
+  bind_port: {$node->daemon_sftp}
   allowed_mounts: []
   remote: "https://{$node->fqdn}"
 YAML;
