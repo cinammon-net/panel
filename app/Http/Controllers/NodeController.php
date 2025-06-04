@@ -158,7 +158,23 @@ class NodeController extends Controller
         return redirect()->route('nodes.index')->with('success', 'Nodo actualizado correctamente.');
     }
 
-    // Método para generar YAML config
+    public function heartbeat($id)
+    {
+        $node = Node::findOrFail($id);
+        $node->online = true;
+        $node->last_heartbeat = now();
+        $node->save();
+
+        return response()->json(['message' => 'Heartbeat recibido']);
+    }
+
+    public function checkOfflineNodes()
+    {
+        $timeout = now()->subMinutes(2);
+        Node::where('last_heartbeat', '<', $timeout)->update(['online' => false]);
+    }
+
+
     public function configYaml($id)
     {
         $node = Node::findOrFail($id);
