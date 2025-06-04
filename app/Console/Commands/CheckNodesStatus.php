@@ -8,8 +8,7 @@ use Illuminate\Support\Facades\Http;
 
 class CheckNodesStatus extends Command
 {
-    protected $signature = 'app:check-nodes-status';
-
+    protected $signature = 'nodes:check-status';
     protected $description = 'Revisa el estado de los nodos y actualiza su estado online';
 
     public function handle()
