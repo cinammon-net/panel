@@ -19,18 +19,23 @@ class ServerController extends Controller
     {
         $user = $request->user();
 
-        $query = Server::with('egg', 'node')->where('owner_id', $user->id);
+        $query = Server::with('egg', 'node') // Asegúrate de que 'node' esté relacionado con el servidor
+            ->where('owner_id', $user->id);
 
+        // Filtro de búsqueda
         if ($request->has('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
+        // Ordenar por el parámetro dado
         $sort = $request->input('sort', 'name');
         $direction = $request->input('direction', 'asc');
         $query->orderBy($sort, $direction);
 
-        $paginated = $query->paginate(15);
+        // Paginación
+        $paginated = $query->paginate(15)->withQueryString();
 
+        // Manipular los datos para mostrarlos de manera personalizada
         $servers = $paginated->getCollection()->map(function ($server) {
             return [
                 'id' => $server->id,
@@ -38,24 +43,22 @@ class ServerController extends Controller
                 'name' => $server->name,
                 'description' => $server->description ?? '-',
                 'status' => $server->status ? 'online' : 'offline',
-                'node' => $server->node->name ?? 'Unknown',
+                'node' => $server->node->name ?? 'Unknown', // Asegúrate de tener la relación 'node'
                 'egg' => optional($server->egg)->name ?? 'Unknown',
                 'allocation' => ($server->ip ?? '') . ':' . ($server->port ?? ''),
+                'servers' => 0, // Esto lo puedes ajustar si tienes más servidores en la relación
             ];
         });
 
-        // Retornamos JSON con paginación
-        return response()->json([
-            'data' => $servers,
-            'meta' => [
-                'total' => $paginated->total(),
-                'per_page' => $paginated->perPage(),
-                'current_page' => $paginated->currentPage(),
-                'last_page' => $paginated->lastPage(),
-            ],
+        // Establecer la colección personalizada para la paginación
+        $paginated->setCollection($servers);
+
+        return Inertia::render('Servers', [
+            'servers' => $paginated,
+            'filters' => $request->only('search', 'sort', 'direction'),
+            'availableTags' => [],
         ]);
     }
-
 
     // Vista para crear un nuevo servidor
     public function create()
@@ -135,5 +138,32 @@ class ServerController extends Controller
         $server = Server::create($data);
 
         return response()->json(['message' => 'Servidor creado correctamente', 'server' => $server], 201);
+    }
+
+    public function apiServers(Request $request)
+    {
+        $user = $request->user();
+
+        $servers = Server::with('egg', 'node')
+            ->where('owner_id', $user->id)
+            ->get()
+            ->map(function ($server) {
+                return [
+                    'id' => $server->id,
+                    'uuid' => $server->uuid,
+                    'name' => $server->name,
+                    'status' => $server->status ? 'online' : 'offline',
+                    'node' => $server->node->name ?? null,
+                    'egg' => $server->egg->name ?? null,
+                    'allocation' => ($server->ip ?? '') . ':' . ($server->port ?? ''),
+                ];
+            });
+
+        return response()->json([
+            'data' => $servers,
+            'meta' => [
+                'total' => $servers->count(),
+            ],
+        ]);
     }
 }
