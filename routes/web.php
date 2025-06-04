@@ -31,6 +31,7 @@ Route::view('/sponsors', 'legal.sponsors')->name('sponsors');
 Route::get('api/nodes/{id}/config-yaml', [NodeController::class, 'configYaml']);
 Route::get('api/application/nodes/{id}/configuration', [NodeController::class, 'configYaml']);
 Route::post('api/nodes/{node}/reset', [NodeController::class, 'reset']);
+Route::get('remote/servers', [ServerController::class, 'index']);
 
 // 🔗 Socialtie
 Route::get('/auth/github/redirect', function () {
@@ -184,7 +185,6 @@ Route::middleware(['auth'])->group(function () {
 
     // Servers
     Route::resource('servers', ServerController::class)->except(['show']);
-    Route::get('/remote/servers', [ServerController::class, 'index']);
     // Network
     Route::get('/api/ips', [NetworkController::class, 'getIps']);
     Route::get('/api/network/ips', function () {
