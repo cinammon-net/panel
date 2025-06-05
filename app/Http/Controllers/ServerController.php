@@ -142,41 +142,48 @@ class ServerController extends Controller
 
     public function apiServers(Request $request)
     {
-        $user = $request->user();
+            $user = $request->user();
 
-        $query = Server::with('egg', 'node')->where('owner_id', $user->id);
+            $query = Server::with('egg', 'node')->where('owner_id', $user->id);
 
-        if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
-        }
+            if ($request->has('search')) {
+                $query->where('name', 'like', '%' . $request->search . '%');
+            }
 
-        $sort = $request->input('sort', 'name');
-        $direction = $request->input('direction', 'asc');
-        $query->orderBy($sort, $direction);
+            $sort = $request->input('sort', 'name');
+            $direction = $request->input('direction', 'asc');
+            $query->orderBy($sort, $direction);
 
-        $paginated = $query->paginate(15);
+            $paginated = $query->paginate(15);
 
-        $servers = $paginated->getCollection()->map(function ($server) {
-            return [
-                'id' => $server->id,
-                'uuid' => $server->uuid,
-                'name' => $server->name,
-                'description' => $server->description ?? '-',
-                'status' => $server->status ? 'online' : 'offline',
-                'node' => $server->node->name ?? 'Unknown',
-                'egg' => optional($server->egg)->name ?? 'Unknown',
-                'allocation' => ($server->ip ?? '') . ':' . ($server->port ?? ''),
-            ];
-        });
+            $servers = $paginated->getCollection()->map(function ($server) {
+                return [
+                    'id' => $server->id,
+                    'uuid' => $server->uuid,
+                    'name' => $server->name,
+                    'description' => $server->description ?? '-',
+                    'status' => $server->status ? 'online' : 'offline',
+                    'node' => $server->node->name ?? 'Unknown',
+                    'egg' => optional($server->egg)->name ?? 'Unknown',
+                    'allocation' => ($server->ip ?? '') . ':' . ($server->port ?? ''),
+                ];
+            });
 
-        // Retornamos JSON con paginación
-        return response()->json([
-            'data' => $servers,
-            'meta' => [
-                'total' => $paginated->total(),
-                'per_page' => $paginated->perPage(),
-                'current_page' => $paginated->currentPage(),
-                'last_page' => $paginated->lastPage(),
-            ],
-        ]);
+            // Retornamos JSON con paginación
+            return response()->json([
+                'data' => $servers,
+                'meta' => [
+                    'total' => $paginated->total(),
+                    'per_page' => $paginated->perPage(),
+                    'current_page' => $paginated->currentPage(),
+                    'last_page' => $paginated->lastPage(),
+                ],
+                'links' => [
+                    'first' => $paginated->url(1),
+                    'last' => $paginated->url($paginated->lastPage()),
+                    'prev' => $paginated->previousPageUrl(),
+                    'next' => $paginated->nextPageUrl(),
+                ],
+            ])->setStatusCode(200);
+    }
 }
