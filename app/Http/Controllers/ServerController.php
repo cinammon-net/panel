@@ -144,26 +144,39 @@ class ServerController extends Controller
     {
         $user = $request->user();
 
-        $servers = Server::with('egg', 'node')
-            ->where('owner_id', $user->id)
-            ->get()
-            ->map(function ($server) {
-                return [
-                    'id' => $server->id,
-                    'uuid' => $server->uuid,
-                    'name' => $server->name,
-                    'status' => $server->status ? 'online' : 'offline',
-                    'node' => $server->node->name ?? null,
-                    'egg' => $server->egg->name ?? null,
-                    'allocation' => ($server->ip ?? '') . ':' . ($server->port ?? ''),
-                ];
-            });
+        $query = Server::with('egg', 'node')->where('owner_id', $user->id);
 
+        if ($request->has('search')) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
+        $query->orderBy($sort, $direction);
+
+        $paginated = $query->paginate(15);
+
+        $servers = $paginated->getCollection()->map(function ($server) {
+            return [
+                'id' => $server->id,
+                'uuid' => $server->uuid,
+                'name' => $server->name,
+                'description' => $server->description ?? '-',
+                'status' => $server->status ? 'online' : 'offline',
+                'node' => $server->node->name ?? 'Unknown',
+                'egg' => optional($server->egg)->name ?? 'Unknown',
+                'allocation' => ($server->ip ?? '') . ':' . ($server->port ?? ''),
+            ];
+        });
+
+        // Retornamos JSON con paginación
         return response()->json([
             'data' => $servers,
             'meta' => [
-                'total' => $servers->count(),
+                'total' => $paginated->total(),
+                'per_page' => $paginated->perPage(),
+                'current_page' => $paginated->currentPage(),
+                'last_page' => $paginated->lastPage(),
             ],
         ]);
-    }
 }
