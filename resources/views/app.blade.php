@@ -6,7 +6,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="description" content="Cinammon es una moderna plataforma open-source y autoalojada diseñada para comunidades que buscan una alternativa sólida, privada y personalizable a Discord. Con herramientas avanzadas de comunicación, gestión de usuarios y total control sobre tus datos, Cinammon te ofrece todo lo que necesitas para construir tu propia comunidad sin depender de servicios centralizados.">
+    
+    <meta name="description" content="Cinammon es una moderna plataforma open-source y autoalojada diseñada para comunidades que buscan una alternativa sólida, privada y personalizable a Discord. Con herramientas avanzadas de comunicación, gestión de usuarios y control total sobre tus datos, Cinammon te ofrece todo lo que necesitas para construir tu propia comunidad sin depender de servicios centralizados.">
     <meta name="keywords" content="Cinammon, autoalojado, open-source, alternativa a Discord, plataforma de comunidades, chat moderno, privacidad, servidor propio">
     <meta name="author" content="Cinammon Team">
     <meta name="theme-color" content="#ffffff">
@@ -28,11 +29,16 @@
     <meta property="og:image:height" content="630">
     <meta property="og:url" content="https://cinammon.net">
 
+    <!-- 🐦 Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Cinammon – Plataforma moderna y autoalojada para comunidades">
+    <meta name="twitter:description" content="Cinammon es una moderna plataforma open-source y autoalojada diseñada para comunidades que buscan libertad, privacidad y autonomía.">
+    <meta name="twitter:image" content="https://cinammon.net/preview.png">
 
-    <!-- 💬 Discord Tags (extra, no obligatorios) -->
+    <!-- 💬 Discord Tags (opcionales) -->
     <meta name="discord:title" content="Cinammon – Plataforma moderna y autoalojada para comunidades">
-    <meta name="discord:description" content="Cinammon es una moderna plataforma open-source y autoalojada diseñada para comunidades que buscan una alternativa sólida, privada y personalizable a Discord. Con herramientas avanzadas de comunicación, gestión de usuarios y total control sobre tus datos, Cinammon te ofrece todo lo que necesitas para construir tu propia comunidad sin depender de servicios centralizados.">
-    <meta name="discord:image" content="https://cinammon.net/assets/preview.png">
+    <meta name="discord:description" content="Cinammon es una moderna plataforma open-source y autoalojada diseñada para comunidades que buscan una alternativa sólida, privada y personalizable a Discord.">
+    <meta name="discord:image" content="https://cinammon.net/preview.png">
     <meta name="discord:site_name" content="Cinammon">
     <meta name="discord:creator" content="@Cinammon">
     <meta name="discord:locale" content="{{ str_replace('_', '-', app()->getLocale()) }}">
