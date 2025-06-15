@@ -16,17 +16,18 @@
     <meta name="msapplication-TileColor" content="#ffffff">
     <meta name="msapplication-TileImage" content="/mstile-150x150.png">
 
-    <!-- 🌐 Open Graph (Discord, WhatsApp, Facebook) -->
+    <!-- 🌐 Open Graph (Discord, WhatsApp, Facebook, etc.) -->
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Cinammon">
     <meta property="og:locale" content="{{ str_replace('_', '-', app()->getLocale()) }}">
     <meta property="og:title" content="Cinammon – Plataforma moderna y autoalojada para comunidades">
-    <meta property="og:description" content="Cinammon es una moderna plataforma open-source y autoalojada diseñada para comunidades que buscan una alternativa sólida, privada y personalizable a Discord. Con herramientas avanzadas de comunicación, gestión de usuarios y total control sobre tus datos, Cinammon te ofrece todo lo que necesitas para construir tu propia comunidad sin depender de servicios centralizados.">
-    <meta property="og:image" content="https://cinammon.net/assets/preview.png"> 
-    <meta property="og:image:alt" content="Logo de Cinammon">
+    <meta property="og:description" content="Cinammon es una moderna plataforma open-source y autoalojada, diseñada para comunidades que buscan una alternativa sólida, privada y personalizable a Discord. Con herramientas avanzadas de comunicación, gestión de usuarios y control total de datos, Cinammon te ofrece libertad y autonomía.">
+    <meta property="og:image" content="https://cinammon.net/preview.png">
+    <meta property="og:image:alt" content="Vista previa de Cinammon">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:url" content="https://cinammon.net/">
+    <meta property="og:url" content="https://cinammon.net">
+
 
     <!-- 💬 Discord Tags (extra, no obligatorios) -->
     <meta name="discord:title" content="Cinammon – Plataforma moderna y autoalojada para comunidades">
