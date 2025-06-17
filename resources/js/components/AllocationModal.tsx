@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Dialog } from '@headlessui/react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 export default function AllocationModal({
     isOpen,
@@ -55,7 +56,7 @@ export default function AllocationModal({
     }, [fqdn]);
     
     const handleSubmit = () => {
-        if (!ip) return alert('You must select an IP');
+        if (!ip) return toast.error('Please select an IP address');
         onSubmit({ ip, alias, ports });
         onClose();
     };
