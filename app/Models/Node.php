@@ -28,4 +28,14 @@ class Node extends Model
         'daemon_token_id',
         'daemon_token'
     ];
+
+    public function servers()
+    {
+        return $this->hasMany(Server::class);
+    }
+
+    public function allocations()
+    {
+        return $this->hasMany(\App\Models\Allocation::class);
+    }
 }
