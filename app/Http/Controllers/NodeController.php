@@ -6,8 +6,6 @@ use App\Models\Node;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Validator;
-use App\Models\Allocation;
 
 class NodeController extends Controller
 {
