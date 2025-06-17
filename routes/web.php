@@ -32,6 +32,7 @@ Route::get('api/nodes/{id}/config-yaml', [NodeController::class, 'configYaml']);
 Route::get('api/application/nodes/{id}/configuration', [NodeController::class, 'configYaml']);
 Route::post('api/nodes/{node}/reset', [NodeController::class, 'reset']);
 Route::get('remote/servers', [ServerController::class, 'index']);
+Route::post('/nodes/{id}/allocations', [NodeController::class, 'storeAllocation'])->name('nodes.allocations.store');
 
 // 🔗 Socialtie
 Route::get('/auth/github/redirect', function () {
