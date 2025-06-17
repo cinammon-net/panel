@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 import axios from 'axios';
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, ArcElement);
 ChartJS.register(ChartDataLabels);
+
+
 function validateDomain(domain: string): boolean {
     const fqdnRegex = /^(?!-)(?!.*--)([a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,}$/;
     return fqdnRegex.test(domain.trim());
@@ -47,6 +49,7 @@ export default function EditNode() {
 
     const [isCreateAllocationModalOpen, setIsCreateAllocationModalOpen] = useState(false);
     const [yamlConfig, setYamlConfig] = useState<string>('');
+
     interface SectionChangeHandler {
         (section: 'overview' | 'basicSettings' | 'advancedSettings' | 'configurationFile'): void;
     }
@@ -54,6 +57,7 @@ export default function EditNode() {
     const handleSectionChange: SectionChangeHandler = (section) => {
         setActiveSection(section);
     };
+    
     // Validar el dominio y obtener la IP
     const validateAndFetchIp = async (domain: string) => {
         const isValidFormat = validateDomain(domain);
@@ -213,11 +217,33 @@ export default function EditNode() {
             fetchConfig();
         }
     }, [activeSection, formData.id]);
-    function handleCreateAllocation(): void {
-        toast.success('Allocation created');
-        setIsCreateAllocationModalOpen(false);
-    }
-
+    const handleCreateAllocation = async (nodeId: number, data: any) => {
+        console.log('📦 Enviando datos al backend:', data);
+        try {
+            const res = await axios.post(`/nodes/${nodeId}/allocations`, data);
+            console.log('✅ Respuesta del backend:', res.data);
+            toast.success('Allocation creada correctamente');
+            setIsCreateAllocationModalOpen(false);
+            // Actualizar el estado del nodo con la nueva allocation
+            setFormData((prev: any) => ({
+                ...prev,
+                allocations: [...(prev.allocations || []), res.data],    
+            }));
+        } catch (err) {
+            if (axios.isAxiosError(err)) {
+                const errorData = err.response?.data;
+                if (errorData) {
+                    toast.error(errorData.message);
+                } else {
+                    toast.error('Error al crear la allocation');
+                } 
+            } else {
+                console.error('Error inesperado al crear la allocation:', err);
+                toast.error('Error inesperado al crear la allocation');
+            }
+        }
+    };
+    
     const [isAutoDeployOpen, setIsAutoDeployOpen] = useState(false);
     const [isResetModalOpen, setIsResetModalOpen] = useState(false);
     function handleResetSuccess(): void {
@@ -1132,40 +1158,65 @@ export default function EditNode() {
                             // Mostrar Allocations
                             <div>
                                 <div className="mb-4 flex items-center justify-between">
-                                    <h2 className="mb-4 text-lg font-semibold">Allocations</h2>
-                                    {/* Create Allocation Button */}
+                                    <h2 className="text-lg font-semibold text-cyan-300">Allocations</h2>
                                     <div className="flex justify-end">
                                         <button
                                             onClick={() => setIsCreateAllocationModalOpen(true)}
-                                            className="rounded-lg border border-cyan-500 bg-cyan-100 px-4 py-2 text-sm font-semibold text-cyan-800 transition-all hover:scale-[1.03] hover:bg-cyan-200 dark:border-cyan-500 dark:bg-cyan-900/50 dark:text-cyan-300 dark:hover:bg-cyan-700/70"
+                                            className="rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-700"
                                         >
                                             Create Allocation
                                         </button>
-
                                         <AllocationModal
-                                                isOpen={isCreateAllocationModalOpen}
-                                                onClose={() => setIsCreateAllocationModalOpen(false)}
-                                                onSubmit={handleCreateAllocation}
-                                                fqdn={node.fqdn} ipOptions={[]}                                        />
+                                            isOpen={isCreateAllocationModalOpen}
+                                            onClose={() => setIsCreateAllocationModalOpen(false)}
+                                            onSubmit={(data) => handleCreateAllocation(formData.id, data)}
+                                            fqdn={formData.fqdn}
+                                            ipOptions={[]}
+                                        />
                                     </div>
                                 </div>
-                                {node.allocations && node.allocations.length > 0 ? (
-                                    <ul className="list-inside list-disc">
-                                        {node.allocations.map((allocation: any, index: number) => (
-                                            <li key={index} className="flex items-center justify-between">
-                                                <span>{allocation.port}</span>
-                                                <span>{allocation.server}</span>
-                                                <span>{allocation.ip}</span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRemoveAllocation(index)} // Handle the remove functionality
-                                                    className="text-red-500 hover:text-red-700"
-                                                >
-                                                    Remove
-                                                </button>
-                                            </li>
-                                        ))}
-                                    </ul>
+
+                                {formData.allocations && formData.allocations.length > 0 ? (
+                                    <div className="overflow-x-auto rounded-md border border-cyan-700 bg-[#1a1a1a] text-sm text-cyan-200">
+                                        <table className="min-w-full">
+                                            <thead className="bg-[#0f0f0f] text-left text-cyan-400">
+                                                <tr>
+                                                    <th className="px-4 py-2">Ports</th>
+                                                    <th className="px-4 py-2">Servers</th>
+                                                    <th className="px-4 py-2">Alias</th>
+                                                    <th className="px-4 py-2">IP</th>
+                                                    <th className="px-4 py-2 text-center">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {formData.allocations.map((allocation: any, index: number) => (
+                                                    <tr key={index} className="border-t border-cyan-800 hover:bg-cyan-900/20">
+                                                        <td className="px-4 py-2">{allocation.port}</td>
+                                                        <td className="px-4 py-2">{allocation.server?.name || <span className="italic text-cyan-400">Unassigned</span>}</td>
+                                                        <td className="px-4 py-2">{allocation.alias || <span className="text-cyan-500">—</span>}</td>
+                                                        <td className="px-4 py-2">{allocation.ip}</td>
+                                                        <td className="px-4 py-2 text-center">
+                                                            <button
+                                                                onClick={() => handleRemoveAllocation(index)}
+                                                                className="rounded bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700"
+                                                            >
+                                                                Remove
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+
+                                        <div className="flex items-center justify-between border-t border-cyan-800 px-4 py-3">
+                                            <span>Per page</span>
+                                            <select className="rounded border border-cyan-600 bg-[#0c0c0c] px-2 py-1 text-cyan-300">
+                                                <option>10</option>
+                                                <option>25</option>
+                                                <option>50</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 ) : (
                                     <div className="flex flex-col items-center justify-center gap-2 p-12 text-center text-cyan-500">
                                         <svg
