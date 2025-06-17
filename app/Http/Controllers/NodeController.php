@@ -6,6 +6,8 @@ use App\Models\Node;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Validator;
+use App\Models\Allocation;
 
 class NodeController extends Controller
 {
@@ -117,10 +119,11 @@ class NodeController extends Controller
 
     public function edit($id)
     {
-        $node = Node::findOrFail($id);
+        $node = Node::with('allocations')->findOrFail($id);
 
         return Inertia::render('Nodes/Edit', [
             'node' => $node,
+            'allocations' => $node->allocations,
         ]);
     }
 
@@ -210,5 +213,36 @@ YAML;
                 'Content-Disposition' => 'attachment; filename="config.yml"',
             ]
         );
+    }
+
+    public function storeAllocation(Request $request, $id)
+    {
+        $node = Node::findOrFail($id);
+
+        $validated = $request->validate([
+            'ip' => 'required|ip',
+            'alias' => 'nullable|string|max:255',
+            'ports' => 'required|string',
+        ]);
+
+        $ports = collect(explode(',', $validated['ports']))
+            ->flatMap(function ($port) {
+                if (str_contains($port, '-')) {
+                    [$start, $end] = explode('-', $port);
+                    return range((int) $start, (int) $end);
+                }
+                return [(int) $port];
+            })
+            ->unique();
+
+        foreach ($ports as $port) {
+            $node->allocations()->create([
+                'ip' => $validated['ip'],
+                'alias' => $validated['alias'],
+                'port' => $port,
+            ]);
+        }
+
+        return response()->json(['message' => 'Allocations creadas correctamente']);
     }
 }
