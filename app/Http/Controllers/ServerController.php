@@ -15,36 +15,96 @@ use Illuminate\Support\Facades\Validator;
 class ServerController extends Controller
 {
     // Listar servidores del usuario autenticado
-    public function index(Request $request) {
-        $user = $request->user();
+    public function index(Request $request)
+    {
+        $query = Server::query();
 
-        $query = Server::with(['egg', 'node', 'allocation', 'owner']) 
-            ->where('owner_id', $user->id);
-
-        // Filtro de búsqueda
+        // Filtro búsqueda
         if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+            $query->where('servers.name', 'like', '%' . $request->search . '%');
         }
 
-        // Ordenar por el parámetro dado
+        // Orden dinámico
         $sort = $request->input('sort', 'name');
         $direction = $request->input('direction', 'asc');
-        $query->orderBy($sort, $direction);
 
-        // Paginación
+        // Si es un campo de relación, se hace join manual y se selecciona adecuadamente
+        switch ($sort) {
+            case 'egg':
+                $query->leftJoin('eggs', 'servers.egg_id', '=', 'eggs.id')
+                    ->select('servers.*', 'eggs.name as egg_name')
+                    ->orderBy('eggs.name', $direction);
+                break;
+
+            case 'username':
+                $query->leftJoin('users', 'servers.owner_id', '=', 'users.id')
+                    ->select('servers.*', 'users.name as user_name')
+                    ->orderBy('users.name', $direction);
+                break;
+
+            case 'node':
+                $query->leftJoin('nodes', 'servers.node_id', '=', 'nodes.id')
+                    ->select('servers.*', 'nodes.name as node_name')
+                    ->orderBy('nodes.name', $direction);
+                break;
+
+            case 'allocation':
+                $query->leftJoin('allocations', 'servers.allocation_id', '=', 'allocations.id')
+                    ->select('servers.*', 'allocations.ip as allocation_ip', 'allocations.port as allocation_port')
+                    ->orderBy('allocations.ip', $direction)
+                    ->orderBy('allocations.port', $direction);
+                break;
+
+            case 'status':
+                $query->orderByRaw('CASE WHEN servers.status = 1 THEN 0 ELSE 1 END')
+                    ->orderBy('servers.name', $direction);
+                break;
+
+            case 'database':
+                $query->orderBy('servers.database_limit', $direction);
+                break;
+
+            case 'cpu':
+                $query->orderBy('servers.cpu', $direction);
+                break;
+
+            case 'memory':
+                $query->orderBy('servers.memory', $direction);
+                break;
+
+            case 'backups':
+                $query->orderBy('servers.backup_limit', $direction);
+                break;
+                
+            default:
+                $query->orderBy('servers.' . $sort, $direction);
+                break;
+        }
+
+        // Paginar resultados
         $paginated = $query->paginate(15)->withQueryString();
 
-        // Manipular los datos para mostrarlos de manera personalizada
-        $servers = $paginated->getCollection()->map(function ($server) {
+        // Hacer relaciones manualmente porque no usamos with()
+        $serverIds = $paginated->pluck('id');
+        $relatedServers = Server::with(['egg', 'owner', 'node', 'allocation'])
+            ->whereIn('id', $serverIds)
+            ->get()
+            ->keyBy('id');
+
+        // Formatear salida
+        $servers = $paginated->getCollection()->map(function ($server) use ($relatedServers) {
+            $full = $relatedServers[$server->id] ?? null;
+
             return [
                 'id' => $server->id,
                 'uuid' => $server->uuid,
                 'name' => $server->name,
                 'status' => $server->status ? 'online' : 'offline',
-                'egg' => optional($server->egg)->name ?? '–',
-                'username' => optional($server->owner)->name ?? 'Unknown',
-                'allocation' => $server->allocation
-                    ? $server->allocation->ip . ':' . $server->allocation->port
+                'egg' => $full?->egg?->name ?? '–',
+                'username' => $full?->owner?->name ?? 'Unknown',
+                'node' => $full?->node?->name ?? 'Unknown',
+                'allocation' => $full?->allocation
+                    ? $full->allocation->ip . ':' . $full->allocation->port
                     : '–',
                 'database' => $server->database_limit ?? 0,
                 'cpu' => $server->cpu ?? 0,
@@ -53,7 +113,6 @@ class ServerController extends Controller
             ];
         });
 
-        // Establecer la colección personalizada para la paginación
         $paginated->setCollection($servers);
 
         return Inertia::render('Servers', [
@@ -63,8 +122,10 @@ class ServerController extends Controller
         ]);
     }
 
+
     // Vista para crear un nuevo servidor
-    public function create() { 
+    public function create()
+    {
         $nodes = Node::all(); // Obteniendo los nodos
         $owners = User::all(); // Obteniendo los usuarios
         $allocations = Allocation::all(); // Obteniendo las asignaciones
@@ -87,7 +148,7 @@ class ServerController extends Controller
             });
         });
 
-        
+
         return Inertia::render('Servers/Create', [
             'nodes' => $nodes,
             'owners' => $owners,
@@ -98,7 +159,8 @@ class ServerController extends Controller
     }
 
     // Guardar un nuevo servidor
-    public function store(Request $request){
+    public function store(Request $request)
+    {
         $validator = Validator::make($request->all(), [
             'uuid' => 'nullable|string|exists:servers,uuid',
             'name' => 'required|string|max:255',
@@ -151,7 +213,8 @@ class ServerController extends Controller
         return redirect()->route('servers.index')->with('success', 'Servidor guardado correctamente.');
     }
 
-    public function update(Request $request, Server $server) {
+    public function update(Request $request, Server $server)
+    {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'externalId' => 'nullable|string|max:255',
@@ -215,55 +278,57 @@ class ServerController extends Controller
     }
 
 
-    public function apiServers(Request $request) {
-            $user = $request->user();
+    public function apiServers(Request $request)
+    {
+        $user = $request->user();
 
-            $query = Server::with('egg', 'node')->where('owner_id', $user->id);
+        $query = Server::with('egg', 'node')->where('owner_id', $user->id);
 
-            if ($request->has('search')) {
-                $query->where('name', 'like', '%' . $request->search . '%');
-            }
+        if ($request->has('search')) {
+            $query->where('servers.name', 'like', '%' . $request->search . '%');
+        }
 
-            $sort = $request->input('sort', 'name');
-            $direction = $request->input('direction', 'asc');
-            $query->orderBy($sort, $direction);
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
+        $query->orderBy($sort, $direction);
 
-            $paginated = $query->paginate(15);
+        $paginated = $query->paginate(15);
 
-            $servers = $paginated->getCollection()->map(function ($server) {
-                return [
-                    'id' => $server->id,
-                    'uuid' => $server->uuid,
-                    'name' => $server->name,
-                    'description' => $server->description ?? '-',
-                    'status' => $server->status ? 'online' : 'offline',
-                    'node' => $server->node->name ?? 'Unknown',
-                    'egg' => optional($server->egg)->name ?? 'Unknown',
-                    'allocation' => optional($server->allocation)?->ip && optional($server->allocation)?->port
-                        ? $server->allocation->ip . ':' . $server->allocation->port
-                        : '–',
-                ];
-            });
+        $servers = $paginated->getCollection()->map(function ($server) {
+            return [
+                'id' => $server->id,
+                'uuid' => $server->uuid,
+                'name' => $server->name,
+                'description' => $server->description ?? '-',
+                'status' => $server->status ? 'online' : 'offline',
+                'node' => $server->node->name ?? 'Unknown',
+                'egg' => optional($server->egg)->name ?? 'Unknown',
+                'allocation' => optional($server->allocation)?->ip && optional($server->allocation)?->port
+                    ? $server->allocation->ip . ':' . $server->allocation->port
+                    : '–',
+            ];
+        });
 
-            // Retornamos JSON con paginación
-            return response()->json([
-                'data' => $servers,
-                'meta' => [
-                    'total' => $paginated->total(),
-                    'per_page' => $paginated->perPage(),
-                    'current_page' => $paginated->currentPage(),
-                    'last_page' => $paginated->lastPage(),
-                ],
-                'links' => [
-                    'first' => $paginated->url(1),
-                    'last' => $paginated->url($paginated->lastPage()),
-                    'prev' => $paginated->previousPageUrl(),
-                    'next' => $paginated->nextPageUrl(),
-                ],
-            ])->setStatusCode(200);
+        // Retornamos JSON con paginación
+        return response()->json([
+            'data' => $servers,
+            'meta' => [
+                'total' => $paginated->total(),
+                'per_page' => $paginated->perPage(),
+                'current_page' => $paginated->currentPage(),
+                'last_page' => $paginated->lastPage(),
+            ],
+            'links' => [
+                'first' => $paginated->url(1),
+                'last' => $paginated->url($paginated->lastPage()),
+                'prev' => $paginated->previousPageUrl(),
+                'next' => $paginated->nextPageUrl(),
+            ],
+        ])->setStatusCode(200);
     }
 
-    public function edit(Server $server) {
+    public function edit(Server $server)
+    {
         // Cargar relaciones necesarias
         $server->load(['node', 'owner']);
 
