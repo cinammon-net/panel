@@ -97,68 +97,58 @@ class ServerController extends Controller
         ]);
     }
 
-    // Crear nuevo servidor con validación
-    public function store(Request $request) {
-        $user = $request->user();
-
-        // Validación de los datos
+    // Guardar un nuevo servidor
+    public function store(Request $request){
         $validator = Validator::make($request->all(), [
+            'uuid' => 'nullable|string|exists:servers,uuid',
             'name' => 'required|string|max:255',
             'node_id' => 'required|integer|exists:nodes,id',
             'owner_id' => 'required|integer|exists:users,id',
-            'memory' => 'nullable|integer|min:0',
-            'swap' => 'nullable|integer|min:0',
-            'disk' => 'nullable|integer|min:0',
-            'cpu' => 'nullable|integer|min:0',
+            'allocation_id' => 'nullable|integer|exists:allocations,id',
+            'description' => 'nullable|string',
+            'primary_allocation_id' => 'nullable|integer|exists:allocations,id',
             'egg_id' => 'required|integer|exists:eggs,id',
             'startup' => 'required|string',
             'image' => 'required|string',
-            'description' => 'nullable|string',
-            'skip_scripts' => 'nullable|boolean',
-            'external_id' => 'nullable|string|max:255',
-            'database_limit' => 'nullable|integer|min:0',
-            'allocation_limit' => 'nullable|integer|min:0',
-            'threads' => 'nullable|integer|min:0',
-            'backup_limit' => 'nullable|integer|min:0',
-            'status' => 'nullable|boolean',
-            'oom_killer' => 'nullable|boolean',
-            'docker_labels' => 'nullable|string',
-            'primary_allocation' => 'nullable|integer|exists:allocations,id',
-            'allocation_id' => 'nullable|integer',
-            'additional_allocations' => 'nullable|array',
             'run_install_script' => 'nullable|boolean',
             'start_after_install' => 'nullable|boolean',
-            'bungee_version' => 'nullable|string',
-            'bungee_jar_file' => 'nullable|string',
             'cpu_pinning' => 'nullable|boolean',
             'swap_memory' => 'nullable|string',
+            'oom_killer' => 'nullable|boolean',
+            'backups' => 'nullable|integer|min:0',
+            'install_script' => 'nullable|string',
+            'additional_allocation_ids' => 'nullable|array',
         ]);
 
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput();
         }
-        // Validación exitosa
+
         $data = $validator->validated();
-        $data['allocation_id'] = $data['primary_allocation'] ?? null;
-
-        // Generación del UUID
-        $uuid = (string) Str::uuid();
-        $data['uuid'] = $uuid;
-        $data['uuid_short'] = substr($uuid, 0, 8);
-
-        // Asignar el usuario actual como propietario
-        $data['owner_id'] = $data['owner_id'] ?? $user->id;
-
-        // Valores predeterminados si no se proporcionan
-        $data['active'] = 1;
-        $data['status'] = $data['status'] ?? 1;
-
-        // Crear el servidor
-        $server = Server::create($data);
-        if ($server) {
-            // Redirigir al usuario a la lista de servidores con un mensaje de éxito
-            return redirect()->route('servers.index')->with('success', 'Servidor creado exitosamente.');
+        if (isset($data['primary_allocation_id'])) {
+            $data['allocation_id'] = $data['primary_allocation_id'];
+            unset($data['primary_allocation_id']);
         }
+
+        if (!empty($data['uuid'])) {
+            // 🔁 Editar
+            $server = Server::where('uuid', $data['uuid'])->firstOrFail();
+            $server->update($data);
+        } else {
+            // ➕ Crear
+            $data['uuid'] = (string) Str::uuid();
+            $data['uuid_short'] = substr($data['uuid'], 0, 8);
+            $data['active'] = 1;
+            $data['status'] = 1;
+            $server = Server::create($data);
+        }
+
+        if (isset($validated['additional_allocations'])) {
+            Allocation::whereIn('id', $validated['additional_allocations'])
+                ->update(['server_id' => $server->id]);
+        }
+
+        return redirect()->route('servers.index')->with('success', 'Servidor guardado correctamente.');
     }
 
     public function update(Request $request, Server $server) {
