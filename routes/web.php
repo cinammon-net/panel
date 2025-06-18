@@ -32,7 +32,6 @@ Route::get('api/nodes/{id}/config-yaml', [NodeController::class, 'configYaml']);
 Route::get('api/application/nodes/{id}/configuration', [NodeController::class, 'configYaml']);
 Route::post('api/nodes/{node}/reset', [NodeController::class, 'reset']);
 Route::get('remote/servers', [ServerController::class, 'index']);
-Route::post('/nodes/{id}/allocations', [NodeController::class, 'storeAllocation'])->name('nodes.allocations.store');
 
 // 🔗 Socialtie
 Route::get('/auth/github/redirect', function () {
@@ -186,6 +185,9 @@ Route::middleware(['auth'])->group(function () {
 
     // Servers
     Route::resource('servers', ServerController::class)->except(['show']);
+    Route::get('/servers/{server}/edit', [ServerController::class, 'edit'])->name('servers.edit');
+    Route::delete('/servers/{uuid}', [ServerController::class, 'destroy'])->name('servers.destroy');
+
     // Network
     Route::get('/api/ips', [NetworkController::class, 'getIps']);
     Route::get('/api/network/ips', function () {
@@ -237,16 +239,16 @@ Route::middleware(['auth'])->group(function () {
     })->name('gallery.list');
 
     Route::delete('/gallery/delete/{filename}', function ($filename) {
-        $path = storage_path('app/public/gallery/' . $filename); 
-    
+        $path = storage_path('app/public/gallery/' . $filename);
+
         if (file_exists($path)) {
             unlink($path);
             return response()->json(['success' => true]);
         }
-    
+
         return response()->json(['error' => 'Archivo no encontrado'], 404);
     })->name('gallery.delete');
-    
+
 
     // Users
     Route::resource('users', UserController::class)->except(['show']);
