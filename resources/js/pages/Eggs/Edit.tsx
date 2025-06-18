@@ -308,6 +308,7 @@ export default function EditEgg() {
             breadcrumbs={[
                 { title: 'Eggs', href: '/eggs' },
                 { title: 'Edit', href: `/eggs/${generalData.id}/edit` },
+                { title: egg.name, href: `/eggs/${egg.id}` },
             ]}
         >
             <Head title={`Edit Egg: ${generalData.name}`}>
