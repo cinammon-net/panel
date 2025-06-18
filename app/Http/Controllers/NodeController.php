@@ -117,11 +117,23 @@ class NodeController extends Controller
 
     public function edit($id)
     {
-        $node = Node::with('allocations')->findOrFail($id);
+        $node = Node::with(['servers.owner', 'servers.egg', 'servers.allocation'])->find($id);
+
+        if (!$node) {
+            return redirect()->route('nodes.index')->with('error', 'Nodo no encontrado.');
+        }
+        $allocations = $node->allocations->map(function ($allocation) {
+            return [
+                'id' => $allocation->id,
+                'ip' => $allocation->ip,
+                'alias' => $allocation->alias,
+                'port' => $allocation->port,
+            ];
+        });
 
         return Inertia::render('Nodes/Edit', [
             'node' => $node,
-            'allocations' => $node->allocations,
+            'allocations' => $allocations,
         ]);
     }
 
