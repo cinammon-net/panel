@@ -48,9 +48,14 @@ class Server extends Model
     /**
      * Relación: Usuario propietario del servidor.
      */
-    public function ownerUser()
+    public function owner()
     {
-        return $this->belongsTo(User::class, 'owner_id');  // Un servidor pertenece a un solo propietario (usuario)
+        return $this->belongsTo(User::class, 'owner_id');
     }
 
+    public function allocation()
+    {
+        return $this->belongsTo(Allocation::class, 'allocation_id');
+    }
+    
 }
