@@ -19,7 +19,7 @@ class ServerController extends Controller
     {
         $user = $request->user();
 
-        $query = Server::with('egg', 'node') // Asegúrate de que 'node' esté relacionado con el servidor
+        $query = Server::with(['egg', 'node', 'allocation', 'owner']) 
             ->where('owner_id', $user->id);
 
         // Filtro de búsqueda
@@ -41,12 +41,16 @@ class ServerController extends Controller
                 'id' => $server->id,
                 'uuid' => $server->uuid,
                 'name' => $server->name,
-                'description' => $server->description ?? '-',
                 'status' => $server->status ? 'online' : 'offline',
-                'node' => $server->node->name ?? 'Unknown', // Asegúrate de tener la relación 'node'
-                'egg' => optional($server->egg)->name ?? 'Unknown',
-                'allocation' => ($server->ip ?? '') . ':' . ($server->port ?? ''),
-                'servers' => 0, // Esto lo puedes ajustar si tienes más servidores en la relación
+                'egg' => optional($server->egg)->name ?? '–',
+                'username' => optional($server->owner)->name ?? 'Unknown',
+                'allocation' => $server->allocation
+                    ? $server->allocation->ip . ':' . $server->allocation->port
+                    : '–',
+                'database' => $server->database_limit ?? 0,
+                'cpu' => $server->cpu ?? 0,
+                'memory' => $server->memory ?? 0,
+                'backups' => $server->backup_limit ?? 0,
             ];
         });
 
@@ -62,18 +66,36 @@ class ServerController extends Controller
 
     // Vista para crear un nuevo servidor
     public function create()
-    {
-        // Asegúrate de pasar los datos necesarios al frontend
+    { 
         $nodes = Node::all(); // Obteniendo los nodos
         $owners = User::all(); // Obteniendo los usuarios
         $allocations = Allocation::all(); // Obteniendo las asignaciones
-        $eggs = Egg::all(); // Obteniendo los eggs
+        $eggs = Egg::with('variables')
+            ->select('id', 'name', 'startup', 'docker_images')
+            ->get();
 
+        $eggs->each(function ($egg) {
+            $egg->docker_images = json_decode($egg->docker_images, true);
+        });
+        $variables = $eggs->flatMap(function ($egg) {
+            return $egg->variables->map(function ($variable) use ($egg) {
+                return [
+                    'egg_id' => $egg->id,
+                    'name' => $variable->name,
+                    'default_value' => $variable->default_value,
+                    'description' => $variable->description,
+                    'rules' => $variable->rules,
+                ];
+            });
+        });
+
+        
         return Inertia::render('Servers/Create', [
             'nodes' => $nodes,
             'owners' => $owners,
             'allocations' => $allocations,
             'eggs' => $eggs,
+            'variables' => $variables,
         ]);
     }
 
@@ -92,7 +114,7 @@ class ServerController extends Controller
             'disk' => 'nullable|integer|min:0',
             'cpu' => 'nullable|integer|min:0',
             'egg_id' => 'required|integer|exists:eggs,id',
-            'startup_command' => 'required|string',
+            'startup' => 'required|string',
             'image' => 'required|string',
             'description' => 'nullable|string',
             'skip_scripts' => 'nullable|boolean',
@@ -104,8 +126,8 @@ class ServerController extends Controller
             'status' => 'nullable|boolean',
             'oom_killer' => 'nullable|boolean',
             'docker_labels' => 'nullable|string',
+            'primary_allocation' => 'nullable|integer|exists:allocations,id',
             'allocation_id' => 'nullable|integer',
-            'primary_allocation' => 'nullable|string',
             'additional_allocations' => 'nullable|array',
             'run_install_script' => 'nullable|boolean',
             'start_after_install' => 'nullable|boolean',
@@ -116,11 +138,11 @@ class ServerController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return back()->withErrors($validator)->withInput();
         }
-
         // Validación exitosa
         $data = $validator->validated();
+        $data['allocation_id'] = $data['primary_allocation'] ?? null;
 
         // Generación del UUID
         $uuid = (string) Str::uuid();
@@ -128,7 +150,7 @@ class ServerController extends Controller
         $data['uuid_short'] = substr($uuid, 0, 8);
 
         // Asignar el usuario actual como propietario
-        $data['owner_id'] = $user->id;
+        $data['owner_id'] = $data['owner_id'] ?? $user->id;
 
         // Valores predeterminados si no se proporcionan
         $data['active'] = 1;
@@ -136,8 +158,10 @@ class ServerController extends Controller
 
         // Crear el servidor
         $server = Server::create($data);
-
-        return response()->json(['message' => 'Servidor creado correctamente', 'server' => $server], 201);
+        if ($server) {
+            // Redirigir al usuario a la lista de servidores con un mensaje de éxito
+            return redirect()->route('servers.index')->with('success', 'Servidor creado exitosamente.');
+        }
     }
 
     public function apiServers(Request $request)
@@ -165,7 +189,9 @@ class ServerController extends Controller
                     'status' => $server->status ? 'online' : 'offline',
                     'node' => $server->node->name ?? 'Unknown',
                     'egg' => optional($server->egg)->name ?? 'Unknown',
-                    'allocation' => ($server->ip ?? '') . ':' . ($server->port ?? ''),
+                    'allocation' => optional($server->allocation)?->ip && optional($server->allocation)?->port
+                        ? $server->allocation->ip . ':' . $server->allocation->port
+                        : '–',
                 ];
             });
 
