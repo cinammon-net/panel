@@ -135,7 +135,8 @@ export default function CreateServer() {
         <AppLayout
             breadcrumbs={[
                 { title: 'Servers', href: '/servers' },
-                { title: 'Edit Server', href: '/servers/edit' },
+                { title: 'Edit', href: '/servers/edit' },
+                { title: server.name, href: `/servers/${server.name}` },
             ]}
         >
             <Head title="Create Server">
