@@ -212,10 +212,9 @@ export default function Servers() {
                                         <th className="px-4 py-2 text-left text-cyan-500"></th>
                                     </tr>
 
-                                    {/* Fila de agrupación dinámica con fondo consistente */}
-                                    {groupBy !== 'none' && (
+                                    {groupBy !== 'none' && ( 
                                         <tr className="border-t border-cyan-700 bg-cyan-900">
-                                            <td colSpan={7} className="px-4 py-2 text-cyan-500">
+                                            <td colSpan={7} className="px-4 py-2 text-cyan-500"> 
                                                 {groupBy === 'node' && `Node`}
                                                 {groupBy === 'egg' && `Egg`}
                                                 {groupBy === 'username' && `User`}
@@ -246,10 +245,10 @@ export default function Servers() {
                                                                 {item.status}
                                                             </span>
                                                         </td>
-                                                        <td className="truncate px-4 py-2">{item.name}</td>
-                                                        <td className="truncate px-4 py-2">{item.egg}</td>
-                                                        <td className="truncate px-4 py-2">{item.username}</td>
-                                                        <td className="truncate px-4 py-2">{item.allocation}</td>
+                                                        <td className="px-4 py-2">{item.name}</td>
+                                                        <td className="px-4 py-2">{item.egg}</td>
+                                                        <td className="px-4 py-2">{item.username}</td>
+                                                        <td className="truncate px-4 py-2">{item.allocation || <span className="italic text-cyan-500">–</span>}</td>
                                                         <td className="px-4 py-2">{item.database ?? '-'}</td>
                                                         <td className="px-4 py-2 text-right">
                                                             <div className="flex justify-end gap-3" onClick={(e) => e.stopPropagation()}>
