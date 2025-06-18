@@ -15,8 +15,7 @@ use Illuminate\Support\Facades\Validator;
 class ServerController extends Controller
 {
     // Listar servidores del usuario autenticado
-    public function index(Request $request)
-    {
+    public function index(Request $request) {
         $user = $request->user();
 
         $query = Server::with(['egg', 'node', 'allocation', 'owner']) 
@@ -65,8 +64,7 @@ class ServerController extends Controller
     }
 
     // Vista para crear un nuevo servidor
-    public function create()
-    { 
+    public function create() { 
         $nodes = Node::all(); // Obteniendo los nodos
         $owners = User::all(); // Obteniendo los usuarios
         $allocations = Allocation::all(); // Obteniendo las asignaciones
@@ -100,8 +98,7 @@ class ServerController extends Controller
     }
 
     // Crear nuevo servidor con validación
-    public function store(Request $request)
-    {
+    public function store(Request $request) {
         $user = $request->user();
 
         // Validación de los datos
@@ -164,8 +161,71 @@ class ServerController extends Controller
         }
     }
 
-    public function apiServers(Request $request)
-    {
+    public function update(Request $request, Server $server) {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'externalId' => 'nullable|string|max:255',
+            'nodeId' => 'required|integer|exists:nodes,id',
+            'ownerId' => 'required|integer|exists:users,id',
+            'primaryAllocationId' => 'nullable|integer|exists:allocations,id',
+            'additionalAllocationIds' => 'nullable|array',
+            'description' => 'nullable|string',
+            'egg' => 'required|integer|exists:eggs,id',
+            'runInstallScript' => 'required|boolean',
+            'startAfterInstall' => 'required|boolean',
+            'startupCommand' => 'required|string',
+
+            'cpuLimit' => 'required|string|in:limited,unlimited',
+            'memoryLimit' => 'required|string|in:limited,unlimited',
+            'diskLimit' => 'required|string|in:limited,unlimited',
+            'cpuPinning' => 'required|boolean',
+            'swapMemory' => 'required|string|in:limited,unlimited,disabled',
+            'oomKiller' => 'required|boolean',
+            'backups' => 'required|integer|min:0',
+            'dockerImage' => 'required|string',
+            'installScript' => 'nullable|string',
+            'labels' => 'nullable|array',
+            'variables' => 'nullable|array',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        $data = $validator->validated();
+
+        // Mapeo y transformación de campos si hace falta
+        $server->update([
+            'name' => $data['name'],
+            'external_id' => $data['externalId'],
+            'node_id' => $data['nodeId'],
+            'owner_id' => $data['ownerId'],
+            'allocation_id' => $data['primaryAllocationId'],
+            'description' => $data['description'],
+            'egg_id' => $data['egg'],
+            'run_install_script' => $data['runInstallScript'],
+            'start_after_install' => $data['startAfterInstall'],
+            'startup' => $data['startupCommand'],
+            'cpu_limit' => $data['cpuLimit'] === 'unlimited' ? 0 : 1,
+            'memory_limit' => $data['memoryLimit'] === 'unlimited' ? 0 : 1,
+            'disk_limit' => $data['diskLimit'] === 'unlimited' ? 0 : 1,
+            'cpu_pinning' => $data['cpuPinning'],
+            'swap_memory' => $data['swapMemory'],
+            'oom_killer' => $data['oomKiller'],
+            'backup_limit' => $data['backups'],
+            'image' => $data['dockerImage'],
+            'install_script' => $data['installScript'],
+            'labels' => $data['labels'],
+            'variables' => $data['variables'],
+        ]);
+
+        // También puedes actualizar relaciones si lo necesitas
+
+        return redirect()->route('servers.index')->with('success', 'Servidor actualizado exitosamente.');
+    }
+
+
+    public function apiServers(Request $request) {
             $user = $request->user();
 
             $query = Server::with('egg', 'node')->where('owner_id', $user->id);
@@ -211,5 +271,35 @@ class ServerController extends Controller
                     'next' => $paginated->nextPageUrl(),
                 ],
             ])->setStatusCode(200);
+    }
+
+    public function edit(Server $server) {
+        // Cargar relaciones necesarias
+        $server->load(['node', 'owner']);
+
+        // Decodificar imágenes de los eggs
+        $eggs = Egg::with('variables')
+            ->select('id', 'name', 'startup', 'docker_images')
+            ->get();
+
+        $eggs->each(function ($egg) {
+            $egg->docker_images = json_decode($egg->docker_images, true);
+        });
+
+        return Inertia::render('Servers/Edit', [
+            'server' => $server,
+            'nodes' => Node::all(),
+            'owners' => User::all(),
+            'allocations' => Allocation::all(),
+            'eggs' => $eggs,
+        ]);
+    }
+
+    public function destroy($uuid)
+    {
+        $server = Server::where('uuid', $uuid)->firstOrFail();
+        $server->delete();
+
+        return redirect()->route('servers.index')->with('success', 'Servidor eliminado correctamente.');
     }
 }
