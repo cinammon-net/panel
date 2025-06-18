@@ -95,7 +95,7 @@ export default function CreateServer() {
             external_id: server.externalId || null,
             node_id: server.nodeId,
             owner_id: server.ownerId,
-            primary_allocation: server.primaryAllocationId,
+            allocation_id: server.primaryAllocationId,
             additional_allocation_ids: server.additionalAllocationIds,
             description: server.description || null,
     
