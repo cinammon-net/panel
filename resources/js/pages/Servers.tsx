@@ -211,75 +211,110 @@ export default function Servers() {
 
                                         <th className="px-4 py-2 text-left text-cyan-500"></th>
                                     </tr>
-
-                                    {groupBy !== 'none' && ( 
-                                        <tr className="border-t border-cyan-700 bg-cyan-900">
-                                            <td colSpan={7} className="px-4 py-2 text-cyan-500"> 
-                                                {groupBy === 'node' && `Node`}
-                                                {groupBy === 'egg' && `Egg`}
-                                                {groupBy === 'username' && `User`}
-                                            </td>
-                                        </tr>
-                                    )}
                                 </thead>
 
                                 <tbody>
-                                    {sortedGroups.map((groupName) => (
-                                        <React.Fragment key={groupName}>
-                                            {/* Fila de servidores */}
-                                            {(groupedServers[groupName] ?? []).length > 0 ? (
-                                                groupedServers[groupName].map((item) => (
-                                                    <tr
-                                                        key={item.id}
-                                                        className="cursor-pointer border-t border-cyan-800 hover:bg-cyan-900/10"
-                                                        onClick={() => router.visit(`/servers/${item.id}/edit`)}
+                                    {groupBy === 'none' ? (
+                                        servers.data.map((item) => (
+                                            <tr
+                                                key={item.id}
+                                                className="cursor-pointer border-t border-cyan-800 hover:bg-cyan-900/10"
+                                                onClick={() => router.visit(`/servers/${item.id}/edit`)}
+                                            >
+                                                <td className="px-4 py-2">
+                                                    <span
+                                                        className={`inline-block rounded px-2 py-1 text-xs font-bold ${item.status === 'offline'
+                                                                ? 'border border-red-500 bg-red-900 text-red-400'
+                                                                : 'border border-green-500 bg-green-900 text-green-400'
+                                                            }`}
                                                     >
-                                                        <td className="px-4 py-2">
-                                                            <span
-                                                                className={`inline-block rounded px-2 py-1 text-xs font-bold ${
-                                                                    item.status === 'offline'
-                                                                        ? 'border border-red-500 bg-red-900 text-red-400'
-                                                                        : 'border border-green-500 bg-green-900 text-green-400'
-                                                                }`}
-                                                            >
-                                                                {item.status}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-4 py-2">{item.name}</td>
-                                                        <td className="px-4 py-2">{item.egg}</td>
-                                                        <td className="px-4 py-2">{item.username}</td>
-                                                        <td className="truncate px-4 py-2">{item.allocation || <span className="italic text-cyan-500">–</span>}</td>
-                                                        <td className="px-4 py-2">{item.database ?? '-'}</td>
-                                                        <td className="px-4 py-2 text-right">
-                                                            <div className="flex justify-end gap-3" onClick={(e) => e.stopPropagation()}>
-                                                                <button title="Edit" className="text-cyan-300 hover:text-cyan-100">
-                                                                    <Pencil className="h-4 w-4" />
-                                                                </button>
-                                                                <button title="Duplicate" className="text-blue-400 hover:text-blue-200">
-                                                                    <Copy className="h-4 w-4" />
-                                                                </button>
-                                                                <button title="Delete" className="text-pink-400 hover:text-pink-200">
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ))
-                                            ) : (
-                                                <tr>
-                                                    <td colSpan={7} className="px-4 py-4 text-center text-cyan-600">
-                                                        No servers found in{' '}
-                                                        {groupBy === 'node'
-                                                            ? `Node ${groupName}`
-                                                            : groupBy === 'egg'
-                                                              ? `Egg ${groupName}`
-                                                              : `User ${groupName}`}
-                                                        .
+                                                        {item.status}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-2">{item.name}</td>
+                                                <td className="px-4 py-2">{item.egg}</td>
+                                                <td className="px-4 py-2">{item.username}</td>
+                                                <td className="truncate px-4 py-2">{item.allocation || <span className="italic text-cyan-500">–</span>}</td>
+                                                <td className="px-4 py-2">{item.database ?? '-'}</td>
+                                                <td className="px-4 py-2 text-right">
+                                                    <div className="flex justify-end gap-3" onClick={(e) => e.stopPropagation()}>
+                                                        <button title="Edit" className="text-cyan-300 hover:text-cyan-100">
+                                                            <Pencil className="h-4 w-4" />
+                                                        </button>
+                                                        <button title="Duplicate" className="text-blue-400 hover:text-blue-200">
+                                                            <Copy className="h-4 w-4" />
+                                                        </button>
+                                                        <button title="Delete" className="text-pink-400 hover:text-pink-200">
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        sortedGroups.map((groupName) => (
+                                            <React.Fragment key={groupName}>
+                                                <tr className="border-t border-cyan-700 bg-cyan-900">
+                                                    <td colSpan={7} className="px-4 py-2 text-cyan-500">
+                                                        {groupBy === 'node' && `Node: ${groupName}`}
+                                                        {groupBy === 'egg' && `Egg: ${groupName}`}
+                                                        {groupBy === 'username' && `User: ${groupName}`}
                                                     </td>
                                                 </tr>
-                                            )}
-                                        </React.Fragment>
-                                    ))}
+                                                
+                                                {(groupedServers[groupName] ?? []).length > 0 ? (
+                                                    groupedServers[groupName].map((item) => (
+                                                        <tr
+                                                            key={item.id}
+                                                            className="cursor-pointer border-t border-cyan-800 hover:bg-cyan-900/10"
+                                                            onClick={() => router.visit(`/servers/${item.id}/edit`)}
+                                                        >
+                                                            <td className="px-4 py-2">
+                                                                <span
+                                                                    className={`inline-block rounded px-2 py-1 text-xs font-bold ${item.status === 'offline'
+                                                                            ? 'border border-red-500 bg-red-900 text-red-400'
+                                                                            : 'border border-green-500 bg-green-900 text-green-400'
+                                                                        }`}
+                                                                >
+                                                                    {item.status}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 py-2">{item.name}</td>
+                                                            <td className="px-4 py-2">{item.egg}</td>
+                                                            <td className="px-4 py-2">{item.username}</td>
+                                                            <td className="truncate px-4 py-2">{item.allocation || <span className="italic text-cyan-500">–</span>}</td>
+                                                            <td className="px-4 py-2">{item.database ?? '-'}</td>
+                                                            <td className="px-4 py-2 text-right">
+                                                                <div className="flex justify-end gap-3" onClick={(e) => e.stopPropagation()}>
+                                                                    <button title="Edit" className="text-cyan-300 hover:text-cyan-100">
+                                                                        <Pencil className="h-4 w-4" />
+                                                                    </button>
+                                                                    <button title="Duplicate" className="text-blue-400 hover:text-blue-200">
+                                                                        <Copy className="h-4 w-4" />
+                                                                    </button>
+                                                                    <button title="Delete" className="text-pink-400 hover:text-pink-200">
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                ) : (
+                                                    <tr>
+                                                        <td colSpan={7} className="px-4 py-4 text-center text-cyan-600">
+                                                            No servers found in{' '}
+                                                            {groupBy === 'node'
+                                                                ? `Node ${groupName}`
+                                                                : groupBy === 'egg'
+                                                                    ? `Egg ${groupName}`
+                                                                    : `User ${groupName}`}
+                                                            .
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </React.Fragment>
+                                        ))
+                                    )}
                                 </tbody>
                             </table>
                         </div>
