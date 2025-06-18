@@ -89,6 +89,7 @@ export default function CreateServer() {
 
     const handleSubmit = () => {
         const payload = {
+            uuid: server.uuid,
             name: server.name,
             external_id: server.externalId || null,
             node_id: server.nodeId,
@@ -96,12 +97,10 @@ export default function CreateServer() {
             allocation_id: server.primaryAllocationId,
             additional_allocation_ids: server.additionalAllocationIds,
             description: server.description || null,
-
             egg_id: server.egg,
             run_install_script: server.runInstallScript ? 1 : 0,
             start_after_install: server.startAfterInstall ? 1 : 0,
             startup: server.startupCommand,
-
             cpu_limit: server.cpuLimit === 'unlimited' ? 0 : 1,
             memory_limit: server.memoryLimit === 'unlimited' ? 0 : 1,
             disk_limit: server.diskLimit === 'unlimited' ? 0 : 1,
@@ -113,23 +112,18 @@ export default function CreateServer() {
             install_script: server.installScript,
         };
 
-        const isEditing = !!server.uuid;
-
-        router.visit(isEditing ? `/servers/${server.uuid}` : '/servers', {
-            method: isEditing ? 'put' : 'post',
-            data: payload,
+        router.post('/servers', payload, {
             onSuccess: () => {
-                toast.success(isEditing ? '✅ Server updated!' : '✅ Server created!');
+                toast.success(server.uuid ? 'Servidor actualizado' : 'Servidor creado');
                 router.visit('/servers');
             },
             onError: (errors) => {
-                console.error(errors);
-                toast.error('❌ Error saving server: ' + JSON.stringify(errors));
+                toast.error('❌ Error al guardar: ' + JSON.stringify(errors));
             },
         });
     };
     
-
+    
     const [selectedNode] = useState<string>(() => {
         const { server } = usePage().props as any;
         return server?.node?.name || 'Unknown Node';
