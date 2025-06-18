@@ -1130,23 +1130,45 @@ export default function EditNode() {
                         {/* Mostrar Servers */}
                         {showServers ? (
                             <div>
-                                <h2 className="mb-4 text-lg font-semibold">Servers</h2>
+                                <h2 className="mb-4 text-lg font-semibold text-cyan-300">Servers</h2>
                                 {node.servers && node.servers.length > 0 ? (
-                                    <ul className="list-inside list-disc">
-                                        {node.servers.map((srv: any) => (
-                                            <li key={srv.id}>{srv.name}</li>
-                                        ))}
-                                    </ul>
+                                    <div className="overflow-x-auto rounded-md border border-cyan-700 bg-[#1a1a1a] text-sm text-cyan-200">
+                                        <table className="min-w-full">
+                                            <thead className="bg-[#0f0f0f] text-left text-cyan-400">
+                                                <tr>
+                                                    <th className="px-4 py-2">Owner</th>
+                                                    <th className="px-4 py-2">Name</th>
+                                                    <th className="px-4 py-2">Egg</th>
+                                                    <th className="px-4 py-2">Primary Allocation</th>
+                                                    <th className="px-4 py-2">Memory</th>
+                                                    <th className="px-4 py-2">CPU</th>
+                                                    <th className="px-4 py-2">Databases</th>
+                                                    <th className="px-4 py-2">Backups</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {node.servers.map((srv: any, index: number) => (
+                                                    <tr key={index} className="border-t border-cyan-800 hover:bg-cyan-900/10">
+                                                        <td className="px-4 py-2"> {srv.owner?.name || <span className="italic text-cyan-500">Unknown</span>} </td>
+                                                        <td className="px-4 py-2"> {srv.name} </td>
+                                                        <td className="px-4 py-2"> {srv.egg?.name || <span className="italic text-cyan-500">–</span>} </td>
+                                                        <td className="px-4 py-2">
+                                                            {srv.allocation?.ip && srv.allocation?.port
+                                                                ? `${srv.allocation.ip}:${srv.allocation.port}`
+                                                                : <span className="italic text-cyan-500">–</span>}
+                                                        </td>
+                                                        <td className="px-4 py-2">{srv.memory ?? 0}</td>
+                                                        <td className="px-4 py-2">{srv.cpu ?? 0}</td>
+                                                        <td className="px-4 py-2">{srv.database_limit ?? 0}</td>
+                                                        <td className="px-4 py-2">{srv.backup_limit ?? 0}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 ) : (
                                     <div className="flex flex-col items-center justify-center gap-2 p-12 text-center text-cyan-500">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            className="h-10 w-10 opacity-50"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                            strokeWidth={1.5}
-                                        >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                         </svg>
                                         <p>No Servers are assigned to this node</p>
@@ -1192,7 +1214,7 @@ export default function EditNode() {
                                                 {formData.allocations.map((allocation: any, index: number) => (
                                                     <tr key={index} className="border-t border-cyan-800 hover:bg-cyan-900/20">
                                                         <td className="px-4 py-2">{allocation.port}</td>
-                                                        <td className="px-4 py-2">{allocation.server?.name || <span className="italic text-cyan-400">Unassigned</span>}</td>
+                                                        <td className="px-4 py-2">{allocation.node_id || <span className="text-cyan-500">—</span>}</td>
                                                         <td className="px-4 py-2">{allocation.alias || <span className="text-cyan-500">—</span>}</td>
                                                         <td className="px-4 py-2">{allocation.ip}</td>
                                                         <td className="px-4 py-2 text-center">
