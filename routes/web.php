@@ -186,7 +186,10 @@ Route::middleware(['auth'])->group(function () {
     // Servers
     Route::resource('servers', ServerController::class)->except(['show']);
     Route::get('/servers/{server}/edit', [ServerController::class, 'edit'])->name('servers.edit');
+    Route::post('/servers', [ServerController::class, 'store'])->name('servers.store');
+    Route::put('/servers/{server}', [ServerController::class, 'update'])->name('servers.update');
     Route::delete('/servers/{uuid}', [ServerController::class, 'destroy'])->name('servers.destroy');
+
 
     // Network
     Route::get('/api/ips', [NetworkController::class, 'getIps']);
