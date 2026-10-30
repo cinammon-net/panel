@@ -18,6 +18,7 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\EggVariableController;
 use App\Http\Controllers\NetworkController;
+use App\Http\Controllers\AdvancedSectionController;
 use Laravel\Socialite\Facades\Socialite;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
@@ -139,11 +140,29 @@ Route::get('/auth/apple/callback', function () {
 // 🔐 Rutas autenticadas y verificadas
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', fn() => Inertia::render('dashboard'))->name('dashboard');
+    Route::get('/api/dashboard-version', fn() => response()->json(['version' => config('app.version', '1.0.0')]));
     Route::get('/settings/appearance', [SettingsController::class, 'appearance'])->name('settings.appearance');
 });
 
 // 🔒 Rutas autenticadas (sin verificar email)
 Route::middleware(['auth'])->group(function () {
+    // Secciones avanzadas del Sidebar
+    Route::get('/health', [AdvancedSectionController::class, 'health'])->name('health.index');
+    Route::get('/api-keys', [AdvancedSectionController::class, 'apiKeys'])->name('api-keys.index');
+    Route::post('/api-keys', [AdvancedSectionController::class, 'storeApiKey'])->name('api-keys.store');
+    Route::delete('/api-keys/{id}', [AdvancedSectionController::class, 'destroyApiKey'])->name('api-keys.destroy');
+
+    Route::get('/database', [AdvancedSectionController::class, 'database'])->name('database.index');
+    Route::post('/database', [AdvancedSectionController::class, 'storeDatabaseHost'])->name('database.store');
+    Route::delete('/database/{id}', [AdvancedSectionController::class, 'destroyDatabaseHost'])->name('database.destroy');
+
+    Route::get('/mounts', [AdvancedSectionController::class, 'mounts'])->name('mounts.index');
+    Route::post('/mounts', [AdvancedSectionController::class, 'storeMount'])->name('mounts.store');
+    Route::delete('/mounts/{id}', [AdvancedSectionController::class, 'destroyMount'])->name('mounts.destroy');
+
+    Route::get('/webhooks', [AdvancedSectionController::class, 'webhooks'])->name('webhooks.index');
+    Route::post('/webhooks', [AdvancedSectionController::class, 'storeWebhook'])->name('webhooks.store');
+    Route::delete('/webhooks/{id}', [AdvancedSectionController::class, 'destroyWebhook'])->name('webhooks.destroy');
     // Aceptación de términos
     Route::get('/terms/accept', [TermsController::class, 'show'])->name('terms.accept');
     Route::post('/terms/accept', [TermsController::class, 'accept'])->name('terms.accept.post');
@@ -179,9 +198,14 @@ Route::middleware(['auth'])->group(function () {
     // Nodes
     Route::resource('nodes', NodeController::class)->except(['show']);
     Route::get('/nodes/cpu-data', [NodeController::class, 'getCpuData']);
+    Route::get('/api/cpu-data', [NodeController::class, 'getCpuData']);
     Route::get('/nodes/memory-data', [NodeController::class, 'getMemoryData']);
+    Route::get('/memory-data', [NodeController::class, 'getMemoryData']);
     Route::get('/nodes/storage-data', [NodeController::class, 'getStorageData']);
+    Route::get('/storage-data', [NodeController::class, 'getStorageData']);
     Route::post('/nodes/{id}/heartbeat', [NodeController::class, 'heartbeat']);
+    Route::post('/nodes/{id}/allocations', [NodeController::class, 'storeAllocation']);
+    Route::delete('/nodes/{nodeId}/allocations/{allocationId}', [NodeController::class, 'destroyAllocation']);
 
     // Servers
     Route::get('/servers/{server}/files', [App\Http\Controllers\ServerFilesController::class, 'page'])->name('servers.files');
@@ -197,6 +221,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/servers/{server}/command', [App\Http\Controllers\ServerRuntimeController::class, 'command']);
     Route::post('/servers/{server}/discord', [App\Http\Controllers\ServerRuntimeController::class, 'configureDiscord']);
     Route::post('/servers/{server}/eula', [App\Http\Controllers\ServerRuntimeController::class, 'acceptEula']);
+    Route::post('/servers/{uuid}/toggle-install', [ServerController::class, 'toggleInstall']);
+    Route::post('/servers/{uuid}/suspend', [ServerController::class, 'suspend']);
+    Route::post('/servers/{uuid}/transfer', [ServerController::class, 'transfer']);
+    Route::post('/servers/{uuid}/reinstall', [ServerController::class, 'reinstall']);
+    Route::post('/servers/{server}/databases', [ServerController::class, 'storeDatabase']);
+    Route::delete('/servers/{server}/databases/{dbId}', [ServerController::class, 'destroyDatabase']);
     Route::resource('servers', ServerController::class)->except(['show']);
     Route::get('/servers/{server}/edit', [ServerController::class, 'edit'])->name('servers.edit');
     Route::post('/servers', [ServerController::class, 'store'])->name('servers.store');
@@ -206,23 +236,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Network
     Route::get('/api/ips', [NetworkController::class, 'getIps']);
-    Route::get('/api/network/ips', function () {
-        $ips = [];
-
-        foreach (explode("\n", shell_exec("ip -o -f inet addr show | awk '/scope global/ {print \$4}'")) as $line) {
-            if (filter_var($line, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                $ips[] = explode('/', $line)[0];
-            }
-        }
-
-        foreach (explode("\n", shell_exec("ip -o -f inet6 addr show | awk '/scope global/ {print \$4}'")) as $line) {
-            if (filter_var($line, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-                $ips[] = explode('/', $line)[0];
-            }
-        }
-
-        return response()->json(array_values(array_unique($ips)));
-    });
+    Route::get('/api/network/ips', [NetworkController::class, 'getIps']);
 
     // Galería
     Route::get('/gallery', fn() => Inertia::render('Gallery'))->name('gallery.index');
