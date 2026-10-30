@@ -3,12 +3,13 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
+import { KeyRound, Palette, Settings, User } from 'lucide-react';
 import { type PropsWithChildren } from 'react';
 
 const sidebarNavItems: NavItem[] = [
-    { title: 'Profile', href: '/settings/profile', icon: null },
-    { title: 'Password', href: '/settings/password', icon: null },
-    { title: 'Appearance', href: '/settings/appearance', icon: null },
+    { title: 'Profile', href: '/settings/profile', icon: User },
+    { title: 'Password', href: '/settings/password', icon: KeyRound },
+    { title: 'Appearance', href: '/settings/appearance', icon: Palette },
 ];
 
 export default function SettingsLayout({ children }: PropsWithChildren) {
@@ -20,11 +21,14 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
         <>
             <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet" />
             <div className="min-h-screen bg-white px-4 py-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
-                <Heading
-                    title="SETTINGS"
-                    description="Manage your profile and account settings"
-                    className="text-purple-700 drop-shadow-none dark:text-purple-400 dark:drop-shadow-[0_0_6px_#c084fc]"
-                />
+                <div className="flex items-center gap-3">
+                    <Settings className="h-7 w-7 text-purple-400" />
+                    <Heading
+                        title="SETTINGS"
+                        description="Manage your profile and account settings"
+                        className="text-purple-700 drop-shadow-none dark:text-purple-400"
+                    />
+                </div>
 
                 <div className="mt-8 flex flex-col space-y-8 lg:flex-row lg:space-y-0 lg:space-x-12">
                     {/* Sidebar */}
@@ -32,18 +36,20 @@ export default function SettingsLayout({ children }: PropsWithChildren) {
                         <nav className="flex flex-col gap-3">
                             {sidebarNavItems.map((item, index) => {
                                 const isActive = currentPath === item.href;
+                                const ItemIcon = item.icon;
                                 return (
                                     <Link
                                         key={index}
                                         href={item.href}
                                         className={cn(
-                                            'block w-full rounded-md border px-4 py-2 text-sm font-semibold transition',
+                                            'flex w-full items-center gap-2.5 rounded-md border px-4 py-2.5 text-sm font-semibold transition',
                                             isActive
-                                                ? 'border-purple-600 bg-purple-900/30 text-purple-200 shadow dark:shadow-[0_0_10px_#c084fc55]'
+                                                ? 'border-purple-500/60 bg-purple-900/30 text-purple-200 shadow'
                                                 : 'border-neutral-300 bg-white text-neutral-700 hover:border-purple-500 hover:bg-purple-50 hover:text-purple-600 dark:border-neutral-700 dark:bg-black dark:text-neutral-300 dark:hover:bg-purple-800/30 dark:hover:text-purple-200',
                                         )}
                                     >
-                                        {item.title}
+                                        {ItemIcon && <ItemIcon className="h-4 w-4 shrink-0 text-purple-400" />}
+                                        <span>{item.title}</span>
                                     </Link>
                                 );
                             })}

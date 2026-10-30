@@ -49,9 +49,12 @@ export default function Users() {
 
             <div className="min-h-screen bg-white p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
                 <div className="mb-6 flex items-center justify-between border-pink-500 dark:border-pink-600">
-                    <h1 className="text-3xl font-semibold tracking-widest text-pink-800 drop-shadow-none dark:text-pink-400 dark:drop-shadow-[0_0_5px_#f0f]">
-                        USERS
-                    </h1>
+                    <div className="flex items-center gap-3">
+                        <UsersRound className="h-8 w-8 text-pink-400" />
+                        <h1 className="text-3xl font-semibold tracking-widest text-pink-800 drop-shadow-none dark:text-pink-400">
+                            USERS
+                        </h1>
+                    </div>
                     <div className="flex items-center gap-3">
                         <Link
                             href="/users/create"

@@ -91,9 +91,12 @@ export default function Eggs() {
             <div className="min-h-screen bg-white p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
                 {/* Header */}
                 <div className="mb-6 flex items-center justify-between border-cyan-600">
-                    <h1 className="text-3xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400 dark:drop-shadow-[0_0_5px_#0ff]">
-                        EGGS
-                    </h1>
+                    <div className="flex items-center gap-3">
+                        <Egg className="h-8 w-8 text-cyan-400" />
+                        <h1 className="text-3xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400">
+                            EGGS
+                        </h1>
+                    </div>
                     <div className="flex gap-2">
                         <button
                             type="button"

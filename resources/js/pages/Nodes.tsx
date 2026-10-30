@@ -1,6 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, router, usePage } from '@inertiajs/react';
 import {
+    Activity,
     ChevronDown,
     ChevronUp,
     Eye,
@@ -71,9 +72,12 @@ export default function Nodes() {
             <div className="min-h-screen bg-white p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
                 {/* Header */}
                 <div className="mb-6 flex items-center justify-between border-cyan-500 dark:border-cyan-600">
-                    <h1 className="text-3xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400 dark:drop-shadow-[0_0_5px_#0ff]">
-                        NODES
-                    </h1>
+                    <div className="flex items-center gap-3">
+                        <Activity className="h-8 w-8 text-cyan-400" />
+                        <h1 className="text-3xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400">
+                            NODES
+                        </h1>
+                    </div>
                     <div className="flex gap-2">
                         <button
                             onClick={() => router.visit('/nodes/create')}
