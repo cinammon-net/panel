@@ -1,34 +1,28 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
+import axios from 'axios';
 import {
     ArrowDown,
     ArrowUp,
     ChevronLeft,
     ChevronRight,
+    Code2,
     Copy,
     Database as DatabaseIcon,
-    Download,
-    FileCode,
-    FilePlus,
-    FileText,
-    Folder,
-    HardDrive,
-    MoreHorizontal,
-    Pencil,
+    KeyRound,
+    Layers,
+    Play,
     Plus,
     RefreshCw,
-    Save,
     Search,
     Server,
     Table as TableIcon,
+    Terminal,
     Trash2,
-    X,
 } from 'lucide-react';
-import { lazy, Suspense, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { toast } from 'sonner';
-
-const FileEditor = lazy(() => import('@/components/server/file-editor'));
 
 interface DatabaseHost {
     id: number;
@@ -67,10 +61,21 @@ interface DbFileInfo {
     active: boolean;
 }
 
+interface DbColumnSchema {
+    cid: number;
+    name: string;
+    type: string;
+    notnull: boolean;
+    dflt_value: string | null;
+    pk: boolean;
+}
+
 interface DbTableInfo {
     name: string;
     count: number;
     columns: string[];
+    schema?: DbColumnSchema[];
+    ddl?: string;
     rows: Record<string, unknown>[];
 }
 
@@ -90,31 +95,19 @@ interface SelectedDatabaseContext {
     serverId?: number;
 }
 
-interface DbExplorerEntry {
-    name: string;
-    directory: boolean;
-    size: number;
-    modified: string;
-    kind: 'table' | 'sqlite' | 'sql' | 'config';
-    tableInfo?: DbTableInfo;
-    content?: string;
+interface SqlQueryResult {
+    columns: string[];
+    rows: Record<string, unknown>[];
+    row_count: number;
+    execution_time_ms: number;
 }
 
 const button =
-    'inline-flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3.5 py-2 text-sm font-medium text-gray-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40';
+    'inline-flex items-center justify-center gap-2 rounded-lg border border-orange-500/40 bg-orange-500/10 px-3.5 py-2 text-xs font-semibold text-orange-300 transition hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:opacity-40';
 const primary =
-    'inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-400 px-4 py-2 text-sm font-semibold text-gray-950 transition hover:bg-cyan-300 disabled:opacity-40';
+    'inline-flex items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-xs font-bold text-black transition hover:bg-orange-400 disabled:opacity-40';
 const input =
-    'w-full rounded-lg border border-white/15 bg-[#151519] px-3 py-2 text-sm text-gray-100 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400';
-
-const formatSize = (bytes: number) =>
-    bytes < 1024
-        ? `${bytes} B`
-        : bytes < 1024 ** 2
-          ? `${(bytes / 1024).toFixed(1)} KiB`
-          : bytes < 1024 ** 3
-            ? `${(bytes / 1024 ** 2).toFixed(1)} MiB`
-            : `${(bytes / 1024 ** 3).toFixed(2)} GiB`;
+    'w-full rounded-lg border border-orange-500/40 bg-neutral-950 px-3 py-2 text-sm text-white outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400';
 
 export default function Database({ hosts = [], servers = [], nodes = [], dbFiles = [], dbTables = [] }: Props) {
     const [selectedDb, setSelectedDb] = useState<SelectedDatabaseContext | null>(() => {
@@ -151,21 +144,22 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
         return null;
     });
 
-    // Estados del explorador de archivos de la DB (mismo diseño que Servers/Files.tsx)
-    const [directory, setDirectory] = useState<string>('');
-    const [selectedEntries, setSelectedEntries] = useState<string[]>([]);
+    // Estados del gestor SQLite / SQL (con la estética de Servers/Files.tsx)
+    const [activeSection, setActiveSection] = useState<'tables' | 'sql'>('tables');
+    const [selectedTableName, setSelectedTableName] = useState<string | null>(null);
+    const [tableTab, setTableTab] = useState<'rows' | 'structure' | 'sql'>('rows');
     const [search, setSearch] = useState('');
-    const [sort, setSort] = useState<'name' | 'size' | 'modified'>('name');
+    const [rowSearch, setRowSearch] = useState('');
+    const [sort, setSort] = useState<'name' | 'columns' | 'rows'>('name');
     const [ascending, setAscending] = useState(true);
     const [page, setPage] = useState(1);
     const [perPage, setPerPage] = useState(25);
-    const [editingFile, setEditingFile] = useState<{
-        file: string;
-        content: string;
-        language: string;
-        tableInfo?: DbTableInfo;
-        viewMode: 'table' | 'code';
-    } | null>(null);
+
+    // Consola SQL interactiva
+    const [sqlQuery, setSqlQuery] = useState('SELECT id, name, email, created_at FROM "users" LIMIT 25;');
+    const [sqlLoading, setSqlLoading] = useState(false);
+    const [sqlError, setSqlError] = useState<string | null>(null);
+    const [sqlResult, setSqlResult] = useState<SqlQueryResult | null>(null);
 
     const [form, setForm] = useState<{
         name: string;
@@ -200,134 +194,66 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
         });
     };
 
-    const openDatabaseExplorer = (ctx: SelectedDatabaseContext) => {
+    const openDatabaseManager = (ctx: SelectedDatabaseContext) => {
         setSelectedDb(ctx);
-        setDirectory('');
-        setSelectedEntries([]);
+        setSelectedTableName(null);
+        setActiveSection('tables');
         setSearch('');
-        setEditingFile(null);
+        setRowSearch('');
+        setSqlError(null);
+        setSqlResult(null);
         setPage(1);
     };
 
-    // Construir las entradas de archivos/tablas al estilo de Servers/Files.tsx
-    const buildEntries = (): DbExplorerEntry[] => {
-        if (!selectedDb) return [];
-        const nowIso = new Date().toISOString();
+    const selectedTable = dbTables.find((t) => t.name === selectedTableName) || null;
+    const activeSqliteFile = dbFiles.find((f) => f.active) || dbFiles[0];
+    const totalRecords = dbTables.reduce((acc, t) => acc + t.count, 0);
 
-        if (directory === 'tables') {
-            return dbTables.map((t) => ({
-                name: `${t.name}.json`,
-                directory: false,
-                size: Math.max(512, JSON.stringify(t.rows).length),
-                modified: dbFiles[0]?.modified_at || nowIso,
-                kind: 'table',
-                tableInfo: t,
-                content: JSON.stringify(
-                    {
-                        database: selectedDb.title,
-                        table: t.name,
-                        total_rows: t.count,
-                        columns: t.columns,
-                        rows: t.rows,
-                    },
-                    null,
-                    2,
-                ),
-            }));
-        }
-
-        const rootEntries: DbExplorerEntry[] = [
-            {
-                name: 'tables',
-                directory: true,
-                size: 0,
-                modified: dbFiles[0]?.modified_at || nowIso,
-                kind: 'table',
-            },
-            ...dbFiles.map((f) => ({
-                name: f.name,
-                directory: false,
-                size: Math.round(f.size_kb * 1024),
-                modified: f.modified_at || nowIso,
-                kind: 'sqlite' as const,
-                content: `-- Archivo SQLite: ${f.name}\n-- Ruta: ${f.path}\n-- Tamaño: ${f.size_kb} KB\n-- Estado: ${f.active ? 'ACTIVA' : 'SECUNDARIA'}\n\n` +
-                    dbTables
-                        .map(
-                            (t) =>
-                                `-- Tabla: ${t.name} (${t.count} registros)\n-- Columnas: ${t.columns.join(', ')}\nSELECT * FROM "${t.name}" LIMIT 20;`,
-                        )
-                        .join('\n\n'),
-            })),
-            {
-                name: `${selectedDb.title}_schema.sql`,
-                directory: false,
-                size: Math.max(1024, dbTables.length * 340),
-                modified: dbFiles[0]?.modified_at || nowIso,
-                kind: 'sql',
-                content:
-                    `-- Esquema SQL generado para ${selectedDb.title}\n-- Endpoint: ${selectedDb.endpoint}\n-- Usuario: ${selectedDb.username}\n\n` +
-                    dbTables
-                        .map(
-                            (t) =>
-                                `CREATE TABLE IF NOT EXISTS \`${t.name}\` (\n` +
-                                t.columns.map((c) => `  \`${c}\` TEXT`).join(',\n') +
-                                `\n); -- ${t.count} filas`,
-                        )
-                        .join('\n\n'),
-            },
-            {
-                name: 'connection.json',
-                directory: false,
-                size: 384,
-                modified: dbFiles[0]?.modified_at || nowIso,
-                kind: 'config',
-                content: JSON.stringify(
-                    {
-                        database: selectedDb.title,
-                        endpoint: selectedDb.endpoint,
-                        username: selectedDb.username,
-                        driver: 'sqlite / mysql',
-                        charset: 'utf8mb4',
-                        collation: 'utf8mb4_unicode_ci',
-                        tables_count: dbTables.length,
-                    },
-                    null,
-                    2,
-                ),
-            },
-            ...dbTables.map((t) => ({
-                name: `${t.name}.sql`,
-                directory: false,
-                size: Math.max(256, JSON.stringify(t.rows).length),
-                modified: dbFiles[0]?.modified_at || nowIso,
-                kind: 'table' as const,
-                tableInfo: t,
-                content: JSON.stringify(t.rows, null, 2),
-            })),
-        ];
-
-        return rootEntries;
+    const openTable = (table: DbTableInfo, initialTab: 'rows' | 'structure' | 'sql' = 'rows') => {
+        setSelectedTableName(table.name);
+        setTableTab(initialTab);
+        setRowSearch('');
+        setSqlQuery(`SELECT * FROM "${table.name}" LIMIT 50;`);
+        setSqlError(null);
+        setSqlResult(null);
     };
 
-    const entries = buildEntries();
-    const filtered = entries
-        .filter((entry) => entry.name.toLowerCase().includes(search.toLowerCase()))
+    const runSqlQuery = async (customQuery?: string, e?: FormEvent) => {
+        if (e) e.preventDefault();
+        const queryToRun = (customQuery ?? sqlQuery).trim();
+        if (!queryToRun) return;
+
+        setSqlLoading(true);
+        setSqlError(null);
+        try {
+            const response = await axios.post<SqlQueryResult>('/database/query', { query: queryToRun });
+            setSqlResult(response.data);
+            toast.success(`Consulta ejecutada (${response.data.execution_time_ms} ms)`);
+        } catch (err) {
+            if (axios.isAxiosError(err)) {
+                setSqlError(err.response?.data?.error || err.response?.data?.message || 'Error al ejecutar la consulta SQL.');
+            } else {
+                setSqlError('Error al ejecutar la consulta SQL.');
+            }
+        } finally {
+            setSqlLoading(false);
+        }
+    };
+
+    const filteredTables = dbTables
+        .filter((t) => t.name.toLowerCase().includes(search.toLowerCase()))
         .sort((a, b) => {
-            if (a.directory !== b.directory) return Number(b.directory) - Number(a.directory);
             const delta =
                 sort === 'name'
                     ? a.name.localeCompare(b.name, undefined, { numeric: true })
-                    : sort === 'size'
-                      ? a.size - b.size
-                      : Date.parse(a.modified) - Date.parse(b.modified);
+                    : sort === 'columns'
+                      ? a.columns.length - b.columns.length
+                      : a.count - b.count;
             return ascending ? delta : -delta;
         });
 
-    const pages = Math.max(1, Math.ceil(filtered.length / perPage));
-    const visible = filtered.slice((Math.min(page, pages) - 1) * perPage, Math.min(page, pages) * perPage);
-    const selectable = visible.map((e) => e.name);
-    const allSelected = selectable.length > 0 && selectable.every((name) => selectedEntries.includes(name));
-    const parts = directory.split('/').filter(Boolean);
+    const pages = Math.max(1, Math.ceil(filteredTables.length / perPage));
+    const visibleTables = filteredTables.slice((Math.min(page, pages) - 1) * perPage, Math.min(page, pages) * perPage);
 
     const changeSort = (field: typeof sort) => {
         if (sort === field) setAscending((v) => !v);
@@ -337,22 +263,13 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
         }
     };
 
-    const openEntry = (entry: DbExplorerEntry) => {
-        if (entry.directory) {
-            setDirectory(entry.name);
-            setSelectedEntries([]);
-            setSearch('');
-            return;
-        }
-        const ext = entry.name.split('.').pop() || 'sql';
-        setEditingFile({
-            file: [directory, entry.name].filter(Boolean).join('/'),
-            content: entry.content || '',
-            language: ext === 'json' ? 'json' : 'sql',
-            tableInfo: entry.tableInfo,
-            viewMode: entry.tableInfo ? 'table' : 'code',
-        });
-    };
+    const filteredRows = selectedTable
+        ? selectedTable.rows.filter((row) => {
+              if (!rowSearch.trim()) return true;
+              const q = rowSearch.toLowerCase();
+              return Object.values(row).some((v) => String(v ?? '').toLowerCase().includes(q));
+          })
+        : [];
 
     const breadcrumbs: BreadcrumbItem[] = selectedDb
         ? [
@@ -363,40 +280,59 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={selectedDb ? `${selectedDb.title} · Archivos DB` : 'Database Hosts'} />
+            <Head title={selectedDb ? `${selectedDb.title} · SQLite / SQL` : 'Database Hosts'} />
 
-            {/* VISTA ESTILO ARCHIVOS (Servers/Files.tsx) CUANDO SE HACE CLIC EN UNA DB */}
+            {/* GESTOR SQLITE / SQL CON EL MISMO ESTILO HABITUAL DEL PANEL */}
             {selectedDb ? (
-                <main className="min-h-screen space-y-6 bg-[#080c10] p-6 text-gray-100 md:p-8">
-                    <header className="flex flex-wrap items-center justify-between gap-4">
-                        <div>
-                            <h1 className="text-3xl font-semibold tracking-tight">
-                                {editingFile ? `Inspeccionar ${editingFile.file}` : 'Archivos de Base de Datos'}
-                            </h1>
-                            <p className="mt-1 text-sm text-gray-400">
-                                {selectedDb.title} · {selectedDb.subtitle} ({selectedDb.endpoint})
-                            </p>
+                <div className="flex min-h-screen flex-col gap-6 bg-white p-6 font-[Orbitron] text-black dark:bg-black dark:text-white">
+                    <header className="flex flex-wrap items-center justify-between gap-4 border-b border-orange-500/30 pb-4">
+                        <div className="flex items-center gap-3">
+                            <DatabaseIcon className="h-8 w-8 text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.8)]" />
+                            <div>
+                                <div className="flex items-center gap-2.5">
+                                    <h1 className="text-2xl font-bold tracking-wider text-orange-400 uppercase">
+                                        {selectedTable ? `TABLA: ${selectedTable.name}` : selectedDb.title}
+                                    </h1>
+                                    <span className="rounded border border-cyan-500/50 bg-cyan-500/10 px-2.5 py-0.5 font-mono text-xs text-cyan-300">
+                                        SQLite 3 · SQL Engine
+                                    </span>
+                                </div>
+                                <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                                    {selectedDb.subtitle} · Motor activo: {activeSqliteFile?.name || 'local.sqlite'} ({activeSqliteFile?.size_kb ?? 116} KB) · {dbTables.length} tablas · {totalRecords} registros
+                                </p>
+                            </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                            {editingFile ? (
+                            {selectedTable ? (
                                 <>
-                                    {editingFile.tableInfo && (
-                                        <button
-                                            type="button"
-                                            className={button}
-                                            onClick={() =>
-                                                setEditingFile({
-                                                    ...editingFile,
-                                                    viewMode: editingFile.viewMode === 'table' ? 'code' : 'table',
-                                                })
+                                    <button
+                                        type="button"
+                                        className={tableTab === 'rows' ? primary : button}
+                                        onClick={() => setTableTab('rows')}
+                                    >
+                                        <TableIcon size={15} /> Examinar Filas ({selectedTable.count})
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={tableTab === 'structure' ? primary : button}
+                                        onClick={() => setTableTab('structure')}
+                                    >
+                                        <Layers size={15} /> Estructura ({selectedTable.columns.length})
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={tableTab === 'sql' ? primary : button}
+                                        onClick={() => {
+                                            setTableTab('sql');
+                                            if (!sqlResult) {
+                                                void runSqlQuery(`SELECT * FROM "${selectedTable.name}" LIMIT 50;`);
                                             }
-                                        >
-                                            <TableIcon size={16} />
-                                            {editingFile.viewMode === 'table' ? 'Ver como JSON / SQL' : 'Ver como Tabla'}
-                                        </button>
-                                    )}
-                                    <button type="button" className={button} onClick={() => setEditingFile(null)}>
-                                        <ChevronLeft size={16} /> Volver a archivos
+                                        }}
+                                    >
+                                        <Terminal size={15} /> Consola SQL
+                                    </button>
+                                    <button type="button" className={button} onClick={() => setSelectedTableName(null)}>
+                                        <ChevronLeft size={15} /> Volver a Tablas
                                     </button>
                                 </>
                             ) : (
@@ -406,205 +342,300 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                         className={button}
                                         onClick={() => {
                                             setSelectedDb(null);
-                                            setEditingFile(null);
+                                            setSelectedTableName(null);
                                             window.history.replaceState({}, '', '/database');
                                         }}
                                     >
-                                        <ChevronLeft size={16} /> Volver a Databases
+                                        <ChevronLeft size={15} /> Volver a Databases
                                     </button>
                                     <button
                                         type="button"
-                                        className={button}
-                                        onClick={() =>
-                                            setEditingFile({
-                                                file: 'query.sql',
-                                                content: `SELECT * FROM users LIMIT 20;\n`,
-                                                language: 'sql',
-                                                viewMode: 'code',
-                                            })
-                                        }
+                                        className={activeSection === 'tables' ? primary : button}
+                                        onClick={() => setActiveSection('tables')}
                                     >
-                                        <FilePlus size={16} /> Nueva consulta SQL
+                                        <TableIcon size={15} /> Esquema de Tablas ({dbTables.length})
                                     </button>
                                     <button
                                         type="button"
-                                        className={primary}
+                                        className={activeSection === 'sql' ? primary : button}
                                         onClick={() => {
-                                            const schemaEntry = entries.find((e) => e.name.endsWith('_schema.sql'));
-                                            if (schemaEntry) openEntry(schemaEntry);
+                                            setActiveSection('sql');
+                                            if (!sqlResult) {
+                                                void runSqlQuery(sqlQuery);
+                                            }
                                         }}
                                     >
-                                        <Download size={16} /> Ver Esquema SQL
+                                        <Terminal size={15} /> Consola SQLite / SQL
                                     </button>
                                 </>
                             )}
                         </div>
                     </header>
 
-                    {editingFile ? (
-                        <section className="overflow-hidden rounded-xl border border-white/10 bg-[#202024]">
-                            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 p-4">
-                                <div className="min-w-[220px] flex-1">
-                                    <p className="font-mono text-sm text-gray-300">
-                                        /database/{selectedDb.title}/{editingFile.file}
-                                    </p>
-                                </div>
-                                {editingFile.tableInfo && (
-                                    <span className="rounded-md border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1 font-mono text-xs text-cyan-300">
-                                        {editingFile.tableInfo.count} registros · {editingFile.tableInfo.columns.length} columnas
-                                    </span>
-                                )}
-                            </div>
+                    {/* Barra de conexión SQLite / SQL */}
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-1 font-mono text-sm text-neutral-400">
+                            <DatabaseIcon size={16} className="mr-2 text-orange-400" />
+                            <button
+                                type="button"
+                                className="rounded px-1 py-1 text-orange-300 hover:text-orange-400"
+                                onClick={() => {
+                                    setSelectedTableName(null);
+                                    setActiveSection('tables');
+                                }}
+                            >
+                                sqlite3://{selectedDb.title}
+                            </button>
+                            <ChevronRight size={13} />
+                            <span className="px-1 py-1 text-cyan-400">
+                                {selectedTable ? `table/${selectedTable.name}` : activeSection === 'sql' ? 'sql-console' : 'schema/tables'}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="hidden rounded-lg border border-orange-500/40 bg-neutral-950 px-3 py-1.5 font-mono text-xs text-cyan-400 sm:inline-block">
+                                {selectedDb.username}@{selectedDb.endpoint}
+                            </span>
+                            <button
+                                type="button"
+                                aria-label="Recargar esquema SQLite"
+                                className={button}
+                                onClick={() => router.reload()}
+                            >
+                                <RefreshCw size={15} />
+                            </button>
+                        </div>
+                    </div>
 
-                            {editingFile.tableInfo && editingFile.viewMode === 'table' ? (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left text-sm">
-                                        <thead className="border-b border-white/10 bg-[#18181c] text-xs text-gray-400">
-                                            <tr>
-                                                {editingFile.tableInfo.columns.map((col) => (
-                                                    <th key={col} className="whitespace-nowrap px-4 py-3 font-mono">
-                                                        {col}
-                                                    </th>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {editingFile.tableInfo.rows.length === 0 ? (
+                    {/* VISTA DE UNA TABLA SELECCIONADA (FILAS / ESTRUCTURA / SQL) */}
+                    {selectedTable ? (
+                        <section className="overflow-hidden rounded-xl border border-orange-500/40 bg-neutral-950">
+                            {tableTab === 'rows' && (
+                                <>
+                                    <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-orange-500/30 px-4 py-3">
+                                        <div className="flex flex-wrap items-center gap-3">
+                                            <span className="font-mono text-sm text-cyan-400">
+                                                SELECT * FROM &quot;{selectedTable.name}&quot; LIMIT 50;
+                                            </span>
+                                            <span className="rounded border border-orange-500/30 bg-orange-500/10 px-2.5 py-0.5 text-xs text-orange-300">
+                                                Mostrando {filteredRows.length} de {selectedTable.count} filas
+                                            </span>
+                                        </div>
+                                        <div className="relative min-w-[240px]">
+                                            <Search className="absolute top-2.5 left-3 text-orange-400" size={16} />
+                                            <input
+                                                aria-label="Filtrar filas"
+                                                placeholder="Filtrar valores en la tabla…"
+                                                value={rowSearch}
+                                                onChange={(e) => setRowSearch(e.target.value)}
+                                                className={`${input} pl-9`}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left text-sm">
+                                            <thead className="border-b border-orange-500/30 bg-neutral-900/80 text-xs uppercase text-orange-300">
                                                 <tr>
-                                                    <td
-                                                        colSpan={Math.max(1, editingFile.tableInfo.columns.length)}
-                                                        className="p-12 text-center text-gray-400"
-                                                    >
-                                                        Esta tabla está vacía.
-                                                    </td>
-                                                </tr>
-                                            ) : (
-                                                editingFile.tableInfo.rows.map((row, idx) => (
-                                                    <tr
-                                                        key={idx}
-                                                        className="border-b border-white/5 last:border-0 hover:bg-white/[0.035]"
-                                                    >
-                                                        {editingFile.tableInfo!.columns.map((col) => {
-                                                            const val = row[col];
-                                                            const text =
-                                                                val === null || val === undefined
-                                                                    ? 'NULL'
-                                                                    : typeof val === 'object'
-                                                                      ? JSON.stringify(val)
-                                                                      : String(val);
-                                                            return (
-                                                                <td
-                                                                    key={col}
-                                                                    className="max-w-[260px] truncate whitespace-nowrap px-4 py-3 font-mono text-xs text-gray-200"
-                                                                    title={text}
-                                                                >
-                                                                    {val === null ? (
-                                                                        <span className="italic text-gray-500">NULL</span>
-                                                                    ) : (
-                                                                        text
+                                                    {selectedTable.columns.map((col) => {
+                                                        const colSchema = selectedTable.schema?.find((s) => s.name === col);
+                                                        return (
+                                                            <th key={col} className="whitespace-nowrap px-4 py-3 font-mono">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    {colSchema?.pk && (
+                                                                        <span title="Primary Key">
+                                                                            <KeyRound size={12} className="text-amber-400" />
+                                                                        </span>
                                                                     )}
-                                                                </td>
-                                                            );
-                                                        })}
+                                                                    <span className="text-orange-300">{col}</span>
+                                                                    {colSchema?.type && (
+                                                                        <span className="text-[10px] font-normal text-cyan-400 uppercase">
+                                                                            {colSchema.type}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </th>
+                                                        );
+                                                    })}
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-neutral-800">
+                                                {filteredRows.length === 0 ? (
+                                                    <tr>
+                                                        <td
+                                                            colSpan={Math.max(1, selectedTable.columns.length)}
+                                                            className="p-12 text-center text-neutral-400"
+                                                        >
+                                                            No hay registros que coincidan en la tabla `{selectedTable.name}`.
+                                                        </td>
                                                     </tr>
-                                                ))
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ) : (
-                                <Suspense fallback={<p className="p-10 text-sm text-gray-400">Cargando visor…</p>}>
-                                    <FileEditor
-                                        disabled={false}
-                                        value={editingFile.content}
-                                        language={editingFile.language}
-                                        onChange={(content) => setEditingFile({ ...editingFile, content })}
-                                        onSave={() => toast.success('Cambios guardados en búfer local')}
-                                    />
-                                </Suspense>
+                                                ) : (
+                                                    filteredRows.map((row, idx) => (
+                                                        <tr
+                                                            key={idx}
+                                                            className="transition hover:bg-orange-500/10"
+                                                        >
+                                                            {selectedTable.columns.map((col) => {
+                                                                const val = row[col];
+                                                                const text =
+                                                                    val === null || val === undefined
+                                                                        ? 'NULL'
+                                                                        : typeof val === 'object'
+                                                                          ? JSON.stringify(val)
+                                                                          : String(val);
+                                                                return (
+                                                                    <td
+                                                                        key={col}
+                                                                        className="max-w-[280px] truncate whitespace-nowrap px-4 py-3 font-mono text-xs text-neutral-200"
+                                                                        title={text}
+                                                                    >
+                                                                        {val === null || val === undefined ? (
+                                                                            <span className="rounded bg-neutral-900 px-1.5 py-0.5 text-[10px] italic text-neutral-500">
+                                                                                NULL
+                                                                            </span>
+                                                                        ) : (
+                                                                            text
+                                                                        )}
+                                                                    </td>
+                                                                );
+                                                            })}
+                                                        </tr>
+                                                    ))
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </>
                             )}
 
-                            <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 p-4">
-                                <p className="text-xs text-gray-500">
-                                    Base de datos: {selectedDb.title} · {new TextEncoder().encode(editingFile.content).length.toLocaleString()} bytes
-                                </p>
-                                <div className="flex gap-2">
-                                    <button type="button" className={button} onClick={() => setEditingFile(null)}>
-                                        Cerrar
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={primary}
-                                        onClick={() => {
-                                            toast.success('Consulta / archivo procesado correctamente');
-                                            setEditingFile(null);
-                                        }}
-                                    >
-                                        <Save size={15} /> Guardar
-                                    </button>
+                            {tableTab === 'structure' && (
+                                <div className="space-y-6 p-5">
+                                    <div>
+                                        <h3 className="mb-3 text-sm font-semibold text-orange-400">
+                                            Columnas de `{selectedTable.name}` (PRAGMA table_info)
+                                        </h3>
+                                        <div className="overflow-x-auto rounded-lg border border-orange-500/30">
+                                            <table className="w-full text-left text-sm">
+                                                <thead className="border-b border-orange-500/30 bg-neutral-900/80 text-xs uppercase text-orange-300">
+                                                    <tr>
+                                                        <th className="px-4 py-3">#</th>
+                                                        <th className="px-4 py-3">Columna</th>
+                                                        <th className="px-4 py-3">Tipo SQL</th>
+                                                        <th className="px-4 py-3">Nulo</th>
+                                                        <th className="px-4 py-3">Valor por Defecto</th>
+                                                        <th className="px-4 py-3">Clave</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-neutral-800">
+                                                    {(selectedTable.schema && selectedTable.schema.length > 0
+                                                        ? selectedTable.schema
+                                                        : selectedTable.columns.map((c, i) => ({
+                                                              cid: i,
+                                                              name: c,
+                                                              type: 'TEXT',
+                                                              notnull: false,
+                                                              dflt_value: null,
+                                                              pk: i === 0,
+                                                          }))
+                                                    ).map((col) => (
+                                                        <tr
+                                                            key={col.cid}
+                                                            className="transition hover:bg-orange-500/10"
+                                                        >
+                                                            <td className="px-4 py-3 font-mono text-xs text-neutral-400">{col.cid}</td>
+                                                            <td className="px-4 py-3 font-mono font-semibold text-cyan-400">{col.name}</td>
+                                                            <td className="px-4 py-3">
+                                                                <span className="rounded border border-orange-500/30 bg-neutral-900 px-2 py-0.5 font-mono text-xs text-orange-300 uppercase">
+                                                                    {col.type || 'TEXT'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-xs text-neutral-300">
+                                                                {col.notnull ? 'NOT NULL' : 'NULL'}
+                                                            </td>
+                                                            <td className="px-4 py-3 font-mono text-xs text-neutral-400">
+                                                                {col.dflt_value ?? <span className="italic text-neutral-600">Ninguno</span>}
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                {col.pk ? (
+                                                                    <span className="inline-flex items-center gap-1 rounded border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 font-mono text-xs text-amber-300">
+                                                                        <KeyRound size={11} /> PRIMARY KEY
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="text-xs text-neutral-600">—</span>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    {selectedTable.ddl && (
+                                        <div>
+                                            <div className="mb-2 flex items-center justify-between">
+                                                <h3 className="flex items-center gap-2 text-sm font-semibold text-orange-400">
+                                                    <Code2 size={16} className="text-cyan-400" /> Sentencia DDL (sqlite_master)
+                                                </h3>
+                                                <button
+                                                    type="button"
+                                                    className={button}
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(selectedTable.ddl || '');
+                                                        toast.success('DDL copiado al portapapeles');
+                                                    }}
+                                                >
+                                                    <Copy size={14} /> Copiar SQL
+                                                </button>
+                                            </div>
+                                            <pre className="overflow-x-auto rounded-lg border border-orange-500/30 bg-neutral-900 p-4 font-mono text-xs leading-6 text-cyan-300">
+                                                {selectedTable.ddl}
+                                            </pre>
+                                        </div>
+                                    )}
                                 </div>
-                            </footer>
+                            )}
+
+                            {tableTab === 'sql' && (
+                                <SqlConsoleSection
+                                    sqlQuery={sqlQuery}
+                                    setSqlQuery={setSqlQuery}
+                                    sqlLoading={sqlLoading}
+                                    sqlError={sqlError}
+                                    sqlResult={sqlResult}
+                                    runSqlQuery={runSqlQuery}
+                                    tables={dbTables}
+                                />
+                            )}
+                        </section>
+                    ) : activeSection === 'sql' ? (
+                        <section className="overflow-hidden rounded-xl border border-orange-500/40 bg-neutral-950">
+                            <SqlConsoleSection
+                                sqlQuery={sqlQuery}
+                                setSqlQuery={setSqlQuery}
+                                sqlLoading={sqlLoading}
+                                sqlError={sqlError}
+                                sqlResult={sqlResult}
+                                runSqlQuery={runSqlQuery}
+                                tables={dbTables}
+                            />
                         </section>
                     ) : (
+                        /* LISTADO DE TABLAS SQLITE / SQL CON EL ESTILO HABITUAL DE DATABASE HOSTS */
                         <>
-                            {/* Barra de ruta estilo Servers/Files.tsx */}
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                                <div className="flex flex-wrap items-center gap-1 font-mono text-sm text-gray-400">
-                                    <HardDrive size={16} className="mr-2" />
-                                    <button
-                                        type="button"
-                                        className="rounded px-1 py-1 hover:text-cyan-300"
-                                        onClick={() => setDirectory('')}
-                                    >
-                                        /database/{selectedDb.title}
-                                    </button>
-                                    {parts.map((part, index) => (
-                                        <span className="flex items-center" key={index}>
-                                            <ChevronRight size={13} />
-                                            <button
-                                                type="button"
-                                                className="px-1 py-1 hover:text-cyan-300"
-                                                onClick={() => setDirectory(parts.slice(0, index + 1).join('/'))}
-                                            >
-                                                {part}
-                                            </button>
+                            <section className="overflow-hidden rounded-xl border border-orange-500/40 bg-neutral-950">
+                                <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-orange-500/30 px-4 py-3">
+                                    <div className="flex flex-wrap items-center gap-3 text-sm text-orange-300">
+                                        <span className="font-semibold text-orange-400">
+                                            {filteredTables.length} {filteredTables.length === 1 ? 'Tabla SQL' : 'Tablas SQL'}
                                         </span>
-                                    ))}
-                                </div>
-                                <button
-                                    type="button"
-                                    aria-label="Actualizar archivos"
-                                    className={button}
-                                    onClick={() => router.reload()}
-                                >
-                                    <RefreshCw size={15} />
-                                </button>
-                            </div>
-
-                            {/* Tabla de archivos estilo Servers/Files.tsx */}
-                            <section className="overflow-hidden rounded-xl border border-white/10 bg-[#202024]">
-                                <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
-                                    {selectedEntries.length > 0 ? (
-                                        <div className="flex flex-wrap items-center gap-3 text-sm">
-                                            <span className="font-medium text-cyan-300">{selectedEntries.length} seleccionados</span>
-                                            <button
-                                                type="button"
-                                                aria-label="Limpiar selección"
-                                                onClick={() => setSelectedEntries([])}
-                                            >
-                                                <X size={15} />
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <p className="text-sm text-gray-400">
-                                            {filtered.length} {filtered.length === 1 ? 'elemento' : 'elementos'}
-                                        </p>
-                                    )}
-                                    <div className="relative min-w-[220px]">
-                                        <Search className="absolute top-2.5 left-3 text-gray-500" size={16} />
+                                        <span className="text-neutral-600">·</span>
+                                        <span className="font-mono text-xs text-cyan-400">{totalRecords} filas totales</span>
+                                    </div>
+                                    <div className="relative min-w-[240px]">
+                                        <Search className="absolute top-2.5 left-3 text-orange-400" size={16} />
                                         <input
-                                            aria-label="Buscar archivos"
-                                            placeholder="Buscar tabla o archivo"
+                                            aria-label="Buscar tabla SQL"
+                                            placeholder="Buscar tabla SQL (ej. users, servers)…"
                                             value={search}
                                             onChange={(e) => {
                                                 setSearch(e.target.value);
@@ -617,123 +648,109 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
 
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left text-sm">
-                                        <thead className="border-b border-white/10 text-xs text-gray-400">
+                                        <thead className="border-b border-orange-500/30 text-xs uppercase text-orange-300">
                                             <tr>
-                                                <th className="w-12 px-4 py-3">
-                                                    <input
-                                                        aria-label="Seleccionar todos"
-                                                        type="checkbox"
-                                                        checked={allSelected}
-                                                        onChange={() =>
-                                                            setSelectedEntries(
-                                                                allSelected
-                                                                    ? selectedEntries.filter((n) => !selectable.includes(n))
-                                                                    : [...new Set([...selectedEntries, ...selectable])],
-                                                            )
-                                                        }
-                                                        className="accent-cyan-400"
-                                                    />
+                                                <th className="px-4 py-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => changeSort('name')}
+                                                        className="flex items-center gap-2 uppercase"
+                                                    >
+                                                        Tabla SQL
+                                                        {sort === 'name' && (ascending ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
+                                                    </button>
                                                 </th>
-                                                {(['name', 'size', 'modified'] as const).map((field, index) => (
-                                                    <th className="px-3 py-3" key={field}>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => changeSort(field)}
-                                                            className="flex items-center gap-2"
-                                                        >
-                                                            {['Nombre', 'Tamaño / Filas', 'Modificado'][index]}
-                                                            {sort === field &&
-                                                                (ascending ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
-                                                        </button>
-                                                    </th>
-                                                ))}
-                                                <th className="w-14">
-                                                    <span className="sr-only">Acciones</span>
+                                                <th className="px-3 py-3">Motor</th>
+                                                <th className="px-3 py-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => changeSort('columns')}
+                                                        className="flex items-center gap-2 uppercase"
+                                                    >
+                                                        Columnas
+                                                        {sort === 'columns' && (ascending ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
+                                                    </button>
                                                 </th>
+                                                <th className="px-3 py-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => changeSort('rows')}
+                                                        className="flex items-center gap-2 uppercase"
+                                                    >
+                                                        Registros (Filas)
+                                                        {sort === 'rows' && (ascending ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
+                                                    </button>
+                                                </th>
+                                                <th className="px-4 py-3 text-right">Operaciones SQL</th>
                                             </tr>
                                         </thead>
-                                        <tbody>
-                                            {directory && (
-                                                <tr className="border-b border-white/5 hover:bg-white/[0.03]">
-                                                    <td />
-                                                    <td colSpan={4} className="px-3 py-3">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setDirectory('')}
-                                                            className="flex items-center gap-3 text-gray-400"
-                                                        >
-                                                            <Folder size={17} /> ..
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            )}
-                                            {visible.length === 0 ? (
+                                        <tbody className="divide-y divide-neutral-800">
+                                            {visibleTables.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={5} className="p-12 text-center text-gray-400">
-                                                        No hay resultados para esta búsqueda.
+                                                    <td colSpan={5} className="p-12 text-center text-neutral-400">
+                                                        No se encontraron tablas SQL que coincidan con la búsqueda.
                                                     </td>
                                                 </tr>
                                             ) : (
-                                                visible.map((entry) => (
+                                                visibleTables.map((table) => (
                                                     <tr
-                                                        key={entry.name}
-                                                        className={`border-b border-white/5 last:border-0 hover:bg-white/[0.035] ${
-                                                            selectedEntries.includes(entry.name) ? 'bg-cyan-400/[0.035]' : ''
-                                                        }`}
+                                                        key={table.name}
+                                                        onClick={() => openTable(table, 'rows')}
+                                                        className="cursor-pointer transition hover:bg-orange-500/10"
                                                     >
                                                         <td className="px-4 py-3">
-                                                            <input
-                                                                aria-label={`Seleccionar ${entry.name}`}
-                                                                type="checkbox"
-                                                                checked={selectedEntries.includes(entry.name)}
-                                                                onChange={() =>
-                                                                    setSelectedEntries((curr) =>
-                                                                        curr.includes(entry.name)
-                                                                            ? curr.filter((n) => n !== entry.name)
-                                                                            : [...curr, entry.name],
-                                                                    )
-                                                                }
-                                                                className="accent-cyan-400"
-                                                            />
+                                                            <div className="flex items-center gap-3 font-mono font-semibold text-white hover:text-cyan-400">
+                                                                <TableIcon className="shrink-0 text-orange-400" size={18} />
+                                                                <span>{table.name}</span>
+                                                            </div>
                                                         </td>
                                                         <td className="px-3 py-3">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => openEntry(entry)}
-                                                                className="flex items-center gap-3 text-left font-medium text-gray-200 hover:text-cyan-300"
-                                                            >
-                                                                {entry.directory ? (
-                                                                    <Folder className="text-cyan-300" size={18} />
-                                                                ) : entry.kind === 'table' ? (
-                                                                    <FileCode className="text-cyan-400" size={18} />
-                                                                ) : entry.kind === 'sqlite' ? (
-                                                                    <DatabaseIcon className="text-amber-400" size={18} />
-                                                                ) : (
-                                                                    <FileText className="text-gray-400" size={18} />
-                                                                )}
-                                                                <span>{entry.name}</span>
-                                                                {entry.tableInfo && (
-                                                                    <span className="rounded bg-white/5 px-2 py-0.5 font-mono text-xs text-cyan-300">
-                                                                        {entry.tableInfo.count} filas
-                                                                    </span>
-                                                                )}
-                                                            </button>
+                                                            <span className="rounded border border-orange-500/30 bg-neutral-900 px-2 py-0.5 font-mono text-xs text-orange-300">
+                                                                SQLite 3
+                                                            </span>
                                                         </td>
-                                                        <td className="px-3 py-3 text-gray-400">
-                                                            {entry.directory ? `${dbTables.length} tablas` : formatSize(entry.size)}
-                                                        </td>
-                                                        <td className="whitespace-nowrap px-3 py-3 text-gray-400">
-                                                            {entry.modified}
+                                                        <td className="px-3 py-3 text-neutral-300">
+                                                            <span className="font-mono text-xs text-cyan-400">{table.columns.length} cols</span>
+                                                            <span className="ml-2 hidden max-w-[260px] truncate font-mono text-xs text-neutral-400 xl:inline-block">
+                                                                ({table.columns.slice(0, 4).join(', ')}
+                                                                {table.columns.length > 4 ? '…' : ''})
+                                                            </span>
                                                         </td>
                                                         <td className="px-3 py-3">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => openEntry(entry)}
-                                                                className="rounded-md p-1.5 text-gray-400 hover:bg-white/10 hover:text-white"
-                                                                title="Abrir archivo / tabla"
-                                                            >
-                                                                <MoreHorizontal size={18} />
-                                                            </button>
+                                                            <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 font-mono text-xs font-semibold text-emerald-400">
+                                                                {table.count} filas
+                                                            </span>
+                                                        </td>
+                                                        <td
+                                                            className="whitespace-nowrap px-4 py-3 text-right"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <div className="inline-flex items-center gap-1.5">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => openTable(table, 'rows')}
+                                                                    className="rounded border border-cyan-500/50 bg-cyan-500/10 px-3 py-1 text-xs text-cyan-300 hover:bg-cyan-500 hover:text-black"
+                                                                >
+                                                                    Examinar
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => openTable(table, 'structure')}
+                                                                    className="rounded border border-orange-500/40 bg-orange-500/10 px-3 py-1 text-xs text-orange-300 hover:bg-orange-500 hover:text-black"
+                                                                >
+                                                                    Estructura
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        openTable(table, 'sql');
+                                                                        void runSqlQuery(`SELECT * FROM "${table.name}" LIMIT 50;`);
+                                                                    }}
+                                                                    className="rounded border border-cyan-500/50 bg-cyan-500/10 px-3 py-1 font-mono text-xs text-cyan-300 hover:bg-cyan-500 hover:text-black"
+                                                                >
+                                                                    SQL
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 ))
@@ -742,22 +759,22 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                     </table>
                                 </div>
 
-                                <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-4 py-3 text-xs text-gray-400">
+                                <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-orange-500/30 px-4 py-3 text-xs text-neutral-400">
                                     <span>
-                                        Mostrando {filtered.length ? (Math.min(page, pages) - 1) * perPage + 1 : 0}–
-                                        {Math.min(Math.min(page, pages) * perPage, filtered.length)} de {filtered.length}
+                                        Mostrando {filteredTables.length ? (Math.min(page, pages) - 1) * perPage + 1 : 0}–
+                                        {Math.min(Math.min(page, pages) * perPage, filteredTables.length)} de {filteredTables.length} tablas SQL
                                     </span>
                                     <div className="flex items-center gap-4">
-                                        <label className="flex items-center gap-2">
+                                        <label className="flex items-center gap-2 text-orange-300">
                                             Por página
                                             <select
-                                                aria-label="Elementos por página"
+                                                aria-label="Tablas por página"
                                                 value={perPage}
                                                 onChange={(e) => {
                                                     setPerPage(Number(e.target.value));
                                                     setPage(1);
                                                 }}
-                                                className="rounded border border-white/10 bg-[#202024] px-2 py-1"
+                                                className="rounded border border-orange-500/40 bg-neutral-900 px-2 py-1 text-white"
                                             >
                                                 {[25, 50, 100].map((v) => (
                                                     <option key={v}>{v}</option>
@@ -770,11 +787,11 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                                 aria-label="Página anterior"
                                                 disabled={page <= 1}
                                                 onClick={() => setPage((v) => v - 1)}
-                                                className="rounded p-1 disabled:opacity-30"
+                                                className="rounded p-1 text-orange-400 disabled:opacity-30"
                                             >
                                                 <ChevronLeft size={17} />
                                             </button>
-                                            <span>
+                                            <span className="text-orange-300">
                                                 {Math.min(page, pages)} / {pages}
                                             </span>
                                             <button
@@ -782,7 +799,7 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                                 aria-label="Página siguiente"
                                                 disabled={page >= pages}
                                                 onClick={() => setPage((v) => v + 1)}
-                                                className="rounded p-1 disabled:opacity-30"
+                                                className="rounded p-1 text-orange-400 disabled:opacity-30"
                                             >
                                                 <ChevronRight size={17} />
                                             </button>
@@ -790,14 +807,14 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                     </div>
                                 </footer>
                             </section>
-                            <p className="text-xs text-gray-500">
-                                Haz clic sobre cualquier archivo o tabla `.sql` / `.json` para inspeccionar sus filas y estructura.
+                            <p className="text-xs text-neutral-400">
+                                Haz clic sobre cualquier tabla SQL para examinar sus filas reales, ver su estructura `PRAGMA` o ejecutar consultas SQLite.
                             </p>
                         </>
                     )}
-                </main>
+                </div>
             ) : (
-                /* VISTA PRINCIPAL DE DATABASE HOSTS (SIN ARCHIVOS DEBAJO) */
+                /* VISTA PRINCIPAL DE DATABASE HOSTS */
                 <div className="flex flex-col gap-6 bg-white p-6 font-[Orbitron] text-black dark:bg-black dark:text-white">
                     <div className="flex items-center justify-between border-b border-orange-500/30 pb-4">
                         <div className="flex items-center gap-3">
@@ -805,7 +822,7 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                             <div>
                                 <h1 className="text-2xl font-bold tracking-wider text-orange-400">DATABASE HOSTS</h1>
                                 <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                                    Gestiona los servidores MySQL/MariaDB y haz clic en cualquier base de datos para abrir sus archivos
+                                    Gestiona los motores SQLite / SQL y haz clic en cualquier base de datos para abrir sus tablas y consola SQL
                                 </p>
                             </div>
                         </div>
@@ -823,7 +840,7 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                 required
                                 value={form.name}
                                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                placeholder="MySQL Principal"
+                                placeholder="SQLite / MySQL Principal"
                                 className="w-full rounded-lg border border-orange-500/40 bg-neutral-950 px-3 py-2 text-sm text-white"
                             />
                         </div>
@@ -903,7 +920,7 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                         <tr
                                             key={h.id}
                                             onClick={() =>
-                                                openDatabaseExplorer({
+                                                openDatabaseManager({
                                                     title: h.name,
                                                     subtitle: `Database Host #${h.id} (${h.node_name})`,
                                                     endpoint: `${h.host}:${h.port}`,
@@ -962,7 +979,7 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                             <tr
                                                 key={`${s.id}-${db.id}`}
                                                 onClick={() =>
-                                                    openDatabaseExplorer({
+                                                    openDatabaseManager({
                                                         title: db.name,
                                                         subtitle: `${s.name} · ${s.node_name}`,
                                                         endpoint: `${db.host}:${db.port}`,
@@ -1001,5 +1018,161 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                 </div>
             )}
         </AppLayout>
+    );
+}
+
+function SqlConsoleSection({
+    sqlQuery,
+    setSqlQuery,
+    sqlLoading,
+    sqlError,
+    sqlResult,
+    runSqlQuery,
+    tables,
+}: {
+    sqlQuery: string;
+    setSqlQuery: (q: string) => void;
+    sqlLoading: boolean;
+    sqlError: string | null;
+    sqlResult: SqlQueryResult | null;
+    runSqlQuery: (customQuery?: string, e?: FormEvent) => Promise<void>;
+    tables: DbTableInfo[];
+}) {
+    const presetQueries = [
+        { label: 'Listar Tablas (sqlite_master)', sql: "SELECT name, type FROM sqlite_master WHERE type='table' ORDER BY name;" },
+        { label: 'Usuarios', sql: 'SELECT id, name, email, created_at FROM "users" LIMIT 25;' },
+        { label: 'Servidores', sql: 'SELECT id, name, uuid, memory, disk, cpu FROM "servers" LIMIT 25;' },
+        { label: 'Nodos', sql: 'SELECT id, name, fqdn, scheme, daemon_listen FROM "nodes" LIMIT 25;' },
+        { label: 'Webhooks', sql: 'SELECT id, name, url, format, enabled, last_status_code FROM "webhooks" LIMIT 25;' },
+    ];
+
+    return (
+        <div className="space-y-4 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="mr-1 text-xs text-orange-300">Consultas rápidas:</span>
+                    {presetQueries.map((preset) => (
+                        <button
+                            key={preset.label}
+                            type="button"
+                            onClick={() => {
+                                setSqlQuery(preset.sql);
+                                void runSqlQuery(preset.sql);
+                            }}
+                            className="rounded border border-orange-500/40 bg-orange-500/10 px-2.5 py-1 font-mono text-xs text-orange-300 hover:bg-orange-500 hover:text-black"
+                        >
+                            {preset.label}
+                        </button>
+                    ))}
+                </div>
+                {tables.length > 0 && (
+                    <select
+                        aria-label="Seleccionar tabla para SELECT"
+                        defaultValue=""
+                        onChange={(e) => {
+                            if (e.target.value) {
+                                const q = `SELECT * FROM "${e.target.value}" LIMIT 50;`;
+                                setSqlQuery(q);
+                                void runSqlQuery(q);
+                            }
+                        }}
+                        className="rounded-lg border border-orange-500/40 bg-neutral-900 px-3 py-1.5 font-mono text-xs text-cyan-300 outline-none focus:border-orange-400"
+                    >
+                        <option value="" disabled>
+                            SELECT * FROM tabla…
+                        </option>
+                        {tables.map((t) => (
+                            <option key={t.name} value={t.name}>
+                                {t.name} ({t.count} filas)
+                            </option>
+                        ))}
+                    </select>
+                )}
+            </div>
+
+            <form onSubmit={(e) => void runSqlQuery(undefined, e)} className="space-y-3">
+                <textarea
+                    rows={4}
+                    value={sqlQuery}
+                    onChange={(e) => setSqlQuery(e.target.value)}
+                    placeholder="SELECT * FROM users LIMIT 25;"
+                    className="w-full rounded-lg border border-orange-500/40 bg-neutral-900 p-3.5 font-mono text-sm text-cyan-300 outline-none focus:border-orange-400"
+                />
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-xs text-neutral-400">
+                        Motor conectado a SQLite (`SELECT`, `PRAGMA`, `EXPLAIN`). Los campos sensibles se enmascaran automáticamente.
+                    </p>
+                    <button type="submit" disabled={sqlLoading || !sqlQuery.trim()} className={primary}>
+                        <Play size={15} /> {sqlLoading ? 'Ejecutando…' : 'Ejecutar SQL'}
+                    </button>
+                </div>
+            </form>
+
+            {sqlError && (
+                <div className="rounded-lg border border-red-500/40 bg-red-950/30 p-3 font-mono text-xs text-red-300">
+                    Error SQL: {sqlError}
+                </div>
+            )}
+
+            {sqlResult && (
+                <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between text-xs text-neutral-400">
+                        <span>
+                            Resultado: <strong className="text-cyan-400">{sqlResult.row_count}</strong> filas devueltas
+                        </span>
+                        <span className="font-mono text-emerald-400">Tiempo: {sqlResult.execution_time_ms} ms</span>
+                    </div>
+                    <div className="overflow-x-auto rounded-lg border border-orange-500/30">
+                        <table className="w-full text-left text-sm">
+                            <thead className="border-b border-orange-500/30 bg-neutral-900/80 text-xs uppercase text-orange-300">
+                                <tr>
+                                    {sqlResult.columns.map((col) => (
+                                        <th key={col} className="whitespace-nowrap px-4 py-2.5 font-mono text-orange-300">
+                                            {col}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-neutral-800">
+                                {sqlResult.rows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={Math.max(1, sqlResult.columns.length)} className="p-8 text-center text-neutral-400">
+                                            La consulta no devolvió filas.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    sqlResult.rows.map((row, idx) => (
+                                        <tr key={idx} className="transition hover:bg-orange-500/10">
+                                            {sqlResult.columns.map((col) => {
+                                                const val = row[col];
+                                                const text =
+                                                    val === null || val === undefined
+                                                        ? 'NULL'
+                                                        : typeof val === 'object'
+                                                          ? JSON.stringify(val)
+                                                          : String(val);
+                                                return (
+                                                    <td
+                                                        key={col}
+                                                        className="max-w-[260px] truncate whitespace-nowrap px-4 py-2.5 font-mono text-xs text-neutral-200"
+                                                        title={text}
+                                                    >
+                                                        {val === null || val === undefined ? (
+                                                            <span className="italic text-neutral-500">NULL</span>
+                                                        ) : (
+                                                            text
+                                                        )}
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }

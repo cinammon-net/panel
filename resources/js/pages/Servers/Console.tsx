@@ -214,63 +214,65 @@ export default function Console({ server }: { server: Server }) {
 
     return (
         <ServerLayout server={server} section="console">
-            <Head title={`${server.name} · Consola`} />
-            <main className="min-h-screen space-y-6 bg-[#080c10] p-6 text-slate-100 md:p-8">
+            <Head title={`${server.name} · Consola`}>
+                <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet" />
+            </Head>
+            <main className="min-h-screen space-y-6 bg-white p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
                 <header className="flex flex-wrap items-center justify-between gap-5">
-                    <h1 className="text-3xl font-semibold tracking-tight">Consola</h1>
+                    <h1 className="text-3xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400 dark:drop-shadow-[0_0_5px_#0ff] uppercase">CONSOLA</h1>
                     <div className="flex flex-wrap gap-2">
-                        <button disabled={!ready || snapshot?.state !== 'offline' || needsEula} onClick={() => void action('power', { action: 'start' })} className="flex items-center gap-2 rounded-lg border border-cyan-300 bg-cyan-400 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-[0_0_20px_#22d3ee20] disabled:opacity-40"><Play size={18} /> Iniciar</button>
-                        <button disabled={!ready || !running} onClick={() => void action('power', { action: 'restart' })} className="flex items-center gap-2 rounded-lg border border-cyan-400/25 bg-cyan-400/5 px-4 py-2.5 text-sm text-cyan-100 disabled:opacity-40"><RotateCw size={18} /> Reiniciar</button>
-                        <button disabled={!ready || !['running', 'starting'].includes(snapshot?.state || '')} onClick={() => void action('power', { action: 'stop' })} className="flex items-center gap-2 rounded-lg border border-red-500/40 bg-red-500/15 px-4 py-2.5 text-sm text-red-300 disabled:opacity-40"><Square size={18} /> Detener</button>
+                        <button disabled={!ready || snapshot?.state !== 'offline' || needsEula} onClick={() => void action('power', { action: 'start' })} className="flex items-center gap-2 rounded border border-cyan-400 bg-cyan-500 px-4 py-1.5 text-sm font-semibold text-black transition hover:bg-cyan-400 disabled:opacity-40"><Play size={16} /> Iniciar</button>
+                        <button disabled={!ready || !running} onClick={() => void action('power', { action: 'restart' })} className="flex items-center gap-2 rounded border border-cyan-500 bg-cyan-900/30 px-4 py-1.5 text-sm text-cyan-300 transition hover:bg-cyan-700/50 disabled:opacity-40"><RotateCw size={16} /> Reiniciar</button>
+                        <button disabled={!ready || !['running', 'starting'].includes(snapshot?.state || '')} onClick={() => void action('power', { action: 'stop' })} className="flex items-center gap-2 rounded border border-red-500 bg-red-900/30 px-4 py-1.5 text-sm text-red-300 transition hover:bg-red-700/50 disabled:opacity-40"><Square size={16} /> Detener</button>
                     </div>
                 </header>
-                <section aria-label="Estadísticas del servidor" className="grid gap-4 rounded-xl border border-cyan-400/20 bg-[#0b1118] p-4 shadow-[0_0_24px_#22d3ee05] sm:grid-cols-2 xl:grid-cols-3">
+                <section aria-label="Estadísticas del servidor" className="grid gap-4 rounded-lg border border-cyan-700 bg-neutral-950 p-4 sm:grid-cols-2 xl:grid-cols-3">
                     <Metric label="Nombre" value={server.name} />
                     <Metric label="Estado" value={snapshot ? states[snapshot.state] || snapshot.state : 'Conectando…'} live={running} />
-                    <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-[#080c10] px-4 py-4 text-sm"><span className="text-slate-500">Dirección</span>{server.discord_bot ? <span>Conexión saliente</span> : <button className="flex min-w-0 items-center gap-2 break-all text-cyan-200" onClick={async () => { try { await navigator.clipboard.writeText(server.address); setNotice('Dirección copiada.'); } catch { setError('No se pudo copiar la dirección.'); } }}>{server.address}<Copy size={13} className="shrink-0" /></button>}</div>
+                    <div className="flex items-center gap-2 rounded border border-cyan-800 bg-black px-4 py-4 text-sm"><span className="text-cyan-500">Dirección</span>{server.discord_bot ? <span className="text-cyan-200">Conexión saliente</span> : <button className="flex min-w-0 items-center gap-2 break-all text-cyan-300" onClick={async () => { try { await navigator.clipboard.writeText(server.address); setNotice('Dirección copiada.'); } catch { setError('No se pudo copiar la dirección.'); } }}>{server.address}<Copy size={13} className="shrink-0" /></button>}</div>
                     <Metric label="CPU" value={`${snapshot?.utilization?.cpu_absolute?.toFixed(2) ?? '—'} % / ${server.cpu || '∞'}${server.cpu ? ' %' : ''}`} />
                     <Metric label="Memoria" value={`${snapshot?.utilization?.memory_bytes !== undefined ? (snapshot.utilization.memory_bytes / 1048576).toFixed(1) : '—'} MiB / ${server.memory || '∞'}${server.memory ? ' MiB' : ''}`} />
                     <Metric label="Almacenamiento" value={`${snapshot?.utilization?.disk_bytes !== undefined ? (snapshot.utilization.disk_bytes / 1073741824).toFixed(2) : '—'} GiB / ${server.disk ? (server.disk / 1024).toFixed(1) + ' GiB' : '∞'}`} />
                 </section>
-                {server.discord_bot && <section className="space-y-4 rounded-xl border border-slate-800 bg-[#101820] p-5">
-                    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold">Conexión con Discord</h2><span className={snapshot?.bot_status?.connected ? 'text-sm text-emerald-300' : 'text-sm text-amber-300'}>{snapshot?.bot_status?.connected ? `Conectado · ${snapshot.bot_status.tag || 'Cinammon'}` : 'Discord desconectado'}</span></div>
-                    <p className="text-sm text-slate-400">{snapshot?.bot_status?.message || 'Añade el token de una aplicación de Discord para conectar el bot.'}</p>
-                    <p className="text-sm text-slate-400">Crea una aplicación en el <a href="https://discord.com/developers/applications" target="_blank" rel="noreferrer" className="text-cyan-300 underline">portal de Discord</a> y copia su token desde la sección Bot. No lo pegues en el chat ni en la consola.</p>
+                {server.discord_bot && <section className="space-y-4 rounded-lg border border-cyan-700 bg-neutral-950 p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold text-cyan-400">Conexión con Discord</h2><span className={snapshot?.bot_status?.connected ? 'text-sm text-green-400' : 'text-sm text-amber-300'}>{snapshot?.bot_status?.connected ? `Conectado · ${snapshot.bot_status.tag || 'Cinammon'}` : 'Discord desconectado'}</span></div>
+                    <p className="text-sm text-cyan-200/80">{snapshot?.bot_status?.message || 'Añade el token de una aplicación de Discord para conectar el bot.'}</p>
+                    <p className="text-sm text-cyan-200/80">Crea una aplicación en el <a href="https://discord.com/developers/applications" target="_blank" rel="noreferrer" className="text-cyan-400 underline">portal de Discord</a> y copia su token desde la sección Bot. No lo pegues en el chat ni en la consola.</p>
                     <form className="grid gap-4 md:grid-cols-2" onSubmit={async event => { event.preventDefault(); if (await action('discord', { password: discordToken, guild_id: guildId || null })) { setDiscordToken(''); setNotice('Configuración privada guardada. El bot se está reiniciando.'); } }}>
-                        <label className="space-y-2 text-sm"><span>Token del bot</span><input type="password" value={discordToken} onChange={event => setDiscordToken(event.target.value)} autoComplete="new-password" minLength={30} maxLength={256} required className="block w-full rounded-lg border border-slate-700 bg-[#080c10] p-3 outline-none focus:border-cyan-400" placeholder={snapshot?.bot_status?.configured ? 'Introduce un nuevo token para reemplazar el guardado' : 'Token privado de Discord'} /></label>
-                        <label className="space-y-2 text-sm"><span>ID del servidor de Discord (opcional)</span><input value={guildId} onChange={event => setGuildId(event.target.value)} inputMode="numeric" pattern="[0-9]{17,22}" className="block w-full rounded-lg border border-slate-700 bg-[#080c10] p-3 outline-none focus:border-cyan-400" placeholder="Para registrar los comandos en tu servidor de prueba" /></label>
-                        <div className="flex flex-wrap items-center gap-3 md:col-span-2"><button type="submit" disabled={!ready || discordToken.length < 30} className="rounded-lg bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-40">Guardar token y conectar</button><button type="button" disabled={!running || busy} onClick={() => void action('command', { command: 'test' })} className="rounded-lg border border-slate-600 px-4 py-2 text-sm disabled:opacity-40">Ejecutar prueba local</button>{snapshot?.bot_status?.application_id && <a className="text-sm text-cyan-300 underline" href={`https://discord.com/oauth2/authorize?client_id=${snapshot.bot_status.application_id}&scope=bot%20applications.commands&permissions=0`} target="_blank" rel="noreferrer">Invitar el bot a Discord</a>}</div>
+                        <label className="space-y-2 text-sm text-cyan-300"><span>Token del bot</span><input type="password" value={discordToken} onChange={event => setDiscordToken(event.target.value)} autoComplete="new-password" minLength={30} maxLength={256} required className="block w-full rounded border border-cyan-700 bg-black p-3 text-cyan-200 outline-none focus:border-cyan-400" placeholder={snapshot?.bot_status?.configured ? 'Introduce un nuevo token para reemplazar el guardado' : 'Token privado de Discord'} /></label>
+                        <label className="space-y-2 text-sm text-cyan-300"><span>ID del servidor de Discord (opcional)</span><input value={guildId} onChange={event => setGuildId(event.target.value)} inputMode="numeric" pattern="[0-9]{17,22}" className="block w-full rounded border border-cyan-700 bg-black p-3 text-cyan-200 outline-none focus:border-cyan-400" placeholder="Para registrar los comandos en tu servidor de prueba" /></label>
+                        <div className="flex flex-wrap items-center gap-3 md:col-span-2"><button type="submit" disabled={!ready || discordToken.length < 30} className="rounded bg-cyan-500 px-4 py-2 text-sm font-semibold text-black disabled:opacity-40">Guardar token y conectar</button><button type="button" disabled={!running || busy} onClick={() => void action('command', { command: 'test' })} className="rounded border border-cyan-500 bg-cyan-900/30 px-4 py-2 text-sm text-cyan-300 disabled:opacity-40">Ejecutar prueba local</button>{snapshot?.bot_status?.application_id && <a className="text-sm text-cyan-300 underline" href={`https://discord.com/oauth2/authorize?client_id=${snapshot.bot_status.application_id}&scope=bot%20applications.commands&permissions=0`} target="_blank" rel="noreferrer">Invitar el bot a Discord</a>}</div>
                     </form>
-                    <p className="text-xs text-slate-500">La prueba local comprueba /ping, /ayuda y /estado sin conectar con Discord. La prueba real consiste en invitar el bot y ejecutar /ping en Discord.</p>
+                    <p className="text-xs text-cyan-500">La prueba local comprueba /ping, /ayuda y /estado sin conectar con Discord. La prueba real consiste en invitar el bot y ejecutar /ping en Discord.</p>
                 </section>}
-                {error && <p role="alert" className="rounded-lg border border-red-800 bg-red-950/40 p-3 text-sm text-red-200">{error}</p>}
+                {error && <p role="alert" className="rounded border border-red-500 bg-red-900/30 p-3 text-sm text-red-300">{error}</p>}
                 {notice && <p role="status" className="text-sm text-cyan-300">{notice}</p>}
-                {needsEula && <section className="space-y-3 rounded-xl border border-amber-800 bg-amber-950/30 p-4 text-sm">
+                {needsEula && <section className="space-y-3 rounded-lg border border-amber-700 bg-amber-950/30 p-4 text-sm">
                     <p>Minecraft exige aceptar su <a className="text-cyan-300 underline" href="https://www.minecraft.net/eula" target="_blank" rel="noreferrer">EULA</a> antes de arrancar.</p>
                     <label className="flex items-center gap-2"><input type="checkbox" checked={accepted} onChange={event => setAccepted(event.target.checked)} />He leído y acepto la EULA de Minecraft para este servidor.</label>
-                    <button disabled={!accepted || busy} className="rounded-lg bg-amber-300 px-4 py-2 font-semibold text-slate-950 disabled:opacity-40" onClick={() => void action('eula', { accepted: true })}>Guardar aceptación</button>
+                    <button disabled={!accepted || busy} className="rounded bg-amber-400 px-4 py-2 font-semibold text-black disabled:opacity-40" onClick={() => void action('eula', { accepted: true })}>Guardar aceptación</button>
                 </section>}
-                <section className="overflow-hidden rounded-xl border border-slate-800 bg-[#05090d]">
-                    <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3"><h2 className="flex items-center gap-2 text-sm font-semibold"><Terminal size={16} className="text-cyan-400" /> Consola</h2><label className="flex items-center gap-2 text-xs text-slate-400"><input type="checkbox" checked={follow} onChange={event => setFollow(event.target.checked)} />Seguir logs</label></div>
-                    <pre ref={logRef} aria-label="Logs del servidor" className="h-[340px] overflow-auto p-4 font-mono text-xs leading-6 whitespace-pre-wrap text-slate-300">{snapshot?.logs || (snapshot?.installed ? 'Esperando salida del servidor…' : 'Instalando el servidor…')}</pre>
-                    <form onSubmit={sendCommand} className="flex gap-3 border-t border-slate-800 p-3"><span className="self-center font-mono text-cyan-400">&gt;</span><input aria-label="Comando de consola" value={command} onChange={event => setCommand(event.target.value)} placeholder={server.discord_bot ? 'Comandos de proceso: status, test, stop' : 'Escribe un comando, por ejemplo: list'} disabled={!running || busy} className="min-w-0 flex-1 bg-transparent py-2 font-mono text-sm outline-none placeholder:text-slate-600 disabled:opacity-50" autoComplete="off" /><button type="submit" disabled={!running || busy || !command.trim()} className="flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm text-cyan-300 disabled:opacity-40"><Send size={15} />Enviar</button></form>
+                <section className="overflow-hidden rounded-lg border border-cyan-700 bg-neutral-950">
+                    <div className="flex items-center justify-between border-b border-cyan-700 bg-cyan-900 px-4 py-2.5"><h2 className="flex items-center gap-2 text-sm font-semibold text-cyan-400"><Terminal size={16} className="text-cyan-400" /> Consola</h2><label className="flex items-center gap-2 text-xs text-cyan-300"><input type="checkbox" checked={follow} onChange={event => setFollow(event.target.checked)} className="accent-cyan-400" />Seguir logs</label></div>
+                    <pre ref={logRef} aria-label="Logs del servidor" className="h-[340px] overflow-auto bg-black p-4 text-xs leading-6 whitespace-pre-wrap text-cyan-200">{snapshot?.logs || (snapshot?.installed ? 'Esperando salida del servidor…' : 'Instalando el servidor…')}</pre>
+                    <form onSubmit={sendCommand} className="flex gap-3 border-t border-cyan-700 bg-neutral-950 p-3"><span className="self-center text-cyan-400">&gt;</span><input aria-label="Comando de consola" value={command} onChange={event => setCommand(event.target.value)} placeholder={server.discord_bot ? 'Comandos de proceso: status, test, stop' : 'Escribe un comando, por ejemplo: list'} disabled={!running || busy} className="min-w-0 flex-1 bg-transparent py-2 text-sm text-cyan-200 outline-none placeholder:text-cyan-700 disabled:opacity-50" autoComplete="off" /><button type="submit" disabled={!running || busy || !command.trim()} className="flex items-center gap-2 rounded border border-cyan-500 bg-cyan-900/30 px-4 py-2 text-sm text-cyan-300 hover:bg-cyan-700/50 disabled:opacity-40"><Send size={15} />Enviar</button></form>
                 </section>
 
                 {/* Gráficos de recursos debajo de la consola: CPU, Memoria y Red */}
                 <section aria-label="Gráficos de rendimiento del servidor" className="grid gap-4 lg:grid-cols-3">
                     {/* CPU Chart */}
-                    <div className="rounded-xl border border-cyan-400/20 bg-[#0b1118] p-4 shadow-[0_0_24px_#22d3ee05]">
+                    <div className="rounded-lg border border-cyan-700 bg-neutral-950 p-4">
                         <div className="mb-3 flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-400/30 bg-cyan-400/10 text-cyan-300">
+                                <span className="flex h-8 w-8 items-center justify-center rounded border border-cyan-500 bg-cyan-900/30 text-cyan-300">
                                     <Cpu size={16} />
                                 </span>
                                 <div>
-                                    <h3 className="text-xs font-semibold tracking-wider text-slate-200 uppercase">Carga de CPU</h3>
-                                    <p className="text-[11px] text-slate-500">Límite: {server.cpu ? `${server.cpu}%` : 'Ilimitado'}</p>
+                                    <h3 className="text-xs font-semibold tracking-wider text-cyan-400 uppercase">Carga de CPU</h3>
+                                    <p className="text-[11px] text-cyan-600">Límite: {server.cpu ? `${server.cpu}%` : 'Ilimitado'}</p>
                                 </div>
                             </div>
-                            <span className="rounded-md border border-cyan-400/25 bg-[#080c10] px-2.5 py-1 font-mono text-xs font-semibold text-cyan-300">
+                            <span className="rounded border border-cyan-500 bg-black px-2.5 py-1 text-xs font-semibold text-cyan-300">
                                 {currentCpu.toFixed(2)} %
                             </span>
                         </div>
@@ -298,18 +300,18 @@ export default function Console({ server }: { server: Server }) {
                     </div>
 
                     {/* Memory Chart */}
-                    <div className="rounded-xl border border-cyan-400/20 bg-[#0b1118] p-4 shadow-[0_0_24px_#22d3ee05]">
+                    <div className="rounded-lg border border-cyan-700 bg-neutral-950 p-4">
                         <div className="mb-3 flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-purple-400/30 bg-purple-400/10 text-purple-300">
+                                <span className="flex h-8 w-8 items-center justify-center rounded border border-pink-500 bg-pink-900/30 text-pink-300">
                                     <Activity size={16} />
                                 </span>
                                 <div>
-                                    <h3 className="text-xs font-semibold tracking-wider text-slate-200 uppercase">Uso de Memoria</h3>
-                                    <p className="text-[11px] text-slate-500">Límite: {server.memory ? `${server.memory} MiB` : 'Ilimitado'}</p>
+                                    <h3 className="text-xs font-semibold tracking-wider text-cyan-400 uppercase">Uso de Memoria</h3>
+                                    <p className="text-[11px] text-cyan-600">Límite: {server.memory ? `${server.memory} MiB` : 'Ilimitado'}</p>
                                 </div>
                             </div>
-                            <span className="rounded-md border border-purple-400/25 bg-[#080c10] px-2.5 py-1 font-mono text-xs font-semibold text-purple-300">
+                            <span className="rounded border border-pink-500 bg-black px-2.5 py-1 text-xs font-semibold text-pink-300">
                                 {currentMemMib.toFixed(1)} MiB
                             </span>
                         </div>
@@ -321,8 +323,8 @@ export default function Console({ server }: { server: Server }) {
                                         {
                                             label: 'Memoria',
                                             data: history.memory,
-                                            borderColor: '#a855f7',
-                                            backgroundColor: 'rgba(168, 85, 247, 0.16)',
+                                            borderColor: '#ec4899',
+                                            backgroundColor: 'rgba(236, 72, 153, 0.16)',
                                             borderWidth: 2,
                                             fill: true,
                                             tension: 0.35,
@@ -337,22 +339,22 @@ export default function Console({ server }: { server: Server }) {
                     </div>
 
                     {/* Network Chart */}
-                    <div className="rounded-xl border border-cyan-400/20 bg-[#0b1118] p-4 shadow-[0_0_24px_#22d3ee05]">
+                    <div className="rounded-lg border border-cyan-700 bg-neutral-950 p-4">
                         <div className="mb-3 flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
-                                <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-400/30 bg-emerald-400/10 text-emerald-300">
+                                <span className="flex h-8 w-8 items-center justify-center rounded border border-cyan-500 bg-cyan-900/30 text-cyan-300">
                                     <ArrowDownUp size={16} />
                                 </span>
                                 <div>
-                                    <h3 className="text-xs font-semibold tracking-wider text-slate-200 uppercase">Red (E/S)</h3>
-                                    <p className="text-[11px] text-slate-500">
+                                    <h3 className="text-xs font-semibold tracking-wider text-cyan-400 uppercase">Red (E/S)</h3>
+                                    <p className="text-[11px] text-cyan-600">
                                         Total: ↓ {totalRxMib} MiB · ↑ {totalTxMib} MiB
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex flex-col items-end rounded-md border border-emerald-400/25 bg-[#080c10] px-2.5 py-1 font-mono text-[11px]">
+                            <div className="flex flex-col items-end rounded border border-cyan-500 bg-black px-2.5 py-1 text-[11px]">
                                 <span className="text-cyan-300">↓ {currentRxKib.toFixed(2)} KiB/s</span>
-                                <span className="text-emerald-300">↑ {currentTxKib.toFixed(2)} KiB/s</span>
+                                <span className="text-green-400">↑ {currentTxKib.toFixed(2)} KiB/s</span>
                             </div>
                         </div>
                         <div className="h-48 w-full">
@@ -374,8 +376,8 @@ export default function Console({ server }: { server: Server }) {
                                         {
                                             label: 'Salida (TX)',
                                             data: history.netTx,
-                                            borderColor: '#34d399',
-                                            backgroundColor: 'rgba(52, 211, 153, 0.12)',
+                                            borderColor: '#4ade80',
+                                            backgroundColor: 'rgba(74, 222, 128, 0.12)',
                                             borderWidth: 2,
                                             fill: true,
                                             tension: 0.35,
@@ -391,7 +393,7 @@ export default function Console({ server }: { server: Server }) {
                                         legend: {
                                             display: true,
                                             position: 'bottom' as const,
-                                            labels: { color: '#94a3b8', boxWidth: 10, font: { size: 10 } },
+                                            labels: { color: '#67e8f9', boxWidth: 10, font: { size: 10 } },
                                         },
                                     },
                                 }}
@@ -400,12 +402,12 @@ export default function Console({ server }: { server: Server }) {
                     </div>
                 </section>
 
-                <p className="text-xs text-slate-500">La consola y los gráficos se actualizan cada 2 segundos. Puedes usar comandos sin la barra inicial.</p>
+                <p className="text-xs text-cyan-600">La consola y los gráficos se actualizan cada 2 segundos. Puedes usar comandos sin la barra inicial.</p>
             </main>
         </ServerLayout>
     );
 }
 
 function Metric({ label, value, live = false }: { label: string; value: string; live?: boolean }) {
-    return <div className="flex min-w-0 items-center gap-2 rounded-lg border border-slate-800 bg-[#080c10] px-4 py-4 text-sm"><span className="shrink-0 text-slate-500">{label}</span><span className={`break-words ${live ? 'text-emerald-300' : 'text-slate-200'}`}>{value}</span></div>;
+    return <div className="flex min-w-0 items-center gap-2 rounded border border-cyan-800 bg-black px-4 py-4 text-sm"><span className="shrink-0 text-cyan-500">{label}</span><span className={`break-words ${live ? 'text-green-400 font-bold' : 'text-cyan-200'}`}>{value}</span></div>;
 }
