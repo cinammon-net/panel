@@ -17,9 +17,11 @@ class CheckNodesStatus extends Command
 
         foreach ($nodes as $node) {
             try {
-                $response = Http::timeout(5)->get("https://{$node->fqdn}/health");
+                $scheme = $node->scheme === 'http' ? 'http' : 'https';
+                $response = Http::withToken($node->daemon_token ?? '')
+                    ->timeout(5)->get("{$scheme}://{$node->fqdn}:{$node->daemon_listen}/api/system");
 
-                if ($response->successful() && $response->json('status') === 'healthy') {
+                if ($response->successful() && is_string($response->json('version'))) {
                     $node->online = true;  
                 } else {
                     $node->online = false; 
