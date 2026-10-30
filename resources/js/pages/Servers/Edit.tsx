@@ -41,7 +41,7 @@ export default function CreateServer() {
         externalId: initialServer.external_id || '',
         nodeId: initialServer.node_id || '',
         ownerId: initialServer.owner_id || '',
-        primaryAllocationId: initialServer.primary_allocation || '',
+        primaryAllocationId: initialServer.allocation_id || '',
         additionalAllocationIds: initialServer.additional_allocation_ids || [],
         description: initialServer.description || '',
         egg: initialServer.egg_id || '',
