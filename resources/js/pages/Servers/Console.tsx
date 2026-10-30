@@ -1,11 +1,11 @@
-import AppLayout from '@/layouts/app-layout';
-import { Head, Link } from '@inertiajs/react';
+import ServerLayout from '@/layouts/server-layout';
+import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import { Copy, Play, RotateCw, Send, Square, Terminal } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 
-type Server = { id: number; name: string; address: string; egg: string; memory: number; minecraft: boolean; discord_bot?: boolean };
-type Snapshot = { state: string; installed: boolean; logs: string; eula_accepted: boolean; bot_status?: { connected: boolean; configured: boolean; tag?: string; application_id?: string; message?: string } | null; utilization?: { memory_bytes?: number; cpu_absolute?: number } };
+type Server = { id: number; name: string; address: string; egg: string; memory: number; disk: number; cpu: number; minecraft: boolean; discord_bot?: boolean };
+type Snapshot = { state: string; installed: boolean; logs: string; eula_accepted: boolean; bot_status?: { connected: boolean; configured: boolean; tag?: string; application_id?: string; message?: string } | null; utilization?: { memory_bytes?: number; cpu_absolute?: number; disk_bytes?: number } };
 const states: Record<string, string> = { offline: 'Detenido', starting: 'Iniciando', running: 'En línea', stopping: 'Deteniendo' };
 
 export default function Console({ server }: { server: Server }) {
@@ -57,22 +57,24 @@ export default function Console({ server }: { server: Server }) {
     const running = snapshot?.state === 'running';
 
     return (
-        <AppLayout breadcrumbs={[{ title: 'Servers', href: '/servers' }, { title: server.name, href: `${base}/console` }]}>
+        <ServerLayout server={server} section="console">
             <Head title={`${server.name} · Consola`} />
             <main className="min-h-screen space-y-6 bg-[#080c10] p-6 text-slate-100 md:p-8">
-                <nav aria-label="Secciones del servidor" className="flex gap-2 border-b border-slate-800 pb-4"><Link href={`${base}/console`} className="rounded-lg bg-cyan-400/10 px-4 py-2 text-sm font-semibold text-cyan-300" aria-current="page">Consola</Link><Link href={`${base}/files`} className="rounded-lg px-4 py-2 text-sm text-slate-400 hover:bg-slate-800 hover:text-white">Archivos</Link></nav>
-                <header className="flex flex-wrap items-start justify-between gap-5">
-                    <div><p className="mb-2 flex items-center gap-2 text-xs font-semibold tracking-widest text-cyan-400"><Terminal size={15} /> CONSOLA DEL SERVIDOR</p>
-                        <h1 className="text-2xl font-semibold">{server.name}</h1><p className="mt-2 text-sm text-slate-400">{server.egg} · {server.memory} MB de RAM</p></div>
-                    <span role="status" className={`rounded-full border px-3 py-1.5 text-sm ${running ? 'border-emerald-700 bg-emerald-950 text-emerald-300' : 'border-slate-700 bg-slate-900 text-slate-300'}`}>{server.discord_bot && running ? 'Proceso en marcha' : snapshot ? states[snapshot.state] || snapshot.state : 'Conectando…'}</span>
-                </header>
-                <section className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-800 bg-[#101820] p-4">
-                    {server.discord_bot ? <div><p className="mb-1 text-xs text-slate-400">Alojamiento del bot</p><p className="text-sm text-cyan-300">Conexión saliente a Discord · Sin puertos públicos</p></div> : <div><p className="mb-1 text-xs text-slate-400">Dirección para Minecraft Java</p><button className="flex items-center gap-3 font-mono text-cyan-300" onClick={async () => { try { await navigator.clipboard.writeText(server.address); setNotice('Dirección copiada.'); } catch { setError('No se pudo copiar la dirección.'); } }}>{server.address}<Copy size={14} /></button></div>}
-                    <div className="flex gap-2">
-                        <button disabled={!ready || snapshot?.state !== 'offline' || needsEula} onClick={() => void action('power', { action: 'start' })} className="flex items-center gap-2 rounded-lg bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-40"><Play size={15} /> Iniciar</button>
-                        <button disabled={!ready || !running} onClick={() => void action('power', { action: 'restart' })} className="flex items-center gap-2 rounded-lg border border-slate-600 px-3 py-2 text-sm disabled:opacity-40"><RotateCw size={15} /> Reiniciar</button>
-                        <button disabled={!ready || !['running', 'starting'].includes(snapshot?.state || '')} onClick={() => void action('power', { action: 'stop' })} className="flex items-center gap-2 rounded-lg border border-red-900 px-3 py-2 text-sm text-red-300 disabled:opacity-40"><Square size={15} /> Detener</button>
+                <header className="flex flex-wrap items-center justify-between gap-5">
+                    <h1 className="text-3xl font-semibold tracking-tight">Consola</h1>
+                    <div className="flex flex-wrap gap-2">
+                        <button disabled={!ready || snapshot?.state !== 'offline' || needsEula} onClick={() => void action('power', { action: 'start' })} className="flex items-center gap-2 rounded-lg border border-cyan-300 bg-cyan-400 px-4 py-2.5 text-sm font-semibold text-slate-950 shadow-[0_0_20px_#22d3ee20] disabled:opacity-40"><Play size={18} /> Iniciar</button>
+                        <button disabled={!ready || !running} onClick={() => void action('power', { action: 'restart' })} className="flex items-center gap-2 rounded-lg border border-cyan-400/25 bg-cyan-400/5 px-4 py-2.5 text-sm text-cyan-100 disabled:opacity-40"><RotateCw size={18} /> Reiniciar</button>
+                        <button disabled={!ready || !['running', 'starting'].includes(snapshot?.state || '')} onClick={() => void action('power', { action: 'stop' })} className="flex items-center gap-2 rounded-lg border border-red-500/40 bg-red-500/15 px-4 py-2.5 text-sm text-red-300 disabled:opacity-40"><Square size={18} /> Detener</button>
                     </div>
+                </header>
+                <section aria-label="Estadísticas del servidor" className="grid gap-4 rounded-xl border border-cyan-400/20 bg-[#0b1118] p-4 shadow-[0_0_24px_#22d3ee05] sm:grid-cols-2 xl:grid-cols-3">
+                    <Metric label="Nombre" value={server.name} />
+                    <Metric label="Estado" value={snapshot ? states[snapshot.state] || snapshot.state : 'Conectando…'} live={running} />
+                    <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-[#080c10] px-4 py-4 text-sm"><span className="text-slate-500">Dirección</span>{server.discord_bot ? <span>Conexión saliente</span> : <button className="flex min-w-0 items-center gap-2 break-all text-cyan-200" onClick={async () => { try { await navigator.clipboard.writeText(server.address); setNotice('Dirección copiada.'); } catch { setError('No se pudo copiar la dirección.'); } }}>{server.address}<Copy size={13} className="shrink-0" /></button>}</div>
+                    <Metric label="CPU" value={`${snapshot?.utilization?.cpu_absolute?.toFixed(2) ?? '—'} % / ${server.cpu || '∞'}${server.cpu ? ' %' : ''}`} />
+                    <Metric label="Memoria" value={`${snapshot?.utilization?.memory_bytes !== undefined ? (snapshot.utilization.memory_bytes / 1048576).toFixed(1) : '—'} MiB / ${server.memory || '∞'}${server.memory ? ' MiB' : ''}`} />
+                    <Metric label="Almacenamiento" value={`${snapshot?.utilization?.disk_bytes !== undefined ? (snapshot.utilization.disk_bytes / 1073741824).toFixed(2) : '—'} GiB / ${server.disk ? (server.disk / 1024).toFixed(1) + ' GiB' : '∞'}`} />
                 </section>
                 {server.discord_bot && <section className="space-y-4 rounded-xl border border-slate-800 bg-[#101820] p-5">
                     <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold">Conexión con Discord</h2><span className={snapshot?.bot_status?.connected ? 'text-sm text-emerald-300' : 'text-sm text-amber-300'}>{snapshot?.bot_status?.connected ? `Conectado · ${snapshot.bot_status.tag || 'Cinammon'}` : 'Discord desconectado'}</span></div>
@@ -94,11 +96,15 @@ export default function Console({ server }: { server: Server }) {
                 </section>}
                 <section className="overflow-hidden rounded-xl border border-slate-800 bg-[#05090d]">
                     <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3"><h2 className="flex items-center gap-2 text-sm font-semibold"><Terminal size={16} className="text-cyan-400" /> Consola</h2><label className="flex items-center gap-2 text-xs text-slate-400"><input type="checkbox" checked={follow} onChange={event => setFollow(event.target.checked)} />Seguir logs</label></div>
-                    <pre ref={logRef} aria-label="Logs del servidor" className="h-[440px] overflow-auto p-4 font-mono text-xs leading-6 whitespace-pre-wrap text-slate-300">{snapshot?.logs || (snapshot?.installed ? 'Esperando salida del servidor…' : 'Instalando el servidor…')}</pre>
+                    <pre ref={logRef} aria-label="Logs del servidor" className="h-[max(380px,calc(100vh-370px))] overflow-auto p-4 font-mono text-xs leading-6 whitespace-pre-wrap text-slate-300">{snapshot?.logs || (snapshot?.installed ? 'Esperando salida del servidor…' : 'Instalando el servidor…')}</pre>
                     <form onSubmit={sendCommand} className="flex gap-3 border-t border-slate-800 p-3"><span className="self-center font-mono text-cyan-400">&gt;</span><input aria-label="Comando de consola" value={command} onChange={event => setCommand(event.target.value)} placeholder={server.discord_bot ? 'Comandos de proceso: status, test, stop' : 'Escribe un comando, por ejemplo: list'} disabled={!running || busy} className="min-w-0 flex-1 bg-transparent py-2 font-mono text-sm outline-none placeholder:text-slate-600 disabled:opacity-50" autoComplete="off" /><button type="submit" disabled={!running || busy || !command.trim()} className="flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm text-cyan-300 disabled:opacity-40"><Send size={15} />Enviar</button></form>
                 </section>
                 <p className="text-xs text-slate-500">La consola se actualiza cada 2 segundos. Puedes usar comandos sin la barra inicial.</p>
             </main>
-        </AppLayout>
+        </ServerLayout>
     );
+}
+
+function Metric({ label, value, live = false }: { label: string; value: string; live?: boolean }) {
+    return <div className="flex min-w-0 items-center gap-2 rounded-lg border border-slate-800 bg-[#080c10] px-4 py-4 text-sm"><span className="shrink-0 text-slate-500">{label}</span><span className={`break-words ${live ? 'text-emerald-300' : 'text-slate-200'}`}>{value}</span></div>;
 }

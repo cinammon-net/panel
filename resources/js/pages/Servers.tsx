@@ -238,7 +238,7 @@ export default function Servers() {
                                                 <td className="px-4 py-2">{item.database ?? '-'}</td>
                                                 <td className="px-4 py-2 text-right">
                                                     <div className="flex justify-end gap-3" onClick={(e) => e.stopPropagation()}>
-                                                        <button title="Console" onClick={() => router.visit(`/servers/${item.id}/console`)} className="text-cyan-300 hover:text-cyan-100">Console</button>
+                                                        <button title="Consola" onClick={() => router.visit(`/servers/${item.id}/console`)} className="text-cyan-300 hover:text-cyan-100">Consola</button>
                                                         <button title="Edit" onClick={() => router.visit(`/servers/${item.id}/edit`)} className="text-cyan-300 hover:text-cyan-100">
                                                             <Pencil className="h-4 w-4" />
                                                         </button>
@@ -287,7 +287,7 @@ export default function Servers() {
                                                             <td className="px-4 py-2">{item.database ?? '-'}</td>
                                                             <td className="px-4 py-2 text-right">
                                                                 <div className="flex justify-end gap-3" onClick={(e) => e.stopPropagation()}>
-                                                                    <button title="Console" onClick={() => router.visit(`/servers/${item.id}/console`)} className="text-cyan-300 hover:text-cyan-100">Console</button>
+                                                                    <button title="Consola" onClick={() => router.visit(`/servers/${item.id}/console`)} className="text-cyan-300 hover:text-cyan-100">Consola</button>
                                                         <button title="Edit" onClick={() => router.visit(`/servers/${item.id}/edit`)} className="text-cyan-300 hover:text-cyan-100">
                                                                         <Pencil className="h-4 w-4" />
                                                                     </button>
