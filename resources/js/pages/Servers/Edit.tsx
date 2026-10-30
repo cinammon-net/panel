@@ -31,7 +31,15 @@ export default function CreateServer() {
         dockerImages?: Record<string, string>;
     };
 
-    const [activeTab, setActiveTab] = useState('info');
+    const [activeTab, setActiveTab] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const tabParam = new URLSearchParams(window.location.search).get('tab');
+            if (tabParam && tabs.some((t) => t.id === tabParam)) {
+                return tabParam;
+            }
+        }
+        return 'info';
+    });
 
     // Estado general de servidor
     const { server: initialServer } = usePage().props as any;
@@ -886,8 +894,14 @@ export default function CreateServer() {
                                                 </thead>
                                                 <tbody>
                                                     {server.databases.map((db: any, i: number) => (
-                                                        <tr key={db.id ?? i} className="border-b border-cyan-800/60 hover:bg-cyan-950/50">
-                                                            <td className="px-4 py-3 font-mono font-semibold text-white">{db.name}</td>
+                                                        <tr
+                                                            key={db.id ?? i}
+                                                            onClick={() => router.visit(`/database?open=${encodeURIComponent(db.name)}`)}
+                                                            className="cursor-pointer border-b border-cyan-800/60 hover:bg-cyan-950/50"
+                                                        >
+                                                            <td className="px-4 py-3 font-mono font-semibold text-cyan-300 underline decoration-cyan-500/40 underline-offset-4">
+                                                                {db.name}
+                                                            </td>
                                                             <td className="px-4 py-3 font-mono text-cyan-300">{db.user}</td>
                                                             <td className="px-4 py-3 font-mono text-cyan-400">
                                                                 {db.host}:{db.port}
@@ -895,10 +909,21 @@ export default function CreateServer() {
                                                             <td className="px-4 py-3 font-mono text-xs text-pink-400">
                                                                 {db.password || 'cnm_db_secret'}
                                                             </td>
-                                                            <td className="px-4 py-3 text-right">
+                                                            <td className="flex justify-end gap-2 px-4 py-3 text-right">
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => {
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        router.visit(`/database?open=${encodeURIComponent(db.name)}`);
+                                                                    }}
+                                                                    className="rounded border border-cyan-500/50 bg-cyan-500/15 px-3 py-1 text-xs text-cyan-300 hover:bg-cyan-500 hover:text-black"
+                                                                >
+                                                                    Archivos / Tablas
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
                                                                         router.delete(
                                                                             `/servers/${initialServer.id}/databases/${db.id ?? i}`,
                                                                             {

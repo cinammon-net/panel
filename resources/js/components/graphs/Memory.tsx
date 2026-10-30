@@ -1,23 +1,26 @@
 import axios from 'axios';
-import { ArcElement, CategoryScale, Chart as ChartJS, Filler, Legend, LinearScale, Title, Tooltip } from 'chart.js';
+import { ArcElement, CategoryScale, Chart as ChartJS, Filler, Legend, LinearScale, LineElement, PointElement, Title, Tooltip } from 'chart.js';
 import React, { useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 
-ChartJS.register(CategoryScale, LinearScale, ArcElement, Title, Tooltip, Legend, Filler);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Title, Tooltip, Legend, Filler);
 
 interface MemoryProps {
+    id?: number | string;
     setMemoryData?: (data: number[]) => void;
     [key: string]: unknown;
 }
 
-const Memory: React.FC<MemoryProps> = ({ setMemoryData }) => {
+const Memory: React.FC<MemoryProps> = ({ id, setMemoryData }) => {
     const [memoryData, setMemoryDataState] = React.useState<number[]>([]);
     const [timeLabels, setTimeLabels] = React.useState<string[]>([]);
 
     useEffect(() => {
         const fetchMemoryData = async () => {
             try {
-                const response = await axios.get('/nodes/memory-data');
+                const response = await axios.get('/nodes/memory-data', {
+                    params: id ? { node_id: id } : {},
+                });
                 setMemoryDataState(response.data.memory_usage || []);
                 setMemoryData?.(response.data.memory_usage || []);
                 setTimeLabels(response.data.time_labels || []);
@@ -27,7 +30,9 @@ const Memory: React.FC<MemoryProps> = ({ setMemoryData }) => {
         };
 
         fetchMemoryData();
-    }, [setMemoryData]);
+        const interval = setInterval(fetchMemoryData, 5000);
+        return () => clearInterval(interval);
+    }, [id, setMemoryData]);
 
     const data = {
         labels: timeLabels,
