@@ -167,10 +167,41 @@
     select,
     textarea {
         font-family: var(--app-font, 'Orbitron'), 'Orbitron', sans-serif !important;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
     }
 
     body {
         @apply bg-background text-foreground;
+        line-height: 1.55;
+        letter-spacing: 0.015em;
+    }
+
+    /* Calibración de confort visual para evitar fatiga ocular en modo oscuro */
+    .dark body,
+    .dark .bg-black,
+    .dark .dark\:bg-black {
+        background-color: #090d16 !important;
+    }
+
+    .dark .bg-neutral-950,
+    .dark .dark\:bg-neutral-950 {
+        background-color: #0f1523 !important;
+    }
+
+    .dark .text-white,
+    .dark .dark\:text-white {
+        color: #e2e8f0 !important;
+    }
+
+    /* Suavizado de brillos neón intensos para que la vista descanse */
+    .dark [class*='drop-shadow-'] {
+        filter: none !important;
+    }
+
+    /* Modo Descanso Visual opcional activable desde la cabecera */
+    html.eye-comfort {
+        filter: sepia(0.07) saturate(0.84) brightness(0.95);
     }
 }
 @layer utilities {
