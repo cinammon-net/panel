@@ -36,8 +36,24 @@ interface WebhookItem {
     created_at: string;
 }
 
+interface WebhookDelivery {
+    id: string;
+    webhook_id: number;
+    webhook_name: string;
+    url: string;
+    method: string;
+    format: string;
+    event: string;
+    status_code: number;
+    signature: string;
+    payload: Record<string, unknown>;
+    response_preview?: string;
+    sent_at: string;
+}
+
 interface Props {
     webhooks: WebhookItem[];
+    deliveries?: WebhookDelivery[];
 }
 
 const EVENT_GROUPS = [
@@ -75,9 +91,10 @@ const EVENT_GROUPS = [
     },
 ];
 
-export default function Webhooks({ webhooks = [] }: Props) {
+export default function Webhooks({ webhooks = [], deliveries = [] }: Props) {
     const [selectedWebhook, setSelectedWebhook] = useState<WebhookItem | null>(null);
     const [showSecret, setShowSecret] = useState(false);
+    const [selectedDelivery, setSelectedDelivery] = useState<WebhookDelivery | null>(null);
 
     // Estado para crear un nuevo webhook
     const [name, setName] = useState('');
@@ -694,6 +711,90 @@ export default function Webhooks({ webhooks = [] }: Props) {
                                             ))}
                                         </tbody>
                                     </table>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Registro de Entregas de Prueba (Dónde y qué se ha enviado) */}
+                        <div className="rounded-xl border border-orange-500/35 bg-neutral-950 p-5">
+                            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                                <div>
+                                    <h2 className="text-base font-semibold text-orange-400">
+                                        Registro de Envíos de Prueba (Historial de Entregas HTTP)
+                                    </h2>
+                                    <p className="text-xs text-slate-400">
+                                        Cada vez que pulsas &quot;Probar&quot;, el panel envía una petición HTTP real a la <strong>Endpoint URL</strong> configurada en ese Webhook (Discord, Slack, Webhook.site o tu API) y registra aquí el resultado.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {deliveries.length === 0 ? (
+                                <p className="rounded-lg border border-neutral-800 bg-neutral-900/50 py-6 text-center text-xs text-slate-400">
+                                    Aún no has enviado ningún webhook de prueba en esta sesión. Haz clic en el botón <strong>Probar</strong> de cualquier Webhook de arriba para ver aquí la petición enviada y su URL de destino.
+                                </p>
+                            ) : (
+                                <div className="space-y-3">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left text-sm">
+                                            <thead className="border-b border-orange-500/25 text-xs uppercase text-orange-300">
+                                                <tr>
+                                                    <th className="px-4 py-2.5">Hora</th>
+                                                    <th className="px-4 py-2.5">Webhook</th>
+                                                    <th className="px-4 py-2.5">Enviado a (Endpoint URL)</th>
+                                                    <th className="px-4 py-2.5">Evento</th>
+                                                    <th className="px-4 py-2.5">Respuesta</th>
+                                                    <th className="px-4 py-2.5 text-right">Payload</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-neutral-800">
+                                                {deliveries.map((d) => (
+                                                    <tr key={d.id} className="transition hover:bg-orange-500/10">
+                                                        <td className="whitespace-nowrap px-4 py-2.5 font-mono text-xs text-slate-400">
+                                                            {d.sent_at}
+                                                        </td>
+                                                        <td className="px-4 py-2.5 font-semibold text-slate-100">{d.webhook_name}</td>
+                                                        <td className="max-w-xs truncate px-4 py-2.5 font-mono text-xs text-cyan-300" title={d.url}>
+                                                            <span className="mr-1.5 rounded bg-cyan-500/15 px-1.5 py-0.5 text-[10px] font-bold text-cyan-300">
+                                                                {d.method}
+                                                            </span>
+                                                            {d.url}
+                                                        </td>
+                                                        <td className="px-4 py-2.5 font-mono text-xs text-orange-300">{d.event}</td>
+                                                        <td className="px-4 py-2.5 font-mono text-xs text-emerald-400">
+                                                            HTTP {d.status_code}
+                                                        </td>
+                                                        <td className="px-4 py-2.5 text-right">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    setSelectedDelivery(selectedDelivery?.id === d.id ? null : d)
+                                                                }
+                                                                className="rounded border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-1 text-xs text-cyan-300 hover:bg-cyan-500 hover:text-black"
+                                                            >
+                                                                {selectedDelivery?.id === d.id ? 'Ocultar JSON' : 'Ver Payload Enviado'}
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {selectedDelivery && (
+                                        <div className="rounded-lg border border-cyan-500/35 bg-neutral-900/90 p-4 font-mono text-xs">
+                                            <div className="mb-2 flex flex-wrap items-center justify-between gap-2 border-b border-neutral-800 pb-2">
+                                                <span className="text-cyan-300">
+                                                    Destino: <strong>{selectedDelivery.method} {selectedDelivery.url}</strong>
+                                                </span>
+                                                <span className="text-slate-400">
+                                                    Firma: <code className="text-emerald-300">{selectedDelivery.signature}</code>
+                                                </span>
+                                            </div>
+                                            <pre className="overflow-x-auto leading-relaxed text-slate-200">
+                                                {JSON.stringify(selectedDelivery.payload, null, 2)}
+                                            </pre>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

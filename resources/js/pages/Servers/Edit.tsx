@@ -869,7 +869,7 @@ export default function CreateServer() {
                                                 <option value="mysql">MySQL 8.0 (:3306)</option>
                                                 <option value="mariadb">MariaDB 11.4 (:3306)</option>
                                                 <option value="pgsql">PostgreSQL 16 (:5432)</option>
-                                                <option value="sqlite">SQLite 3 (local)</option>
+                                                <option value="sqlite">SQLite 3 (Integrado)</option>
                                                 <option value="mongodb">MongoDB 7.0 (:27017)</option>
                                                 <option value="redis">Redis 7.2 (:6379)</option>
                                                 <option value="sqlsrv">SQL Server (:1433)</option>

@@ -49,9 +49,9 @@ const DB_ENGINES: Record<DbDriver, DatabaseEngineSpec> = {
         label: 'SQLite 3',
         shortLabel: 'SQLite',
         scheme: 'sqlite3://',
-        defaultHost: 'database/local.sqlite',
+        defaultHost: 'database/cinammon.sqlite',
         defaultPort: 0,
-        defaultUser: 'local',
+        defaultUser: 'db_admin',
         badgeClass: 'border-cyan-500/40 bg-cyan-500/10 text-cyan-300',
         entitySingular: 'Tabla SQL',
         entityPlural: 'Tablas SQL',
@@ -566,7 +566,7 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                 <p className="mt-1 text-xs text-neutral-500 dark:text-slate-400">
                                     {selectedDb.subtitle} · Motor activo: {activeSpec.label}
                                     {selectedDb.driver === 'sqlite' && activeSqliteFile
-                                        ? ` (${activeSqliteFile.name} · ${activeSqliteFile.size_kb} KB)`
+                                        ? ` (${activeSqliteFile.size_kb} KB)`
                                         : ''}{' '}
                                     · {dbTables.length} {activeSpec.entityPlural.toLowerCase()} · {totalRecords} registros
                                 </p>
