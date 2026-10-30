@@ -36,6 +36,8 @@ export default function CreateServer() {
     // Estado general de servidor
     const { server: initialServer } = usePage().props as any;
 
+    const initialEggObj = eggs.find((e: any) => Number(e.id) === Number(initialServer.egg_id));
+
     const [server, setServer] = useState<any>({
         name: initialServer.name || '',
         externalId: initialServer.external_id || '',
@@ -48,17 +50,21 @@ export default function CreateServer() {
         runInstallScript: initialServer.run_install_script ?? true,
         startAfterInstall: initialServer.start_after_install ?? true,
         startupCommand: initialServer.startup || '',
-        cpuLimit: initialServer.cpu_limit === 0 ? 'unlimited' : 'custom',
-        memoryLimit: initialServer.memory_limit === 0 ? 'unlimited' : 'custom',
-        diskLimit: initialServer.disk_limit === 0 ? 'unlimited' : 'custom',
+        cpuLimit: (initialServer.cpu ?? initialServer.cpu_limit ?? 0) === 0 ? 'unlimited' : 'custom',
+        memoryLimit: (initialServer.memory ?? initialServer.memory_limit ?? 0) === 0 ? 'unlimited' : 'custom',
+        diskLimit: (initialServer.disk ?? initialServer.disk_limit ?? 0) === 0 ? 'unlimited' : 'custom',
         cpuPinning: initialServer.cpu_pinning ?? false,
         swapMemory: initialServer.swap_memory || 'unlimited',
         oomKiller: initialServer.oom_killer ?? false,
-        backups: initialServer.backups || 0,
+        backups: initialServer.backup_limit ?? initialServer.backups ?? 0,
+        database_limit: initialServer.database_limit ?? 0,
+        databases: Array.isArray(initialServer.databases) ? initialServer.databases : [],
+        allocations: initialServer.allocation_limit ?? initialServer.allocations ?? 0,
         dockerImage: initialServer.image || '',
+        dockerImageOptions: initialEggObj?.docker_images || {},
         installScript: initialServer.install_script || '',
         uuid: initialServer.uuid || '',
-        short_uuid: initialServer.short_uuid || '',
+        short_uuid: initialServer.uuid_short || initialServer.short_uuid || '',
     });
 
 
@@ -170,7 +176,7 @@ export default function CreateServer() {
                             Delete
                         </button>
                         <button
-                            onClick={handleSubmit}
+                            onClick={() => router.visit(`/servers/${initialServer.id}/console`)}
                             className="rounded border border-cyan-400 bg-cyan-100/50 px-4 py-1.5 text-sm text-cyan-800 transition hover:bg-cyan-200/70 dark:border-cyan-500 dark:bg-cyan-900/30 dark:text-cyan-300 dark:hover:bg-cyan-700/50"
                         >
                             <Terminal className="inline-block mr-1 h-4 w-4" />
@@ -630,7 +636,11 @@ export default function CreateServer() {
                                     <fieldset className="border border-cyan-700 rounded-lg p-4 shadow-sm">
                                         <legend className="text-lg font-bold text-cyan-400 mb-2">Feature Limits</legend>
                                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                                            {['Allocations', 'Databases', 'Backups'].map((label, i) => (
+                                            {[
+                                                { label: 'Allocations', key: 'allocations' },
+                                                { label: 'Databases', key: 'database_limit' },
+                                                { label: 'Backups', key: 'backups' },
+                                            ].map(({ label, key }) => (
                                                 <div key={label}>
                                                     <label className="mb-1 block text-sm font-semibold">
                                                         {label} <span className="text-red-400">*</span>
@@ -639,9 +649,9 @@ export default function CreateServer() {
                                                         type="number"
                                                         min={0}
                                                         className="w-full rounded border border-cyan-600 bg-black px-4 py-2 text-sm text-cyan-200 focus:outline-none"
-                                                        value={server[label.toLowerCase()] ?? 0}
+                                                        value={server[key] ?? 0}
                                                         onChange={(e) =>
-                                                            setServer({ ...server, [label.toLowerCase()]: parseInt(e.target.value) || 0 })
+                                                            setServer({ ...server, [key]: parseInt(e.target.value) || 0 })
                                                         }
                                                     />
                                                 </div>
@@ -823,27 +833,94 @@ export default function CreateServer() {
                             )}
 
                             {activeTab === 'databases' && (
-                                <div className="rounded border border-cyan-600 bg-black/90 p-4">
-                                    <h2 className="mb-4 text-lg font-semibold text-cyan-400">Databases</h2>
+                                <div className="space-y-6 rounded border border-cyan-600 bg-black/90 p-5">
+                                    <div className="flex flex-wrap items-center justify-between gap-4">
+                                        <div>
+                                            <h2 className="text-lg font-semibold text-cyan-400">Server Databases</h2>
+                                            <p className="text-xs text-cyan-600">
+                                                Bases de datos MySQL/MariaDB asignadas a este servidor ({server.databases?.length || 0} activas)
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const dbName = `s${initialServer.id}_${Math.random().toString(36).substring(2, 7)}`;
+                                                const dbUser = `u${initialServer.id}_${Math.random().toString(36).substring(2, 6)}`;
+                                                router.post(
+                                                    `/servers/${initialServer.id}/databases`,
+                                                    {
+                                                        name: dbName,
+                                                        user: dbUser,
+                                                        host: '127.0.0.1',
+                                                        port: 3306,
+                                                    },
+                                                    {
+                                                        preserveScroll: true,
+                                                        onSuccess: (page: any) => {
+                                                            const updated = page?.props?.server?.databases;
+                                                            if (Array.isArray(updated)) {
+                                                                setServer((prev: any) => ({ ...prev, databases: updated }));
+                                                            }
+                                                            toast.success('Base de datos creada correctamente');
+                                                        },
+                                                    },
+                                                );
+                                            }}
+                                            className="rounded border border-cyan-500 bg-cyan-500/20 px-4 py-2 text-xs font-bold text-cyan-300 transition hover:bg-cyan-500 hover:text-black"
+                                        >
+                                            + New Database
+                                        </button>
+                                    </div>
 
-                                    {server.databases && server.databases.length > 0 ? (
+                                    {Array.isArray(server.databases) && server.databases.length > 0 ? (
                                         <div className="overflow-x-auto">
                                             <table className="w-full table-auto text-left text-sm text-cyan-300">
-                                                <thead className="border-b border-cyan-600">
+                                                <thead className="border-b border-cyan-600 text-xs uppercase text-cyan-400">
                                                     <tr>
-                                                        <th className="px-4 py-2">Name</th>
-                                                        <th className="px-4 py-2">User</th>
-                                                        <th className="px-4 py-2">Host</th>
-                                                        <th className="px-4 py-2">Port</th>
+                                                        <th className="px-4 py-2">Database Name</th>
+                                                        <th className="px-4 py-2">Username</th>
+                                                        <th className="px-4 py-2">Endpoint (Host:Port)</th>
+                                                        <th className="px-4 py-2">Password</th>
+                                                        <th className="px-4 py-2 text-right">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {server.databases.map((db: any, i: number) => (
-                                                        <tr key={i} className="border-b border-cyan-800 hover:bg-cyan-950">
-                                                            <td className="px-4 py-2">{db.name}</td>
-                                                            <td className="px-4 py-2">{db.user}</td>
-                                                            <td className="px-4 py-2">{db.host}</td>
-                                                            <td className="px-4 py-2">{db.port}</td>
+                                                        <tr key={db.id ?? i} className="border-b border-cyan-800/60 hover:bg-cyan-950/50">
+                                                            <td className="px-4 py-3 font-mono font-semibold text-white">{db.name}</td>
+                                                            <td className="px-4 py-3 font-mono text-cyan-300">{db.user}</td>
+                                                            <td className="px-4 py-3 font-mono text-cyan-400">
+                                                                {db.host}:{db.port}
+                                                            </td>
+                                                            <td className="px-4 py-3 font-mono text-xs text-pink-400">
+                                                                {db.password || 'cnm_db_secret'}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        router.delete(
+                                                                            `/servers/${initialServer.id}/databases/${db.id ?? i}`,
+                                                                            {
+                                                                                preserveScroll: true,
+                                                                                onSuccess: (page: any) => {
+                                                                                    const updated = page?.props?.server?.databases;
+                                                                                    if (Array.isArray(updated)) {
+                                                                                        setServer((prev: any) => ({
+                                                                                            ...prev,
+                                                                                            databases: updated,
+                                                                                        }));
+                                                                                    }
+                                                                                    toast.success('Base de datos eliminada');
+                                                                                },
+                                                                            },
+                                                                        );
+                                                                    }}
+                                                                    className="rounded bg-red-600/20 px-3 py-1 text-xs text-red-400 hover:bg-red-600 hover:text-white"
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            </td>
                                                         </tr>
                                                     ))}
                                                 </tbody>

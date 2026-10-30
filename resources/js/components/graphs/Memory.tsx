@@ -6,7 +6,8 @@ import { Line } from 'react-chartjs-2';
 ChartJS.register(CategoryScale, LinearScale, ArcElement, Title, Tooltip, Legend, Filler);
 
 interface MemoryProps {
-    setMemoryData: (data: number[]) => void;
+    setMemoryData?: (data: number[]) => void;
+    [key: string]: unknown;
 }
 
 const Memory: React.FC<MemoryProps> = ({ setMemoryData }) => {
@@ -16,10 +17,10 @@ const Memory: React.FC<MemoryProps> = ({ setMemoryData }) => {
     useEffect(() => {
         const fetchMemoryData = async () => {
             try {
-                const response = await axios.get('/memory-data');
-                setMemoryDataState(response.data.memory_usage);
-                setMemoryData(response.data.memory_usage);
-                setTimeLabels(response.data.time_labels);
+                const response = await axios.get('/nodes/memory-data');
+                setMemoryDataState(response.data.memory_usage || []);
+                setMemoryData?.(response.data.memory_usage || []);
+                setTimeLabels(response.data.time_labels || []);
             } catch (error) {
                 console.error('Error fetching memory data:', error);
             }

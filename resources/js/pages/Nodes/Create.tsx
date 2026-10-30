@@ -5,10 +5,14 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 
-// Función para validar dominio tipo FQDN
+// Función para validar dominio tipo FQDN, localhost o IPv4
 function validateDomain(domain: string): boolean {
+    const trimmed = domain.trim();
+    if (trimmed === 'localhost') return true;
+    const ipv4Regex = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+    if (ipv4Regex.test(trimmed)) return true;
     const fqdnRegex = /^(?!-)(?!.*--)([a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,}$/;
-    return fqdnRegex.test(domain.trim());
+    return fqdnRegex.test(trimmed);
 }
 
 export default function CreateNode() {
@@ -51,10 +55,17 @@ export default function CreateNode() {
     const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
 
     const validateAndFetchIp = async (domain: string) => {
-        const isValidFormat = validateDomain(domain);
+        const trimmed = domain.trim();
+        const isValidFormat = validateDomain(trimmed);
         if (!isValidFormat) {
             setDnsValid(false);
             setDnsIp('Invalid domain');
+            return;
+        }
+
+        if (trimmed === 'localhost' || /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/.test(trimmed)) {
+            setDnsIp(trimmed === 'localhost' ? '127.0.0.1' : trimmed);
+            setDnsValid(true);
             return;
         }
 
@@ -385,9 +396,19 @@ export default function CreateNode() {
                                         <div
                                             role="radio"
                                             aria-checked={sslMode === 'http'}
-                                            tabIndex={-1}
-                                            className="text-white-600 flex items-center gap-3 rounded border border-cyan-700 bg-cyan-800 px-4 py-2 dark:bg-cyan-900/40 dark:text-cyan-300 dark:hover:bg-cyan-700/60"
-                                            aria-disabled="true"
+                                            tabIndex={0}
+                                            onClick={() => setSslMode('http')}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    setSslMode('http');
+                                                }
+                                            }}
+                                            className={`flex cursor-pointer items-center gap-3 rounded border px-4 py-2 select-none ${
+                                                sslMode === 'http'
+                                                    ? 'border-green-500 bg-green-600 text-white dark:bg-green-700/80 dark:text-white dark:hover:bg-green-800'
+                                                    : 'text-white-600 border-cyan-700 bg-cyan-800 hover:bg-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300 dark:hover:bg-cyan-700/60'
+                                            }`}
                                         >
                                             <LockOpen size={18} />
                                             <span>HTTP</span>

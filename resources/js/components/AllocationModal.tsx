@@ -35,14 +35,20 @@ export default function AllocationModal({
             }
 
             try {
-                const dnsRes = await fetch(`https://dns.google/resolve?name=${fqdn}&type=A`);
-                const dnsData = await dnsRes.json();
-                resolved = dnsData.Answer?.find((a: any) => a.type === 1)?.data || null;
+                if (/^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/.test(fqdn)) {
+                    resolved = fqdn;
+                } else if (fqdn === 'localhost') {
+                    resolved = '127.0.0.1';
+                } else {
+                    const dnsRes = await fetch(`https://dns.google/resolve?name=${fqdn}&type=A`);
+                    const dnsData = await dnsRes.json();
+                    resolved = dnsData.Answer?.find((a: any) => a.type === 1)?.data || null;
+                }
             } catch {
                 resolved = null;
             }
 
-            const all = [...localIps, ...(resolved ? [resolved] : [])];
+            const all = ['127.0.0.1', ...localIps, ...(resolved ? [resolved] : [])];
             const unique = Array.from(new Set(all));
             setAvailableIps(unique);
 

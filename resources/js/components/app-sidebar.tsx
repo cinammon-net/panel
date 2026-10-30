@@ -47,8 +47,8 @@ const mainNavItems: NavItem[] = [
         icon: Settings,
         group: 'main',
         groupColor: 'text-purple-400',
-        roles: ['Admin'],
-        permissions: ['view_settings'],
+        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin'],
+        permissions: [],
     },
 
     {

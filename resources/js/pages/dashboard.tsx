@@ -41,8 +41,11 @@ export default function Dashboard() {
 
     useEffect(() => {
         fetch('/api/dashboard-version')
-            .then((res) => res.json())
-            .then((data) => setVersion(data.version));
+            .then((res) => (res.ok ? res.json() : { version: '1.0.0' }))
+            .then((data) => {
+                if (data?.version) setVersion(data.version);
+            })
+            .catch(() => setVersion('1.0.0'));
     }, []);
 
     return (

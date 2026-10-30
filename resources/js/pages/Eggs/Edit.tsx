@@ -314,7 +314,6 @@ export default function EditEgg() {
             <Head title={`Edit Egg: ${generalData.name}`}>
                 <meta name="description" content={`Edit the configuration for the Egg: ${generalData.name}`} />
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                <link rel="stylesheet" href="/css/app.css" />
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet" />
             </Head>
             <div className="min-h-screen bg-white p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
@@ -479,10 +478,8 @@ export default function EditEgg() {
                                     rows={3}
                                     className="w-full rounded border border-cyan-700 bg-[#1a1a1a] p-2 font-mono text-cyan-400 placeholder-cyan-600"
                                     placeholder="java -Xms128M -Xmx{{SERVER_MEMORY}} -jar server.jar"
-                                    value={generalData.startup}
+                                    value={generalData.startup || ''}
                                     onChange={(e) => handleGeneralChange('startup', e.target.value)}
-                                    readOnly={true}
-                                    onCopy={(e) => e.preventDefault()}
                                 />
                                 <p className="mt-1 text-xs text-cyan-500">
                                     The default startup command that should be used for new servers using this Egg.
@@ -506,7 +503,7 @@ export default function EditEgg() {
                                 </div>
                                 <div>
                                     <label className="mb-1 block text-sm font-semibold">Features</label>
-                                    <TagInput tags={generalData.tags} onChange={(newTags) => handleGeneralChange('tags', newTags)} />
+                                    <TagInput tags={generalData.features || []} onChange={(newFeatures) => handleGeneralChange('features', newFeatures)} />
                                 </div>
                                 <div>
                                     <label className="mb-1 block text-sm font-semibold">Force Outgoing IP</label>

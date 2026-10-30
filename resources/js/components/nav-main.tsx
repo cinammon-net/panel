@@ -8,9 +8,9 @@ import {
 import { Link, usePage } from '@inertiajs/react';
 import { LucideIcon } from 'lucide-react';
 
-type NavGroup = 'main' | 'servers' | 'users' | 'advanced' | 'extra';
+export type NavGroup = 'main' | 'servers' | 'users' | 'advanced' | 'extra';
 
-type NavItem = {
+export type NavItem = {
     title: string;
     href: string;
     icon: LucideIcon;

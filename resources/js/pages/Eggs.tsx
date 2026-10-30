@@ -438,34 +438,34 @@ export default function Eggs() {
                         </table>
 
                         {/* Pagination */}
-                        {eggs.links.length > 5 && (
+                        {eggs.links.length > 3 && (
                             <div className="mt-6 flex justify-center p-4">
-                                <ul className="max-h-60 overflow-y-auto">
-                                    {availableTags
-                                        .filter((tag) => tag.toLowerCase().includes(tagSearch.toLowerCase()))
-                                        .map((tag) => (
-                                            <li
-                                                key={tag}
+                                <ul className="flex flex-wrap gap-2 text-sm font-medium">
+                                    {eggs.links.map((link, i) => (
+                                        <li key={i}>
+                                            <button
+                                                disabled={!link.url}
                                                 onClick={() => {
-                                                    setSelectedTag(tag);
-                                                    setShowDropdown(false);
+                                                    if (!link.url) return;
+                                                    const url = new URL(link.url);
+                                                    const page = url.searchParams.get('page');
                                                     router.get(
                                                         '/eggs',
                                                         {
-                                                            ...filters,
-                                                            tag,
+                                                            page,
+                                                            search,
+                                                            sort: filters.sort,
+                                                            direction: filters.direction,
+                                                            per_page: filters.per_page,
                                                         },
-                                                        {
-                                                            preserveScroll: true,
-                                                            preserveState: true,
-                                                        },
+                                                        { preserveScroll: true, preserveState: true },
                                                     );
                                                 }}
-                                                className="cursor-pointer px-3 py-2 text-sm text-cyan-600 dark:text-cyan-400"
-                                            >
-                                                {tag}
-                                            </li>
-                                        ))}
+                                                dangerouslySetInnerHTML={{ __html: link.label }}
+                                                className={`rounded border px-3 py-1.5 text-xs transition ${link.active ? 'border-cyan-500 bg-cyan-500 text-white' : 'border-cyan-700 bg-black text-cyan-400 hover:bg-cyan-800/30 hover:text-white'} ${!link.url ? 'cursor-not-allowed opacity-40' : ''}`}
+                                            />
+                                        </li>
+                                    ))}
                                 </ul>
                             </div>
                         )}

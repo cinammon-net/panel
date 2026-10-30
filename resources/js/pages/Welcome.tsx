@@ -48,10 +48,11 @@ const CookieBanner: React.FC = () => {
 
 
 export default function WelcomePanel() {
-    const { auth, reviews, posts } = usePage<
+    const { auth, reviews, posts, galleryImages } = usePage<
         SharedData & {
             reviews: { comment: string; rating: number; user: { name: string } }[];
             posts: { id: number; title: string; content: string; picture?: string; created_at: string }[];
+            galleryImages?: string[];
         }
     >().props;
 
@@ -64,12 +65,16 @@ export default function WelcomePanel() {
         });
     }, []);
 
-    const [images] = useState<string[]>([
-        'https://www.cinammon.net/storage/gallery/Dashboard.png',
-        'https://www.cinammon.net/storage/gallery/Users.png',
-        'https://www.cinammon.net/storage/gallery/Nodes.png',
-        'https://www.cinammon.net/storage/gallery/Create%20Node.png',
-    ]);
+    const [images] = useState<string[]>(
+        galleryImages && galleryImages.length > 0
+            ? galleryImages
+            : [
+                  '/storage/gallery/Dashboard.png',
+                  '/storage/gallery/Users.png',
+                  '/storage/gallery/Nodes.png',
+                  '/storage/gallery/Create%20Node.png',
+              ],
+    );
 
     // Estado para manejar la imagen seleccionada para el modal
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
