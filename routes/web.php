@@ -191,6 +191,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/database', [AdvancedSectionController::class, 'database'])->name('database.index');
     Route::post('/database', [AdvancedSectionController::class, 'storeDatabaseHost'])->name('database.store');
+    Route::post('/database/query', [AdvancedSectionController::class, 'executeSqlQuery'])->name('database.query');
     Route::delete('/database/{id}', [AdvancedSectionController::class, 'destroyDatabaseHost'])->name('database.destroy');
 
     Route::get('/mounts', [AdvancedSectionController::class, 'mounts'])->name('mounts.index');
