@@ -159,4 +159,75 @@ class ServerRuntimeTest extends TestCase
         Http::assertNotSent(fn ($request) => str_contains($request->url(), '/files/contents'));
     }
 
+    public function test_file_manager_creates_folders_and_saves_editor_contents(): void
+    {
+        $server = $this->server();
+        Http::fake([
+            '*/files/list-directory*' => Http::response([
+                ['name' => 'server.properties', 'directory' => false, 'symlink' => false, 'size' => 20],
+            ]),
+            '*' => Http::response(null, 204),
+        ]);
+        $this->actingAs($server->owner)->postJson('/servers/'.$server->id.'/files/action', ['action' => 'mkdir', 'files' => [], 'name' => 'plugins-test'])->assertNoContent();
+        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/create-directory') && $request['name'] === 'plugins-test');
+        $this->postJson('/servers/'.$server->id.'/files/write', ['file' => 'server.properties', 'content' => 'motd=Cinammon'])->assertNoContent();
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/files/write?') && $request->body() === 'motd=Cinammon');
+        $this->postJson('/servers/'.$server->id.'/files/write', ['file' => 'server.properties', 'content' => '', 'create' => true])->assertStatus(409);
+        $this->postJson('/servers/'.$server->id.'/files/write', ['file' => 'nuevo.txt', 'content' => '', 'create' => true])->assertNoContent();
+    }
+
+    public function test_file_upload_and_binary_download_are_forwarded_without_corruption(): void
+    {
+        $server = $this->server();
+        $binary = "PK\x00\x01binary";
+        $uploads = [];
+        Http::fake(function ($request) use ($binary, &$uploads) {
+            if (str_contains($request->url(), '/files/list-directory')) return Http::response([
+                ['name' => 'archive.zip', 'directory' => false, 'symlink' => false, 'size' => strlen($binary)],
+            ]);
+            if (str_contains($request->url(), '/files/contents')) return Http::response($binary, 200, ['Content-Type' => 'application/octet-stream']);
+            if (str_contains($request->url(), '/files/write?')) $uploads[] = $request->body();
+            return Http::response(null, 204);
+        });
+        $this->actingAs($server->owner)->post('/servers/'.$server->id.'/files/upload', [
+            'upload' => \Illuminate\Http\UploadedFile::fake()->createWithContent('upload.jar', $binary),
+        ])->assertNoContent();
+        $this->assertContains($binary, $uploads);
+        $this->get('/servers/'.$server->id.'/files/download?file=archive.zip')->assertOk()->assertStreamedContent($binary);
+    }
+
+    public function test_file_mutations_keep_credentials_and_other_servers_protected(): void
+    {
+        $server = $this->server();
+        Http::fake();
+        $this->actingAs($server->owner)->postJson('/servers/'.$server->id.'/files/write', ['file' => 'bot-config.json', 'content' => 'x'])->assertForbidden();
+        $this->postJson('/servers/'.$server->id.'/files/action', ['action' => 'delete', 'files' => ['../server.jar']])->assertUnprocessable();
+        $this->postJson('/servers/'.$server->id.'/files/action', ['action' => 'rename', 'files' => ['.env'], 'name' => 'visible.txt'])->assertForbidden();
+        Http::assertNothingSent();
+        $this->actingAs(User::factory()->create())->postJson('/servers/'.$server->id.'/files/write', ['file' => 'file.txt', 'content' => 'x'])->assertForbidden();
+        $this->postJson('/servers/'.$server->id.'/files/action', ['action' => 'delete', 'files' => ['world']])->assertForbidden();
+        $this->post('/servers/'.$server->id.'/files/upload', ['upload' => \Illuminate\Http\UploadedFile::fake()->create('x.txt')])->assertForbidden();
+        Http::assertNothingSent();
+    }
+
+    public function test_nested_moves_and_archive_privacy_checks(): void
+    {
+        $server = $this->server();
+        Http::fake(function ($request) {
+            if (str_contains($request->url(), '/list-directory')) {
+                return Http::response(match ($request['directory']) {
+                    '/' => [['name' => 'file.txt', 'directory' => false], ['name' => 'plugins', 'directory' => true], ['name' => 'private', 'directory' => true]],
+                    '/plugins' => [['name' => 'nested', 'directory' => true]],
+                    '/private' => [['name' => '.env', 'directory' => false]],
+                    default => [],
+                });
+            }
+            return Http::response(null, 204);
+        });
+        $this->actingAs($server->owner)->postJson('/servers/'.$server->id.'/files/action', ['action' => 'move', 'files' => ['file.txt'], 'destination' => 'plugins/nested', 'name' => 'plugins/nested'])->assertNoContent();
+        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/rename') && $request['files'][0]['to'] === 'plugins/nested/file.txt');
+        $this->postJson('/servers/'.$server->id.'/files/action', ['action' => 'compress', 'files' => ['private']])->assertForbidden();
+        Http::assertNotSent(fn ($request) => str_ends_with($request->url(), '/compress'));
+    }
+
 }

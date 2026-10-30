@@ -219,7 +219,7 @@ export default function Servers() {
                                             <tr
                                                 key={item.id}
                                                 className="cursor-pointer border-t border-cyan-800 hover:bg-cyan-900/10"
-                                                onClick={() => router.visit(`/servers/${item.id}/console`)}
+                                                onClick={() => router.visit(`/servers/${item.id}/files`)}
                                             >
                                                 <td className="px-4 py-2">
                                                     <span
@@ -268,7 +268,7 @@ export default function Servers() {
                                                         <tr
                                                             key={item.id}
                                                             className="cursor-pointer border-t border-cyan-800 hover:bg-cyan-900/10"
-                                                            onClick={() => router.visit(`/servers/${item.id}/console`)}
+                                                            onClick={() => router.visit(`/servers/${item.id}/files`)}
                                                         >
                                                             <td className="px-4 py-2">
                                                                 <span
