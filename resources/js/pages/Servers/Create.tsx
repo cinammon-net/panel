@@ -2,16 +2,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import AppLayout from '@/layouts/app-layout';
 import { Head } from '@inertiajs/react';
-import { ChevronDown, Egg, MapPinned, MapPinPlus, Server, Terminal, Trash, User } from 'lucide-react';
+import { ChevronDown, Cpu, Egg, MapPinned, MapPinPlus, Server, Terminal, Trash, User } from 'lucide-react';
 import { ChangeEvent, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useState } from 'react';
 import { usePage } from '@inertiajs/react';
 import { toast } from 'sonner';
 import { router } from '@inertiajs/react';
 
 const tabs = [
-    { id: 'info', title: 'Information' },
-    { id: 'egg', title: 'Egg Configuration' },
-    { id: 'env', title: 'Environment Configuration' },
+    { id: 'info', title: 'Information', icon: Server },
+    { id: 'egg', title: 'Egg Configuration', icon: Egg },
+    { id: 'env', title: 'Environment Configuration', icon: Cpu },
 ];
 
 export default function CreateServer() {
@@ -184,33 +184,40 @@ export default function CreateServer() {
             <div className="min-h-screen bg-black p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
                 {/* Header */}
                 <div className="mb-6 flex items-center justify-between border-cyan-600">
-                    <h1 className="text-2xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400 dark:drop-shadow-[0_0_5px_#0ff]">
-                        CREATE SERVER
-                    </h1>
+                    <div className="flex items-center gap-3">
+                        <Server className="h-7 w-7 text-cyan-400" />
+                        <h1 className="text-2xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400">
+                            CREATE SERVER
+                        </h1>
+                    </div>
                 </div>
 
                 <div className="">
-                    <div className="rounded-lg border border-cyan-500 bg-black/90 p-6">
+                    <div className="rounded-lg border border-cyan-500/40 bg-black/90 p-6">
                         {/* Tabs */}
-                        <div className="mb-6 flex flex-col space-y-2 border-b-2 border-cyan-500 sm:flex-row sm:space-y-0 sm:space-x-8">
-                            {tabs.map((tab) => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => {
-                                        if ((tab.id === 'egg' && isInfoValid) || (tab.id === 'env' && isEggValid) || tab.id === activeTab) {
-                                            setActiveTab(tab.id);
-                                        }
-                                    }}
-                                    className={`w-full pb-2 text-lg font-semibold tracking-wide transition sm:w-auto ${
-                                        activeTab === tab.id
-                                            ? 'border-b-4 border-cyan-400 text-cyan-400'
-                                            : 'border-b-4 border-black hover:text-cyan-500'
-                                    }`}
-                                    disabled={(tab.id === 'egg' && !isInfoValid) || (tab.id === 'env' && !isEggValid)}
-                                >
-                                    {tab.title}
-                                </button>
-                            ))}
+                        <div className="mb-6 flex flex-col space-y-2 border-b border-cyan-500/40 sm:flex-row sm:space-y-0 sm:space-x-8">
+                            {tabs.map((tab) => {
+                                const TabIcon = tab.icon;
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => {
+                                            if ((tab.id === 'egg' && isInfoValid) || (tab.id === 'env' && isEggValid) || tab.id === activeTab) {
+                                                setActiveTab(tab.id);
+                                            }
+                                        }}
+                                        className={`flex w-full items-center justify-center gap-2 pb-2.5 text-base font-semibold tracking-wide transition sm:w-auto ${
+                                            activeTab === tab.id
+                                                ? 'border-b-2 border-cyan-400 text-cyan-400'
+                                                : 'border-b-2 border-transparent text-slate-400 hover:text-cyan-300'
+                                        }`}
+                                        disabled={(tab.id === 'egg' && !isInfoValid) || (tab.id === 'env' && !isEggValid)}
+                                    >
+                                        <TabIcon className="h-4 w-4 shrink-0" />
+                                        <span>{tab.title}</span>
+                                    </button>
+                                );
+                            })}
                         </div>
 
                         {/* Tab Content */}

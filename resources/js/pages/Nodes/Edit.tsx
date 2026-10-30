@@ -3,7 +3,7 @@ import AppLayout from '@/layouts/app-layout';
 import { Head, router, usePage } from '@inertiajs/react';
 import { ArcElement, CategoryScale, Chart as ChartJS, LinearScale, LineElement, PointElement, Title, Tooltip } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-import { ArrowRight, Lock, LockOpen, Server, Shield } from 'lucide-react';
+import { Activity, ArrowRight, FileCode2, Lock, LockOpen, Server, Shield } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import axios from 'axios';
@@ -276,21 +276,25 @@ export default function EditNode() {
 
             <div className="min-h-screen bg-black/90 p-6 font-[Orbitron] text-white transition-colors dark:bg-black dark:text-white">
                 <div className="mb-6 flex items-center justify-between border-cyan-600">
-                    <h1 className="text-3xl font-semibold tracking-widest text-cyan-400">EDIT NODE {formData.name || 'New Node'}</h1>
+                    <div className="flex items-center gap-3">
+                        <Activity className="h-7 w-7 text-cyan-400" />
+                        <h1 className="text-3xl font-semibold tracking-widest text-cyan-400">EDIT NODE {formData.name || 'New Node'}</h1>
+                    </div>
                 </div>
 
-                <div className="rounded-lg border-2 border-cyan-600 md:px-0">
-                    <ol className="scrollbar-hide grid w-full grid-cols-1 gap-x-2 overflow-x-auto overflow-y-hidden rounded-t-lg border-b border-cyan-600 bg-black/90 p-2 text-cyan-500 md:grid-cols-4 dark:bg-black">
+                <div className="rounded-lg border border-cyan-600/50 md:px-0">
+                    <ol className="scrollbar-hide grid w-full grid-cols-1 gap-x-2 overflow-x-auto overflow-y-hidden rounded-t-lg border-b border-cyan-600/50 bg-black/90 p-2 text-cyan-500 md:grid-cols-4 dark:bg-black">
                         <li className="relative flex h-full items-center">
                             <button
                                 type="button"
                                 onClick={() => handleSectionChange('overview')}
-                                className={`appearance-button flex items-center gap-3 rounded-full border-1 px-4 py-2 transition-colors duration-300 ${
+                                className={`appearance-button flex items-center gap-2.5 rounded-full border px-4 py-2 transition-colors duration-300 ${
                                     activeSection === 'overview'
-                                        ? 'border-cyan-500 text-cyan-400'
-                                        : 'border-transparent text-cyan-500 hover:border-cyan-600 hover:text-cyan-600'
+                                        ? 'border-cyan-500 bg-cyan-500/10 text-cyan-400'
+                                        : 'border-transparent text-cyan-500 hover:border-cyan-600 hover:text-cyan-400'
                                 }`}
                             >
+                                <Activity size={17} />
                                 <span className="select-none">Overview</span>
                             </button>
                         </li>
@@ -298,12 +302,13 @@ export default function EditNode() {
                             <button
                                 type="button"
                                 onClick={() => handleSectionChange('basicSettings')}
-                                className={`appearance-button flex items-center gap-3 rounded-full border-1 px-4 py-2 transition-colors duration-300 ${
+                                className={`appearance-button flex items-center gap-2.5 rounded-full border px-4 py-2 transition-colors duration-300 ${
                                     activeSection === 'basicSettings'
-                                        ? 'border-cyan-500 text-cyan-400'
-                                        : 'border-transparent text-cyan-500 hover:border-cyan-600 hover:text-cyan-600'
+                                        ? 'border-cyan-500 bg-cyan-500/10 text-cyan-400'
+                                        : 'border-transparent text-cyan-500 hover:border-cyan-600 hover:text-cyan-400'
                                 }`}
                             >
+                                <Server size={17} />
                                 <span className="select-none">Basic Settings</span>
                             </button>
                         </li>
@@ -311,12 +316,13 @@ export default function EditNode() {
                             <button
                                 type="button"
                                 onClick={() => handleSectionChange('advancedSettings')}
-                                className={`appearance-button flex items-center gap-3 rounded-full border-1 px-4 py-2 transition-colors duration-300 ${
+                                className={`appearance-button flex items-center gap-2.5 rounded-full border px-4 py-2 transition-colors duration-300 ${
                                     activeSection === 'advancedSettings'
-                                        ? 'border-cyan-500 text-cyan-400'
-                                        : 'border-transparent text-cyan-500 hover:border-cyan-600 hover:text-cyan-600'
+                                        ? 'border-cyan-500 bg-cyan-500/10 text-cyan-400'
+                                        : 'border-transparent text-cyan-500 hover:border-cyan-600 hover:text-cyan-400'
                                 }`}
                             >
+                                <Shield size={17} />
                                 <span className="select-none">Advanced Settings</span>
                             </button>
                         </li>
@@ -324,12 +330,13 @@ export default function EditNode() {
                             <button
                                 type="button"
                                 onClick={() => handleSectionChange('configurationFile')}
-                                className={`appearance-button flex items-center gap-3 rounded-full border-1 px-4 py-2 transition-colors duration-300 ${
+                                className={`appearance-button flex items-center gap-2.5 rounded-full border px-4 py-2 transition-colors duration-300 ${
                                     activeSection === 'configurationFile'
-                                        ? 'border-cyan-500 text-cyan-400'
-                                        : 'border-transparent text-cyan-500 hover:border-cyan-600 hover:text-cyan-600'
+                                        ? 'border-cyan-500 bg-cyan-500/10 text-cyan-400'
+                                        : 'border-transparent text-cyan-500 hover:border-cyan-600 hover:text-cyan-400'
                                 }`}
                             >
+                                <FileCode2 size={17} />
                                 <span className="select-none">Configuration File</span>
                             </button>
                         </li>
