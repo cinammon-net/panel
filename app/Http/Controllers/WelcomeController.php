@@ -14,9 +14,16 @@ class WelcomeController extends Controller
         $reviews = Review::with('user:id,name')->latest()->take(5)->get(['id', 'comment', 'rating', 'user_id']);
         $posts = Post::latest()->take(5)->get(['id', 'title', 'content', 'picture', 'created_at']); // toma últimos 5 posts
 
+        $files = Storage::disk('public')->files('gallery');
+        $galleryImages = collect($files)
+            ->map(fn ($file) => Storage::url($file))
+            ->values()
+            ->all();
+
         return Inertia::render('Welcome', [
             'reviews' => $reviews,
             'posts' => $posts,
+            'galleryImages' => $galleryImages,
         ]);
     }
 }
