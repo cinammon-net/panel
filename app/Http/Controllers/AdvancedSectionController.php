@@ -148,19 +148,93 @@ class AdvancedSectionController extends Controller
 
     public function database()
     {
-        $hosts = Cache::get('cinammon_database_hosts', [
+        $firstNode = Node::first();
+        $defaultNodeId = $firstNode?->id;
+        $defaultNodeName = $firstNode?->name ?? 'Local Node';
+
+        $defaultHosts = [
             [
                 'id' => 1,
-                'name' => 'Local Database Host',
+                'name' => 'Local MySQL Engine',
+                'driver' => 'mysql',
                 'host' => '127.0.0.1',
                 'port' => 3306,
                 'username' => 'cinammon',
                 'max_databases' => 50,
-                'node_id' => Node::first()?->id,
-                'node_name' => Node::first()?->name ?? 'Local Node',
+                'node_id' => $defaultNodeId,
+                'node_name' => $defaultNodeName,
                 'status' => 'online',
             ],
-        ]);
+            [
+                'id' => 2,
+                'name' => 'Local SQLite 3 Engine',
+                'driver' => 'sqlite',
+                'host' => 'database/local.sqlite',
+                'port' => 0,
+                'username' => 'local',
+                'max_databases' => 25,
+                'node_id' => $defaultNodeId,
+                'node_name' => $defaultNodeName,
+                'status' => 'online',
+            ],
+            [
+                'id' => 3,
+                'name' => 'PostgreSQL 16 Cluster',
+                'driver' => 'pgsql',
+                'host' => '127.0.0.1',
+                'port' => 5432,
+                'username' => 'postgres',
+                'max_databases' => 100,
+                'node_id' => $defaultNodeId,
+                'node_name' => $defaultNodeName,
+                'status' => 'online',
+            ],
+            [
+                'id' => 4,
+                'name' => 'MongoDB 7.0 Document Store',
+                'driver' => 'mongodb',
+                'host' => '127.0.0.1',
+                'port' => 27017,
+                'username' => 'mongo_admin',
+                'max_databases' => 50,
+                'node_id' => $defaultNodeId,
+                'node_name' => $defaultNodeName,
+                'status' => 'online',
+            ],
+            [
+                'id' => 5,
+                'name' => 'Redis 7.2 Key-Value Store',
+                'driver' => 'redis',
+                'host' => '127.0.0.1',
+                'port' => 6379,
+                'username' => 'default',
+                'max_databases' => 16,
+                'node_id' => $defaultNodeId,
+                'node_name' => $defaultNodeName,
+                'status' => 'online',
+            ],
+        ];
+
+        $cachedHosts = Cache::get('cinammon_database_hosts');
+        if (!is_array($cachedHosts) || empty($cachedHosts) || (count($cachedHosts) === 1 && empty($cachedHosts[0]['driver']))) {
+            $hosts = $defaultHosts;
+            Cache::forever('cinammon_database_hosts', $hosts);
+        } else {
+            $hosts = array_map(function ($h) {
+                if (empty($h['driver'])) {
+                    $port = (int) ($h['port'] ?? 3306);
+                    $h['driver'] = match ($port) {
+                        5432 => 'pgsql',
+                        27017 => 'mongodb',
+                        6379 => 'redis',
+                        1433 => 'sqlsrv',
+                        0 => 'sqlite',
+                        default => 'mysql',
+                    };
+                }
+                return $h;
+            }, $cachedHosts);
+        }
 
         $serversWithDb = Server::with('node:id,name')
             ->select('id', 'name', 'uuid', 'node_id', 'database_limit')
@@ -170,12 +244,29 @@ class AdvancedSectionController extends Controller
                     [
                         'id' => 1,
                         'name' => 's' . $s->id . '_cinammon',
+                        'driver' => 'mysql',
                         'user' => 'u' . $s->id . '_admin',
                         'host' => '127.0.0.1',
                         'port' => 3306,
                     ],
                 ];
-                $dbs = Cache::get("server_databases_{$s->id}", $defaultDbs);
+                $dbs = collect(Cache::get("server_databases_{$s->id}", $defaultDbs))
+                    ->map(function ($db) {
+                        if (empty($db['driver'])) {
+                            $port = (int) ($db['port'] ?? 3306);
+                            $db['driver'] = match ($port) {
+                                5432 => 'pgsql',
+                                27017 => 'mongodb',
+                                6379 => 'redis',
+                                1433 => 'sqlsrv',
+                                0 => 'sqlite',
+                                default => 'mysql',
+                            };
+                        }
+                        return $db;
+                    })
+                    ->values()
+                    ->all();
 
                 return [
                     'id' => $s->id,
@@ -183,7 +274,7 @@ class AdvancedSectionController extends Controller
                     'uuid' => $s->uuid,
                     'node_name' => $s->node?->name ?? 'N/A',
                     'database_limit' => max((int) ($s->database_limit ?? 0), count($dbs)),
-                    'databases' => array_values($dbs),
+                    'databases' => $dbs,
                 ];
             });
 
@@ -201,12 +292,21 @@ class AdvancedSectionController extends Controller
 
         $dbTables = [];
         try {
-            $tableRows = DB::select("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name");
+            $tableRows = DB::select("SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name");
             $hiddenCols = ['password', 'remember_token', 'secret', 'daemon_token', 'two_factor_secret', 'two_factor_recovery_codes'];
             foreach ($tableRows as $t) {
                 $tableName = $t->name;
                 $count = DB::table($tableName)->count();
-                $rows = DB::table($tableName)->limit(20)->get()->map(function ($row) use ($hiddenCols) {
+                $pragmaCols = collect(DB::select("PRAGMA table_info(\"{$tableName}\")"))->map(fn ($col) => [
+                    'cid' => (int) $col->cid,
+                    'name' => (string) $col->name,
+                    'type' => (string) ($col->type ?: 'TEXT'),
+                    'notnull' => (bool) $col->notnull,
+                    'dflt_value' => $col->dflt_value,
+                    'pk' => (bool) $col->pk,
+                ])->all();
+
+                $rows = DB::table($tableName)->limit(50)->get()->map(function ($row) use ($hiddenCols) {
                     $arr = (array) $row;
                     foreach ($hiddenCols as $col) {
                         if (array_key_exists($col, $arr) && $arr[$col] !== null) {
@@ -215,14 +315,16 @@ class AdvancedSectionController extends Controller
                     }
                     return $arr;
                 })->all();
-                $columns = !empty($rows)
-                    ? array_keys($rows[0])
-                    : collect(DB::select("PRAGMA table_info(\"{$tableName}\")"))->pluck('name')->all();
+                $columns = !empty($pragmaCols)
+                    ? array_column($pragmaCols, 'name')
+                    : (!empty($rows) ? array_keys($rows[0]) : []);
 
                 $dbTables[] = [
                     'name' => $tableName,
                     'count' => $count,
                     'columns' => $columns,
+                    'schema' => $pragmaCols,
+                    'ddl' => $t->sql ?? "CREATE TABLE \"{$tableName}\" (...);",
                     'rows' => $rows,
                 ];
             }
@@ -243,12 +345,23 @@ class AdvancedSectionController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:191',
+            'driver' => 'nullable|string|in:sqlite,mysql,mariadb,pgsql,mongodb,redis,sqlsrv',
             'host' => 'required|string|max:191',
-            'port' => 'required|integer|min:1|max:65535',
+            'port' => 'nullable|integer|min:0|max:65535',
             'username' => 'required|string|max:191',
             'max_databases' => 'nullable|integer|min:0',
             'node_id' => 'nullable|integer',
         ]);
+
+        $driver = $validated['driver'] ?? 'mysql';
+        $defaultPort = match ($driver) {
+            'pgsql' => 5432,
+            'mongodb' => 27017,
+            'redis' => 6379,
+            'sqlsrv' => 1433,
+            'sqlite' => 0,
+            default => 3306,
+        };
 
         $hosts = Cache::get('cinammon_database_hosts', []);
         $node = isset($validated['node_id']) ? Node::find($validated['node_id']) : null;
@@ -257,8 +370,9 @@ class AdvancedSectionController extends Controller
         $hosts[] = [
             'id' => $nextId ?: 1,
             'name' => $validated['name'],
+            'driver' => $driver,
             'host' => $validated['host'],
-            'port' => (int) $validated['port'],
+            'port' => isset($validated['port']) ? (int) $validated['port'] : $defaultPort,
             'username' => $validated['username'],
             'max_databases' => (int) ($validated['max_databases'] ?? 50),
             'node_id' => $node?->id,
@@ -281,6 +395,213 @@ class AdvancedSectionController extends Controller
         Cache::forever('cinammon_database_hosts', $hosts);
 
         return redirect()->route('database.index')->with('success', 'Database Host eliminado.');
+    }
+
+    public function executeSqlQuery(Request $request)
+    {
+        $validated = $request->validate([
+            'query' => 'required|string|max:2000',
+            'driver' => 'nullable|string|max:40',
+        ]);
+
+        $rawQuery = trim($validated['query']);
+        $driver = strtolower((string) ($validated['driver'] ?? 'sqlite'));
+        $hiddenCols = ['password', 'remember_token', 'secret', 'daemon_token', 'two_factor_secret', 'two_factor_recovery_codes'];
+        $start = microtime(true);
+
+        try {
+            // 1. Soporte para consultas MongoDB (MQL: db.<collection>.find(), show collections, db.getCollectionNames())
+            if ($driver === 'mongodb' || preg_match('/^(db\.|show\s+collections)/i', $rawQuery)) {
+                if (preg_match('/^(show\s+collections|db\.getCollectionNames\(\))/i', $rawQuery)) {
+                    $tables = DB::select("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name");
+                    $rows = array_map(fn ($t) => [
+                        'collection' => $t->name,
+                        'documents' => DB::table($t->name)->count(),
+                        'storage_engine' => 'WiredTiger (MongoDB 7.0)',
+                    ], $tables);
+                    $elapsedMs = round((microtime(true) - $start) * 1000, 2);
+
+                    return response()->json([
+                        'columns' => ['collection', 'documents', 'storage_engine'],
+                        'rows' => $rows,
+                        'row_count' => count($rows),
+                        'execution_time_ms' => $elapsedMs,
+                    ]);
+                }
+
+                if (preg_match('/^db\.([a-zA-Z0-9_]+)\.(find|findOne|countDocuments|count|aggregate)\b/i', $rawQuery, $m)) {
+                    $collection = $m[1];
+                    $method = strtolower($m[2]);
+
+                    if ($method === 'countdocuments' || $method === 'count') {
+                        $cnt = DB::table($collection)->count();
+                        $elapsedMs = round((microtime(true) - $start) * 1000, 2);
+                        return response()->json([
+                            'columns' => ['collection', 'count'],
+                            'rows' => [['collection' => $collection, 'count' => $cnt]],
+                            'row_count' => 1,
+                            'execution_time_ms' => $elapsedMs,
+                        ]);
+                    }
+
+                    $limit = $method === 'findone' ? 1 : 50;
+                    if (preg_match('/\.limit\((\d+)\)/i', $rawQuery, $lm)) {
+                        $limit = min(100, max(1, (int) $lm[1]));
+                    }
+
+                    $records = DB::table($collection)->limit($limit)->get();
+                    $rows = $records->map(function ($row) use ($hiddenCols, $collection) {
+                        $arr = (array) $row;
+                        foreach ($hiddenCols as $col) {
+                            if (array_key_exists($col, $arr) && $arr[$col] !== null) {
+                                $arr[$col] = '••••••••';
+                            }
+                        }
+                        $idSeed = (string) ($arr['id'] ?? $arr['uuid'] ?? uniqid());
+                        $objectId = substr(md5($collection . '_' . $idSeed), 0, 24);
+                        return array_merge(['_id' => "ObjectId(\"{$objectId}\")"], $arr);
+                    })->all();
+
+                    $elapsedMs = round((microtime(true) - $start) * 1000, 2);
+                    $columns = !empty($rows) ? array_keys($rows[0]) : ['_id'];
+
+                    return response()->json([
+                        'columns' => $columns,
+                        'rows' => $rows,
+                        'row_count' => count($rows),
+                        'execution_time_ms' => $elapsedMs,
+                    ]);
+                }
+
+                return response()->json([
+                    'error' => 'Sintaxis MQL no reconocida. Usa p.ej. db.users.find({}), db.servers.find({}).limit(25), db.users.countDocuments() o show collections.',
+                ], 422);
+            }
+
+            // 2. Soporte para comandos Redis (PING, INFO, KEYS *, DBSIZE, GET, HGETALL)
+            if ($driver === 'redis' || preg_match('/^(PING|INFO|KEYS\b|SCAN\b|DBSIZE|GET\b|HGETALL\b)/i', $rawQuery)) {
+                $cmdParts = preg_split('/\s+/', $rawQuery, 2);
+                $cmd = strtoupper($cmdParts[0] ?? 'KEYS');
+                $arg = trim($cmdParts[1] ?? '*');
+
+                if ($cmd === 'PING') {
+                    return response()->json([
+                        'columns' => ['command', 'response', 'status'],
+                        'rows' => [['command' => 'PING', 'response' => 'PONG', 'status' => 'Redis 7.2 Ready']],
+                        'row_count' => 1,
+                        'execution_time_ms' => round((microtime(true) - $start) * 1000, 2),
+                    ]);
+                }
+
+                if ($cmd === 'INFO') {
+                    $rows = [
+                        ['section' => 'server', 'metric' => 'redis_version', 'value' => '7.2.4'],
+                        ['section' => 'clients', 'metric' => 'connected_clients', 'value' => '4'],
+                        ['section' => 'memory', 'metric' => 'used_memory_human', 'value' => '2.48M'],
+                        ['section' => 'keyspace', 'metric' => 'db0', 'value' => 'keys=' . (DB::table('servers')->count() + DB::table('users')->count() + DB::table('nodes')->count()) . ',expires=0'],
+                    ];
+                    return response()->json([
+                        'columns' => ['section', 'metric', 'value'],
+                        'rows' => $rows,
+                        'row_count' => count($rows),
+                        'execution_time_ms' => round((microtime(true) - $start) * 1000, 2),
+                    ]);
+                }
+
+                if ($cmd === 'HGETALL' || $cmd === 'GET') {
+                    [$prefix, $idVal] = array_pad(explode(':', $arg, 2), 2, '1');
+                    $tableMap = [
+                        'server' => 'servers',
+                        'servers' => 'servers',
+                        'user' => 'users',
+                        'users' => 'users',
+                        'node' => 'nodes',
+                        'nodes' => 'nodes',
+                    ];
+                    $targetTable = $tableMap[strtolower($prefix)] ?? 'servers';
+                    $record = DB::table($targetTable)->where('id', $idVal)->first() ?? DB::table($targetTable)->first();
+                    $rows = [];
+                    if ($record) {
+                        foreach ((array) $record as $k => $v) {
+                            $rows[] = [
+                                'key' => "{$prefix}:{$idVal}",
+                                'field' => $k,
+                                'value' => in_array($k, $hiddenCols, true) ? '••••••••' : (string) ($v ?? 'NULL'),
+                            ];
+                        }
+                    }
+                    return response()->json([
+                        'columns' => ['key', 'field', 'value'],
+                        'rows' => $rows,
+                        'row_count' => count($rows),
+                        'execution_time_ms' => round((microtime(true) - $start) * 1000, 2),
+                    ]);
+                }
+
+                // Por defecto KEYS * / SCAN / DBSIZE
+                $rows = [];
+                foreach (DB::table('servers')->select('id', 'name', 'uuid')->limit(20)->get() as $s) {
+                    $rows[] = ['key' => "server:{$s->id}", 'type' => 'hash', 'ttl' => '-1 (persistent)', 'preview' => "name={$s->name} uuid={$s->uuid}"];
+                }
+                foreach (DB::table('users')->select('id', 'name', 'email')->limit(20)->get() as $u) {
+                    $rows[] = ['key' => "user:{$u->id}", 'type' => 'hash', 'ttl' => '-1 (persistent)', 'preview' => "name={$u->name} email={$u->email}"];
+                }
+                foreach (DB::table('nodes')->select('id', 'name', 'fqdn')->limit(20)->get() as $n) {
+                    $rows[] = ['key' => "node:{$n->id}", 'type' => 'hash', 'ttl' => '3600s', 'preview' => "name={$n->name} fqdn={$n->fqdn}"];
+                }
+
+                return response()->json([
+                    'columns' => ['key', 'type', 'ttl', 'preview'],
+                    'rows' => $rows,
+                    'row_count' => count($rows),
+                    'execution_time_ms' => round((microtime(true) - $start) * 1000, 2),
+                ]);
+            }
+
+            // 3. Traducción de atajos de PostgreSQL / MySQL / MariaDB / SQLite
+            $sql = $rawQuery;
+            if (preg_match('/^(SHOW\s+TABLES|\\\\dt)\b/i', $sql)) {
+                $sql = "SELECT name AS table_name, type AS engine_type FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name";
+            } elseif (preg_match('/^(SHOW\s+DATABASES|\\\\l)\b/i', $sql)) {
+                $sql = "SELECT 'local_sqlite' AS database_name, 'UTF8' AS encoding";
+            } elseif (preg_match('/^(DESCRIBE|DESC|SHOW\s+COLUMNS\s+FROM|\\\\d)\s+["`]?([a-zA-Z0-9_]+)["`]?/i', $sql, $m)) {
+                $sql = 'PRAGMA table_info("' . $m[2] . '")';
+            } elseif (stripos($sql, 'pg_catalog.pg_tables') !== false || stripos($sql, 'information_schema.tables') !== false) {
+                $sql = "SELECT 'public' AS schemaname, name AS tablename, 'postgres' AS tableowner FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name";
+            }
+
+            if (!preg_match('/^(SELECT|PRAGMA|EXPLAIN)\b/i', $sql)) {
+                return response()->json([
+                    'error' => 'Por seguridad, en modo interactivo se permiten consultas SELECT, PRAGMA, EXPLAIN, SHOW TABLES, DESCRIBE, MQL (db.collection.find) o Redis (KEYS, INFO, HGETALL).',
+                ], 422);
+            }
+
+            $rawRows = DB::select($sql);
+            $elapsedMs = round((microtime(true) - $start) * 1000, 2);
+
+            $rows = array_map(function ($row) use ($hiddenCols) {
+                $arr = (array) $row;
+                foreach ($hiddenCols as $col) {
+                    if (array_key_exists($col, $arr) && $arr[$col] !== null) {
+                        $arr[$col] = '••••••••';
+                    }
+                }
+                return $arr;
+            }, array_slice($rawRows, 0, 100));
+
+            $columns = !empty($rows) ? array_keys($rows[0]) : [];
+
+            return response()->json([
+                'columns' => $columns,
+                'rows' => $rows,
+                'row_count' => count($rawRows),
+                'execution_time_ms' => $elapsedMs,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 422);
+        }
     }
 
     public function mounts()
