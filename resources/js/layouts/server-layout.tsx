@@ -1,11 +1,10 @@
-import { Head, Link } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import { ArrowLeft, Files, Menu, Terminal, X } from 'lucide-react';
 import { ReactNode, useState } from 'react';
 
 export default function ServerLayout({ server, section, children }: { server: { id: number; name: string }; section: 'console' | 'files'; children: ReactNode }) {
     const [open, setOpen] = useState(false);
     return <div className="min-h-screen bg-[#080c10] font-[Orbitron] text-slate-100 md:flex">
-        <Head><link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&display=swap" rel="stylesheet" /></Head>
         <button aria-label="Abrir menú del servidor" onClick={() => setOpen(true)} className="m-4 flex items-center gap-2 rounded-lg border border-cyan-400/20 px-3 py-2 text-cyan-300 md:hidden"><Menu size={18} />{server.name}</button>
         {open && <button aria-label="Cerrar menú" className="fixed inset-0 z-30 bg-black/70 md:hidden" onClick={() => setOpen(false)} />}
         <aside className={`${open ? 'flex' : 'hidden'} fixed inset-y-0 left-0 z-40 w-64 shrink-0 flex-col border-r border-cyan-400/20 bg-[#0b1118] md:sticky md:top-0 md:flex md:h-screen`}>
