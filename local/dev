@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo=$(cd "$(dirname "$0")/.." && pwd)
+lima="$repo/../.local-runtime/lima/bin/limactl"
+vm=cinammon-local
+if [ ! -x "$lima" ]; then
+  echo "Lima is missing: install Lima or restore ../.local-runtime/lima." >&2
+  exit 1
+fi
+case "${1:-status}" in
+  start)
+    "$lima" start "$vm" --tty=false
+    "$lima" shell "$vm" -- sudo docker start cinammon-panel cinammon-scheduler
+    "$lima" shell "$vm" -- sudo systemctl start cinammon-wings
+    echo 'Panel: http://localhost:8000/login'
+    ;;
+  stop)
+    "$lima" stop "$vm"
+    ;;
+  status)
+    "$lima" list "$vm"
+    "$lima" shell "$vm" -- sudo docker ps --filter name=cinammon --format '{{.Names}}: {{.Status}}'
+    "$lima" shell "$vm" -- systemctl is-active cinammon-wings
+    ;;
+  php)
+    shift
+    "$lima" shell "$vm" -- sudo docker exec cinammon-panel php "$@"
+    ;;
+  logs)
+    "$lima" shell "$vm" -- sudo journalctl -u cinammon-wings --no-pager -n 40
+    ;;
+  *) echo 'Usage: local/dev {start|stop|status|php ...|logs}' >&2; exit 1 ;;
+esac

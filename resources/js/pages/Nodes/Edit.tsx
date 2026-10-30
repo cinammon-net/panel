@@ -95,7 +95,7 @@ export default function EditNode() {
     // Enviar los datos modificados
     const handleSubmit = async () => {
         try {
-            await router.put(`/nodes/${formData.id}`, formData, {
+            await router.put(`/nodes/${formData.id}`, { ...formData, maintenance_mode: maintenanceMode === 'enabled', deployments: useDeployments === 'yes' }, {
                 onSuccess: () => {
                     toast.success('Nodo actualizado correctamente');
                 },
@@ -134,6 +134,8 @@ export default function EditNode() {
             toast.error('Nodo no encontrado');
         } else {
             setFormData(node);
+            setMaintenanceMode(node.maintenance_mode ? 'enabled' : 'disabled');
+            setUseDeployments(node.deployments ? 'yes' : 'no');
             validateAndFetchIp(node.fqdn);
         }
     }, [node]);
@@ -590,8 +592,8 @@ export default function EditNode() {
                                                 type="text"
                                                 id="name"
                                                 name="name"
-                                                value={node.id}
-                                                onChange={(e) => setNode({ ...node, name: e.target.value })}
+                                                value={formData.id}
+                                                readOnly
                                                 className="w-full rounded border border-cyan-700 bg-[#1a1a1a] px-4 py-2 text-sm text-cyan-300 placeholder-cyan-600 focus:outline-none"
                                             />
                                         </div>
@@ -604,8 +606,8 @@ export default function EditNode() {
                                                 type="text"
                                                 id="uuid"
                                                 name="uuid"
-                                                value={node.uuid}
-                                                onChange={(e) => setNode({ ...node, uuid: e.target.value })}
+                                                value={formData.uuid}
+                                                onChange={(e) => setNode({ ...formData, uuid: e.target.value })}
                                                 className="w-full rounded border border-cyan-700 bg-[#1a1a1a] px-4 py-2 text-sm text-cyan-300 placeholder-cyan-600 focus:outline-none"
                                             />
                                         </div>
@@ -617,7 +619,7 @@ export default function EditNode() {
                                                     .split(',')
                                                     .map((tag: string) => tag.trim())
                                                     .filter((tag: string) => tag !== '')}
-                                                onChange={(newTags: string[]) => setNode({ ...node, tags: newTags.join(',') })}
+                                                onChange={(newTags: string[]) => setNode({ ...formData, tags: newTags.join(',') })}
                                             />
                                         </div>
                                         {/* Upload Limit */}
@@ -649,11 +651,11 @@ export default function EditNode() {
                                                 {/* Input */}
                                                 <input
                                                     id="uploadLimit"
-                                                    name="upload_limit"
+                                                    name="upload_size"
                                                     type="number"
                                                     placeholder="256"
-                                                    value={node.upload_limit}
-                                                    onChange={(e) => setNode({ ...node, upload_limit: Number(e.target.value) })}
+                                                    value={formData.upload_size}
+                                                    onChange={(e) => setNode({ ...formData, upload_size: Number(e.target.value) })}
                                                     className="w-full bg-transparent p-2 pl-3 text-cyan-300 placeholder-cyan-600 focus:outline-none"
                                                     style={{ border: 'none' }}
                                                 />
@@ -678,11 +680,11 @@ export default function EditNode() {
                                             <div className="relative flex w-full items-center rounded border border-cyan-700 bg-[#1a1a1a]">
                                                 <input
                                                     id="sftpPort"
-                                                    name="sftp_port"
+                                                    name="daemon_sftp"
                                                     type="number"
                                                     placeholder="22"
-                                                    value={node.sftp_port}
-                                                    onChange={(e) => setNode({ ...node, sftp_port: Number(e.target.value) })}
+                                                    value={formData.daemon_sftp}
+                                                    onChange={(e) => setNode({ ...formData, daemon_sftp: Number(e.target.value) })}
                                                     className="w-full bg-transparent p-2 pl-3 text-cyan-300 placeholder-cyan-600 focus:outline-none"
                                                     style={{ border: 'none' }}
                                                 />
@@ -702,8 +704,8 @@ export default function EditNode() {
                                                     name="sftp_alias"
                                                     type="text"
                                                     placeholder="my-node-sftp"
-                                                    value={node.sftp_alias}
-                                                    onChange={(e) => setNode({ ...node, sftp_alias: e.target.value })}
+                                                    value={formData.daemon_sftp_alias}
+                                                    onChange={(e) => setNode({ ...formData, daemon_sftp_alias: e.target.value })}
                                                     className="w-full bg-transparent p-2 pl-3 text-cyan-300 placeholder-cyan-600 focus:outline-none"
                                                     style={{ border: 'none' }}
                                                 />
@@ -1040,7 +1042,8 @@ export default function EditNode() {
                                 </div>
                                 <div className="flex justify-end">
                                     <button
-                                        type="submit"
+                                        type="button"
+                                        onClick={handleSubmit}
                                         className="rounded bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-700"
                                     >
                                         Save Changes

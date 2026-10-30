@@ -23,3 +23,9 @@ yarn-error.log
 /.vscode
 /.zed
 database/migrations/db/*
+
+/local/*.credentials
+/local/config.yml
+/database/*.sqlite*
+
+/local/discord-bot/node_modules/

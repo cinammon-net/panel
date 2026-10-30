@@ -6,14 +6,27 @@ export default function NodeConfigTab({ nodeId }: { nodeId: number }) {
   const [yaml, setYaml] = useState('');
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch(`/nodes/${nodeId}/config-yaml`)
-      .then(res => res.json())
-      .then(data => {
-        setYaml(data.yaml);
-        setLoading(false);
+    const controller = new AbortController();
+    setLoading(true);
+    setError('');
+    fetch(`/nodes/${nodeId}/config-yaml`, { signal: controller.signal, headers: { Accept: 'text/yaml' } })
+      .then(res => {
+        if (!res.ok || !res.headers.get('content-type')?.includes('yaml')) {
+          throw new Error('No se pudo descargar la configuración. Comprueba tu sesión.');
+        }
+        return res.text();
+      })
+      .then(setYaml)
+      .catch(error => {
+        if (!controller.signal.aborted) setError(error.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
       });
+    return () => controller.abort();
   }, [nodeId]);
 
   const handleCopy = () => {
@@ -29,6 +42,8 @@ export default function NodeConfigTab({ nodeId }: { nodeId: number }) {
           <LoaderCircle className="animate-spin" />
           Cargando configuración...
         </div>
+      ) : error ? (
+        <p role="alert">{error}</p>
       ) : (
         <>
           <pre className="whitespace-pre-wrap break-all">{yaml}</pre>

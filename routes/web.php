@@ -28,10 +28,10 @@ Route::view('/terms', 'legal.terms')->name('terms');
 Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::view('/sponsors', 'legal.sponsors')->name('sponsors');
 
-Route::get('api/nodes/{id}/config-yaml', [NodeController::class, 'configYaml']);
-Route::get('api/application/nodes/{id}/configuration', [NodeController::class, 'configYaml']);
+Route::get('api/nodes/{id}/config-yaml', [NodeController::class, 'configYaml'])->middleware('auth');
+Route::get('nodes/{id}/config-yaml', [NodeController::class, 'configYaml'])->middleware('auth');
+Route::get('api/application/nodes/{id}/configuration', [NodeController::class, 'configYaml'])->middleware('auth');
 Route::post('api/nodes/{node}/reset', [NodeController::class, 'reset']);
-Route::get('remote/servers', [ServerController::class, 'index']);
 
 // 🔗 Socialtie
 Route::get('/auth/github/redirect', function () {
@@ -184,6 +184,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/nodes/{id}/heartbeat', [NodeController::class, 'heartbeat']);
 
     // Servers
+    Route::get('/servers/{server}/console', [App\Http\Controllers\ServerRuntimeController::class, 'console'])->name('servers.console');
+    Route::get('/servers/{server}/runtime', [App\Http\Controllers\ServerRuntimeController::class, 'snapshot']);
+    Route::post('/servers/{server}/power', [App\Http\Controllers\ServerRuntimeController::class, 'power']);
+    Route::post('/servers/{server}/command', [App\Http\Controllers\ServerRuntimeController::class, 'command']);
+    Route::post('/servers/{server}/discord', [App\Http\Controllers\ServerRuntimeController::class, 'configureDiscord']);
+    Route::post('/servers/{server}/eula', [App\Http\Controllers\ServerRuntimeController::class, 'acceptEula']);
     Route::resource('servers', ServerController::class)->except(['show']);
     Route::get('/servers/{server}/edit', [ServerController::class, 'edit'])->name('servers.edit');
     Route::post('/servers', [ServerController::class, 'store'])->name('servers.store');
