@@ -184,6 +184,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/nodes/{id}/heartbeat', [NodeController::class, 'heartbeat']);
 
     // Servers
+    Route::get('/servers/{server}/files', [App\Http\Controllers\ServerFilesController::class, 'page'])->name('servers.files');
+    Route::get('/servers/{server}/files/list', [App\Http\Controllers\ServerFilesController::class, 'listing']);
+    Route::get('/servers/{server}/files/contents', [App\Http\Controllers\ServerFilesController::class, 'contents']);
     Route::get('/servers/{server}/console', [App\Http\Controllers\ServerRuntimeController::class, 'console'])->name('servers.console');
     Route::get('/servers/{server}/runtime', [App\Http\Controllers\ServerRuntimeController::class, 'snapshot']);
     Route::post('/servers/{server}/power', [App\Http\Controllers\ServerRuntimeController::class, 'power']);

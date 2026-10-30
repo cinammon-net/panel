@@ -1,5 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import axios from 'axios';
 import { Copy, Play, RotateCw, Send, Square, Terminal } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
@@ -60,6 +60,7 @@ export default function Console({ server }: { server: Server }) {
         <AppLayout breadcrumbs={[{ title: 'Servers', href: '/servers' }, { title: server.name, href: `${base}/console` }]}>
             <Head title={`${server.name} · Consola`} />
             <main className="min-h-screen space-y-6 bg-[#080c10] p-6 text-slate-100 md:p-8">
+                <nav aria-label="Secciones del servidor" className="flex gap-2 border-b border-slate-800 pb-4"><Link href={`${base}/console`} className="rounded-lg bg-cyan-400/10 px-4 py-2 text-sm font-semibold text-cyan-300" aria-current="page">Consola</Link><Link href={`${base}/files`} className="rounded-lg px-4 py-2 text-sm text-slate-400 hover:bg-slate-800 hover:text-white">Archivos</Link></nav>
                 <header className="flex flex-wrap items-start justify-between gap-5">
                     <div><p className="mb-2 flex items-center gap-2 text-xs font-semibold tracking-widest text-cyan-400"><Terminal size={15} /> CONSOLA DEL SERVIDOR</p>
                         <h1 className="text-2xl font-semibold">{server.name}</h1><p className="mt-2 text-sm text-slate-400">{server.egg} · {server.memory} MB de RAM</p></div>

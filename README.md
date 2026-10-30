@@ -35,6 +35,8 @@ La descarga de Paper está fijada y se verifica mediante SHA-256.
 - Consola: <http://localhost:8000/servers/1/console>
 - Dirección en Minecraft Java **26.3**: `localhost:25565`.
 - Logs actualizados cada 2 segundos, comandos y controles de inicio, parada y reinicio.
+- Pestaña Archivos para explorar carpetas y previsualizar texto de hasta 1 MB.
+  No permite abrir credenciales, rutas fuera del servidor ni enlaces simbólicos.
 - El propietario y los roles Owner/Admin pueden acceder a la consola.
 - El token de Wings permanece en el backend.
 - La EULA fue aceptada por el usuario para este servidor. Otros servidores requieren
