@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { router} from '@inertiajs/react';
 import ImportModal from '@/components/EggFormModal';
+import { toast } from 'sonner';
 
 export default function Ets() {
     // estados
@@ -14,20 +15,25 @@ export default function Ets() {
 
                 router.post('/eggs/import', formData, {
                     onSuccess: () => {
-                        alert('Archivo subido y eggs importados correctamente');
+                        toast.success('Archivo importado correctamente');
                         setIsImportModalOpen(false);
                         // refrescar lista o limpiar estados
                     },
                     onError: (errors) => {
-                        alert('Error al importar: ' + JSON.stringify(errors));
+                        toast.error('Error al importar: ' + JSON.stringify(errors));
+                        setIsImportModalOpen(false);
                     },
                     preserveScroll: true,
                 });
             } else if (data.url) {
-                alert('Importar desde URL no implementado');
+                toast.error('Importación desde URL no implementada');
+            } else {
+                toast.error('No se proporcionaron datos para importar');
             }
         } catch (error) {
-            alert('Error en la importación: ' + (error instanceof Error ? error.message : String(error)));
+            console.error('Error al importar huevo:', error);
+            toast.error('Error al importar el huevo');
+            setIsImportModalOpen(false);
         }
     };
 

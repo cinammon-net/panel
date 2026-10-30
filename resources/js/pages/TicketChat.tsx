@@ -129,8 +129,8 @@ export default function TicketChat() {
             </Head>
             <Toaster position="top-center" />
 
-            <div className="flex h-[80vh] gap-4 pt-4 pr-6 pl-6 font-[Orbitron]">
-                <aside className="w-1/3 max-w-xs overflow-y-auto rounded-lg bg-[#1e1e1e] p-4 text-white shadow-md">
+            <div className="flex h-[80vh] flex-col gap-4 pt-4 pr-6 pl-6 font-[Orbitron] md:flex-row">
+                <aside className="w-full max-w-full overflow-y-auto rounded-lg bg-[#1e1e1e] p-4 text-white shadow-md md:w-1/3 md:max-w-xs">
                     <h2 className="mb-4 text-lg font-semibold">Chats recientes</h2>
                     {recentTickets.length === 0 ? (
                         <p className="text-sm text-gray-400">No hay tickets recientes</p>
@@ -180,7 +180,7 @@ export default function TicketChat() {
                 </aside>
 
                 {/* Panel de chat actual */}
-                <main className="flex flex-1 flex-col rounded-lg bg-[#1f1f1f] p-6 text-white shadow-md dark:bg-[#333]">
+                <main className="flex w-full flex-col rounded-lg bg-[#1f1f1f] p-6 text-white shadow-md dark:bg-[#333]">
                     {/* Cabecera */}
                     <div className="flex items-center justify-between border-b border-[#333] pb-4">
                         <div className="flex items-center gap-4">
@@ -254,18 +254,65 @@ export default function TicketChat() {
                                             )}
                                         </div>
                                         {!isCurrentUser && (
-                                            <div className="-mt-1 hidden justify-end pr-3 group-hover:flex">
-                                                <button
-                                                    onClick={() => {
-                                                        setReplyTo(msg);
-                                                        setData('reply_to_id', msg.id);
-                                                    }}
-                                                    className="text-gray-400 transition hover:text-blue-400"
-                                                    title="Responder"
-                                                >
-                                                    <Reply className="h-4 w-4" />
-                                                </button>
-                                            </div>
+                                            <>
+                                                {/* Acciones en móvil: siempre visibles */}
+                                                <div className="mt-1 flex items-center gap-2 pr-2 sm:hidden">
+                                                    <button
+                                                        onClick={() => {
+                                                            setReplyTo(msg);
+                                                            setData('reply_to_id', msg.id);
+                                                        }}
+                                                        className="text-gray-400 transition hover:text-blue-400"
+                                                        title="Responder"
+                                                    >
+                                                        <Reply className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={async () => {
+                                                            try {
+                                                                const res = await fetch(`/tickets/${ticket.id}/messages/${msg.id}`, {
+                                                                    method: 'DELETE',
+                                                                    headers: {
+                                                                        'X-CSRF-TOKEN': (
+                                                                            document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement
+                                                                        ).content,
+                                                                        Accept: 'application/json',
+                                                                    },
+                                                                });
+
+                                                                if (res.ok) {
+                                                                    toast.success('Mensaje eliminado');
+                                                                    router.reload();
+                                                                } else {
+                                                                    toast.error('No se pudo eliminar');
+                                                                }
+                                                            } catch (error) {
+                                                                toast.error('Error al eliminar');
+                                                                console.error('Error al eliminar el mensaje:', error);
+                                                            }
+                                                        }}
+                                                        className="text-gray-400 transition hover:text-red-400"
+                                                        title="Eliminar"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+
+                                                {/* Acciones en escritorio: solo al hacer hover */}
+                                                <div className="-mt-1 hidden items-center gap-2 pr-2 sm:group-hover:flex">
+                                                    <button
+                                                        onClick={() => {
+                                                            setReplyTo(msg);
+                                                            setData('reply_to_id', msg.id);
+                                                        }}
+                                                        className="text-gray-400 transition hover:text-blue-400"
+                                                        title="Responder"
+                                                    >
+                                                        <Reply className="h-4 w-4" />
+                                                    </button>
+                                                    
+                                                </div>
+                                            </>
                                         )}
 
                                         {!isCurrentUser && (

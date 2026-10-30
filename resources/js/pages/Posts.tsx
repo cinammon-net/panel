@@ -60,61 +60,43 @@ export default function Posts() {
                     </button>
                 </div>
 
-                <div className="mt-6 overflow-hidden rounded-lg border border-yellow-300 bg-white shadow-none transition dark:border-yellow-700 dark:bg-neutral-950 dark:shadow-[0_0_10px_#facc1533]">
-                    <table className="min-w-full table-auto text-sm">
-                        <thead className="bg-yellow-100 tracking-wide text-yellow-700 uppercase dark:bg-yellow-900 dark:text-yellow-300">
+                <div className="mt-6 overflow-x-auto rounded-lg border border-yellow-600 bg-white dark:border-yellow-700 dark:bg-black">
+                    <table className="w-full table-auto text-sm text-yellow-800 dark:text-yellow-300">
+                        <thead className="border-b border-yellow-600 bg-yellow-900 text-yellow-200">
                             <tr>
-                                <th className="px-4 py-3 text-left">Picture</th>
                                 <th className="px-4 py-3 text-left">Title</th>
                                 <th className="px-4 py-3 text-left">Content</th>
-                                <th className="px-4 py-3 text-right">Actions</th>
+                                <th className="px-4 py-3 text-left">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {posts.length ? (
-                                posts.map((post) => (
-                                    <tr
-                                        key={post.id}
-                                        className="border-t border-yellow-300 transition hover:bg-yellow-50 dark:border-yellow-700 dark:hover:bg-yellow-800/10"
-                                    >
-                                        <td className="px-4 py-3">
-                                            {post.picture ? (
-                                                <img
-                                                    src={post.picture}
-                                                    alt={post.title}
-                                                    className="h-16 w-16 rounded border border-yellow-300 shadow-sm dark:border-yellow-500"
-                                                />
-                                            ) : (
-                                                <span className="text-yellow-600 dark:text-yellow-400">No picture</span>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3 text-yellow-800 dark:text-yellow-100">{post.title}</td>
-                                        <td className="px-4 py-3 text-yellow-700 dark:text-yellow-200">{post.content}</td>
-                                        <td className="flex justify-end gap-2 px-4 py-3">
-                                            <button
-                                                onClick={() => openModal(post)}
-                                                className="rounded border border-yellow-500 bg-yellow-500 p-1.5 text-black transition hover:bg-yellow-400 dark:border-yellow-600 dark:hover:bg-yellow-500"
-                                            >
-                                                <Pencil className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(post.id)}
-                                                className="rounded border border-red-500 bg-transparent p-1.5 text-red-500 transition hover:bg-red-500 hover:text-white dark:hover:bg-red-600"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan={4} className="px-4 py-6 text-center text-yellow-500 dark:text-yellow-400">
-                                        No posts available
+                            {posts.map((post) => (
+                                <tr key={post.id} className="border-b border-yellow-200 dark:border-yellow-800">
+                                    <td className="px-4 py-3">{post.title}</td>
+                                    <td className="px-4 py-3">{post.content.slice(0, 100)}...</td>
+                                    <td className="px-4 py-3 flex items-center gap-2">
+                                        <button
+                                            onClick={() => openModal(post)}
+                                            className="text-blue-500 hover:underline"
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(post.id)}
+                                            className="text-red-500 hover:underline"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
                                     </td>
                                 </tr>
-                            )}
+                            ))}
                         </tbody>
                     </table>
+                    {posts.length === 0 && (
+                        <div className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                            No posts found.
+                        </div>
+                    )}
                 </div>
             </div>
 

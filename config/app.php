@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', 'Cinammon'),
 
     /*
     |--------------------------------------------------------------------------
@@ -52,7 +52,7 @@ return [
     |
     */
 
-    'url' => env('APP_URL', 'http://cinammon.net'),
+    'url' => env('APP_URL', 'https://cinammon.net'),
 
     /*
     |--------------------------------------------------------------------------
@@ -65,8 +65,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
-
+    'timezone' => 'Europe/Madrid',
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

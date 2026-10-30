@@ -4,6 +4,7 @@ import AppLayout from '@/layouts/app-layout';
 import { Head, router, usePage } from '@inertiajs/react';
 import Editor from '@monaco-editor/react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 const tabs = [
     { id: 'config', title: 'Configuration' },
@@ -94,10 +95,10 @@ export default function CreateEgg() {
     };
 
     const handleCreateEgg = () => {
-        if (!selectedEgg) return alert('Selecciona o completa los datos del Egg');
+        if (!selectedEgg) return toast.error('Please select an egg or create a new one.');
 
         // Aquí podrías hacer validaciones simples, ejemplo:
-        if (!selectedEgg.name) return alert('El nombre es obligatorio');
+        if (!selectedEgg.name) return toast.error('Egg name is required.');
 
         // Construir el payload con los datos que quieres enviar
         const payload = {
@@ -117,13 +118,13 @@ export default function CreateEgg() {
         // Enviar con Inertia (POST a /eggs)
         router.post('/eggs', payload, {
             onSuccess: () => {
-                alert('Egg creado correctamente!');
+                toast.success('Egg created successfully.');
                 // Opcional: limpiar formulario
                 setSelectedEgg(null);
                 setVariables([]);
             },
             onError: (errors) => {
-                alert('Error al crear el Egg: ' + JSON.stringify(errors));
+                toast.error('Error creating egg: ' + JSON.stringify(errors));
             },
         });
     };

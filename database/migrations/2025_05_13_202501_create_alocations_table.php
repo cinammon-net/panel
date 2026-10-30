@@ -12,10 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('allocations', function (Blueprint $table) {
-            $table->increments('id');
-            $table->mediumInteger('node')->unsigned();
+            $table->bigIncrements('id');
+            $table->mediumInteger('node_id')->unsigned();
+            $table->mediumInteger('server_id')->unsigned()->nullable();
             $table->string('ip');
             $table->mediumInteger('port')->unsigned();
+            $table->string('alias')->nullable();
             $table->mediumInteger('assigned_to')->unsigned()->nullable();
             $table->timestamps();
         });

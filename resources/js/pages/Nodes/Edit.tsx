@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 import axios from 'axios';
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, ArcElement);
 ChartJS.register(ChartDataLabels);
+
+
 function validateDomain(domain: string): boolean {
     const fqdnRegex = /^(?!-)(?!.*--)([a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,}$/;
     return fqdnRegex.test(domain.trim());
@@ -17,6 +19,9 @@ function validateDomain(domain: string): boolean {
 import CPU from '@/components/graphs/CPU';
 import Memory from '@/components/graphs/Memory';
 import Storage from '@/components/graphs/Strorage';
+import AllocationModal from '@/components/AllocationModal';
+import AutoDeployModal from '@/components/AutoDeployModal';
+import ConfirmResetModal from '@/components/ConfirmResetModal';
 
 export default function EditNode() {
     const { node } = usePage<{ node: any }>().props;
@@ -42,6 +47,9 @@ export default function EditNode() {
     const [maintenanceMode, setMaintenanceMode] = useState<'enabled' | 'disabled'>('disabled');
     const [useDeployments, setUseDeployments] = useState<'yes' | 'no'>('no');
 
+    const [isCreateAllocationModalOpen, setIsCreateAllocationModalOpen] = useState(false);
+    const [yamlConfig, setYamlConfig] = useState<string>('');
+
     interface SectionChangeHandler {
         (section: 'overview' | 'basicSettings' | 'advancedSettings' | 'configurationFile'): void;
     }
@@ -49,6 +57,7 @@ export default function EditNode() {
     const handleSectionChange: SectionChangeHandler = (section) => {
         setActiveSection(section);
     };
+    
     // Validar el dominio y obtener la IP
     const validateAndFetchIp = async (domain: string) => {
         const isValidFormat = validateDomain(domain);
@@ -86,7 +95,7 @@ export default function EditNode() {
     // Enviar los datos modificados
     const handleSubmit = async () => {
         try {
-            await router.put(`/nodes/${formData.id}`, formData, {
+            await router.put(`/nodes/${formData.id}`, { ...formData, maintenance_mode: maintenanceMode === 'enabled', deployments: useDeployments === 'yes' }, {
                 onSuccess: () => {
                     toast.success('Nodo actualizado correctamente');
                 },
@@ -100,7 +109,6 @@ export default function EditNode() {
         }
     };
 
-    // Manejar los cambios en los campos del formulario
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type } = e.target;
 
@@ -126,7 +134,9 @@ export default function EditNode() {
             toast.error('Nodo no encontrado');
         } else {
             setFormData(node);
-            validateAndFetchIp(node.fqdn); // Validar el dominio al cargar el componente
+            setMaintenanceMode(node.maintenance_mode ? 'enabled' : 'disabled');
+            setUseDeployments(node.deployments ? 'yes' : 'no');
+            validateAndFetchIp(node.fqdn);
         }
     }, [node]);
 
@@ -192,25 +202,57 @@ export default function EditNode() {
     }
 
     useEffect(() => {
-        // Define your token here, e.g., from props, context, or environment
-        const token = ''; // TODO: Replace with actual token retrieval logic
-
         const fetchConfig = async () => {
             try {
-                const response = await axios.get('/daemon/config', {
-                    headers: {
-                        Authorization: `Bearer ${token}`, // Si estás usando autenticación
-                    },
+                const response = await axios.get(`/api/nodes/${formData.id}/config-yaml`, {
+                    headers: { Accept: 'text/plain' },
+                    responseType: 'text',
                 });
-                console.log(response.data.config);
-                // Aquí puedes almacenar la configuración y mostrarla al usuario
+                setYamlConfig(response.data);
             } catch (error) {
                 console.error('Error fetching daemon config:', error);
+                toast.error('Error loading configuration file');
             }
         };
+    
+        if (activeSection === 'configurationFile') {
+            fetchConfig();
+        }
+    }, [activeSection, formData.id]);
+    const handleCreateAllocation = async (nodeId: number, data: any) => {
+        console.log('📦 Enviando datos al backend:', data);
+        try {
+            const res = await axios.post(`/nodes/${nodeId}/allocations`, data);
+            console.log('✅ Respuesta del backend:', res.data);
+            toast.success('Allocation creada correctamente');
+            setIsCreateAllocationModalOpen(false);
+            // Actualizar el estado del nodo con la nueva allocation
+            setFormData((prev: any) => ({
+                ...prev,
+                allocations: [...(prev.allocations || []), res.data],    
+            }));
+        } catch (err) {
+            if (axios.isAxiosError(err)) {
+                const errorData = err.response?.data;
+                if (errorData) {
+                    toast.error(errorData.message);
+                } else {
+                    toast.error('Error al crear la allocation');
+                } 
+            } else {
+                console.error('Error inesperado al crear la allocation:', err);
+                toast.error('Error inesperado al crear la allocation');
+            }
+        }
+    };
+    
+    const [isAutoDeployOpen, setIsAutoDeployOpen] = useState(false);
+    const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+    function handleResetSuccess(): void {
+        setIsResetModalOpen(false);
+        toast.success('Nodo reseteado correctamente');
+    }
 
-        fetchConfig();
-    }, []); 
     return (
         <AppLayout
             breadcrumbs={[
@@ -550,8 +592,8 @@ export default function EditNode() {
                                                 type="text"
                                                 id="name"
                                                 name="name"
-                                                value={node.id}
-                                                onChange={(e) => setNode({ ...node, name: e.target.value })}
+                                                value={formData.id}
+                                                readOnly
                                                 className="w-full rounded border border-cyan-700 bg-[#1a1a1a] px-4 py-2 text-sm text-cyan-300 placeholder-cyan-600 focus:outline-none"
                                             />
                                         </div>
@@ -564,8 +606,8 @@ export default function EditNode() {
                                                 type="text"
                                                 id="uuid"
                                                 name="uuid"
-                                                value={node.uuid}
-                                                onChange={(e) => setNode({ ...node, uuid: e.target.value })}
+                                                value={formData.uuid}
+                                                onChange={(e) => setNode({ ...formData, uuid: e.target.value })}
                                                 className="w-full rounded border border-cyan-700 bg-[#1a1a1a] px-4 py-2 text-sm text-cyan-300 placeholder-cyan-600 focus:outline-none"
                                             />
                                         </div>
@@ -577,7 +619,7 @@ export default function EditNode() {
                                                     .split(',')
                                                     .map((tag: string) => tag.trim())
                                                     .filter((tag: string) => tag !== '')}
-                                                onChange={(newTags: string[]) => setNode({ ...node, tags: newTags.join(',') })}
+                                                onChange={(newTags: string[]) => setNode({ ...formData, tags: newTags.join(',') })}
                                             />
                                         </div>
                                         {/* Upload Limit */}
@@ -609,11 +651,11 @@ export default function EditNode() {
                                                 {/* Input */}
                                                 <input
                                                     id="uploadLimit"
-                                                    name="upload_limit"
+                                                    name="upload_size"
                                                     type="number"
                                                     placeholder="256"
-                                                    value={node.upload_limit}
-                                                    onChange={(e) => setNode({ ...node, upload_limit: Number(e.target.value) })}
+                                                    value={formData.upload_size}
+                                                    onChange={(e) => setNode({ ...formData, upload_size: Number(e.target.value) })}
                                                     className="w-full bg-transparent p-2 pl-3 text-cyan-300 placeholder-cyan-600 focus:outline-none"
                                                     style={{ border: 'none' }}
                                                 />
@@ -638,11 +680,11 @@ export default function EditNode() {
                                             <div className="relative flex w-full items-center rounded border border-cyan-700 bg-[#1a1a1a]">
                                                 <input
                                                     id="sftpPort"
-                                                    name="sftp_port"
+                                                    name="daemon_sftp"
                                                     type="number"
                                                     placeholder="22"
-                                                    value={node.sftp_port}
-                                                    onChange={(e) => setNode({ ...node, sftp_port: Number(e.target.value) })}
+                                                    value={formData.daemon_sftp}
+                                                    onChange={(e) => setNode({ ...formData, daemon_sftp: Number(e.target.value) })}
                                                     className="w-full bg-transparent p-2 pl-3 text-cyan-300 placeholder-cyan-600 focus:outline-none"
                                                     style={{ border: 'none' }}
                                                 />
@@ -662,8 +704,8 @@ export default function EditNode() {
                                                     name="sftp_alias"
                                                     type="text"
                                                     placeholder="my-node-sftp"
-                                                    value={node.sftp_alias}
-                                                    onChange={(e) => setNode({ ...node, sftp_alias: e.target.value })}
+                                                    value={formData.daemon_sftp_alias}
+                                                    onChange={(e) => setNode({ ...formData, daemon_sftp_alias: e.target.value })}
                                                     className="w-full bg-transparent p-2 pl-3 text-cyan-300 placeholder-cyan-600 focus:outline-none"
                                                     style={{ border: 'none' }}
                                                 />
@@ -998,9 +1040,10 @@ export default function EditNode() {
                                         </div>
                                     </div>
                                 </div>
-                                <div className=" flex justify-end">
+                                <div className="flex justify-end">
                                     <button
-                                        type="submit"
+                                        type="button"
+                                        onClick={handleSubmit}
                                         className="rounded bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-700"
                                     >
                                         Save Changes
@@ -1012,8 +1055,56 @@ export default function EditNode() {
 
                     {/* Configuration File Section */}
                     {activeSection === 'configurationFile' && (
-                        <div className="md:px-0">
-                            <div className="mb-5 flex flex-col gap-4 px-6"></div>
+                        <div className="p-6 space-y-6">
+                            <div className="">
+                                <h2 className="mb-1 text-sm font-semibold text-cyan-400">Instructions</h2>
+                                <p className="text-sm text-cyan-500">
+                                    Save this file to your daemon's root directory, named <code className="text-cyan-300">config.yml</code>
+                                    <br />
+                                    <span className="text-red-500">Note:</span> <span className='text-pink-500'>/etc/cinammon/config.yml</span>
+                                </p> 
+                                <div className="relative mt-2">
+                                    <div className="absolute right-3 top-3 z-10 cursor-pointer text-xs text-cyan-400 hover:underline" onClick={() => {
+                                        navigator.clipboard.writeText(yamlConfig);
+                                        toast.success('Copied to clipboard');
+                                    }}>
+                                        ⧉ Copy
+                                    </div>
+
+                                    <pre className="w-full whitespace-pre-wrap break-words rounded border border-cyan-800 bg-black p-4 text-sm font-[Orbitron] text-pink-300">
+                                        <code>{yamlConfig || 'Loading configuration...'}</code>
+                                    </pre>
+                                </div>
+
+                                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    <button
+                                        onClick={() => setIsAutoDeployOpen(true)}
+                                        className="w-full rounded bg-cyan-600 px-1 py-2 text-sm font-semibold text-white hover:bg-cyan-700"
+                                    >
+                                        Auto Deploy Command
+                                    </button>
+                                    <AutoDeployModal
+                                        isOpen={isAutoDeployOpen}
+                                        onClose={() => setIsAutoDeployOpen(false)}
+                                        panelUrl={`https://${formData.fqdn}`}
+                                        token={formData.daemon_token || ''}
+                                        nodeId={formData.id}
+                                    />
+                                    <button
+                                        onClick={() => setIsResetModalOpen(true)}
+                                        className="rounded bg-red-600 px-1 py-2 text-sm font-semibold text-white hover:bg-red-700"    
+                                    >
+                                        Reset Authorization Token
+                                    </button>
+
+                                    <ConfirmResetModal
+                                        isOpen={isResetModalOpen}
+                                        onCancel={() => setIsResetModalOpen(false)}
+                                        nodeId={formData.id}
+                                        onResetSuccess={handleResetSuccess}
+                                    />
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
@@ -1042,23 +1133,45 @@ export default function EditNode() {
                         {/* Mostrar Servers */}
                         {showServers ? (
                             <div>
-                                <h2 className="mb-4 text-lg font-semibold">Servers</h2>
+                                <h2 className="mb-4 text-lg font-semibold text-cyan-300">Servers</h2>
                                 {node.servers && node.servers.length > 0 ? (
-                                    <ul className="list-inside list-disc">
-                                        {node.servers.map((srv: any) => (
-                                            <li key={srv.id}>{srv.name}</li>
-                                        ))}
-                                    </ul>
+                                    <div className="overflow-x-auto rounded-md border border-cyan-700 bg-[#1a1a1a] text-sm text-cyan-200">
+                                        <table className="min-w-full">
+                                            <thead className="bg-[#0f0f0f] text-left text-cyan-400">
+                                                <tr>
+                                                    <th className="px-4 py-2">Owner</th>
+                                                    <th className="px-4 py-2">Name</th>
+                                                    <th className="px-4 py-2">Egg</th>
+                                                    <th className="px-4 py-2">Primary Allocation</th>
+                                                    <th className="px-4 py-2">Memory</th>
+                                                    <th className="px-4 py-2">CPU</th>
+                                                    <th className="px-4 py-2">Databases</th>
+                                                    <th className="px-4 py-2">Backups</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {node.servers.map((srv: any, index: number) => (
+                                                    <tr key={index} className="border-t border-cyan-800 hover:bg-cyan-900/10">
+                                                        <td className="px-4 py-2"> {srv.owner?.name || <span className="italic text-cyan-500">Unknown</span>} </td>
+                                                        <td className="px-4 py-2"> {srv.name} </td>
+                                                        <td className="px-4 py-2"> {srv.egg?.name || <span className="italic text-cyan-500">–</span>} </td>
+                                                        <td className="px-4 py-2">
+                                                            {srv.allocation?.ip && srv.allocation?.port
+                                                                ? `${srv.allocation.ip}:${srv.allocation.port}`
+                                                                : <span className="italic text-cyan-500">–</span>}
+                                                        </td>
+                                                        <td className="px-4 py-2">{srv.memory ?? 0}</td>
+                                                        <td className="px-4 py-2">{srv.cpu ?? 0}</td>
+                                                        <td className="px-4 py-2">{srv.database_limit ?? 0}</td>
+                                                        <td className="px-4 py-2">{srv.backup_limit ?? 0}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 ) : (
                                     <div className="flex flex-col items-center justify-center gap-2 p-12 text-center text-cyan-500">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            className="h-10 w-10 opacity-50"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                            strokeWidth={1.5}
-                                        >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                                         </svg>
                                         <p>No Servers are assigned to this node</p>
@@ -1070,35 +1183,65 @@ export default function EditNode() {
                             // Mostrar Allocations
                             <div>
                                 <div className="mb-4 flex items-center justify-between">
-                                    <h2 className="mb-4 text-lg font-semibold">Allocations</h2>
-                                    {/* Create Allocation Button */}
+                                    <h2 className="text-lg font-semibold text-cyan-300">Allocations</h2>
                                     <div className="flex justify-end">
                                         <button
-                                            type="button"
-                                            className="rounded bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-700"
-                                            onClick={() => {}}
+                                            onClick={() => setIsCreateAllocationModalOpen(true)}
+                                            className="rounded-md bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-700"
                                         >
                                             Create Allocation
                                         </button>
+                                        <AllocationModal
+                                            isOpen={isCreateAllocationModalOpen}
+                                            onClose={() => setIsCreateAllocationModalOpen(false)}
+                                            onSubmit={(data) => handleCreateAllocation(formData.id, data)}
+                                            fqdn={formData.fqdn}
+                                            ipOptions={[]}
+                                        />
                                     </div>
                                 </div>
-                                {node.allocations && node.allocations.length > 0 ? (
-                                    <ul className="list-inside list-disc">
-                                        {node.allocations.map((allocation: any, index: number) => (
-                                            <li key={index} className="flex items-center justify-between">
-                                                <span>{allocation.port}</span>
-                                                <span>{allocation.server}</span>
-                                                <span>{allocation.ip}</span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRemoveAllocation(index)} // Handle the remove functionality
-                                                    className="text-red-500 hover:text-red-700"
-                                                >
-                                                    Remove
-                                                </button>
-                                            </li>
-                                        ))}
-                                    </ul>
+
+                                {formData.allocations && formData.allocations.length > 0 ? (
+                                    <div className="overflow-x-auto rounded-md border border-cyan-700 bg-[#1a1a1a] text-sm text-cyan-200">
+                                        <table className="min-w-full">
+                                            <thead className="bg-[#0f0f0f] text-left text-cyan-400">
+                                                <tr>
+                                                    <th className="px-4 py-2">Ports</th>
+                                                    <th className="px-4 py-2">Servers</th>
+                                                    <th className="px-4 py-2">Alias</th>
+                                                    <th className="px-4 py-2">IP</th>
+                                                    <th className="px-4 py-2 text-center">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {formData.allocations.map((allocation: any, index: number) => (
+                                                    <tr key={index} className="border-t border-cyan-800 hover:bg-cyan-900/20">
+                                                        <td className="px-4 py-2">{allocation.port}</td>
+                                                        <td className="px-4 py-2">{allocation.node_id || <span className="text-cyan-500">—</span>}</td>
+                                                        <td className="px-4 py-2">{allocation.alias || <span className="text-cyan-500">—</span>}</td>
+                                                        <td className="px-4 py-2">{allocation.ip}</td>
+                                                        <td className="px-4 py-2 text-center">
+                                                            <button
+                                                                onClick={() => handleRemoveAllocation(index)}
+                                                                className="rounded bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700"
+                                                            >
+                                                                Remove
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+
+                                        <div className="flex items-center justify-between border-t border-cyan-800 px-4 py-3">
+                                            <span>Per page</span>
+                                            <select className="rounded border border-cyan-600 bg-[#0c0c0c] px-2 py-1 text-cyan-300">
+                                                <option>10</option>
+                                                <option>25</option>
+                                                <option>50</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 ) : (
                                     <div className="flex flex-col items-center justify-center gap-2 p-12 text-center text-cyan-500">
                                         <svg

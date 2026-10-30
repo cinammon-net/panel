@@ -2,6 +2,7 @@
 
 namespace App\Http;
 
+namespace App\Console;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 
 use Illuminate\Http\Middleware\TrustProxies;
@@ -22,7 +23,8 @@ use Illuminate\Routing\Middleware\ValidateSignature;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 use App\Http\Middleware\RedirectIfAuthenticated;
-
+use Illuminate\Console\Scheduling\Schedule;
+use App\Console\Commands\CheckNodesStatus;
 
 class Kernel extends HttpKernel
 {
@@ -65,4 +67,13 @@ class Kernel extends HttpKernel
         // Tu middleware personalizado:
         'terms.accepted' => \App\Http\Middleware\EnsureTermsAccepted::class,
     ];
-}
+
+    protected function schedule(Schedule $schedule)
+    {
+        $schedule->command('nodes:check-status')->everyMinute();
+    }
+
+    protected $commands = [
+        \App\Console\Commands\CheckNodesStatus::class, 
+    ];
+}  

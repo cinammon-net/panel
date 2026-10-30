@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface ImportModalProps {
     isOpen: boolean;
@@ -45,7 +46,7 @@ export default function ImportModal({ isOpen, onClose, onSubmit }: ImportModalPr
         } else if (activeTab === 'url' && url.trim() !== '') {
             setIsUploaded(true);
         } else {
-            alert('Please provide a valid file or URL.');
+            toast.error('Please select a file or enter a URL before submitting.');
         }
     };
 

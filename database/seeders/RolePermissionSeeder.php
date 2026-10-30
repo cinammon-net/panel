@@ -3,7 +3,9 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\Role;
+use Illuminate\Support\Facades\Hash;
+use App\Models\User;
+use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 
 class RolePermissionSeeder extends Seeder
@@ -27,7 +29,7 @@ class RolePermissionSeeder extends Seeder
         ];
 
         $rolesPermissions = [
-            'Owner' => 'all', // all permissions
+            'Owner' => 'all',
             'Admin' => [
                 'view_list_user',
                 'view_user',
@@ -78,7 +80,7 @@ class RolePermissionSeeder extends Seeder
         $this->command->line("\033[1;35m⌁ C I N A M M O N . N E T ┊ Role y Permission Seeder\033[0m");
         $this->command->line("\033[1;36m〄──────────────────────────────────────────────\033[0m");
 
-        // Crear permisos agrupados por módulos
+        // Crear permisos
         foreach ($groups as $module => $actions) {
             $this->command->line("\033[1;33m✔ Creado módulo: {$module}\033[0m");
             foreach ($actions as $action) {
@@ -121,6 +123,7 @@ class RolePermissionSeeder extends Seeder
             } else {
                 $missingPerms = [];
                 $assignedPerms = [];
+
                 foreach ($perms as $permName) {
                     $perm = Permission::where('name', $permName)->first();
                     if (!$perm) {
@@ -130,23 +133,46 @@ class RolePermissionSeeder extends Seeder
                     }
                 }
 
-                if (count($missingPerms) > 0) {
-                    foreach ($missingPerms as $missing) {
-                        $this->command->line("    \033[1;31m└─ Permiso NO encontrado: {$missing}\033[0m");
-                    }
+                foreach ($missingPerms as $missing) {
+                    $this->command->line("    \033[1;31m└─ Permiso NO encontrado: {$missing}\033[0m");
+                }
+
+                foreach ($assignedPerms as $assigned) {
+                    $this->command->line("    \033[1;32m└─ Permiso asignado: {$assigned}\033[0m");
                 }
 
                 $role->syncPermissions($assignedPerms);
-
-                if (count($assignedPerms) > 0) {
-                    foreach ($assignedPerms as $assigned) {
-                        $this->command->line("    \033[1;32m└─ Permiso asignado: {$assigned}\033[0m");
-                    }
-                }
             }
 
             $this->command->line("\033[1;32m✔ {$roleName} listo\033[0m");
             $this->command->line('');
+        }
+
+        // Crear usuarios y asignar roles
+        $users = [
+            ['name' => 'Owner',     'email' => 'owner@cinammon.net',     'role' => 'Owner'],
+            ['name' => 'Admin',     'email' => 'admin@cinammon.net',     'role' => 'Admin'],
+            ['name' => 'Moderator', 'email' => 'moderator@cinammon.net', 'role' => 'Moderator'],
+            ['name' => 'Helper',    'email' => 'helper@cinammon.net',    'role' => 'Helper'],
+            ['name' => 'Sponsors',  'email' => 'sponsors@cinammon.net',  'role' => 'Sponsors'],
+            ['name' => 'Members',   'email' => 'members@cinammon.net',   'role' => 'Members'],
+        ];
+
+        $this->command->line("\033[1;35m⌁ Creación de usuarios de prueba...\033[0m");
+
+        foreach ($users as $data) {
+            $user = User::firstOrCreate(
+                ['email' => $data['email']],
+                [
+                    'name' => $data['name'],
+                    'password' => Hash::make('cinammon'),
+                    'email_verified_at' => now(),
+                ]
+            );
+
+            $user->syncRoles($data['role']);
+
+            $this->command->line("    \033[1;36m✔ Usuario\033[0m \033[1;32m{$data['email']}\033[0m \033[1;36masignado al rol\033[0m \033[1;33m{$data['role']}\033[0m");
         }
     }
 }

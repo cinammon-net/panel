@@ -24,6 +24,7 @@ const CookieBanner: React.FC = () => {
 
     if (cookiesAccepted) return null;
 
+    
     return (
         <div className="fixed bottom-0 left-0 z-50 w-full bg-black/70 p-4 text-center text-white">
             <p>
@@ -55,8 +56,6 @@ export default function WelcomePanel() {
     >().props;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
-    console.log('Reviews:', reviews);
-
     useEffect(() => {
         aos.init({
             duration: 800,
@@ -65,6 +64,37 @@ export default function WelcomePanel() {
         });
     }, []);
 
+    const [images] = useState<string[]>([
+        'https://www.cinammon.net/storage/gallery/Dashboard.png',
+        'https://www.cinammon.net/storage/gallery/Users.png',
+        'https://www.cinammon.net/storage/gallery/Nodes.png',
+        'https://www.cinammon.net/storage/gallery/Create%20Node.png',
+    ]);
+
+    // Estado para manejar la imagen seleccionada para el modal
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [zoom, setZoom] = useState<number>(1); // Estado para controlar el zoom
+
+    // Función para abrir el modal y mostrar la imagen seleccionada
+    const openModal = (imageUrl: string) => {
+        setSelectedImage(imageUrl);
+        setZoom(1); // Reseteamos el zoom al abrir el modal
+    };
+
+    // Función para cerrar el modal
+    const closeModal = () => {
+        setSelectedImage(null);
+        setZoom(1); // Reseteamos el zoom al cerrar el modal
+    };
+
+    // Función para hacer zoom en la imagen
+    const handleZoomIn = () => {
+        setZoom((prevZoom) => prevZoom + 0.1); // Aumenta el zoom
+    };
+
+    const handleZoomOut = () => {
+        setZoom((prevZoom) => Math.max(1, prevZoom - 0.1)); // Disminuye el zoom, pero no menos de 1
+    };
     return (
         <>
             <Head title="Welcome">
@@ -284,21 +314,73 @@ export default function WelcomePanel() {
 
                 {/* SECCIÓN GALERÍA */}
                 <section className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
-                    <h2 className="text-3xl font-bold text-pink-400 sm:text-4xl" data-aos="fade-up">
-                        🖼️ Galería de Cinammon
-                    </h2>
-                    <div className="grid max-w-6xl grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
-                        {[1, 2, 3, 4, 5, 6].map((i) => (
-                            <div key={i} className="overflow-hidden rounded-xl shadow-lg" data-aos="zoom-in" data-aos-delay={i * 100}>
-                                <img
-                                    src={`https://source.unsplash.com/random/800x600?sig=${i}&cinammon`}
-                                    alt={`Cinammon vista ${i}`}
-                                    className="h-60 w-full object-cover transition-transform duration-300 hover:scale-105"
-                                />
-                            </div>
-                        ))}
+            <h2 className="text-3xl font-bold text-pink-400 sm:text-4xl" data-aos="fade-up">
+                🖼️ Galería de Cinammon
+            </h2>
+
+            {/* Muestra las imágenes en una cuadrícula */}
+            <div className="grid max-w-6xl grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
+                {images.map((imageUrl, index) => (
+                    <div
+                        key={index}
+                        className="overflow-hidden rounded-xl shadow-lg"
+                        data-aos="zoom-in"
+                        data-aos-delay={index * 100}
+                    >
+                        <img
+                            src={imageUrl}
+                            alt={`Cinammon vista ${index + 1}`}
+                            className="h-60 w-full object-cover transition-transform duration-300 hover:scale-105 cursor-pointer"
+                            onClick={() => openModal(imageUrl)} // Abre el modal con la imagen seleccionada
+                        />
                     </div>
-                </section>
+                ))}
+            </div>
+
+            {/* Modal para mostrar la imagen seleccionada */}
+            {selectedImage && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90"
+                    onClick={closeModal}
+                >
+                    <div
+                        className="relative bg-black p-4 rounded-lg"
+                        onClick={(e) => e.stopPropagation()} // Evita que el modal se cierre al hacer clic en la imagen
+                    >
+                        <img
+                            src={selectedImage}
+                            alt="Imagen seleccionada"
+                            className="max-w-full max-h-screen object-contain"
+                            style={{ transform: `scale(${zoom})`, transition: 'transform 0.2s ease' }}
+                        />
+                        <div className="absolute top-0 right-0 p-2">
+                            <button
+                                className="text-white bg-black p-2 rounded-full"
+                                onClick={closeModal}
+                            >
+                                X
+                            </button>
+                        </div>
+
+                        {/* Controles de zoom */}
+                        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 mb-4 flex gap-4">
+                            <button
+                                className="text-white bg-black p-2 rounded-full"
+                                onClick={handleZoomIn}
+                            >
+                                +
+                            </button>
+                            <button
+                                className="text-white bg-black p-2 rounded-full"
+                                onClick={handleZoomOut}
+                            >
+                                -
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </section>
 
                 {/* SECCIÓN TESTIMONIOS */}
                 <section className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
@@ -412,7 +494,7 @@ export default function WelcomePanel() {
                     © {new Date().getFullYear()} cinammon.net — Todos los derechos reservados.
                 </div>
                 <a
-                    href="https://discord.gg/8J6Y3k4"
+                    href="https://discord.gg/hikarinet"
                     target="_blank"
                     className="fixed bottom-6 left-6 z-50 rounded-full bg-[#5865F2] p-3 shadow-lg transition hover:scale-110"
                     data-aos="fade-left"

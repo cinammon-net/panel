@@ -9,48 +9,34 @@ class Server extends Model
 {
     use HasFactory;
 
-    // Especificamos la tabla que este modelo usará
     protected $table = 'servers';
 
-    // Campos que pueden ser asignados masivamente
-    protected $fillable = [
-        'uuid', 'uuid_short', 'node_id', 'name',
-        'active', 'owner_id', 'memory', 'swap',
-        'disk', 'io', 'cpu', 'egg_id',
-        'oom_disabled', 'ip', 'port', 'service',
-        'option', 'startup', 'daemon_secret',
-        'username', 'installed_at', 
-        'description', 'status',
-        'database_limit', 'allocation_limit',
-        'threads', 'backup_limit', 'docker_labels',
-        'allocation_id', 'primary_allocation',
-        'additional_allocations', 'run_install_script',
-        'start_after_install', 'bungee_version',
-        'bungee_jar_file', 'cpu_pinning', 'swap_memory',
-    ];
+    protected $fillable = ['image', 'oom_killer', 'uuid', 'uuid_short', 'node_id', 'name', 'active', 'owner_id', 'memory', 'swap', 'disk', 'io', 'cpu', 'egg_id', 'oom_disabled', 'ip', 'port', 'service', 'option', 'startup', 'daemon_secret', 'username', 'installed_at', 'description', 'status', 'database_limit', 'allocation_limit', 'threads', 'backup_limit', 'docker_labels', 'allocation_id', 'primary_allocation', 'additional_allocations', 'run_install_script', 'start_after_install', 'bungee_version', 'bungee_jar_file', 'cpu_pinning', 'swap_memory'];
 
-    /**
-     * Relación: Egg al que pertenece el servidor.
-     */
+    protected $appends = ['short_uuid'];
+
+    public function getShortUuidAttribute()
+    {
+        return substr($this->uuid, 0, 8);
+    }
+
     public function egg()
     {
-        return $this->belongsTo(Egg::class); // Un servidor pertenece a un solo Egg
+        return $this->belongsTo(Egg::class);
     }
 
-    /**
-     * Relación: Nodo al que pertenece el servidor.
-     */
     public function node()
     {
-        return $this->belongsTo(Node::class, 'node_id');  // Un servidor pertenece a un solo Nodo
+        return $this->belongsTo(Node::class, 'node_id');
     }
 
-    /**
-     * Relación: Usuario propietario del servidor.
-     */
-    public function ownerUser()
+    public function owner()
     {
-        return $this->belongsTo(User::class, 'owner_id');  // Un servidor pertenece a un solo propietario (usuario)
+        return $this->belongsTo(User::class, 'owner_id');
     }
 
+    public function allocation()
+    {
+        return $this->belongsTo(Allocation::class, 'allocation_id');
+    }
 }

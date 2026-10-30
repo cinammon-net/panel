@@ -12,7 +12,8 @@ class Allocation extends Model
     protected $fillable = [
         'ip',
         'port',
-        // Otros campos que necesites agregar
+        'alias',
+        'node_id'
     ];
 
     // Define las relaciones si las hay
@@ -20,4 +21,10 @@ class Allocation extends Model
     {
         return $this->hasMany(Server::class);
     }
+
+    public function node()
+    {
+        return $this->belongsTo(Node::class);
+    }
+    
 }

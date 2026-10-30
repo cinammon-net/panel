@@ -9,21 +9,21 @@ return new class extends Migration {
     {
         Schema::create('nodes', function (Blueprint $table) {
             $table->id();
-
+            $table->boolean('online')->default(false);
             $table->boolean('public')->default(true);
             $table->string('name');
             $table->string('fqdn');
             $table->string('scheme')->default('https');
-
             $table->integer('memory')->nullable();
             $table->integer('memory_overallocate')->default(0);
             $table->integer('disk')->nullable();
             $table->integer('disk_overallocate')->default(0);
 
             $table->string('daemon_token')->nullable();
+            $table->string('daemon_token_id')->nullable();
             $table->integer('daemon_listen')->default(8080);
             $table->integer('daemon_sftp')->default(2022);
-            $table->string('daemon_base')->default('/var/lib/pterodactyl');
+            $table->string('daemon_base')->default('/var/lib/cinammon/volumes');
 
             $table->timestamps();
 
@@ -34,7 +34,6 @@ return new class extends Migration {
             $table->boolean('deployments')->default(false);
 
             $table->uuid('uuid')->unique();
-            $table->unsignedBigInteger('daemon_token_id')->nullable();
             $table->text('tags')->nullable();
 
             $table->integer('cpu')->nullable();

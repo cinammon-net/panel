@@ -11,6 +11,7 @@ class Node extends Model
 
     protected $fillable = [
         'name',
+        'online',
         'fqdn',
         'daemon_listen',
         'scheme',
@@ -23,6 +24,18 @@ class Node extends Model
         'memory',
         'disk',
         'cpu',
-        'uuid'
+        'uuid',
+        'daemon_token_id',
+        'daemon_token'
     ];
+
+    public function servers()
+    {
+        return $this->hasMany(Server::class);
+    }
+
+    public function allocations()
+    {
+        return $this->hasMany(\App\Models\Allocation::class);
+    }
 }

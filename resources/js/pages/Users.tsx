@@ -1,6 +1,8 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head, router, usePage } from '@inertiajs/react';
-import { Copy, Eye, Mail, Pencil, Server, Trash2, UserCheck, UserRoundCheck, UserRoundX, UsersRound } from 'lucide-react';
+import { Head, router, usePage, Link } from '@inertiajs/react';
+
+import { ChevronLeft, ChevronRight, Eye, Mail, Pencil, Server, Trash2, UserCheck, UserRoundCheck, UserRoundX, UsersRound } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface UserItem {
     id: number;
@@ -27,7 +29,18 @@ interface Pagination<T> {
 
 export default function Users() {
     const { users } = usePage<{ users: Pagination<UserItem> }>().props;
-
+    const deleteUser = (userId: number, userName: string) => {
+        router.delete(`/users/${userId}`, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                toast.success(`User ${userName} deleted successfully`);
+            },
+            onCancel: () => {
+                toast.info('User deletion canceled');
+            },
+        });
+    };
     return (
         <AppLayout breadcrumbs={[{ title: 'Users', href: '/users' }]}>
             <Head title="Users">
@@ -39,14 +52,22 @@ export default function Users() {
                     <h1 className="text-3xl font-semibold tracking-widest text-pink-800 drop-shadow-none dark:text-pink-400 dark:drop-shadow-[0_0_5px_#f0f]">
                         USERS
                     </h1>
+                    <div className="flex items-center gap-3">
+                        <Link
+                            href="/users/create"
+                            className="rounded border border-pink-400 bg-pink-100/50 px-4 py-1.5 text-sm text-pink-800 transition hover:bg-pink-200/70 dark:border-pink-500 dark:bg-pink-900/30 dark:text-pink-300 dark:hover:bg-pink-700/50"
+                        >
+                            + Create User
+                        </Link>
+                    </div>
                 </div>
 
-                <div className="overflow-hidden rounded-lg border border-pink-300 bg-white shadow-none transition dark:border-pink-700 dark:bg-neutral-950 dark:shadow-[0_0_10px_#f0f3]">
-                    <table className="w-full table-fixed text-sm">
-                        <thead className="border-b border-pink-500 bg-pink-900 text-pink-200 display-table">
+                <div className="overflow-x-auto rounded-lg border border-pink-500 bg-white dark:border-pink-600 dark:bg-black">
+                    <table className="w-full table-auto text-sm text-pink-800 dark:text-pink-300">
+                        <thead className="display-table border-b border-pink-500 bg-pink-900 text-pink-200">
                             <tr>
                                 <th className="w-[60px] px-4 py-3 text-left"></th>
-                                <th className="w-1/5 px-4 py-3 text-left">Username</th>
+                                <th className="w-1/5 px-4 py-3 text-left">name</th>
                                 <th className="w-1/4 px-4 py-3 text-left">Email</th>
                                 <th className="w-[80px] px-4 py-3 text-left">2FA</th>
                                 <th className="w-1/5 px-4 py-3 text-left">Roles</th>
@@ -65,7 +86,12 @@ export default function Users() {
                                 </tr>
                             ) : (
                                 users.data.map((user) => (
-                                    <tr key={user.id} className="border-b border-pink-800 hover:bg-pink-900/10">
+                                    <tr
+                                        key={user.id}
+                                        onClick={() => router.visit(`/users/${user.id}/edit`)}
+                                        className="cursor-pointer border-b border-pink-800 transition hover:bg-pink-900/20"
+                                    >
+                                        {' '}
                                         <td className="px-4 py-3">
                                             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-pink-700 font-bold text-white uppercase">
                                                 {user.name.charAt(0)}
@@ -115,17 +141,12 @@ export default function Users() {
                                                 <button onClick={() => router.visit(`/users/${user.id}/edit`)}>
                                                     <Pencil className="h-4 w-4" />
                                                 </button>
-                                                <button onClick={() => alert('Duplicate not implemented')}>
-                                                    <Copy className="h-4 w-4 text-blue-400" />
-                                                </button>
+
                                                 <button
-                                                    onClick={() =>
-                                                        confirm(`Are you sure you want to delete ${user.name}?`) &&
-                                                        router.delete(`/users/${user.id}`, {
-                                                            preserveScroll: true,
-                                                            preserveState: true,
-                                                        })
-                                                    }
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        deleteUser(user.id, user.name);
+                                                    }}
                                                 >
                                                     <Trash2 className="h-4 w-4 text-red-400" />
                                                 </button>
@@ -135,6 +156,39 @@ export default function Users() {
                                 ))
                             )}
                         </tbody>
+
+                        <tfoot>
+                            <tr>
+                                <td colSpan={8}>
+                                    <div className="flex items-center justify-between px-4 py-3 text-sm text-pink-500">
+                                        <span>
+                                            Showing {users.data.length} of {users.total} users
+                                        </span>
+                                        <nav className="flex items-center gap-2">
+                                            {users.links.map((link, index) => (
+                                                <button
+                                                    key={index}
+                                                    onClick={() => router.get(link.url || '', {}, { preserveScroll: true })}
+                                                    className={`rounded px-3 py-1 ${
+                                                        link.active ? 'bg-pink-600 text-white' : 'bg-pink-200 text-pink-800 hover:bg-pink-300'
+                                                    }`}
+                                                >
+                                                    {link.label === 'Previous' ? (
+                                                        <ChevronLeft className="h-4 w-4" />
+                                                    ) : link.label === 'Next' ? (
+                                                        <ChevronRight className="h-4 w-4" />
+                                                    ) : (
+                                                        link.label
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </nav>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tfoot>
+
+                        
                     </table>
                 </div>
             </div>
