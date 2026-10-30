@@ -125,8 +125,7 @@ export default function CreateServer() {
     
     
     const [selectedNode] = useState<string>(() => {
-        const { server } = usePage().props as any;
-        return server?.node?.name || 'Unknown Node';
+        return initialServer?.node?.name || 'Unknown Node';
     });
 
     // State to control the visibility of the variables section in the Egg tab
