@@ -120,4 +120,43 @@ class ServerRuntimeTest extends TestCase
             ->assertJsonPath('bot_status.configured', true)->assertDontSee('must-not-leak');
     }
 
+    public function test_files_are_listed_and_text_is_read_through_wings(): void
+    {
+        $server = $this->server();
+        Http::fake([
+            '*/files/list-directory*' => Http::response([
+                ['name' => 'server.properties', 'directory' => false, 'symlink' => false, 'size' => 30],
+                ['name' => 'bot-config.json', 'directory' => false, 'symlink' => false, 'size' => 70],
+            ]),
+            '*/files/contents*' => Http::response('server-port=25565'),
+        ]);
+        $this->actingAs($server->owner)->getJson('/servers/'.$server->id.'/files/list')
+            ->assertOk()->assertJsonPath('data.0.name', 'server.properties')->assertJsonPath('data.1.private', true);
+        $this->getJson('/servers/'.$server->id.'/files/contents?file=server.properties')
+            ->assertOk()->assertJsonPath('content', 'server-port=25565');
+    }
+
+    public function test_private_paths_traversal_and_other_users_cannot_access_files(): void
+    {
+        $server = $this->server();
+        Http::fake();
+        $this->actingAs($server->owner)->getJson('/servers/'.$server->id.'/files/contents?file=bot-config.json')->assertForbidden();
+        $this->getJson('/servers/'.$server->id.'/files/contents?file=.env')->assertForbidden();
+        $this->getJson('/servers/'.$server->id.'/files/list?directory=../')->assertUnprocessable();
+        $this->actingAs(User::factory()->create())->getJson('/servers/'.$server->id.'/files/list')->assertForbidden();
+        Http::assertNothingSent();
+    }
+
+    public function test_file_preview_rejects_large_files_and_symlink_ancestors(): void
+    {
+        $server = $this->server();
+        Http::fake(['*/files/list-directory*' => Http::response([
+            ['name' => 'server.jar', 'directory' => false, 'symlink' => false, 'size' => 50000000],
+            ['name' => 'alias', 'directory' => true, 'symlink' => true, 'size' => 0],
+        ])]);
+        $this->actingAs($server->owner)->getJson('/servers/'.$server->id.'/files/contents?file=server.jar')->assertStatus(413);
+        $this->getJson('/servers/'.$server->id.'/files/list?directory=alias/subfolder')->assertForbidden();
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), '/files/contents'));
+    }
+
 }
