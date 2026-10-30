@@ -9,7 +9,9 @@
 
 @theme {
     --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', 'Orbitron';
+        var(--app-font, 'Orbitron'), 'Orbitron', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-mono:
+        var(--app-font, 'Orbitron'), 'Orbitron', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -78,6 +80,7 @@
 }
 
 :root {
+    --app-font: 'Orbitron', sans-serif;
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -153,8 +156,20 @@
         @apply border-border;
     }
 
+    html,
+    body,
+    pre,
+    code,
+    kbd,
+    samp,
+    button,
+    input,
+    select,
+    textarea {
+        font-family: var(--app-font, 'Orbitron'), 'Orbitron', sans-serif !important;
+    }
+
     body {
-        font-family: var(--app-font);
         @apply bg-background text-foreground;
     }
 }
