@@ -1,5 +1,6 @@
 import { Client, Events, GatewayIntentBits, MessageFlags } from 'discord.js';
 import { readFile, writeFile, chmod } from 'node:fs/promises';
+import process from 'node:process';
 import { createInterface } from 'node:readline';
 import { commands, commandReply } from './commands.js';
 import { selfTest } from './self-test.js';
