@@ -21,7 +21,12 @@ use App\Http\Controllers\NetworkController;
 use App\Http\Controllers\AdvancedSectionController;
 use Laravel\Socialite\Facades\Socialite;
 use App\Models\User;
+use App\Models\Server;
+use App\Models\Node;
+use App\Models\Egg;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 // 🌐 Rutas públicas
 Route::get('/', [WelcomeController::class, 'index'])->name('home');
@@ -139,7 +144,39 @@ Route::get('/auth/apple/callback', function () {
 
 // 🔐 Rutas autenticadas y verificadas
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', fn() => Inertia::render('dashboard'))->name('dashboard');
+    Route::get('/dashboard', function () {
+        $labels = [];
+        $installations = [];
+        $newUsers = [];
+        $errors = [];
+
+        $hasFailedJobs = Schema::hasTable('failed_jobs');
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i);
+            $dateStr = $date->toDateString();
+            $labels[] = $date->format('D');
+            $installations[] = Server::whereDate('created_at', $dateStr)->count();
+            $newUsers[] = User::whereDate('created_at', $dateStr)->count();
+            $errors[] = $hasFailedJobs
+                ? DB::table('failed_jobs')->whereDate('failed_at', $dateStr)->count()
+                : 0;
+        }
+
+        return Inertia::render('dashboard', [
+            'stats' => [
+                'users' => User::count(),
+                'servers' => Server::count(),
+                'installations' => Egg::count(),
+                'nodes' => Node::count(),
+            ],
+            'weeklyActivity' => [
+                'labels' => $labels,
+                'installations' => $installations,
+                'newUsers' => $newUsers,
+                'errors' => $errors,
+            ],
+        ]);
+    })->name('dashboard');
     Route::get('/api/dashboard-version', fn() => response()->json(['version' => config('app.version', '1.0.0')]));
     Route::get('/settings/appearance', [SettingsController::class, 'appearance'])->name('settings.appearance');
 });
@@ -162,6 +199,8 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/webhooks', [AdvancedSectionController::class, 'webhooks'])->name('webhooks.index');
     Route::post('/webhooks', [AdvancedSectionController::class, 'storeWebhook'])->name('webhooks.store');
+    Route::put('/webhooks/{id}', [AdvancedSectionController::class, 'updateWebhook'])->name('webhooks.update');
+    Route::post('/webhooks/{id}/test', [AdvancedSectionController::class, 'testWebhook'])->name('webhooks.test');
     Route::delete('/webhooks/{id}', [AdvancedSectionController::class, 'destroyWebhook'])->name('webhooks.destroy');
     // Aceptación de términos
     Route::get('/terms/accept', [TermsController::class, 'show'])->name('terms.accept');
