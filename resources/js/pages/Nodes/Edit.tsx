@@ -140,8 +140,15 @@ export default function EditNode() {
         }
     }, [node]);
 
-    function handleRemoveAllocation(index: number): void {
-        // Eliminar la asignación en el índice proporcionado
+    async function handleRemoveAllocation(index: number): Promise<void> {
+        const allocation = formData.allocations?.[index];
+        if (allocation?.id) {
+            try {
+                await axios.delete(`/nodes/${formData.id}/allocations/${allocation.id}`);
+            } catch (error) {
+                console.error('Error deleting allocation:', error);
+            }
+        }
         setFormData((prev: any) => {
             const updatedAllocations = prev.allocations ? prev.allocations.filter((_: any, i: number) => i !== index) : [];
             return { ...prev, allocations: updatedAllocations };
@@ -227,9 +234,10 @@ export default function EditNode() {
             toast.success('Allocation creada correctamente');
             setIsCreateAllocationModalOpen(false);
             // Actualizar el estado del nodo con la nueva allocation
+            const createdList = Array.isArray(res.data?.allocations) ? res.data.allocations : [res.data];
             setFormData((prev: any) => ({
                 ...prev,
-                allocations: [...(prev.allocations || []), res.data],    
+                allocations: [...(prev.allocations || []), ...createdList],
             }));
         } catch (err) {
             if (axios.isAxiosError(err)) {
@@ -592,8 +600,8 @@ export default function EditNode() {
                                                 type="text"
                                                 id="name"
                                                 name="name"
-                                                value={formData.id}
-                                                readOnly
+                                                value={formData.name || ''}
+                                                onChange={(e) => setNode({ ...formData, name: e.target.value })}
                                                 className="w-full rounded border border-cyan-700 bg-[#1a1a1a] px-4 py-2 text-sm text-cyan-300 placeholder-cyan-600 focus:outline-none"
                                             />
                                         </div>
@@ -615,7 +623,7 @@ export default function EditNode() {
                                         <div>
                                             <label className="mb-1 block text-sm font-semibold text-white">Tags</label>
                                             <TagInput
-                                                tags={node.tags
+                                                tags={(formData.tags || '')
                                                     .split(',')
                                                     .map((tag: string) => tag.trim())
                                                     .filter((tag: string) => tag !== '')}

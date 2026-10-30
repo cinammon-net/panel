@@ -13,7 +13,8 @@ interface ServerItem {
     nest: string;
     status: string;
     servers: number;
-    database: string;
+    database: string | number;
+    backups?: number;
     allocation: string;
     username: string;
 }
@@ -235,17 +236,25 @@ export default function Servers() {
                                                 <td className="px-4 py-2">{item.egg}</td>
                                                 <td className="px-4 py-2">{item.username}</td>
                                                 <td className="truncate px-4 py-2">{item.allocation || <span className="italic text-cyan-500">–</span>}</td>
-                                                <td className="px-4 py-2">{item.database ?? '-'}</td>
+                                                <td className="px-4 py-2">{item.backups ?? item.database ?? 0}</td>
                                                 <td className="px-4 py-2 text-right">
                                                     <div className="flex justify-end gap-3" onClick={(e) => e.stopPropagation()}>
                                                         <button title="Consola" onClick={() => router.visit(`/servers/${item.id}/console`)} className="text-cyan-300 hover:text-cyan-100">Consola</button>
                                                         <button title="Edit" onClick={() => router.visit(`/servers/${item.id}/edit`)} className="text-cyan-300 hover:text-cyan-100">
                                                             <Pencil className="h-4 w-4" />
                                                         </button>
-                                                        <button title="Duplicate" className="text-blue-400 hover:text-blue-200">
+                                                        <button title="Duplicate" onClick={() => router.visit(`/servers/create`)} className="text-blue-400 hover:text-blue-200">
                                                             <Copy className="h-4 w-4" />
                                                         </button>
-                                                        <button title="Delete" className="text-pink-400 hover:text-pink-200">
+                                                        <button
+                                                            title="Delete"
+                                                            onClick={() => {
+                                                                if (confirm(`¿Eliminar el servidor "${item.name}"?`)) {
+                                                                    router.delete(`/servers/${item.uuid}`);
+                                                                }
+                                                            }}
+                                                            className="text-pink-400 hover:text-pink-200"
+                                                        >
                                                             <Trash2 className="h-4 w-4" />
                                                         </button>
                                                     </div>
@@ -334,7 +343,7 @@ export default function Servers() {
                                                         const url = new URL(link.url);
                                                         const page = url.searchParams.get('page');
                                                         router.get(
-                                                            '/eggs',
+                                                            '/servers',
                                                             {
                                                                 page,
                                                                 search,

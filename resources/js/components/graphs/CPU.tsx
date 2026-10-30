@@ -12,9 +12,9 @@ const CPU: React.FC = () => {
     useEffect(() => {
         const fetchCpuData = async () => {
             try {
-                const response = await axios.get('http://127.0.0.1:8000/api/cpu-data'); // Cambia la URL si es necesario
-                setCpuDataState(response.data.cpu_usage);
-                setTimeLabels(response.data.time_labels || []); // Asegúrate de que `time_labels` esté presente en los datos
+                const response = await axios.get('/nodes/cpu-data');
+                setCpuDataState(response.data.cpu_usage || []);
+                setTimeLabels(response.data.time_labels || []);
             } catch (error) {
                 console.error('Error fetching CPU data:', error);
             }
