@@ -195,3 +195,10 @@
 
     
 }
+@font-face {
+    font-family: 'Orbitron';
+    font-style: normal;
+    font-weight: 400 900;
+    font-display: swap;
+    src: url('/fonts/orbitron/Orbitron.ttf') format('truetype');
+}
