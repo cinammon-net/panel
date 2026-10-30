@@ -150,12 +150,12 @@ class AdvancedSectionController extends Controller
     {
         $firstNode = Node::first();
         $defaultNodeId = $firstNode?->id;
-        $defaultNodeName = $firstNode?->name ?? 'Local Node';
+        $defaultNodeName = $firstNode?->name ?? 'Nodo Principal';
 
         $defaultHosts = [
             [
                 'id' => 1,
-                'name' => 'Local MySQL Engine',
+                'name' => 'Servidor MySQL Principal',
                 'driver' => 'mysql',
                 'host' => '127.0.0.1',
                 'port' => 3306,
@@ -167,11 +167,11 @@ class AdvancedSectionController extends Controller
             ],
             [
                 'id' => 2,
-                'name' => 'Local SQLite 3 Engine',
+                'name' => 'Motor SQLite Integrado',
                 'driver' => 'sqlite',
-                'host' => 'database/local.sqlite',
+                'host' => 'database/cinammon.sqlite',
                 'port' => 0,
-                'username' => 'local',
+                'username' => 'db_admin',
                 'max_databases' => 25,
                 'node_id' => $defaultNodeId,
                 'node_name' => $defaultNodeName,
@@ -179,7 +179,7 @@ class AdvancedSectionController extends Controller
             ],
             [
                 'id' => 3,
-                'name' => 'PostgreSQL 16 Cluster',
+                'name' => 'Clúster PostgreSQL 16',
                 'driver' => 'pgsql',
                 'host' => '127.0.0.1',
                 'port' => 5432,
@@ -191,7 +191,7 @@ class AdvancedSectionController extends Controller
             ],
             [
                 'id' => 4,
-                'name' => 'MongoDB 7.0 Document Store',
+                'name' => 'Instancia MongoDB Documental',
                 'driver' => 'mongodb',
                 'host' => '127.0.0.1',
                 'port' => 27017,
@@ -203,11 +203,11 @@ class AdvancedSectionController extends Controller
             ],
             [
                 'id' => 5,
-                'name' => 'Redis 7.2 Key-Value Store',
+                'name' => 'Servidor de Caché Redis',
                 'driver' => 'redis',
                 'host' => '127.0.0.1',
                 'port' => 6379,
-                'username' => 'default',
+                'username' => 'redis_admin',
                 'max_databases' => 16,
                 'node_id' => $defaultNodeId,
                 'node_name' => $defaultNodeName,
@@ -216,11 +216,12 @@ class AdvancedSectionController extends Controller
         ];
 
         $cachedHosts = Cache::get('cinammon_database_hosts');
-        if (!is_array($cachedHosts) || empty($cachedHosts) || (count($cachedHosts) === 1 && empty($cachedHosts[0]['driver']))) {
+        $hasLegacyLocalNames = is_array($cachedHosts) && collect($cachedHosts)->contains(fn ($h) => str_starts_with((string) ($h['name'] ?? ''), 'Local '));
+        if (!is_array($cachedHosts) || empty($cachedHosts) || (count($cachedHosts) === 1 && empty($cachedHosts[0]['driver'])) || $hasLegacyLocalNames) {
             $hosts = $defaultHosts;
             Cache::forever('cinammon_database_hosts', $hosts);
         } else {
-            $hosts = array_map(function ($h) {
+            $hosts = array_map(function ($h) use ($defaultNodeName) {
                 if (empty($h['driver'])) {
                     $port = (int) ($h['port'] ?? 3306);
                     $h['driver'] = match ($port) {
@@ -231,6 +232,9 @@ class AdvancedSectionController extends Controller
                         0 => 'sqlite',
                         default => 'mysql',
                     };
+                }
+                if (($h['node_name'] ?? '') === 'Local Node') {
+                    $h['node_name'] = $defaultNodeName;
                 }
                 return $h;
             }, $cachedHosts);
@@ -563,7 +567,7 @@ class AdvancedSectionController extends Controller
             if (preg_match('/^(SHOW\s+TABLES|\\\\dt)\b/i', $sql)) {
                 $sql = "SELECT name AS table_name, type AS engine_type FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name";
             } elseif (preg_match('/^(SHOW\s+DATABASES|\\\\l)\b/i', $sql)) {
-                $sql = "SELECT 'local_sqlite' AS database_name, 'UTF8' AS encoding";
+                $sql = "SELECT 'cinammon_core' AS database_name, 'UTF8' AS encoding";
             } elseif (preg_match('/^(DESCRIBE|DESC|SHOW\s+COLUMNS\s+FROM|\\\\d)\s+["`]?([a-zA-Z0-9_]+)["`]?/i', $sql, $m)) {
                 $sql = 'PRAGMA table_info("' . $m[2] . '")';
             } elseif (stripos($sql, 'pg_catalog.pg_tables') !== false || stripos($sql, 'information_schema.tables') !== false) {
@@ -753,8 +757,11 @@ class AdvancedSectionController extends Controller
             ->values()
             ->all();
 
+        $deliveries = Cache::get('cinammon_webhook_deliveries', []);
+
         return Inertia::render('Webhooks', [
             'webhooks' => $webhooks,
+            'deliveries' => array_values($deliveries),
         ]);
     }
 
@@ -865,30 +872,51 @@ class AdvancedSectionController extends Controller
             }
 
             $secret = $webhook->secret ?: 'whsec_cinammon';
-            $headers['X-Cinammon-Signature'] = 'sha256=' . hash_hmac('sha256', json_encode($payload), $secret);
+            $signature = 'sha256=' . hash_hmac('sha256', json_encode($payload), $secret);
+            $headers['X-Cinammon-Signature'] = $signature;
             $headers['User-Agent'] = 'Cinammon-Webhook/1.0';
 
             $statusCode = $webhook->format === 'discord' ? 204 : 200;
+            $method = strtoupper($webhook->method ?: 'POST');
+            $responseBody = 'Delivered OK';
             try {
-                $method = strtoupper($webhook->method ?: 'POST');
                 $response = Http::withHeaders($headers)
                     ->timeout(max(2, min(15, (int) ($webhook->timeout ?: 5))))
                     ->send($method, $webhook->url, ['json' => $payload]);
                 if ($response->status() > 0) {
                     $statusCode = $response->status();
+                    $responseBody = substr((string) $response->body(), 0, 300) ?: 'HTTP ' . $statusCode . ' OK';
                 }
             } catch (\Throwable $e) {
-                // Si la URL es de ejemplo o sin red externa en local, conservamos código simulado 200/204
+                $responseBody = 'Simulado en entorno local (HTTP ' . $statusCode . ')';
             }
 
+            $nowStr = now()->toDateTimeString();
             DB::table('webhooks')->where('id', $id)->update([
-                'last_triggered_at' => now()->toDateTimeString(),
+                'last_triggered_at' => $nowStr,
                 'last_status_code' => $statusCode,
-                'updated_at' => now()->toDateTimeString(),
+                'updated_at' => $nowStr,
             ]);
+
+            $deliveries = Cache::get('cinammon_webhook_deliveries', []);
+            array_unshift($deliveries, [
+                'id' => 'dlv_' . Str::random(8),
+                'webhook_id' => (int) $webhook->id,
+                'webhook_name' => $webhook->name,
+                'url' => $webhook->url,
+                'method' => $method,
+                'format' => $webhook->format ?: 'discord',
+                'event' => $eventName,
+                'status_code' => $statusCode,
+                'signature' => $signature,
+                'payload' => $payload,
+                'response_preview' => $responseBody,
+                'sent_at' => $nowStr,
+            ]);
+            Cache::forever('cinammon_webhook_deliveries', array_slice($deliveries, 0, 20));
         }
 
-        return redirect()->route('webhooks.index')->with('success', 'Evento de prueba enviado correctamente.');
+        return redirect()->route('webhooks.index')->with('success', 'Evento de prueba enviado a ' . ($webhook->url ?? 'endpoint') . '.');
     }
 
     public function destroyWebhook(int $id)
