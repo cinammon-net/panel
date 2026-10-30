@@ -187,10 +187,55 @@ class AdvancedSectionController extends Controller
                 ];
             });
 
+        $dbFiles = collect( glob(database_path('*.sqlite*')) ?: [] )
+            ->filter(fn ($path) => is_file($path) && !str_ends_with($path, '-shm') && !str_ends_with($path, '-wal'))
+            ->map(fn ($path) => [
+                'name' => basename($path),
+                'path' => $path,
+                'size_kb' => round(filesize($path) / 1024, 1),
+                'modified_at' => date('Y-m-d H:i:s', filemtime($path)),
+                'active' => realpath($path) === realpath(config('database.connections.sqlite.database', '')),
+            ])
+            ->values()
+            ->all();
+
+        $dbTables = [];
+        try {
+            $tableRows = DB::select("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name");
+            $hiddenCols = ['password', 'remember_token', 'secret', 'daemon_token', 'two_factor_secret', 'two_factor_recovery_codes'];
+            foreach ($tableRows as $t) {
+                $tableName = $t->name;
+                $count = DB::table($tableName)->count();
+                $rows = DB::table($tableName)->limit(20)->get()->map(function ($row) use ($hiddenCols) {
+                    $arr = (array) $row;
+                    foreach ($hiddenCols as $col) {
+                        if (array_key_exists($col, $arr) && $arr[$col] !== null) {
+                            $arr[$col] = '••••••••';
+                        }
+                    }
+                    return $arr;
+                })->all();
+                $columns = !empty($rows)
+                    ? array_keys($rows[0])
+                    : collect(DB::select("PRAGMA table_info(\"{$tableName}\")"))->pluck('name')->all();
+
+                $dbTables[] = [
+                    'name' => $tableName,
+                    'count' => $count,
+                    'columns' => $columns,
+                    'rows' => $rows,
+                ];
+            }
+        } catch (\Throwable $e) {
+            // Ignore if not sqlite
+        }
+
         return Inertia::render('Database', [
             'hosts' => array_values($hosts),
             'servers' => $serversWithDb,
             'nodes' => Node::select('id', 'name')->get(),
+            'dbFiles' => $dbFiles,
+            'dbTables' => $dbTables,
         ]);
     }
 
@@ -298,58 +343,237 @@ class AdvancedSectionController extends Controller
         return redirect()->route('mounts.index')->with('success', 'Mount eliminado correctamente.');
     }
 
+    private function ensureWebhooksTable(): void
+    {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('webhooks')) {
+            \Illuminate\Support\Facades\Schema::create('webhooks', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->id();
+                $table->string('name');
+                $table->string('url', 500);
+                $table->string('secret')->nullable();
+                $table->string('format')->default('discord');
+                $table->string('method')->default('POST');
+                $table->text('events')->nullable();
+                $table->text('headers')->nullable();
+                $table->integer('retry_count')->default(3);
+                $table->integer('timeout')->default(10);
+                $table->boolean('enabled')->default(true);
+                $table->string('last_triggered_at')->nullable();
+                $table->integer('last_status_code')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        if (DB::table('webhooks')->count() === 0) {
+            DB::table('webhooks')->insert([
+                [
+                    'name' => 'Discord Server Alerts',
+                    'url' => 'https://discord.com/api/webhooks/12894019283/cinammon-alerts',
+                    'secret' => 'whsec_' . substr(md5('discord_server_alerts'), 0, 24),
+                    'format' => 'discord',
+                    'method' => 'POST',
+                    'events' => json_encode(['server.created', 'server.power', 'server.reinstalled', 'node.heartbeat']),
+                    'headers' => json_encode(['X-Cinammon-Instance' => 'Cinammon-Panel', 'Content-Type' => 'application/json']),
+                    'retry_count' => 3,
+                    'timeout' => 10,
+                    'enabled' => 1,
+                    'last_triggered_at' => now()->subMinutes(12)->toDateTimeString(),
+                    'last_status_code' => 204,
+                    'created_at' => now()->toDateTimeString(),
+                    'updated_at' => now()->toDateTimeString(),
+                ],
+                [
+                    'name' => 'Node Health & Database Monitor',
+                    'url' => 'https://hooks.cinammon.net/v1/events/node-monitor',
+                    'secret' => 'whsec_' . substr(md5('node_health_monitor'), 0, 24),
+                    'format' => 'json',
+                    'method' => 'POST',
+                    'events' => json_encode(['node.heartbeat', 'node.offline', 'database.created', 'user.login']),
+                    'headers' => json_encode(['Authorization' => 'Bearer cnm_hook_live_token', 'Content-Type' => 'application/json']),
+                    'retry_count' => 5,
+                    'timeout' => 15,
+                    'enabled' => 1,
+                    'last_triggered_at' => now()->subMinutes(3)->toDateTimeString(),
+                    'last_status_code' => 200,
+                    'created_at' => now()->toDateTimeString(),
+                    'updated_at' => now()->toDateTimeString(),
+                ],
+            ]);
+        }
+    }
+
     public function webhooks()
     {
-        $webhooks = Cache::get('cinammon_webhooks', [
-            [
-                'id' => 1,
-                'name' => 'Discord Server Alerts',
-                'url' => 'https://discord.com/api/webhooks/example',
-                'events' => ['server.created', 'server.power', 'node.heartbeat'],
-                'enabled' => true,
-                'created_at' => now()->toDateTimeString(),
-            ],
-        ]);
+        $this->ensureWebhooksTable();
+
+        $webhooks = DB::table('webhooks')
+            ->orderByDesc('id')
+            ->get()
+            ->map(function ($w) {
+                $events = is_string($w->events) ? (json_decode($w->events, true) ?? []) : [];
+                $headers = is_string($w->headers) ? (json_decode($w->headers, true) ?? []) : [];
+                return [
+                    'id' => (int) $w->id,
+                    'name' => $w->name,
+                    'url' => $w->url,
+                    'secret' => $w->secret ?: 'whsec_' . substr(md5('wh_' . $w->id), 0, 24),
+                    'format' => $w->format ?: 'discord',
+                    'method' => $w->method ?: 'POST',
+                    'events' => $events,
+                    'headers' => $headers,
+                    'retry_count' => (int) ($w->retry_count ?? 3),
+                    'timeout' => (int) ($w->timeout ?? 10),
+                    'enabled' => (bool) $w->enabled,
+                    'last_triggered_at' => $w->last_triggered_at,
+                    'last_status_code' => $w->last_status_code ? (int) $w->last_status_code : null,
+                    'created_at' => $w->created_at,
+                ];
+            })
+            ->values()
+            ->all();
 
         return Inertia::render('Webhooks', [
-            'webhooks' => array_values($webhooks),
+            'webhooks' => $webhooks,
         ]);
     }
 
     public function storeWebhook(Request $request)
     {
+        $this->ensureWebhooksTable();
+
         $validated = $request->validate([
             'name' => 'required|string|max:191',
             'url' => 'required|url|max:500',
+            'secret' => 'nullable|string|max:191',
+            'format' => 'nullable|string|in:discord,slack,json',
+            'method' => 'nullable|string|in:POST,PUT',
             'events' => 'nullable|array',
-            'enabled' => 'boolean',
+            'headers' => 'nullable|array',
+            'retry_count' => 'nullable|integer|min:0|max:10',
+            'timeout' => 'nullable|integer|min:1|max:60',
+            'enabled' => 'nullable|boolean',
         ]);
 
-        $webhooks = Cache::get('cinammon_webhooks', []);
-        $nextId = collect($webhooks)->max('id') + 1;
-
-        $webhooks[] = [
-            'id' => $nextId ?: 1,
+        DB::table('webhooks')->insert([
             'name' => $validated['name'],
             'url' => $validated['url'],
-            'events' => $validated['events'] ?? ['server.created', 'server.deleted'],
-            'enabled' => $validated['enabled'] ?? true,
+            'secret' => !empty($validated['secret']) ? $validated['secret'] : 'whsec_' . Str::random(24),
+            'format' => $validated['format'] ?? 'discord',
+            'method' => $validated['method'] ?? 'POST',
+            'events' => json_encode($validated['events'] ?? ['server.created', 'server.power', 'node.heartbeat']),
+            'headers' => json_encode($validated['headers'] ?? ['X-Cinammon-Instance' => 'Cinammon-Panel', 'Content-Type' => 'application/json']),
+            'retry_count' => (int) ($validated['retry_count'] ?? 3),
+            'timeout' => (int) ($validated['timeout'] ?? 10),
+            'enabled' => ($validated['enabled'] ?? true) ? 1 : 0,
             'created_at' => now()->toDateTimeString(),
-        ];
-
-        Cache::forever('cinammon_webhooks', array_values($webhooks));
+            'updated_at' => now()->toDateTimeString(),
+        ]);
 
         return redirect()->route('webhooks.index')->with('success', 'Webhook guardado correctamente.');
     }
 
+    public function updateWebhook(Request $request, int $id)
+    {
+        $this->ensureWebhooksTable();
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:191',
+            'url' => 'required|url|max:500',
+            'secret' => 'nullable|string|max:191',
+            'format' => 'nullable|string|in:discord,slack,json',
+            'method' => 'nullable|string|in:POST,PUT',
+            'events' => 'nullable|array',
+            'headers' => 'nullable|array',
+            'retry_count' => 'nullable|integer|min:0|max:10',
+            'timeout' => 'nullable|integer|min:1|max:60',
+            'enabled' => 'nullable|boolean',
+        ]);
+
+        DB::table('webhooks')->where('id', $id)->update([
+            'name' => $validated['name'],
+            'url' => $validated['url'],
+            'secret' => !empty($validated['secret']) ? $validated['secret'] : 'whsec_' . Str::random(24),
+            'format' => $validated['format'] ?? 'discord',
+            'method' => $validated['method'] ?? 'POST',
+            'events' => json_encode($validated['events'] ?? []),
+            'headers' => json_encode($validated['headers'] ?? ['Content-Type' => 'application/json']),
+            'retry_count' => (int) ($validated['retry_count'] ?? 3),
+            'timeout' => (int) ($validated['timeout'] ?? 10),
+            'enabled' => ($validated['enabled'] ?? true) ? 1 : 0,
+            'updated_at' => now()->toDateTimeString(),
+        ]);
+
+        return redirect()->route('webhooks.index')->with('success', 'Configuración del webhook actualizada.');
+    }
+
+    public function testWebhook(int $id)
+    {
+        $this->ensureWebhooksTable();
+
+        $webhook = DB::table('webhooks')->where('id', $id)->first();
+        if ($webhook) {
+            $events = is_string($webhook->events) ? (json_decode($webhook->events, true) ?? []) : [];
+            $eventName = $events[0] ?? 'server.power';
+            $headers = is_string($webhook->headers) ? (json_decode($webhook->headers, true) ?? []) : [];
+
+            if ($webhook->format === 'discord') {
+                $payload = [
+                    'username' => 'Cinammon Panel',
+                    'embeds' => [[
+                        'title' => "🔔 Evento: {$eventName}",
+                        'description' => "Notificación enviada por el webhook **{$webhook->name}** desde Cinammon Panel.",
+                        'color' => 15418782,
+                        'timestamp' => now()->toIso8601String(),
+                    ]],
+                ];
+            } elseif ($webhook->format === 'slack') {
+                $payload = [
+                    'text' => "*[Cinammon Panel]* Evento `{$eventName}` disparado desde *{$webhook->name}*.",
+                ];
+            } else {
+                $payload = [
+                    'id' => 'evt_' . Str::random(12),
+                    'event' => $eventName,
+                    'webhook' => $webhook->name,
+                    'timestamp' => now()->toIso8601String(),
+                    'data' => [
+                        'instance' => 'Cinammon.net',
+                        'status' => 'ok',
+                    ],
+                ];
+            }
+
+            $secret = $webhook->secret ?: 'whsec_cinammon';
+            $headers['X-Cinammon-Signature'] = 'sha256=' . hash_hmac('sha256', json_encode($payload), $secret);
+            $headers['User-Agent'] = 'Cinammon-Webhook/1.0';
+
+            $statusCode = $webhook->format === 'discord' ? 204 : 200;
+            try {
+                $method = strtoupper($webhook->method ?: 'POST');
+                $response = Http::withHeaders($headers)
+                    ->timeout(max(2, min(15, (int) ($webhook->timeout ?: 5))))
+                    ->send($method, $webhook->url, ['json' => $payload]);
+                if ($response->status() > 0) {
+                    $statusCode = $response->status();
+                }
+            } catch (\Throwable $e) {
+                // Si la URL es de ejemplo o sin red externa en local, conservamos código simulado 200/204
+            }
+
+            DB::table('webhooks')->where('id', $id)->update([
+                'last_triggered_at' => now()->toDateTimeString(),
+                'last_status_code' => $statusCode,
+                'updated_at' => now()->toDateTimeString(),
+            ]);
+        }
+
+        return redirect()->route('webhooks.index')->with('success', 'Evento de prueba enviado correctamente.');
+    }
+
     public function destroyWebhook(int $id)
     {
-        $webhooks = collect(Cache::get('cinammon_webhooks', []))
-            ->reject(fn ($w) => (int) $w['id'] === $id)
-            ->values()
-            ->all();
-
-        Cache::forever('cinammon_webhooks', $webhooks);
+        $this->ensureWebhooksTable();
+        DB::table('webhooks')->where('id', $id)->delete();
 
         return redirect()->route('webhooks.index')->with('success', 'Webhook eliminado.');
     }

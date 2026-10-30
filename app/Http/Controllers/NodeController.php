@@ -334,43 +334,110 @@ class NodeController extends Controller
         ]);
     }
 
-    public function getCpuData()
+    public function getCpuData(Request $request)
     {
-        $labels = [];
-        $usage = [];
+        $node = $request->query('node_id') ? Node::find($request->query('node_id')) : Node::first();
+        $threads = max(1, (int) ($node?->cpu_threads ?: 4));
+        $load = function_exists('sys_getloadavg') ? (sys_getloadavg()[0] ?? 0.2) : 0.2;
+        $currentRatio = round(min(1.0, max(0.02, $load / $threads)), 3);
+
+        $cacheKey = 'node_cpu_history_' . ($node?->id ?? 0);
+        $history = \Illuminate\Support\Facades\Cache::get($cacheKey, []);
         $now = now();
-        for ($i = 9; $i >= 0; $i--) {
-            $labels[] = $now->copy()->subSeconds($i * 10)->format('H:i:s');
-            $usage[] = round(0.12 + (($i % 4) * 0.05), 2);
+
+        if (empty($history)) {
+            for ($i = 9; $i >= 1; $i--) {
+                $history[] = [
+                    'time' => $now->copy()->subSeconds($i * 5)->format('H:i:s'),
+                    'value' => $currentRatio,
+                ];
+            }
         }
 
+        $history[] = [
+            'time' => $now->format('H:i:s'),
+            'value' => $currentRatio,
+        ];
+        $history = array_slice($history, -10);
+        \Illuminate\Support\Facades\Cache::put($cacheKey, $history, 300);
+
         return response()->json([
-            'cpu_usage' => $usage,
-            'time_labels' => $labels,
+            'cpu_usage' => array_column($history, 'value'),
+            'time_labels' => array_column($history, 'time'),
         ]);
     }
 
-    public function getMemoryData()
+    public function getMemoryData(Request $request)
     {
-        $labels = [];
-        $usage = [];
-        $now = now();
-        for ($i = 9; $i >= 0; $i--) {
-            $labels[] = $now->copy()->subSeconds($i * 10)->format('H:i:s');
-            $usage[] = round(0.35 + (($i % 3) * 0.04), 2);
+        $node = $request->query('node_id') ? Node::find($request->query('node_id')) : Node::first();
+
+        $currentRatio = 0.25;
+        if (is_readable('/proc/meminfo')) {
+            $meminfo = file_get_contents('/proc/meminfo');
+            preg_match('/MemTotal:\s+(\d+)/', $meminfo, $totalMatch);
+            preg_match('/MemAvailable:\s+(\d+)/', $meminfo, $availMatch);
+            if (!empty($totalMatch[1]) && !empty($availMatch[1]) && (int) $totalMatch[1] > 0) {
+                $totalKb = (int) $totalMatch[1];
+                $usedKb = max(0, $totalKb - (int) $availMatch[1]);
+                $currentRatio = round(min(1.0, max(0.01, $usedKb / $totalKb)), 3);
+            }
+        } elseif ($node && (int) $node->memory > 0) {
+            $allocatedMb = (int) $node->servers()->sum('memory');
+            $currentRatio = round(min(1.0, max(0.01, $allocatedMb / (int) $node->memory)), 3);
         }
 
+        $cacheKey = 'node_mem_history_' . ($node?->id ?? 0);
+        $history = \Illuminate\Support\Facades\Cache::get($cacheKey, []);
+        $now = now();
+
+        if (empty($history)) {
+            for ($i = 9; $i >= 1; $i--) {
+                $history[] = [
+                    'time' => $now->copy()->subSeconds($i * 5)->format('H:i:s'),
+                    'value' => $currentRatio,
+                ];
+            }
+        }
+
+        $history[] = [
+            'time' => $now->format('H:i:s'),
+            'value' => $currentRatio,
+        ];
+        $history = array_slice($history, -10);
+        \Illuminate\Support\Facades\Cache::put($cacheKey, $history, 300);
+
         return response()->json([
-            'memory_usage' => $usage,
-            'time_labels' => $labels,
+            'memory_usage' => array_column($history, 'value'),
+            'time_labels' => array_column($history, 'time'),
         ]);
     }
 
-    public function getStorageData()
+    public function getStorageData(Request $request)
     {
-        $node = Node::first();
+        $node = $request->query('node_id') ? Node::find($request->query('node_id')) : Node::first();
+
+        $totalDiskBytes = @disk_total_space(base_path());
+        $freeDiskBytes = @disk_free_space(base_path());
+
+        if ($node && (int) $node->disk > 0) {
+            $totalMb = (int) $node->disk;
+            $allocatedMb = (int) $node->servers()->sum('disk');
+            if ($allocatedMb > 0) {
+                $usedMb = min($totalMb, $allocatedMb);
+                $freeMb = max(0, $totalMb - $usedMb);
+                return response()->json([$usedMb, $freeMb]);
+            }
+        }
+
+        if ($totalDiskBytes && $freeDiskBytes !== false && $totalDiskBytes > 0) {
+            $totalMb = (int) round($totalDiskBytes / 1048576);
+            $freeMb = (int) round($freeDiskBytes / 1048576);
+            $usedMb = max(0, $totalMb - $freeMb);
+            return response()->json([$usedMb, $freeMb]);
+        }
+
         $total = (int) ($node?->disk ?: 10240);
-        $used = (int) round($total * 0.28);
+        $used = (int) ($node ? $node->servers()->sum('disk') : 0);
         $free = max(0, $total - $used);
 
         return response()->json([$used, $free]);
