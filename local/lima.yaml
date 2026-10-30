@@ -1,0 +1,36 @@
+vmType: vz
+cpus: 4
+memory: 4GiB
+disk: 30GiB
+base:
+  - template:_images/ubuntu-lts
+mounts:
+  - location: /Users/nini/Documents/ChatGPT/cinammon.net/panel
+    writable: true
+containerd:
+  system: false
+  user: false
+provision:
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -euo pipefail
+      export DEBIAN_FRONTEND=noninteractive
+      apt-get update
+      apt-get install -y docker.io php-cli php-sqlite3 php-mbstring php-xml php-curl php-zip php-bcmath composer unzip golang-go
+      systemctl enable --now docker
+portForwards:
+  - guestPort: 8000
+    hostPort: 8000
+    hostIP: 127.0.0.1
+  - guestPort: 8080
+    hostPort: 8080
+    hostIP: 127.0.0.1
+  - guestPort: 2022
+    hostPort: 2022
+    hostIP: 127.0.0.1
+  - guestPort: 25565
+    hostPort: 25565
+    hostIP: 127.0.0.1
+  - guestPortRange: [1, 65535]
+    ignore: true

@@ -219,7 +219,7 @@ export default function Servers() {
                                             <tr
                                                 key={item.id}
                                                 className="cursor-pointer border-t border-cyan-800 hover:bg-cyan-900/10"
-                                                onClick={() => router.visit(`/servers/${item.id}/edit`)}
+                                                onClick={() => router.visit(`/servers/${item.id}/console`)}
                                             >
                                                 <td className="px-4 py-2">
                                                     <span
@@ -238,7 +238,8 @@ export default function Servers() {
                                                 <td className="px-4 py-2">{item.database ?? '-'}</td>
                                                 <td className="px-4 py-2 text-right">
                                                     <div className="flex justify-end gap-3" onClick={(e) => e.stopPropagation()}>
-                                                        <button title="Edit" className="text-cyan-300 hover:text-cyan-100">
+                                                        <button title="Console" onClick={() => router.visit(`/servers/${item.id}/console`)} className="text-cyan-300 hover:text-cyan-100">Console</button>
+                                                        <button title="Edit" onClick={() => router.visit(`/servers/${item.id}/edit`)} className="text-cyan-300 hover:text-cyan-100">
                                                             <Pencil className="h-4 w-4" />
                                                         </button>
                                                         <button title="Duplicate" className="text-blue-400 hover:text-blue-200">
@@ -267,7 +268,7 @@ export default function Servers() {
                                                         <tr
                                                             key={item.id}
                                                             className="cursor-pointer border-t border-cyan-800 hover:bg-cyan-900/10"
-                                                            onClick={() => router.visit(`/servers/${item.id}/edit`)}
+                                                            onClick={() => router.visit(`/servers/${item.id}/console`)}
                                                         >
                                                             <td className="px-4 py-2">
                                                                 <span
@@ -286,7 +287,8 @@ export default function Servers() {
                                                             <td className="px-4 py-2">{item.database ?? '-'}</td>
                                                             <td className="px-4 py-2 text-right">
                                                                 <div className="flex justify-end gap-3" onClick={(e) => e.stopPropagation()}>
-                                                                    <button title="Edit" className="text-cyan-300 hover:text-cyan-100">
+                                                                    <button title="Console" onClick={() => router.visit(`/servers/${item.id}/console`)} className="text-cyan-300 hover:text-cyan-100">Console</button>
+                                                        <button title="Edit" onClick={() => router.visit(`/servers/${item.id}/edit`)} className="text-cyan-300 hover:text-cyan-100">
                                                                         <Pencil className="h-4 w-4" />
                                                                     </button>
                                                                     <button title="Duplicate" className="text-blue-400 hover:text-blue-200">

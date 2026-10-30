@@ -1,0 +1,23 @@
+{
+  "version": "26.3",
+  "id": 230,
+  "time": "2026-10-29T11:28:55Z",
+  "channel": "STABLE",
+  "commits": [
+    {
+      "sha": "804dd0c3f08b666dc51a0250257915c002c59755",
+      "time": "2026-10-29T11:28:37Z",
+      "message": "Centralise TreeType <-> tree feature mapping and test it against TreeGrower (#14417)"
+    }
+  ],
+  "downloads": {
+    "server:default": {
+      "name": "paper-26.3-230.jar",
+      "checksums": {
+        "sha256": "c0df92ce1d93617dd406b50aa823c85f0bdc3cee7528ee9a60a80df0fad5d350"
+      },
+      "size": 55258376,
+      "url": "https://fill-data.papermc.io/v1/objects/c0df92ce1d93617dd406b50aa823c85f0bdc3cee7528ee9a60a80df0fad5d350/paper-26.3-230.jar"
+    }
+  }
+}
