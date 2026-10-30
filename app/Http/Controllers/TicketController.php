@@ -66,9 +66,9 @@ class TicketController extends Controller
     public function show(Ticket $ticket)
     {
         return Inertia::render('TicketChat', [
-            'ticket' => $ticket->load(['messages.replyTo']),
+            'ticket' => $ticket->load(['messages.replyTo', 'user']),
             'auth' => ['user' => Auth::user()],
-            'recentTickets' => Ticket::with('messages')->where('user_id', Auth::id())->get(),
+            'recentTickets' => Ticket::with(['messages', 'user'])->where('user_id', Auth::id())->get(),
         ]);
     }
 

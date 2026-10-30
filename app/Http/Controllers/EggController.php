@@ -20,7 +20,7 @@ class EggController extends Controller
      */
     public function index(Request $request): Response
     {
-        $query = Egg::query();
+        $query = Egg::withCount('servers');
 
         if ($request->filled('tag')) {
             $query->where('tags', 'like', '%' . $request->input('tag') . '%');
@@ -35,6 +35,10 @@ class EggController extends Controller
         }
 
         $eggs = $query->paginate($request->input('per_page', 10))->withQueryString();
+        $eggs->getCollection()->transform(function ($egg) {
+            $egg->servers = $egg->servers_count ?? 0;
+            return $egg;
+        });
 
         $tags = Egg::pluck('tags')
             ->filter()
@@ -99,6 +103,7 @@ class EggController extends Controller
             'name' => 'required|string|max:255',
             'author' => 'nullable|string|max:255',
             'description' => 'nullable|string',
+            'startup' => 'nullable|string',
             'config_stop' => 'nullable|string',
             'config_startup' => 'nullable|string',
             'config_files' => 'nullable|string',
@@ -109,28 +114,58 @@ class EggController extends Controller
             'file_denylist' => 'nullable|string',
             'features' => 'nullable|array',
             'force_outgoing_ip' => 'boolean',
-            'tags' => 'nullable|array',
+            'tags' => 'nullable',
             'update_url' => 'nullable|url',
             'docker_images' => 'nullable|array',
             'variables' => 'nullable|array',
         ]);
 
+        $variables = $validated['variables'] ?? null;
+        unset($validated['variables']);
+
+        if (isset($validated['tags']) && is_array($validated['tags'])) {
+            $validated['tags'] = implode(',', $validated['tags']);
+        }
+        if (isset($validated['features']) && is_array($validated['features'])) {
+            $validated['features'] = json_encode($validated['features']);
+        }
+        if (isset($validated['docker_images']) && is_array($validated['docker_images'])) {
+            $imagesAssoc = [];
+            foreach ($validated['docker_images'] as $key => $val) {
+                if (is_array($val) && isset($val['name'], $val['uri'])) {
+                    $imagesAssoc[$val['name']] = $val['uri'];
+                } elseif (is_string($key) && is_string($val)) {
+                    $imagesAssoc[$key] = $val;
+                }
+            }
+            $validated['docker_images'] = json_encode($imagesAssoc);
+        }
+
         $egg->update($validated);
 
-        if (isset($validated['variables'])) {
-            $egg->variables()->sync($validated['variables']);
-        } else {
-            $egg->variables()->detach();
+        if (is_array($variables)) {
+            $this->syncEggVariables($egg, $variables);
         }
 
         return redirect()->route('eggs.edit', $egg)->with('success', 'Egg actualizado correctamente.');
     }
 
     public function store(Request $request) {
+        $request->merge([
+            'config_stop' => $request->input('config_stop', $request->input('stopCommand')),
+            'config_startup' => $request->input('config_startup', $request->input('startConfig')),
+            'config_files' => $request->input('config_files', $request->input('configFiles')),
+            'config_logs' => $request->input('config_logs', $request->input('logConfig')),
+            'script_container' => $request->input('script_container', $request->input('scriptContainer')),
+            'script_entry' => $request->input('script_entry', $request->input('scriptEntry')),
+            'install_script' => $request->input('install_script', $request->input('installScript')),
+        ]);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'author' => 'nullable|string|max:255',
             'description' => 'nullable|string',
+            'startup' => 'nullable|string',
             'config_stop' => 'nullable|string',
             'config_startup' => 'nullable|string',
             'config_files' => 'nullable|string',
@@ -141,21 +176,54 @@ class EggController extends Controller
             'file_denylist' => 'nullable|string',
             'features' => 'nullable|array',
             'force_outgoing_ip' => 'boolean',
-            'tags' => 'nullable|array',
+            'tags' => 'nullable',
             'update_url' => 'nullable|url',
             'docker_images' => 'nullable|array',
             'variables' => 'nullable|array',
         ]);
 
+        $variables = $validated['variables'] ?? [];
+        unset($validated['variables']);
+
         $validated['uuid'] = Str::uuid()->toString();
+        if (isset($validated['tags']) && is_array($validated['tags'])) {
+            $validated['tags'] = implode(',', $validated['tags']);
+        }
+        $validated['features'] = isset($validated['features']) ? json_encode($validated['features']) : json_encode([]);
+        $validated['docker_images'] = isset($validated['docker_images']) ? json_encode($validated['docker_images']) : json_encode([]);
 
         $egg = Egg::create($validated);
 
-        if (isset($validated['variables'])) {
-            $egg->variables()->sync($validated['variables']);
+        if (is_array($variables)) {
+            $this->syncEggVariables($egg, $variables);
         }
 
         return redirect()->route('eggs.index')->with('success', 'Egg creado correctamente.');
+    }
+
+    private function syncEggVariables(Egg $egg, array $variables): void
+    {
+        foreach ($variables as $index => $var) {
+            if (empty($var['name']) && empty($var['env_variable']) && empty($var['envVariable'])) {
+                continue;
+            }
+            $envVar = $var['env_variable'] ?? $var['envVariable'] ?? strtoupper(Str::snake($var['name'] ?? 'VAR_' . $index));
+            DB::table('egg_variables')->updateOrInsert(
+                [
+                    'egg_id' => $egg->id,
+                    'env_variable' => $envVar,
+                ],
+                [
+                    'name' => $var['name'] ?? $envVar,
+                    'description' => $var['description'] ?? '',
+                    'default_value' => $var['default_value'] ?? $var['defaultValue'] ?? '',
+                    'user_viewable' => (int) ($var['user_viewable'] ?? $var['userPermissions']['viewable'] ?? 1),
+                    'user_editable' => (int) ($var['user_editable'] ?? $var['userPermissions']['editable'] ?? 1),
+                    'rules' => is_array($var['rules'] ?? null) ? json_encode($var['rules']) : ($var['rules'] ?? 'required|string'),
+                    'sort' => $var['sort'] ?? ($index + 1),
+                ]
+            );
+        }
     }
 
     /**

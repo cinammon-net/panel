@@ -50,7 +50,7 @@ class ReviewController extends Controller
 
         $request->user()->reviews()->create($validated);
 
-        return Redirect::route('reviews.index')->with('success', 'Valoración eliminada con éxito.');
+        return Redirect::route('reviews.index')->with('success', 'Valoración creada con éxito.');
     }
 
     public function show(Review $review)
