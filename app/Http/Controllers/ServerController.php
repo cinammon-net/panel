@@ -384,16 +384,28 @@ class ServerController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:100',
+            'driver' => 'nullable|string|in:sqlite,mysql,mariadb,pgsql,mongodb,redis,sqlsrv',
             'user' => 'required|string|max:100',
             'host' => 'nullable|string|max:100',
-            'port' => 'nullable|integer',
+            'port' => 'nullable|integer|min:0|max:65535',
         ]);
+
+        $driver = $validated['driver'] ?? 'mysql';
+        $defaultPort = match ($driver) {
+            'pgsql' => 5432,
+            'mongodb' => 27017,
+            'redis' => 6379,
+            'sqlsrv' => 1433,
+            'sqlite' => 0,
+            default => 3306,
+        };
 
         $key = "server_databases_{$server->id}";
         $databases = \Illuminate\Support\Facades\Cache::get($key, [
             [
                 'id' => 1,
                 'name' => 's' . $server->id . '_cinammon',
+                'driver' => 'mysql',
                 'user' => 'u' . $server->id . '_admin',
                 'host' => '127.0.0.1',
                 'port' => 3306,
@@ -405,9 +417,10 @@ class ServerController extends Controller
         $databases[] = [
             'id' => $nextId ?: 1,
             'name' => $validated['name'],
+            'driver' => $driver,
             'user' => $validated['user'],
-            'host' => $validated['host'] ?? '127.0.0.1',
-            'port' => (int) ($validated['port'] ?? 3306),
+            'host' => $validated['host'] ?? ($driver === 'sqlite' ? "database/s{$server->id}.sqlite" : '127.0.0.1'),
+            'port' => isset($validated['port']) ? (int) $validated['port'] : $defaultPort,
             'password' => 'cnm_' . Str::random(12),
         ];
 
