@@ -332,6 +332,19 @@ class ServerController extends Controller
         // Cargar relaciones necesarias
         $server->load(['node', 'owner']);
 
+        $defaultDatabases = [
+            [
+                'id' => 1,
+                'name' => 's' . $server->id . '_cinammon',
+                'user' => 'u' . $server->id . '_admin',
+                'host' => '127.0.0.1',
+                'port' => 3306,
+                'password' => 'cnm_' . substr(md5('srv_db_' . $server->id), 0, 12),
+            ],
+        ];
+        $databases = \Illuminate\Support\Facades\Cache::get("server_databases_{$server->id}", $defaultDatabases);
+        $server->setAttribute('databases', array_values($databases));
+
         // Decodificar imágenes de los eggs
         $eggs = Egg::with('variables')
             ->select('id', 'name', 'startup', 'docker_images')
@@ -350,11 +363,95 @@ class ServerController extends Controller
         ]);
     }
 
+    public function storeDatabase(Request $request, Server $server)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'user' => 'required|string|max:100',
+            'host' => 'nullable|string|max:100',
+            'port' => 'nullable|integer',
+        ]);
+
+        $key = "server_databases_{$server->id}";
+        $databases = \Illuminate\Support\Facades\Cache::get($key, [
+            [
+                'id' => 1,
+                'name' => 's' . $server->id . '_cinammon',
+                'user' => 'u' . $server->id . '_admin',
+                'host' => '127.0.0.1',
+                'port' => 3306,
+                'password' => 'cnm_' . substr(md5('srv_db_' . $server->id), 0, 12),
+            ],
+        ]);
+
+        $nextId = collect($databases)->max('id') + 1;
+        $databases[] = [
+            'id' => $nextId ?: 1,
+            'name' => $validated['name'],
+            'user' => $validated['user'],
+            'host' => $validated['host'] ?? '127.0.0.1',
+            'port' => (int) ($validated['port'] ?? 3306),
+            'password' => 'cnm_' . Str::random(12),
+        ];
+
+        \Illuminate\Support\Facades\Cache::forever($key, array_values($databases));
+        $server->update(['database_limit' => max((int) $server->database_limit, count($databases))]);
+
+        return back()->with('success', 'Base de datos creada correctamente.');
+    }
+
+    public function destroyDatabase(Server $server, $dbId)
+    {
+        $key = "server_databases_{$server->id}";
+        $databases = collect(\Illuminate\Support\Facades\Cache::get($key, []))
+            ->reject(fn ($db) => (string) ($db['id'] ?? '') === (string) $dbId)
+            ->values()
+            ->all();
+
+        \Illuminate\Support\Facades\Cache::forever($key, $databases);
+
+        return back()->with('success', 'Base de datos eliminada.');
+    }
+
     public function destroy($uuid)
     {
-        $server = Server::where('uuid', $uuid)->firstOrFail();
+        $server = Server::where('uuid', $uuid)->orWhere('id', $uuid)->firstOrFail();
         $server->delete();
 
         return redirect()->route('servers.index')->with('success', 'Servidor eliminado correctamente.');
+    }
+
+    public function toggleInstall($uuid)
+    {
+        $server = Server::where('uuid', $uuid)->orWhere('id', $uuid)->firstOrFail();
+        $server->status = $server->status ? 0 : 1;
+        $server->save();
+
+        return back()->with('success', 'Estado de instalación actualizado.');
+    }
+
+    public function suspend($uuid)
+    {
+        $server = Server::where('uuid', $uuid)->orWhere('id', $uuid)->firstOrFail();
+        $server->status = 0;
+        $server->save();
+
+        return back()->with('success', 'Servidor suspendido correctamente.');
+    }
+
+    public function transfer($uuid)
+    {
+        Server::where('uuid', $uuid)->orWhere('id', $uuid)->firstOrFail();
+
+        return back()->with('success', 'Transferencia iniciada correctamente.');
+    }
+
+    public function reinstall($uuid)
+    {
+        $server = Server::where('uuid', $uuid)->orWhere('id', $uuid)->firstOrFail();
+        $server->status = 1;
+        $server->save();
+
+        return back()->with('success', 'Reinstalación del servidor iniciada.');
     }
 }

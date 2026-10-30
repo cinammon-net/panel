@@ -19,6 +19,21 @@ class PostController extends Controller
         ]);
     }
 
+    public function show(Post $post)
+    {
+        return redirect()->route('posts.index');
+    }
+
+    public function create()
+    {
+        return redirect()->route('posts.index');
+    }
+
+    public function edit(Post $post)
+    {
+        return redirect()->route('posts.index');
+    }
+
     /**
      * Store a newly created resource in storage.
      */

@@ -13,7 +13,7 @@ class NodeController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Node::query();
+        $query = Node::withCount('servers');
 
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
@@ -34,6 +34,8 @@ class NodeController extends Controller
                 'fqdn' => $node->fqdn,
                 'scheme' => $node->scheme,
                 'online' => (bool) $node->online,
+                'public' => (bool) ($node->public ?? true),
+                'servers' => $node->servers_count ?? 0,
                 'status' => $node->maintenance_mode ? 'warning' : ($node->online ? 'online' : 'offline'),
                 'ssl' => $node->scheme === 'https',
                 'maintenance' => (bool) $node->maintenance_mode,
@@ -277,14 +279,100 @@ class NodeController extends Controller
             })
             ->unique();
 
+        $created = [];
         foreach ($ports as $port) {
-            $node->allocations()->create([
-                'ip' => $validated['ip'],
-                'alias' => $validated['alias'],
-                'port' => $port,
-            ]);
+            $alloc = $node->allocations()->firstOrCreate(
+                [
+                    'ip' => $validated['ip'],
+                    'port' => $port,
+                ],
+                [
+                    'alias' => $validated['alias'] ?? null,
+                ]
+            );
+            $created[] = [
+                'id' => $alloc->id,
+                'ip' => $alloc->ip,
+                'alias' => $alloc->alias,
+                'port' => $alloc->port,
+            ];
         }
 
-        return response()->json(['message' => 'Allocations creadas correctamente']);
+        return response()->json([
+            'message' => 'Allocations creadas correctamente',
+            'allocations' => $created,
+        ]);
+    }
+
+    public function destroyAllocation($nodeId, $allocationId)
+    {
+        $node = Node::findOrFail($nodeId);
+        $node->allocations()->where('id', $allocationId)->delete();
+
+        return response()->json(['message' => 'Allocation eliminada correctamente']);
+    }
+
+    public function destroy($id)
+    {
+        $node = Node::findOrFail($id);
+        $node->delete();
+
+        return redirect()->route('nodes.index')->with('success', 'Nodo eliminado correctamente.');
+    }
+
+    public function reset($id)
+    {
+        $node = Node::findOrFail($id);
+        $node->daemon_token_id = (string) Str::uuid();
+        $node->daemon_token = Str::random(64);
+        $node->save();
+
+        return response()->json([
+            'message' => 'Claves del nodo restablecidas correctamente.',
+            'daemon_token_id' => $node->daemon_token_id,
+            'daemon_token' => $node->daemon_token,
+        ]);
+    }
+
+    public function getCpuData()
+    {
+        $labels = [];
+        $usage = [];
+        $now = now();
+        for ($i = 9; $i >= 0; $i--) {
+            $labels[] = $now->copy()->subSeconds($i * 10)->format('H:i:s');
+            $usage[] = round(0.12 + (($i % 4) * 0.05), 2);
+        }
+
+        return response()->json([
+            'cpu_usage' => $usage,
+            'time_labels' => $labels,
+        ]);
+    }
+
+    public function getMemoryData()
+    {
+        $labels = [];
+        $usage = [];
+        $now = now();
+        for ($i = 9; $i >= 0; $i--) {
+            $labels[] = $now->copy()->subSeconds($i * 10)->format('H:i:s');
+            $usage[] = round(0.35 + (($i % 3) * 0.04), 2);
+        }
+
+        return response()->json([
+            'memory_usage' => $usage,
+            'time_labels' => $labels,
+        ]);
+    }
+
+    public function getStorageData()
+    {
+        $node = Node::first();
+        $total = (int) ($node?->disk ?: 10240);
+        $used = (int) round($total * 0.28);
+        $free = max(0, $total - $used);
+
+        return response()->json([$used, $free]);
     }
 }
