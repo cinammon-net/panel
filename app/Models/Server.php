@@ -11,7 +11,7 @@ class Server extends Model
 
     protected $table = 'servers';
 
-    protected $fillable = ['uuid', 'uuid_short', 'node_id', 'name', 'active', 'owner_id', 'memory', 'swap', 'disk', 'io', 'cpu', 'egg_id', 'oom_disabled', 'ip', 'port', 'service', 'option', 'startup', 'daemon_secret', 'username', 'installed_at', 'description', 'status', 'database_limit', 'allocation_limit', 'threads', 'backup_limit', 'docker_labels', 'allocation_id', 'primary_allocation', 'additional_allocations', 'run_install_script', 'start_after_install', 'bungee_version', 'bungee_jar_file', 'cpu_pinning', 'swap_memory'];
+    protected $fillable = ['image', 'oom_killer', 'uuid', 'uuid_short', 'node_id', 'name', 'active', 'owner_id', 'memory', 'swap', 'disk', 'io', 'cpu', 'egg_id', 'oom_disabled', 'ip', 'port', 'service', 'option', 'startup', 'daemon_secret', 'username', 'installed_at', 'description', 'status', 'database_limit', 'allocation_limit', 'threads', 'backup_limit', 'docker_labels', 'allocation_id', 'primary_allocation', 'additional_allocations', 'run_install_script', 'start_after_install', 'bungee_version', 'bungee_jar_file', 'cpu_pinning', 'swap_memory'];
 
     protected $appends = ['short_uuid'];
 

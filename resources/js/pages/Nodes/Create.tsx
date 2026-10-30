@@ -20,7 +20,7 @@ export default function CreateNode() {
         scheme: 'https',
         maintenance_mode: false,
         deployments: false,
-        upload_limit: 1024,
+        upload_size: 1024,
         sftp_port: 2022,
         sftp_alias: '',
         tags: '',
@@ -591,11 +591,11 @@ export default function CreateNode() {
                                             {/* Input */}
                                             <input
                                                 id="uploadLimit"
-                                                name="upload_limit"
+                                                name="upload_size"
                                                 type="number"
                                                 placeholder="256"
-                                                value={node.upload_limit}
-                                                onChange={(e) => setNode({ ...node, upload_limit: Number(e.target.value) })}
+                                                value={node.upload_size}
+                                                onChange={(e) => setNode({ ...node, upload_size: Number(e.target.value) })}
                                                 className="w-full bg-transparent p-2 pl-3 text-cyan-300 placeholder-cyan-600 focus:outline-none"
                                                 style={{ border: 'none' }} // quitamos border para que solo se vea el contenedor
                                             />
