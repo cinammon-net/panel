@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import AppLayout from '@/layouts/app-layout';
 import { Head } from '@inertiajs/react';
-import { ChevronDown, Egg, MapPinned, MapPinPlus, PlusIcon, Server, Star, StarOff, Terminal, Trash, User } from 'lucide-react';
+import { ChevronDown, Cpu, Database as DatabaseIcon, Egg, MapPinned, MapPinPlus, PlusIcon, Server, Star, StarOff, Terminal, Trash, User, Zap } from 'lucide-react';
 import { ChangeEvent, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useState } from 'react';
 import { usePage } from '@inertiajs/react';
 import { toast } from 'sonner';
@@ -10,12 +10,12 @@ import { router } from '@inertiajs/react';
 
 
 const tabs = [
-    { id: 'info', title: 'Information' },
-    { id: 'egg', title: 'Egg Configuration' },
-    { id: 'env', title: 'Environment Configuration' },
-    { id: 'mounts', title: 'Mounts' },
-    { id: 'databases', title: 'Databases' },
-    { id: 'actions', title: 'Actions' },
+    { id: 'info', title: 'Information', icon: Server },
+    { id: 'egg', title: 'Egg Configuration', icon: Egg },
+    { id: 'env', title: 'Environment Configuration', icon: Cpu },
+    { id: 'mounts', title: 'Mounts', icon: MapPinned },
+    { id: 'databases', title: 'Databases', icon: DatabaseIcon },
+    { id: 'actions', title: 'Actions', icon: Zap },
 ];
 export default function CreateServer() {
     const {
@@ -145,6 +145,7 @@ export default function CreateServer() {
 
     // State to control the visibility of the variables section in the Egg tab
     const [showVariables, setShowVariables] = useState(false);
+    const [newDbDriver, setNewDbDriver] = useState<'mysql' | 'mariadb' | 'pgsql' | 'sqlite' | 'mongodb' | 'redis' | 'sqlsrv'>('mysql');
     return (
         <AppLayout
             breadcrumbs={[
@@ -160,9 +161,12 @@ export default function CreateServer() {
             <div className="min-h-screen bg-white p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
                 {/* Header */}
                 <div className="mb-6 flex items-center justify-between border-cyan-600">
-                    <h1 className="text-2xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400 dark:drop-shadow-[0_0_5px_#0ff]">
-                        EDIT SERVER
-                    </h1>
+                    <div className="flex items-center gap-3">
+                        <Server className="h-7 w-7 text-cyan-400" />
+                        <h1 className="text-2xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400">
+                            EDIT SERVER
+                        </h1>
+                    </div>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={() => {
@@ -199,21 +203,25 @@ export default function CreateServer() {
                     </div>
                 </div>
                 <div className="">
-                    <div className="rounded-lg border border-cyan-500 bg-black/90 p-6">
+                    <div className="rounded-lg border border-cyan-500/40 bg-black/90 p-6">
                         {/* Tabs */}
-                        <div className="mb-6 flex flex-col space-y-2 border-b-2 border-cyan-500 sm:flex-row sm:space-y-0 sm:space-x-8">
-                            {tabs.map((tab) => (
-                                <button
-                                    key={tab.id}
-                                    className={`flex items-center justify-center px-4 py-2 text-sm font-medium transition-colors duration-200 ${activeTab === tab.id
-                                        ? 'border-b-2 border-cyan-500 text-cyan-400'
-                                        : 'text-gray-400 hover:text-cyan-400'
-                                        }`}
-                                    onClick={() => setActiveTab(tab.id)}
-                                >
-                                    {tab.title}
-                                </button>
-                            ))}
+                        <div className="mb-6 flex flex-col space-y-2 border-b border-cyan-500/40 sm:flex-row sm:space-y-0 sm:space-x-6">
+                            {tabs.map((tab) => {
+                                const TabIcon = tab.icon;
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        className={`flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors duration-200 ${activeTab === tab.id
+                                            ? 'border-b-2 border-cyan-400 text-cyan-400'
+                                            : 'text-gray-400 hover:text-cyan-300'
+                                            }`}
+                                        onClick={() => setActiveTab(tab.id)}
+                                    >
+                                        <TabIcon className="h-4 w-4 shrink-0" />
+                                        <span>{tab.title}</span>
+                                    </button>
+                                );
+                            })}
                         </div>
 
                         {/* Tab Content */}
@@ -841,43 +849,74 @@ export default function CreateServer() {
                             )}
 
                             {activeTab === 'databases' && (
-                                <div className="space-y-6 rounded border border-cyan-600 bg-black/90 p-5">
+                                <div className="space-y-6 rounded border border-cyan-600/50 bg-black/90 p-5">
                                     <div className="flex flex-wrap items-center justify-between gap-4">
                                         <div>
-                                            <h2 className="text-lg font-semibold text-cyan-400">Server Databases</h2>
-                                            <p className="text-xs text-cyan-600">
-                                                Bases de datos MySQL/MariaDB asignadas a este servidor ({server.databases?.length || 0} activas)
+                                            <h2 className="flex items-center gap-2 text-lg font-semibold text-cyan-400">
+                                                <DatabaseIcon className="h-5 w-5" /> Server Databases
+                                            </h2>
+                                            <p className="text-xs text-cyan-500">
+                                                Bases de datos multi-motor (SQLite, MySQL, MariaDB, PostgreSQL, MongoDB, Redis, SQL Server) asignadas a este servidor ({server.databases?.length || 0} activas)
                                             </p>
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                const dbName = `s${initialServer.id}_${Math.random().toString(36).substring(2, 7)}`;
-                                                const dbUser = `u${initialServer.id}_${Math.random().toString(36).substring(2, 6)}`;
-                                                router.post(
-                                                    `/servers/${initialServer.id}/databases`,
-                                                    {
-                                                        name: dbName,
-                                                        user: dbUser,
-                                                        host: '127.0.0.1',
-                                                        port: 3306,
-                                                    },
-                                                    {
-                                                        preserveScroll: true,
-                                                        onSuccess: (page: any) => {
-                                                            const updated = page?.props?.server?.databases;
-                                                            if (Array.isArray(updated)) {
-                                                                setServer((prev: any) => ({ ...prev, databases: updated }));
-                                                            }
-                                                            toast.success('Base de datos creada correctamente');
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <select
+                                                aria-label="Seleccionar motor de base de datos"
+                                                value={newDbDriver}
+                                                onChange={(e) => setNewDbDriver(e.target.value as any)}
+                                                className="rounded border border-cyan-600 bg-neutral-950 px-3 py-2 text-xs font-semibold text-cyan-300 outline-none"
+                                            >
+                                                <option value="mysql">MySQL 8.0 (:3306)</option>
+                                                <option value="mariadb">MariaDB 11.4 (:3306)</option>
+                                                <option value="pgsql">PostgreSQL 16 (:5432)</option>
+                                                <option value="sqlite">SQLite 3 (local)</option>
+                                                <option value="mongodb">MongoDB 7.0 (:27017)</option>
+                                                <option value="redis">Redis 7.2 (:6379)</option>
+                                                <option value="sqlsrv">SQL Server (:1433)</option>
+                                            </select>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const dbName = `s${initialServer.id}_${newDbDriver}_${Math.random().toString(36).substring(2, 6)}`;
+                                                    const dbUser = `u${initialServer.id}_${Math.random().toString(36).substring(2, 6)}`;
+                                                    const defaultPort =
+                                                        newDbDriver === 'pgsql'
+                                                            ? 5432
+                                                            : newDbDriver === 'mongodb'
+                                                              ? 27017
+                                                              : newDbDriver === 'redis'
+                                                                ? 6379
+                                                                : newDbDriver === 'sqlsrv'
+                                                                  ? 1433
+                                                                  : newDbDriver === 'sqlite'
+                                                                    ? 0
+                                                                    : 3306;
+                                                    router.post(
+                                                        `/servers/${initialServer.id}/databases`,
+                                                        {
+                                                            name: dbName,
+                                                            driver: newDbDriver,
+                                                            user: dbUser,
+                                                            host: newDbDriver === 'sqlite' ? `database/${dbName}.sqlite` : '127.0.0.1',
+                                                            port: defaultPort,
                                                         },
-                                                    },
-                                                );
-                                            }}
-                                            className="rounded border border-cyan-500 bg-cyan-500/20 px-4 py-2 text-xs font-bold text-cyan-300 transition hover:bg-cyan-500 hover:text-black"
-                                        >
-                                            + New Database
-                                        </button>
+                                                        {
+                                                            preserveScroll: true,
+                                                            onSuccess: (page: any) => {
+                                                                const updated = page?.props?.server?.databases;
+                                                                if (Array.isArray(updated)) {
+                                                                    setServer((prev: any) => ({ ...prev, databases: updated }));
+                                                                }
+                                                                toast.success(`Base de datos (${newDbDriver.toUpperCase()}) creada correctamente`);
+                                                            },
+                                                        },
+                                                    );
+                                                }}
+                                                className="rounded border border-cyan-500 bg-cyan-500/20 px-4 py-2 text-xs font-bold text-cyan-300 transition hover:bg-cyan-500 hover:text-black"
+                                            >
+                                                + New Database
+                                            </button>
+                                        </div>
                                     </div>
 
                                     {Array.isArray(server.databases) && server.databases.length > 0 ? (
@@ -886,6 +925,7 @@ export default function CreateServer() {
                                                 <thead className="border-b border-cyan-600 text-xs uppercase text-cyan-400">
                                                     <tr>
                                                         <th className="px-4 py-2">Database Name</th>
+                                                        <th className="px-4 py-2">Engine</th>
                                                         <th className="px-4 py-2">Username</th>
                                                         <th className="px-4 py-2">Endpoint (Host:Port)</th>
                                                         <th className="px-4 py-2">Password</th>
@@ -893,61 +933,69 @@ export default function CreateServer() {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {server.databases.map((db: any, i: number) => (
-                                                        <tr
-                                                            key={db.id ?? i}
-                                                            onClick={() => router.visit(`/database?open=${encodeURIComponent(db.name)}`)}
-                                                            className="cursor-pointer border-b border-cyan-800/60 hover:bg-cyan-950/50"
-                                                        >
-                                                            <td className="px-4 py-3 font-mono font-semibold text-cyan-300 underline decoration-cyan-500/40 underline-offset-4">
-                                                                {db.name}
-                                                            </td>
-                                                            <td className="px-4 py-3 font-mono text-cyan-300">{db.user}</td>
-                                                            <td className="px-4 py-3 font-mono text-cyan-400">
-                                                                {db.host}:{db.port}
-                                                            </td>
-                                                            <td className="px-4 py-3 font-mono text-xs text-pink-400">
-                                                                {db.password || 'cnm_db_secret'}
-                                                            </td>
-                                                            <td className="flex justify-end gap-2 px-4 py-3 text-right">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        router.visit(`/database?open=${encodeURIComponent(db.name)}`);
-                                                                    }}
-                                                                    className="rounded border border-cyan-500/50 bg-cyan-500/15 px-3 py-1 text-xs text-cyan-300 hover:bg-cyan-500 hover:text-black"
-                                                                >
-                                                                    Archivos / Tablas
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        router.delete(
-                                                                            `/servers/${initialServer.id}/databases/${db.id ?? i}`,
-                                                                            {
-                                                                                preserveScroll: true,
-                                                                                onSuccess: (page: any) => {
-                                                                                    const updated = page?.props?.server?.databases;
-                                                                                    if (Array.isArray(updated)) {
-                                                                                        setServer((prev: any) => ({
-                                                                                            ...prev,
-                                                                                            databases: updated,
-                                                                                        }));
-                                                                                    }
-                                                                                    toast.success('Base de datos eliminada');
+                                                    {server.databases.map((db: any, i: number) => {
+                                                        const drv = db.driver || (db.port === 5432 ? 'pgsql' : db.port === 27017 ? 'mongodb' : db.port === 6379 ? 'redis' : db.port === 0 ? 'sqlite' : 'mysql');
+                                                        return (
+                                                            <tr
+                                                                key={db.id ?? i}
+                                                                onClick={() => router.visit(`/database?open=${encodeURIComponent(db.name)}&driver=${encodeURIComponent(drv)}`)}
+                                                                className="cursor-pointer border-b border-cyan-800/60 hover:bg-cyan-950/50"
+                                                            >
+                                                                <td className="px-4 py-3 font-mono font-semibold text-cyan-300 underline decoration-cyan-500/40 underline-offset-4">
+                                                                    {db.name}
+                                                                </td>
+                                                                <td className="px-4 py-3 font-mono text-xs uppercase">
+                                                                    <span className="rounded border border-cyan-500/40 bg-cyan-500/10 px-2 py-0.5 text-cyan-300">
+                                                                        {drv}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-4 py-3 font-mono text-cyan-300">{db.user}</td>
+                                                                <td className="px-4 py-3 font-mono text-cyan-400">
+                                                                    {db.port ? `${db.host}:${db.port}` : db.host}
+                                                                </td>
+                                                                <td className="px-4 py-3 font-mono text-xs text-pink-400">
+                                                                    {db.password || 'cnm_db_secret'}
+                                                                </td>
+                                                                <td className="flex justify-end gap-2 px-4 py-3 text-right">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            router.visit(`/database?open=${encodeURIComponent(db.name)}&driver=${encodeURIComponent(drv)}`);
+                                                                        }}
+                                                                        className="rounded border border-cyan-500/50 bg-cyan-500/15 px-3 py-1 text-xs text-cyan-300 hover:bg-cyan-500 hover:text-black"
+                                                                    >
+                                                                        Abrir Gestor DB
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            router.delete(
+                                                                                `/servers/${initialServer.id}/databases/${db.id ?? i}`,
+                                                                                {
+                                                                                    preserveScroll: true,
+                                                                                    onSuccess: (page: any) => {
+                                                                                        const updated = page?.props?.server?.databases;
+                                                                                        if (Array.isArray(updated)) {
+                                                                                            setServer((prev: any) => ({
+                                                                                                ...prev,
+                                                                                                databases: updated,
+                                                                                            }));
+                                                                                        }
+                                                                                        toast.success('Base de datos eliminada');
+                                                                                    },
                                                                                 },
-                                                                            },
-                                                                        );
-                                                                    }}
-                                                                    className="rounded bg-red-600/20 px-3 py-1 text-xs text-red-400 hover:bg-red-600 hover:text-white"
-                                                                >
-                                                                    Delete
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
+                                                                            );
+                                                                        }}
+                                                                        className="rounded bg-red-600/20 px-3 py-1 text-xs text-red-400 hover:bg-red-600 hover:text-white"
+                                                                    >
+                                                                        Delete
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
                                                 </tbody>
                                             </table>
                                         </div>

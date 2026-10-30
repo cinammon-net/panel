@@ -5,11 +5,14 @@ import axios from 'axios';
 import {
     ArrowDown,
     ArrowUp,
+    Braces,
     ChevronLeft,
     ChevronRight,
     Code2,
     Copy,
+    Cpu,
     Database as DatabaseIcon,
+    HardDrive,
     KeyRound,
     Layers,
     Play,
@@ -24,9 +27,133 @@ import {
 import { FormEvent, useState } from 'react';
 import { toast } from 'sonner';
 
+export type DbDriver = 'sqlite' | 'mysql' | 'mariadb' | 'pgsql' | 'mongodb' | 'redis' | 'sqlsrv';
+
+interface DatabaseEngineSpec {
+    id: DbDriver;
+    label: string;
+    shortLabel: string;
+    scheme: string;
+    defaultHost: string;
+    defaultPort: number;
+    defaultUser: string;
+    badgeClass: string;
+    entitySingular: string;
+    entityPlural: string;
+    consoleLabel: string;
+}
+
+const DB_ENGINES: Record<DbDriver, DatabaseEngineSpec> = {
+    sqlite: {
+        id: 'sqlite',
+        label: 'SQLite 3',
+        shortLabel: 'SQLite',
+        scheme: 'sqlite3://',
+        defaultHost: 'database/local.sqlite',
+        defaultPort: 0,
+        defaultUser: 'local',
+        badgeClass: 'border-cyan-500/40 bg-cyan-500/10 text-cyan-300',
+        entitySingular: 'Tabla SQL',
+        entityPlural: 'Tablas SQL',
+        consoleLabel: 'Consola SQLite',
+    },
+    mysql: {
+        id: 'mysql',
+        label: 'MySQL 8.0',
+        shortLabel: 'MySQL',
+        scheme: 'mysql://',
+        defaultHost: '127.0.0.1',
+        defaultPort: 3306,
+        defaultUser: 'cinammon',
+        badgeClass: 'border-amber-500/40 bg-amber-500/10 text-amber-300',
+        entitySingular: 'Tabla MySQL',
+        entityPlural: 'Tablas MySQL',
+        consoleLabel: 'Consola MySQL',
+    },
+    mariadb: {
+        id: 'mariadb',
+        label: 'MariaDB 11.4',
+        shortLabel: 'MariaDB',
+        scheme: 'mariadb://',
+        defaultHost: '127.0.0.1',
+        defaultPort: 3306,
+        defaultUser: 'mariadb',
+        badgeClass: 'border-orange-500/40 bg-orange-500/10 text-orange-300',
+        entitySingular: 'Tabla MariaDB',
+        entityPlural: 'Tablas MariaDB',
+        consoleLabel: 'Consola MariaDB',
+    },
+    pgsql: {
+        id: 'pgsql',
+        label: 'PostgreSQL 16',
+        shortLabel: 'PostgreSQL',
+        scheme: 'postgresql://',
+        defaultHost: '127.0.0.1',
+        defaultPort: 5432,
+        defaultUser: 'postgres',
+        badgeClass: 'border-sky-500/40 bg-sky-500/10 text-sky-300',
+        entitySingular: 'Tabla PostgreSQL',
+        entityPlural: 'Tablas PostgreSQL',
+        consoleLabel: 'Consola PostgreSQL (psql)',
+    },
+    mongodb: {
+        id: 'mongodb',
+        label: 'MongoDB 7.0',
+        shortLabel: 'MongoDB',
+        scheme: 'mongodb://',
+        defaultHost: '127.0.0.1',
+        defaultPort: 27017,
+        defaultUser: 'mongo_admin',
+        badgeClass: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300',
+        entitySingular: 'Colección BSON',
+        entityPlural: 'Colecciones BSON',
+        consoleLabel: 'Consola MongoSH (MQL)',
+    },
+    redis: {
+        id: 'redis',
+        label: 'Redis 7.2',
+        shortLabel: 'Redis',
+        scheme: 'redis://',
+        defaultHost: '127.0.0.1',
+        defaultPort: 6379,
+        defaultUser: 'default',
+        badgeClass: 'border-rose-500/40 bg-rose-500/10 text-rose-300',
+        entitySingular: 'Keyspace',
+        entityPlural: 'Keyspaces',
+        consoleLabel: 'Consola Redis CLI',
+    },
+    sqlsrv: {
+        id: 'sqlsrv',
+        label: 'SQL Server 2022',
+        shortLabel: 'SQL Server',
+        scheme: 'mssql://',
+        defaultHost: '127.0.0.1',
+        defaultPort: 1433,
+        defaultUser: 'sa',
+        badgeClass: 'border-purple-500/40 bg-purple-500/10 text-purple-300',
+        entitySingular: 'Tabla T-SQL',
+        entityPlural: 'Tablas T-SQL',
+        consoleLabel: 'Consola T-SQL',
+    },
+};
+
+function normalizeDriver(driver?: string, port?: number): DbDriver {
+    const clean = (driver || '').toLowerCase() as DbDriver;
+    if (clean && clean in DB_ENGINES) {
+        return clean;
+    }
+    if (port === 5432) return 'pgsql';
+    if (port === 27017) return 'mongodb';
+    if (port === 6379) return 'redis';
+    if (port === 1433) return 'sqlsrv';
+    if (port === 0) return 'sqlite';
+    return 'mysql';
+}
+
 interface DatabaseHost {
     id: number;
     name: string;
+    driver?: DbDriver;
     host: string;
     port: number;
     username: string;
@@ -39,6 +166,7 @@ interface DatabaseHost {
 interface ServerDbItem {
     id: number;
     name: string;
+    driver?: DbDriver;
     user: string;
     host: string;
     port: number;
@@ -90,6 +218,7 @@ interface Props {
 interface SelectedDatabaseContext {
     title: string;
     subtitle: string;
+    driver: DbDriver;
     endpoint: string;
     username: string;
     serverId?: number;
@@ -103,28 +232,122 @@ interface SqlQueryResult {
 }
 
 const button =
-    'inline-flex items-center justify-center gap-2 rounded-lg border border-orange-500/40 bg-orange-500/10 px-3.5 py-2 text-xs font-semibold text-orange-300 transition hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:opacity-40';
+    'inline-flex items-center justify-center gap-2 rounded-lg border border-orange-500/35 bg-orange-500/10 px-3.5 py-2 text-xs font-semibold text-orange-300 transition hover:bg-orange-500/20 disabled:cursor-not-allowed disabled:opacity-40';
 const primary =
-    'inline-flex items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-xs font-bold text-black transition hover:bg-orange-400 disabled:opacity-40';
+    'inline-flex items-center justify-center gap-2 rounded-lg bg-orange-500/90 px-4 py-2 text-xs font-bold text-black transition hover:bg-orange-400 disabled:opacity-40';
 const input =
-    'w-full rounded-lg border border-orange-500/40 bg-neutral-950 px-3 py-2 text-sm text-white outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400';
+    'w-full rounded-lg border border-orange-500/35 bg-neutral-950/90 px-3 py-2 text-sm text-slate-100 outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400';
+
+function getDefaultQueryForDriver(driver: DbDriver, tableName = 'users'): string {
+    switch (driver) {
+        case 'mongodb':
+            return `db.${tableName}.find({}).limit(25)`;
+        case 'redis':
+            return 'KEYS *';
+        case 'pgsql':
+            return `SELECT * FROM public."${tableName}" LIMIT 25;`;
+        case 'mysql':
+        case 'mariadb':
+            return `SELECT * FROM \`${tableName}\` LIMIT 25;`;
+        case 'sqlsrv':
+            return `SELECT * FROM "${tableName}" LIMIT 25;`;
+        case 'sqlite':
+        default:
+            return `SELECT * FROM "${tableName}" LIMIT 25;`;
+    }
+}
+
+function formatDdlForDriver(table: DbTableInfo, driver: DbDriver): string {
+    const cols =
+        table.schema && table.schema.length > 0
+            ? table.schema
+            : table.columns.map((c, idx) => ({
+                  cid: idx,
+                  name: c,
+                  type: 'VARCHAR(255)',
+                  notnull: false,
+                  dflt_value: null,
+                  pk: idx === 0,
+              }));
+
+    if (driver === 'mongodb') {
+        const sampleDoc = table.rows[0] || {};
+        const properties: Record<string, { bsonType: string; description: string }> = {
+            _id: { bsonType: 'objectId', description: 'Identificador único ObjectId' },
+        };
+        for (const col of cols) {
+            const sampleVal = sampleDoc[col.name];
+            properties[col.name] = {
+                bsonType: typeof sampleVal === 'number' ? 'int' : typeof sampleVal === 'boolean' ? 'bool' : 'string',
+                description: col.notnull ? 'required field' : 'optional field',
+            };
+        }
+        return JSON.stringify(
+            {
+                collection: table.name,
+                validator: {
+                    $jsonSchema: {
+                        bsonType: 'object',
+                        required: cols.filter((c) => c.notnull || c.pk).map((c) => c.name),
+                        properties,
+                    },
+                },
+            },
+            null,
+            2,
+        );
+    }
+
+    if (driver === 'redis') {
+        return `# Estructura Keyspace Redis para prefijo "${table.name}:*"\nHSET ${table.name}:1 ${cols
+            .slice(0, 5)
+            .map((c) => `${c.name} "<${c.type || 'string'}>"`)
+            .join(' ')}\nEXPIRE ${table.name}:1 3600`;
+    }
+
+    if (driver === 'pgsql') {
+        const lines = cols.map((c) => {
+            const pgType = c.pk && c.type.toUpperCase().includes('INT') ? 'BIGSERIAL PRIMARY KEY' : c.type || 'TEXT';
+            const nullPart = c.notnull && !c.pk ? ' NOT NULL' : '';
+            const defPart = c.dflt_value !== null ? ` DEFAULT ${c.dflt_value}` : '';
+            return `    "${c.name}" ${pgType}${nullPart}${defPart}`;
+        });
+        return `CREATE TABLE public."${table.name}" (\n${lines.join(',\n')}\n);`;
+    }
+
+    if (driver === 'mysql' || driver === 'mariadb') {
+        const lines = cols.map((c) => {
+            const myType = c.type || 'VARCHAR(255)';
+            const pkPart = c.pk ? ' AUTO_INCREMENT PRIMARY KEY' : '';
+            const nullPart = c.notnull ? ' NOT NULL' : ' NULL';
+            return `    \`${c.name}\` ${myType}${nullPart}${pkPart}`;
+        });
+        return `CREATE TABLE \`${table.name}\` (\n${lines.join(',\n')}\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;`;
+    }
+
+    return table.ddl || `CREATE TABLE "${table.name}" (...);`;
+}
 
 export default function Database({ hosts = [], servers = [], nodes = [], dbFiles = [], dbTables = [] }: Props) {
     const [selectedDb, setSelectedDb] = useState<SelectedDatabaseContext | null>(() => {
         if (typeof window !== 'undefined') {
-            const openParam = new URLSearchParams(window.location.search).get('open');
+            const params = new URLSearchParams(window.location.search);
+            const openParam = params.get('open');
+            const driverParam = params.get('driver') as DbDriver | null;
             if (openParam) {
                 for (const s of servers) {
                     const dbs =
                         s.databases && s.databases.length > 0
                             ? s.databases
-                            : [{ id: 1, name: `s${s.id}_cinammon`, user: `u${s.id}_admin`, host: '127.0.0.1', port: 3306 }];
+                            : [{ id: 1, name: `s${s.id}_cinammon`, driver: 'mysql' as DbDriver, user: `u${s.id}_admin`, host: '127.0.0.1', port: 3306 }];
                     const match = dbs.find((d) => d.name === openParam);
                     if (match) {
+                        const drv = normalizeDriver(driverParam || match.driver, match.port);
                         return {
                             title: match.name,
                             subtitle: `${s.name} · ${s.node_name}`,
-                            endpoint: `${match.host}:${match.port}`,
+                            driver: drv,
+                            endpoint: match.port ? `${match.host}:${match.port}` : match.host,
                             username: match.user,
                             serverId: s.id,
                         };
@@ -132,10 +355,12 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                 }
                 const hostMatch = hosts.find((h) => h.name === openParam || String(h.id) === openParam);
                 if (hostMatch) {
+                    const drv = normalizeDriver(driverParam || hostMatch.driver, hostMatch.port);
                     return {
                         title: hostMatch.name,
                         subtitle: `Database Host #${hostMatch.id} (${hostMatch.node_name})`,
-                        endpoint: `${hostMatch.host}:${hostMatch.port}`,
+                        driver: drv,
+                        endpoint: hostMatch.port ? `${hostMatch.host}:${hostMatch.port}` : hostMatch.host,
                         username: hostMatch.username,
                     };
                 }
@@ -144,10 +369,11 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
         return null;
     });
 
-    // Estados del gestor SQLite / SQL (con la estética de Servers/Files.tsx)
+    const [engineFilter, setEngineFilter] = useState<'all' | DbDriver>('all');
     const [activeSection, setActiveSection] = useState<'tables' | 'sql'>('tables');
     const [selectedTableName, setSelectedTableName] = useState<string | null>(null);
     const [tableTab, setTableTab] = useState<'rows' | 'structure' | 'sql'>('rows');
+    const [rowViewMode, setRowViewMode] = useState<'grid' | 'json'>('grid');
     const [search, setSearch] = useState('');
     const [rowSearch, setRowSearch] = useState('');
     const [sort, setSort] = useState<'name' | 'columns' | 'rows'>('name');
@@ -155,7 +381,6 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
     const [page, setPage] = useState(1);
     const [perPage, setPerPage] = useState(25);
 
-    // Consola SQL interactiva
     const [sqlQuery, setSqlQuery] = useState('SELECT id, name, email, created_at FROM "users" LIMIT 25;');
     const [sqlLoading, setSqlLoading] = useState(false);
     const [sqlError, setSqlError] = useState<string | null>(null);
@@ -163,6 +388,7 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
 
     const [form, setForm] = useState<{
         name: string;
+        driver: DbDriver;
         host: string;
         port: number;
         username: string;
@@ -170,19 +396,31 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
         node_id: string | number;
     }>({
         name: '',
+        driver: 'mysql',
         host: '127.0.0.1',
         port: 3306,
-        username: 'root',
+        username: 'cinammon',
         max_databases: 50,
         node_id: nodes[0]?.id ?? '',
     });
+
+    const handleDriverSelectForForm = (newDriver: DbDriver) => {
+        const spec = DB_ENGINES[newDriver];
+        setForm((prev) => ({
+            ...prev,
+            driver: newDriver,
+            host: spec.defaultHost,
+            port: spec.defaultPort,
+            username: spec.defaultUser,
+        }));
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         router.post('/database', form, {
             onSuccess: () => {
                 setForm({ ...form, name: '' });
-                toast.success('Database Host añadido correctamente');
+                toast.success('Database Host registrado correctamente');
             },
         });
     };
@@ -198,6 +436,8 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
         setSelectedDb(ctx);
         setSelectedTableName(null);
         setActiveSection('tables');
+        setRowViewMode(ctx.driver === 'mongodb' ? 'json' : 'grid');
+        setSqlQuery(getDefaultQueryForDriver(ctx.driver, 'users'));
         setSearch('');
         setRowSearch('');
         setSqlError(null);
@@ -205,15 +445,34 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
         setPage(1);
     };
 
+    const switchActiveManagerDriver = (newDriver: DbDriver) => {
+        if (!selectedDb) return;
+        const spec = DB_ENGINES[newDriver];
+        const nextQuery = getDefaultQueryForDriver(newDriver, selectedTableName || 'users');
+        setSelectedDb({
+            ...selectedDb,
+            driver: newDriver,
+            endpoint: spec.defaultPort ? `${spec.defaultHost}:${spec.defaultPort}` : spec.defaultHost,
+            username: spec.defaultUser,
+        });
+        setRowViewMode(newDriver === 'mongodb' ? 'json' : 'grid');
+        setSqlQuery(nextQuery);
+        setSqlError(null);
+        setSqlResult(null);
+    };
+
+    const activeSpec = selectedDb ? DB_ENGINES[selectedDb.driver] : DB_ENGINES.sqlite;
     const selectedTable = dbTables.find((t) => t.name === selectedTableName) || null;
     const activeSqliteFile = dbFiles.find((f) => f.active) || dbFiles[0];
     const totalRecords = dbTables.reduce((acc, t) => acc + t.count, 0);
 
     const openTable = (table: DbTableInfo, initialTab: 'rows' | 'structure' | 'sql' = 'rows') => {
+        const drv = selectedDb?.driver || 'sqlite';
         setSelectedTableName(table.name);
         setTableTab(initialTab);
+        setRowViewMode(drv === 'mongodb' ? 'json' : 'grid');
         setRowSearch('');
-        setSqlQuery(`SELECT * FROM "${table.name}" LIMIT 50;`);
+        setSqlQuery(getDefaultQueryForDriver(drv, table.name));
         setSqlError(null);
         setSqlResult(null);
     };
@@ -226,14 +485,17 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
         setSqlLoading(true);
         setSqlError(null);
         try {
-            const response = await axios.post<SqlQueryResult>('/database/query', { query: queryToRun });
+            const response = await axios.post<SqlQueryResult>('/database/query', {
+                query: queryToRun,
+                driver: selectedDb?.driver || 'sqlite',
+            });
             setSqlResult(response.data);
-            toast.success(`Consulta ejecutada (${response.data.execution_time_ms} ms)`);
+            toast.success(`Consulta ejecutada en ${activeSpec.shortLabel} (${response.data.execution_time_ms} ms)`);
         } catch (err) {
             if (axios.isAxiosError(err)) {
-                setSqlError(err.response?.data?.error || err.response?.data?.message || 'Error al ejecutar la consulta SQL.');
+                setSqlError(err.response?.data?.error || err.response?.data?.message || 'Error al ejecutar la consulta.');
             } else {
-                setSqlError('Error al ejecutar la consulta SQL.');
+                setSqlError('Error al ejecutar la consulta.');
             }
         } finally {
             setSqlLoading(false);
@@ -271,38 +533,65 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
           })
         : [];
 
+    const filteredHosts = hosts.filter((h) => {
+        const drv = normalizeDriver(h.driver, h.port);
+        return engineFilter === 'all' || drv === engineFilter;
+    });
+
     const breadcrumbs: BreadcrumbItem[] = selectedDb
         ? [
               { title: 'Database Host', href: '/database' },
-              { title: selectedDb.title, href: `/database?open=${encodeURIComponent(selectedDb.title)}` },
+              { title: `${selectedDb.title} (${activeSpec.shortLabel})`, href: `/database?open=${encodeURIComponent(selectedDb.title)}` },
           ]
         : [{ title: 'Database Host', href: '/database' }];
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={selectedDb ? `${selectedDb.title} · SQLite / SQL` : 'Database Hosts'} />
+            <Head title={selectedDb ? `${selectedDb.title} · ${activeSpec.label}` : 'Database Hosts'} />
 
-            {/* GESTOR SQLITE / SQL CON EL MISMO ESTILO HABITUAL DEL PANEL */}
             {selectedDb ? (
-                <div className="flex min-h-screen flex-col gap-6 bg-white p-6 font-[Orbitron] text-black dark:bg-black dark:text-white">
-                    <header className="flex flex-wrap items-center justify-between gap-4 border-b border-orange-500/30 pb-4">
+                <div className="flex min-h-screen flex-col gap-6 bg-white p-6 font-[Orbitron] text-black dark:bg-black dark:text-slate-100">
+                    <header className="flex flex-wrap items-center justify-between gap-4 border-b border-orange-500/25 pb-4">
                         <div className="flex items-center gap-3">
-                            <DatabaseIcon className="h-8 w-8 text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.8)]" />
+                            <DatabaseIcon className="h-7 w-7 text-orange-400" />
                             <div>
-                                <div className="flex items-center gap-2.5">
-                                    <h1 className="text-2xl font-bold tracking-wider text-orange-400 uppercase">
-                                        {selectedTable ? `TABLA: ${selectedTable.name}` : selectedDb.title}
+                                <div className="flex flex-wrap items-center gap-2.5">
+                                    <h1 className="text-xl font-bold tracking-wider text-orange-400 uppercase sm:text-2xl">
+                                        {selectedTable ? `${activeSpec.entitySingular}: ${selectedTable.name}` : selectedDb.title}
                                     </h1>
-                                    <span className="rounded border border-cyan-500/50 bg-cyan-500/10 px-2.5 py-0.5 font-mono text-xs text-cyan-300">
-                                        SQLite 3 · SQL Engine
+                                    <span className={`rounded border px-2.5 py-0.5 font-mono text-xs font-semibold ${activeSpec.badgeClass}`}>
+                                        {activeSpec.label}
                                     </span>
                                 </div>
-                                <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                                    {selectedDb.subtitle} · Motor activo: {activeSqliteFile?.name || 'local.sqlite'} ({activeSqliteFile?.size_kb ?? 116} KB) · {dbTables.length} tablas · {totalRecords} registros
+                                <p className="mt-1 text-xs text-neutral-500 dark:text-slate-400">
+                                    {selectedDb.subtitle} · Motor activo: {activeSpec.label}
+                                    {selectedDb.driver === 'sqlite' && activeSqliteFile
+                                        ? ` (${activeSqliteFile.name} · ${activeSqliteFile.size_kb} KB)`
+                                        : ''}{' '}
+                                    · {dbTables.length} {activeSpec.entityPlural.toLowerCase()} · {totalRecords} registros
                                 </p>
                             </div>
                         </div>
-                        <div className="flex flex-wrap gap-2">
+
+                        <div className="flex flex-wrap items-center gap-2">
+                            {/* Selector rápido de motor (SQLite, MySQL, PostgreSQL, MongoDB, Redis, etc.) */}
+                            <div className="flex items-center gap-1.5 rounded-lg border border-orange-500/30 bg-neutral-950 px-2.5 py-1.5 text-xs">
+                                <Cpu size={14} className="text-orange-400" />
+                                <span className="text-slate-400">Motor:</span>
+                                <select
+                                    aria-label="Cambiar motor de base de datos"
+                                    value={selectedDb.driver}
+                                    onChange={(e) => switchActiveManagerDriver(e.target.value as DbDriver)}
+                                    className="bg-transparent font-semibold text-cyan-300 outline-none"
+                                >
+                                    {Object.values(DB_ENGINES).map((eng) => (
+                                        <option key={eng.id} value={eng.id} className="bg-neutral-950 text-white">
+                                            {eng.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
                             {selectedTable ? (
                                 <>
                                     <button
@@ -310,29 +599,30 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                         className={tableTab === 'rows' ? primary : button}
                                         onClick={() => setTableTab('rows')}
                                     >
-                                        <TableIcon size={15} /> Examinar Filas ({selectedTable.count})
+                                        <TableIcon size={15} />{' '}
+                                        {selectedDb.driver === 'mongodb' ? `Documentos (${selectedTable.count})` : `Filas (${selectedTable.count})`}
                                     </button>
                                     <button
                                         type="button"
                                         className={tableTab === 'structure' ? primary : button}
                                         onClick={() => setTableTab('structure')}
                                     >
-                                        <Layers size={15} /> Estructura ({selectedTable.columns.length})
+                                        <Layers size={15} /> Esquema ({selectedTable.columns.length})
                                     </button>
                                     <button
                                         type="button"
                                         className={tableTab === 'sql' ? primary : button}
                                         onClick={() => {
                                             setTableTab('sql');
-                                            if (!sqlResult) {
-                                                void runSqlQuery(`SELECT * FROM "${selectedTable.name}" LIMIT 50;`);
-                                            }
+                                            const q = getDefaultQueryForDriver(selectedDb.driver, selectedTable.name);
+                                            setSqlQuery(q);
+                                            void runSqlQuery(q);
                                         }}
                                     >
-                                        <Terminal size={15} /> Consola SQL
+                                        <Terminal size={15} /> {activeSpec.consoleLabel}
                                     </button>
                                     <button type="button" className={button} onClick={() => setSelectedTableName(null)}>
-                                        <ChevronLeft size={15} /> Volver a Tablas
+                                        <ChevronLeft size={15} /> Volver a {activeSpec.entityPlural}
                                     </button>
                                 </>
                             ) : (
@@ -353,7 +643,7 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                         className={activeSection === 'tables' ? primary : button}
                                         onClick={() => setActiveSection('tables')}
                                     >
-                                        <TableIcon size={15} /> Esquema de Tablas ({dbTables.length})
+                                        <TableIcon size={15} /> {activeSpec.entityPlural} ({dbTables.length})
                                     </button>
                                     <button
                                         type="button"
@@ -365,16 +655,16 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                             }
                                         }}
                                     >
-                                        <Terminal size={15} /> Consola SQLite / SQL
+                                        <Terminal size={15} /> {activeSpec.consoleLabel}
                                     </button>
                                 </>
                             )}
                         </div>
                     </header>
 
-                    {/* Barra de conexión SQLite / SQL */}
+                    {/* Barra de conexión */}
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex flex-wrap items-center gap-1 font-mono text-sm text-neutral-400">
+                        <div className="flex flex-wrap items-center gap-1 font-mono text-sm text-slate-400">
                             <DatabaseIcon size={16} className="mr-2 text-orange-400" />
                             <button
                                 type="button"
@@ -384,20 +674,25 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                     setActiveSection('tables');
                                 }}
                             >
-                                sqlite3://{selectedDb.title}
+                                {activeSpec.scheme}
+                                {selectedDb.title}
                             </button>
                             <ChevronRight size={13} />
-                            <span className="px-1 py-1 text-cyan-400">
-                                {selectedTable ? `table/${selectedTable.name}` : activeSection === 'sql' ? 'sql-console' : 'schema/tables'}
+                            <span className="px-1 py-1 text-cyan-300">
+                                {selectedTable
+                                    ? `${selectedDb.driver === 'mongodb' ? 'collection' : 'table'}/${selectedTable.name}`
+                                    : activeSection === 'sql'
+                                      ? 'query-console'
+                                      : 'schema'}
                             </span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="hidden rounded-lg border border-orange-500/40 bg-neutral-950 px-3 py-1.5 font-mono text-xs text-cyan-400 sm:inline-block">
+                            <span className="hidden rounded-lg border border-orange-500/30 bg-neutral-950/90 px-3 py-1.5 font-mono text-xs text-cyan-300 sm:inline-block">
                                 {selectedDb.username}@{selectedDb.endpoint}
                             </span>
                             <button
                                 type="button"
-                                aria-label="Recargar esquema SQLite"
+                                aria-label="Recargar esquema"
                                 className={button}
                                 onClick={() => router.reload()}
                             >
@@ -406,126 +701,197 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                         </div>
                     </div>
 
-                    {/* VISTA DE UNA TABLA SELECCIONADA (FILAS / ESTRUCTURA / SQL) */}
+                    {/* VISTA DE UNA TABLA O COLECCIÓN SELECCIONADA */}
                     {selectedTable ? (
-                        <section className="overflow-hidden rounded-xl border border-orange-500/40 bg-neutral-950">
+                        <section className="overflow-hidden rounded-xl border border-orange-500/30 bg-neutral-950/90">
                             {tableTab === 'rows' && (
                                 <>
-                                    <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-orange-500/30 px-4 py-3">
+                                    <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-orange-500/25 px-4 py-3">
                                         <div className="flex flex-wrap items-center gap-3">
-                                            <span className="font-mono text-sm text-cyan-400">
-                                                SELECT * FROM &quot;{selectedTable.name}&quot; LIMIT 50;
+                                            <span className="font-mono text-xs text-cyan-300 sm:text-sm">
+                                                {getDefaultQueryForDriver(selectedDb.driver, selectedTable.name)}
                                             </span>
                                             <span className="rounded border border-orange-500/30 bg-orange-500/10 px-2.5 py-0.5 text-xs text-orange-300">
-                                                Mostrando {filteredRows.length} de {selectedTable.count} filas
+                                                Mostrando {filteredRows.length} de {selectedTable.count}{' '}
+                                                {selectedDb.driver === 'mongodb' ? 'documentos' : 'filas'}
                                             </span>
                                         </div>
-                                        <div className="relative min-w-[240px]">
-                                            <Search className="absolute top-2.5 left-3 text-orange-400" size={16} />
-                                            <input
-                                                aria-label="Filtrar filas"
-                                                placeholder="Filtrar valores en la tabla…"
-                                                value={rowSearch}
-                                                onChange={(e) => setRowSearch(e.target.value)}
-                                                className={`${input} pl-9`}
-                                            />
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <div className="flex items-center rounded-lg border border-orange-500/30 bg-neutral-900 p-0.5 text-xs">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setRowViewMode('grid')}
+                                                    className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 transition ${
+                                                        rowViewMode === 'grid'
+                                                            ? 'bg-orange-500 font-bold text-black'
+                                                            : 'text-slate-300 hover:text-orange-300'
+                                                    }`}
+                                                >
+                                                    <TableIcon size={13} /> Tabla
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setRowViewMode('json')}
+                                                    className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 transition ${
+                                                        rowViewMode === 'json'
+                                                            ? 'bg-orange-500 font-bold text-black'
+                                                            : 'text-slate-300 hover:text-orange-300'
+                                                    }`}
+                                                >
+                                                    <Braces size={13} /> Documentos JSON
+                                                </button>
+                                            </div>
+                                            <div className="relative min-w-[220px]">
+                                                <Search className="absolute top-2.5 left-3 text-orange-400" size={16} />
+                                                <input
+                                                    aria-label="Filtrar filas"
+                                                    placeholder="Filtrar registros…"
+                                                    value={rowSearch}
+                                                    onChange={(e) => setRowSearch(e.target.value)}
+                                                    className={`${input} pl-9`}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left text-sm">
-                                            <thead className="border-b border-orange-500/30 bg-neutral-900/80 text-xs uppercase text-orange-300">
-                                                <tr>
-                                                    {selectedTable.columns.map((col) => {
-                                                        const colSchema = selectedTable.schema?.find((s) => s.name === col);
-                                                        return (
-                                                            <th key={col} className="whitespace-nowrap px-4 py-3 font-mono">
-                                                                <div className="flex items-center gap-1.5">
-                                                                    {colSchema?.pk && (
-                                                                        <span title="Primary Key">
-                                                                            <KeyRound size={12} className="text-amber-400" />
-                                                                        </span>
-                                                                    )}
-                                                                    <span className="text-orange-300">{col}</span>
-                                                                    {colSchema?.type && (
-                                                                        <span className="text-[10px] font-normal text-cyan-400 uppercase">
-                                                                            {colSchema.type}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            </th>
-                                                        );
-                                                    })}
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-neutral-800">
-                                                {filteredRows.length === 0 ? (
-                                                    <tr>
-                                                        <td
-                                                            colSpan={Math.max(1, selectedTable.columns.length)}
-                                                            className="p-12 text-center text-neutral-400"
-                                                        >
-                                                            No hay registros que coincidan en la tabla `{selectedTable.name}`.
-                                                        </td>
-                                                    </tr>
-                                                ) : (
-                                                    filteredRows.map((row, idx) => (
-                                                        <tr
+                                    {rowViewMode === 'json' ? (
+                                        <div className="grid grid-cols-1 gap-3 p-4 lg:grid-cols-2">
+                                            {filteredRows.length === 0 ? (
+                                                <div className="col-span-full p-8 text-center text-slate-400">
+                                                    No hay documentos que coincidan con el filtro.
+                                                </div>
+                                            ) : (
+                                                filteredRows.map((row, idx) => {
+                                                    const doc =
+                                                        selectedDb.driver === 'mongodb'
+                                                            ? {
+                                                                  _id: `ObjectId("${String(row.id ?? idx + 1).padStart(24, '6723a9f0')}")`,
+                                                                  ...row,
+                                                              }
+                                                            : row;
+                                                    return (
+                                                        <div
                                                             key={idx}
-                                                            className="transition hover:bg-orange-500/10"
+                                                            className="rounded-lg border border-orange-500/25 bg-neutral-900/70 p-3.5 font-mono text-xs"
                                                         >
-                                                            {selectedTable.columns.map((col) => {
-                                                                const val = row[col];
-                                                                const text =
-                                                                    val === null || val === undefined
-                                                                        ? 'NULL'
-                                                                        : typeof val === 'object'
-                                                                          ? JSON.stringify(val)
-                                                                          : String(val);
-                                                                return (
-                                                                    <td
-                                                                        key={col}
-                                                                        className="max-w-[280px] truncate whitespace-nowrap px-4 py-3 font-mono text-xs text-neutral-200"
-                                                                        title={text}
-                                                                    >
-                                                                        {val === null || val === undefined ? (
-                                                                            <span className="rounded bg-neutral-900 px-1.5 py-0.5 text-[10px] italic text-neutral-500">
-                                                                                NULL
+                                                            <div className="mb-2 flex items-center justify-between border-b border-neutral-800 pb-1.5 text-[11px] text-slate-400">
+                                                                <span className="text-emerald-400">
+                                                                    {selectedDb.driver === 'mongodb'
+                                                                        ? `Documento BSON #${idx + 1}`
+                                                                        : `Registro JSON #${idx + 1}`}
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        navigator.clipboard.writeText(JSON.stringify(doc, null, 2));
+                                                                        toast.success('Documento copiado');
+                                                                    }}
+                                                                    className="inline-flex items-center gap-1 text-cyan-300 hover:text-cyan-200"
+                                                                >
+                                                                    <Copy size={12} /> Copiar
+                                                                </button>
+                                                            </div>
+                                                            <pre className="overflow-x-auto leading-relaxed text-slate-200">
+                                                                {JSON.stringify(doc, null, 2)}
+                                                            </pre>
+                                                        </div>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left text-sm">
+                                                <thead className="border-b border-orange-500/25 bg-neutral-900/70 text-xs uppercase text-orange-300">
+                                                    <tr>
+                                                        {selectedTable.columns.map((col) => {
+                                                            const colSchema = selectedTable.schema?.find((s) => s.name === col);
+                                                            return (
+                                                                <th key={col} className="whitespace-nowrap px-4 py-3 font-mono">
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        {colSchema?.pk && (
+                                                                            <span title="Primary Key">
+                                                                                <KeyRound size={12} className="text-amber-400" />
                                                                             </span>
-                                                                        ) : (
-                                                                            text
                                                                         )}
-                                                                    </td>
-                                                                );
-                                                            })}
+                                                                        <span className="text-orange-300">{col}</span>
+                                                                        {colSchema?.type && (
+                                                                            <span className="text-[10px] font-normal text-cyan-300 uppercase">
+                                                                                {colSchema.type}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </th>
+                                                            );
+                                                        })}
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-neutral-800/80">
+                                                    {filteredRows.length === 0 ? (
+                                                        <tr>
+                                                            <td
+                                                                colSpan={Math.max(1, selectedTable.columns.length)}
+                                                                className="p-12 text-center text-slate-400"
+                                                            >
+                                                                No hay registros que coincidan en `{selectedTable.name}`.
+                                                            </td>
                                                         </tr>
-                                                    ))
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                                    ) : (
+                                                        filteredRows.map((row, idx) => (
+                                                            <tr key={idx} className="transition hover:bg-orange-500/10">
+                                                                {selectedTable.columns.map((col) => {
+                                                                    const val = row[col];
+                                                                    const text =
+                                                                        val === null || val === undefined
+                                                                            ? 'NULL'
+                                                                            : typeof val === 'object'
+                                                                              ? JSON.stringify(val)
+                                                                              : String(val);
+                                                                    return (
+                                                                        <td
+                                                                            key={col}
+                                                                            className="max-w-[280px] truncate whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-200"
+                                                                            title={text}
+                                                                        >
+                                                                            {val === null || val === undefined ? (
+                                                                                <span className="rounded bg-neutral-900 px-1.5 py-0.5 text-[10px] italic text-slate-500">
+                                                                                    NULL
+                                                                                </span>
+                                                                            ) : (
+                                                                                text
+                                                                            )}
+                                                                        </td>
+                                                                    );
+                                                                })}
+                                                            </tr>
+                                                        ))
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
                                 </>
                             )}
 
                             {tableTab === 'structure' && (
                                 <div className="space-y-6 p-5">
                                     <div>
-                                        <h3 className="mb-3 text-sm font-semibold text-orange-400">
-                                            Columnas de `{selectedTable.name}` (PRAGMA table_info)
+                                        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-orange-400">
+                                            <Layers size={16} /> Esquema de `{selectedTable.name}` ({activeSpec.label})
                                         </h3>
-                                        <div className="overflow-x-auto rounded-lg border border-orange-500/30">
+                                        <div className="overflow-x-auto rounded-lg border border-orange-500/25">
                                             <table className="w-full text-left text-sm">
-                                                <thead className="border-b border-orange-500/30 bg-neutral-900/80 text-xs uppercase text-orange-300">
+                                                <thead className="border-b border-orange-500/25 bg-neutral-900/70 text-xs uppercase text-orange-300">
                                                     <tr>
                                                         <th className="px-4 py-3">#</th>
-                                                        <th className="px-4 py-3">Columna</th>
-                                                        <th className="px-4 py-3">Tipo SQL</th>
+                                                        <th className="px-4 py-3">Campo / Columna</th>
+                                                        <th className="px-4 py-3">Tipo ({activeSpec.shortLabel})</th>
                                                         <th className="px-4 py-3">Nulo</th>
                                                         <th className="px-4 py-3">Valor por Defecto</th>
-                                                        <th className="px-4 py-3">Clave</th>
+                                                        <th className="px-4 py-3">Índice / Clave</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody className="divide-y divide-neutral-800">
+                                                <tbody className="divide-y divide-neutral-800/80">
                                                     {(selectedTable.schema && selectedTable.schema.length > 0
                                                         ? selectedTable.schema
                                                         : selectedTable.columns.map((c, i) => ({
@@ -537,30 +903,33 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                                               pk: i === 0,
                                                           }))
                                                     ).map((col) => (
-                                                        <tr
-                                                            key={col.cid}
-                                                            className="transition hover:bg-orange-500/10"
-                                                        >
-                                                            <td className="px-4 py-3 font-mono text-xs text-neutral-400">{col.cid}</td>
-                                                            <td className="px-4 py-3 font-mono font-semibold text-cyan-400">{col.name}</td>
+                                                        <tr key={col.cid} className="transition hover:bg-orange-500/10">
+                                                            <td className="px-4 py-3 font-mono text-xs text-slate-400">{col.cid}</td>
+                                                            <td className="px-4 py-3 font-mono font-semibold text-cyan-300">{col.name}</td>
                                                             <td className="px-4 py-3">
                                                                 <span className="rounded border border-orange-500/30 bg-neutral-900 px-2 py-0.5 font-mono text-xs text-orange-300 uppercase">
-                                                                    {col.type || 'TEXT'}
+                                                                    {selectedDb.driver === 'mongodb'
+                                                                        ? col.pk
+                                                                            ? 'ObjectId'
+                                                                            : col.type.toUpperCase().includes('INT')
+                                                                              ? 'Int32'
+                                                                              : 'String'
+                                                                        : col.type || 'TEXT'}
                                                                 </span>
                                                             </td>
-                                                            <td className="px-4 py-3 text-xs text-neutral-300">
+                                                            <td className="px-4 py-3 text-xs text-slate-300">
                                                                 {col.notnull ? 'NOT NULL' : 'NULL'}
                                                             </td>
-                                                            <td className="px-4 py-3 font-mono text-xs text-neutral-400">
-                                                                {col.dflt_value ?? <span className="italic text-neutral-600">Ninguno</span>}
+                                                            <td className="px-4 py-3 font-mono text-xs text-slate-400">
+                                                                {col.dflt_value ?? <span className="italic text-slate-500">Ninguno</span>}
                                                             </td>
                                                             <td className="px-4 py-3">
                                                                 {col.pk ? (
                                                                     <span className="inline-flex items-center gap-1 rounded border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 font-mono text-xs text-amber-300">
-                                                                        <KeyRound size={11} /> PRIMARY KEY
+                                                                        <KeyRound size={11} /> {selectedDb.driver === 'mongodb' ? '_id INDEX' : 'PRIMARY KEY'}
                                                                     </span>
                                                                 ) : (
-                                                                    <span className="text-xs text-neutral-600">—</span>
+                                                                    <span className="text-xs text-slate-500">—</span>
                                                                 )}
                                                             </td>
                                                         </tr>
@@ -570,33 +939,33 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                         </div>
                                     </div>
 
-                                    {selectedTable.ddl && (
-                                        <div>
-                                            <div className="mb-2 flex items-center justify-between">
-                                                <h3 className="flex items-center gap-2 text-sm font-semibold text-orange-400">
-                                                    <Code2 size={16} className="text-cyan-400" /> Sentencia DDL (sqlite_master)
-                                                </h3>
-                                                <button
-                                                    type="button"
-                                                    className={button}
-                                                    onClick={() => {
-                                                        navigator.clipboard.writeText(selectedTable.ddl || '');
-                                                        toast.success('DDL copiado al portapapeles');
-                                                    }}
-                                                >
-                                                    <Copy size={14} /> Copiar SQL
-                                                </button>
-                                            </div>
-                                            <pre className="overflow-x-auto rounded-lg border border-orange-500/30 bg-neutral-900 p-4 font-mono text-xs leading-6 text-cyan-300">
-                                                {selectedTable.ddl}
-                                            </pre>
+                                    <div>
+                                        <div className="mb-2 flex items-center justify-between">
+                                            <h3 className="flex items-center gap-2 text-sm font-semibold text-orange-400">
+                                                <Code2 size={16} className="text-cyan-300" /> Definición de Esquema / DDL ({activeSpec.label})
+                                            </h3>
+                                            <button
+                                                type="button"
+                                                className={button}
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(formatDdlForDriver(selectedTable, selectedDb.driver));
+                                                    toast.success('Definición copiada al portapapeles');
+                                                }}
+                                            >
+                                                <Copy size={14} /> Copiar Esquema
+                                            </button>
                                         </div>
-                                    )}
+                                        <pre className="overflow-x-auto rounded-lg border border-orange-500/25 bg-neutral-900/90 p-4 font-mono text-xs leading-6 text-cyan-200">
+                                            {formatDdlForDriver(selectedTable, selectedDb.driver)}
+                                        </pre>
+                                    </div>
                                 </div>
                             )}
 
                             {tableTab === 'sql' && (
                                 <SqlConsoleSection
+                                    driver={selectedDb.driver}
+                                    spec={activeSpec}
                                     sqlQuery={sqlQuery}
                                     setSqlQuery={setSqlQuery}
                                     sqlLoading={sqlLoading}
@@ -608,8 +977,10 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                             )}
                         </section>
                     ) : activeSection === 'sql' ? (
-                        <section className="overflow-hidden rounded-xl border border-orange-500/40 bg-neutral-950">
+                        <section className="overflow-hidden rounded-xl border border-orange-500/30 bg-neutral-950/90">
                             <SqlConsoleSection
+                                driver={selectedDb.driver}
+                                spec={activeSpec}
                                 sqlQuery={sqlQuery}
                                 setSqlQuery={setSqlQuery}
                                 sqlLoading={sqlLoading}
@@ -620,22 +991,24 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                             />
                         </section>
                     ) : (
-                        /* LISTADO DE TABLAS SQLITE / SQL CON EL ESTILO HABITUAL DE DATABASE HOSTS */
                         <>
-                            <section className="overflow-hidden rounded-xl border border-orange-500/40 bg-neutral-950">
-                                <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-orange-500/30 px-4 py-3">
+                            <section className="overflow-hidden rounded-xl border border-orange-500/30 bg-neutral-950/90">
+                                <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-orange-500/25 px-4 py-3">
                                     <div className="flex flex-wrap items-center gap-3 text-sm text-orange-300">
                                         <span className="font-semibold text-orange-400">
-                                            {filteredTables.length} {filteredTables.length === 1 ? 'Tabla SQL' : 'Tablas SQL'}
+                                            {filteredTables.length}{' '}
+                                            {filteredTables.length === 1 ? activeSpec.entitySingular : activeSpec.entityPlural}
                                         </span>
-                                        <span className="text-neutral-600">·</span>
-                                        <span className="font-mono text-xs text-cyan-400">{totalRecords} filas totales</span>
+                                        <span className="text-slate-600">·</span>
+                                        <span className="font-mono text-xs text-cyan-300">
+                                            {totalRecords} {selectedDb.driver === 'mongodb' ? 'documentos totales' : 'registros totales'}
+                                        </span>
                                     </div>
                                     <div className="relative min-w-[240px]">
                                         <Search className="absolute top-2.5 left-3 text-orange-400" size={16} />
                                         <input
-                                            aria-label="Buscar tabla SQL"
-                                            placeholder="Buscar tabla SQL (ej. users, servers)…"
+                                            aria-label="Buscar tabla o colección"
+                                            placeholder={`Buscar ${activeSpec.entitySingular.toLowerCase()} (ej. users, servers)…`}
                                             value={search}
                                             onChange={(e) => {
                                                 setSearch(e.target.value);
@@ -648,7 +1021,7 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
 
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left text-sm">
-                                        <thead className="border-b border-orange-500/30 text-xs uppercase text-orange-300">
+                                        <thead className="border-b border-orange-500/25 text-xs uppercase text-orange-300">
                                             <tr>
                                                 <th className="px-4 py-3">
                                                     <button
@@ -656,18 +1029,18 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                                         onClick={() => changeSort('name')}
                                                         className="flex items-center gap-2 uppercase"
                                                     >
-                                                        Tabla SQL
+                                                        {activeSpec.entitySingular}
                                                         {sort === 'name' && (ascending ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
                                                     </button>
                                                 </th>
-                                                <th className="px-3 py-3">Motor</th>
+                                                <th className="px-3 py-3">Motor Activo</th>
                                                 <th className="px-3 py-3">
                                                     <button
                                                         type="button"
                                                         onClick={() => changeSort('columns')}
                                                         className="flex items-center gap-2 uppercase"
                                                     >
-                                                        Columnas
+                                                        {selectedDb.driver === 'mongodb' ? 'Campos BSON' : 'Columnas'}
                                                         {sort === 'columns' && (ascending ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
                                                     </button>
                                                 </th>
@@ -677,18 +1050,18 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                                         onClick={() => changeSort('rows')}
                                                         className="flex items-center gap-2 uppercase"
                                                     >
-                                                        Registros (Filas)
+                                                        {selectedDb.driver === 'mongodb' ? 'Documentos' : 'Registros'}
                                                         {sort === 'rows' && (ascending ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
                                                     </button>
                                                 </th>
-                                                <th className="px-4 py-3 text-right">Operaciones SQL</th>
+                                                <th className="px-4 py-3 text-right">Operaciones</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-neutral-800">
+                                        <tbody className="divide-y divide-neutral-800/80">
                                             {visibleTables.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={5} className="p-12 text-center text-neutral-400">
-                                                        No se encontraron tablas SQL que coincidan con la búsqueda.
+                                                    <td colSpan={5} className="p-12 text-center text-slate-400">
+                                                        No se encontraron resultados que coincidan con la búsqueda.
                                                     </td>
                                                 </tr>
                                             ) : (
@@ -699,26 +1072,30 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                                         className="cursor-pointer transition hover:bg-orange-500/10"
                                                     >
                                                         <td className="px-4 py-3">
-                                                            <div className="flex items-center gap-3 font-mono font-semibold text-white hover:text-cyan-400">
-                                                                <TableIcon className="shrink-0 text-orange-400" size={18} />
-                                                                <span>{table.name}</span>
+                                                            <div className="flex items-center gap-3 font-mono font-semibold text-slate-100 hover:text-cyan-300">
+                                                                {selectedDb.driver === 'mongodb' ? (
+                                                                    <Braces className="shrink-0 text-emerald-400" size={18} />
+                                                                ) : (
+                                                                    <TableIcon className="shrink-0 text-orange-400" size={18} />
+                                                                )}
+                                                                <span>{selectedDb.driver === 'redis' ? `${table.name}:*` : table.name}</span>
                                                             </div>
                                                         </td>
                                                         <td className="px-3 py-3">
-                                                            <span className="rounded border border-orange-500/30 bg-neutral-900 px-2 py-0.5 font-mono text-xs text-orange-300">
-                                                                SQLite 3
+                                                            <span className={`rounded border px-2 py-0.5 font-mono text-xs ${activeSpec.badgeClass}`}>
+                                                                {activeSpec.label}
                                                             </span>
                                                         </td>
-                                                        <td className="px-3 py-3 text-neutral-300">
-                                                            <span className="font-mono text-xs text-cyan-400">{table.columns.length} cols</span>
-                                                            <span className="ml-2 hidden max-w-[260px] truncate font-mono text-xs text-neutral-400 xl:inline-block">
+                                                        <td className="px-3 py-3 text-slate-300">
+                                                            <span className="font-mono text-xs text-cyan-300">{table.columns.length} campos</span>
+                                                            <span className="ml-2 hidden max-w-[260px] truncate font-mono text-xs text-slate-400 xl:inline-block">
                                                                 ({table.columns.slice(0, 4).join(', ')}
                                                                 {table.columns.length > 4 ? '…' : ''})
                                                             </span>
                                                         </td>
                                                         <td className="px-3 py-3">
-                                                            <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 font-mono text-xs font-semibold text-emerald-400">
-                                                                {table.count} filas
+                                                            <span className="rounded border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 font-mono text-xs font-semibold text-emerald-300">
+                                                                {table.count} {selectedDb.driver === 'mongodb' ? 'docs' : 'filas'}
                                                             </span>
                                                         </td>
                                                         <td
@@ -729,26 +1106,28 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => openTable(table, 'rows')}
-                                                                    className="rounded border border-cyan-500/50 bg-cyan-500/10 px-3 py-1 text-xs text-cyan-300 hover:bg-cyan-500 hover:text-black"
+                                                                    className="inline-flex items-center gap-1 rounded border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-1 text-xs text-cyan-300 hover:bg-cyan-500 hover:text-black"
                                                                 >
-                                                                    Examinar
+                                                                    <TableIcon size={12} /> Examinar
                                                                 </button>
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => openTable(table, 'structure')}
-                                                                    className="rounded border border-orange-500/40 bg-orange-500/10 px-3 py-1 text-xs text-orange-300 hover:bg-orange-500 hover:text-black"
+                                                                    className="inline-flex items-center gap-1 rounded border border-orange-500/35 bg-orange-500/10 px-2.5 py-1 text-xs text-orange-300 hover:bg-orange-500 hover:text-black"
                                                                 >
-                                                                    Estructura
+                                                                    <Layers size={12} /> Esquema
                                                                 </button>
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => {
                                                                         openTable(table, 'sql');
-                                                                        void runSqlQuery(`SELECT * FROM "${table.name}" LIMIT 50;`);
+                                                                        const q = getDefaultQueryForDriver(selectedDb.driver, table.name);
+                                                                        setSqlQuery(q);
+                                                                        void runSqlQuery(q);
                                                                     }}
-                                                                    className="rounded border border-cyan-500/50 bg-cyan-500/10 px-3 py-1 font-mono text-xs text-cyan-300 hover:bg-cyan-500 hover:text-black"
+                                                                    className="inline-flex items-center gap-1 rounded border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-1 font-mono text-xs text-cyan-300 hover:bg-cyan-500 hover:text-black"
                                                                 >
-                                                                    SQL
+                                                                    <Terminal size={12} /> Query
                                                                 </button>
                                                             </div>
                                                         </td>
@@ -759,22 +1138,23 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                     </table>
                                 </div>
 
-                                <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-orange-500/30 px-4 py-3 text-xs text-neutral-400">
+                                <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-orange-500/25 px-4 py-3 text-xs text-slate-400">
                                     <span>
                                         Mostrando {filteredTables.length ? (Math.min(page, pages) - 1) * perPage + 1 : 0}–
-                                        {Math.min(Math.min(page, pages) * perPage, filteredTables.length)} de {filteredTables.length} tablas SQL
+                                        {Math.min(Math.min(page, pages) * perPage, filteredTables.length)} de {filteredTables.length}{' '}
+                                        {activeSpec.entityPlural.toLowerCase()}
                                     </span>
                                     <div className="flex items-center gap-4">
                                         <label className="flex items-center gap-2 text-orange-300">
                                             Por página
                                             <select
-                                                aria-label="Tablas por página"
+                                                aria-label="Elementos por página"
                                                 value={perPage}
                                                 onChange={(e) => {
                                                     setPerPage(Number(e.target.value));
                                                     setPage(1);
                                                 }}
-                                                className="rounded border border-orange-500/40 bg-neutral-900 px-2 py-1 text-white"
+                                                className="rounded border border-orange-500/35 bg-neutral-900 px-2 py-1 text-slate-100"
                                             >
                                                 {[25, 50, 100].map((v) => (
                                                     <option key={v}>{v}</option>
@@ -807,32 +1187,72 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                     </div>
                                 </footer>
                             </section>
-                            <p className="text-xs text-neutral-400">
-                                Haz clic sobre cualquier tabla SQL para examinar sus filas reales, ver su estructura `PRAGMA` o ejecutar consultas SQLite.
-                            </p>
                         </>
                     )}
                 </div>
             ) : (
-                /* VISTA PRINCIPAL DE DATABASE HOSTS */
-                <div className="flex flex-col gap-6 bg-white p-6 font-[Orbitron] text-black dark:bg-black dark:text-white">
-                    <div className="flex items-center justify-between border-b border-orange-500/30 pb-4">
+                /* VISTA PRINCIPAL DE DATABASE HOSTS MULTI-MOTOR */
+                <div className="flex flex-col gap-6 bg-white p-6 font-[Orbitron] text-black dark:bg-black dark:text-slate-100">
+                    <div className="flex flex-wrap items-center justify-between gap-4 border-b border-orange-500/25 pb-4">
                         <div className="flex items-center gap-3">
-                            <DatabaseIcon className="h-8 w-8 text-orange-400 drop-shadow-[0_0_8px_rgba(251,146,60,0.8)]" />
+                            <DatabaseIcon className="h-8 w-8 text-orange-400" />
                             <div>
                                 <h1 className="text-2xl font-bold tracking-wider text-orange-400">DATABASE HOSTS</h1>
-                                <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                                    Gestiona los motores SQLite / SQL y haz clic en cualquier base de datos para abrir sus tablas y consola SQL
+                                <p className="text-xs text-neutral-500 dark:text-slate-400">
+                                    Soporte multi-motor para SQLite, MySQL, MariaDB, PostgreSQL, MongoDB, Redis y SQL Server
                                 </p>
                             </div>
                         </div>
+
+                        {/* Filtro por motor con iconos consistentes */}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                            <button
+                                type="button"
+                                onClick={() => setEngineFilter('all')}
+                                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+                                    engineFilter === 'all'
+                                        ? 'border-orange-400 bg-orange-500 text-black'
+                                        : 'border-orange-500/30 bg-neutral-900 text-slate-300 hover:border-orange-400'
+                                }`}
+                            >
+                                <DatabaseIcon size={13} /> Todos ({hosts.length})
+                            </button>
+                            {Object.values(DB_ENGINES).map((spec) => (
+                                <button
+                                    key={spec.id}
+                                    type="button"
+                                    onClick={() => setEngineFilter(spec.id)}
+                                    className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
+                                        engineFilter === spec.id
+                                            ? 'border-orange-400 bg-orange-500 text-black'
+                                            : `${spec.badgeClass} hover:opacity-90`
+                                    }`}
+                                >
+                                    <HardDrive size={12} /> {spec.shortLabel}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
-                    {/* Formulario para nuevo Host */}
+                    {/* Formulario para nuevo Host con selector de Motor */}
                     <form
                         onSubmit={handleSubmit}
-                        className="grid grid-cols-1 gap-4 rounded-xl border border-orange-500/40 bg-neutral-900/90 p-5 sm:grid-cols-3 lg:grid-cols-6"
+                        className="grid grid-cols-1 gap-4 rounded-xl border border-orange-500/30 bg-neutral-900/80 p-5 sm:grid-cols-2 lg:grid-cols-7"
                     >
+                        <div>
+                            <label className="mb-1 block text-xs text-orange-300">Motor / Tipo</label>
+                            <select
+                                value={form.driver}
+                                onChange={(e) => handleDriverSelectForForm(e.target.value as DbDriver)}
+                                className="w-full rounded-lg border border-orange-500/35 bg-neutral-950 px-3 py-2 text-sm text-cyan-300"
+                            >
+                                {Object.values(DB_ENGINES).map((spec) => (
+                                    <option key={spec.id} value={spec.id}>
+                                        {spec.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                         <div>
                             <label className="mb-1 block text-xs text-orange-300">Nombre</label>
                             <input
@@ -840,28 +1260,30 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                 required
                                 value={form.name}
                                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                placeholder="SQLite / MySQL Principal"
-                                className="w-full rounded-lg border border-orange-500/40 bg-neutral-950 px-3 py-2 text-sm text-white"
+                                placeholder={`${DB_ENGINES[form.driver].shortLabel} Principal`}
+                                className="w-full rounded-lg border border-orange-500/35 bg-neutral-950 px-3 py-2 text-sm text-slate-100"
                             />
                         </div>
                         <div>
-                            <label className="mb-1 block text-xs text-orange-300">Host / IP</label>
+                            <label className="mb-1 block text-xs text-orange-300">Host / Ruta</label>
                             <input
                                 type="text"
                                 required
                                 value={form.host}
                                 onChange={(e) => setForm({ ...form, host: e.target.value })}
-                                className="w-full rounded-lg border border-orange-500/40 bg-neutral-950 px-3 py-2 text-sm text-white"
+                                className="w-full rounded-lg border border-orange-500/35 bg-neutral-950 px-3 py-2 text-sm text-slate-100"
                             />
                         </div>
                         <div>
                             <label className="mb-1 block text-xs text-orange-300">Puerto</label>
                             <input
                                 type="number"
+                                min={0}
+                                max={65535}
                                 required
                                 value={form.port}
                                 onChange={(e) => setForm({ ...form, port: Number(e.target.value) })}
-                                className="w-full rounded-lg border border-orange-500/40 bg-neutral-950 px-3 py-2 text-sm text-white"
+                                className="w-full rounded-lg border border-orange-500/35 bg-neutral-950 px-3 py-2 text-sm text-slate-100"
                             />
                         </div>
                         <div>
@@ -871,7 +1293,7 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                 required
                                 value={form.username}
                                 onChange={(e) => setForm({ ...form, username: e.target.value })}
-                                className="w-full rounded-lg border border-orange-500/40 bg-neutral-950 px-3 py-2 text-sm text-white"
+                                className="w-full rounded-lg border border-orange-500/35 bg-neutral-950 px-3 py-2 text-sm text-slate-100"
                             />
                         </div>
                         <div>
@@ -879,7 +1301,7 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                             <select
                                 value={form.node_id}
                                 onChange={(e) => setForm({ ...form, node_id: e.target.value })}
-                                className="w-full rounded-lg border border-orange-500/40 bg-neutral-950 px-3 py-2 text-sm text-white"
+                                className="w-full rounded-lg border border-orange-500/35 bg-neutral-950 px-3 py-2 text-sm text-slate-100"
                             >
                                 <option value="">Global</option>
                                 {nodes.map((n) => (
@@ -892,7 +1314,7 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                         <div className="flex items-end">
                             <button
                                 type="submit"
-                                className="flex w-full items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-bold text-black transition hover:bg-orange-400"
+                                className="flex w-full items-center justify-center gap-2 rounded-lg bg-orange-500/90 px-4 py-2 text-sm font-bold text-black transition hover:bg-orange-400"
                             >
                                 <Plus className="h-4 w-4" /> Añadir Host
                             </button>
@@ -900,14 +1322,17 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                     </form>
 
                     {/* Tabla de Database Hosts */}
-                    <div className="rounded-xl border border-orange-500/40 bg-neutral-950 p-5">
-                        <h2 className="mb-3 text-base font-semibold text-orange-400">Hosts Configurados</h2>
+                    <div className="rounded-xl border border-orange-500/30 bg-neutral-950/90 p-5">
+                        <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-orange-400">
+                            <DatabaseIcon className="h-4 w-4" /> Hosts Configurados ({filteredHosts.length})
+                        </h2>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
-                                <thead className="border-b border-orange-500/30 text-xs uppercase text-orange-300">
+                                <thead className="border-b border-orange-500/25 text-xs uppercase text-orange-300">
                                     <tr>
                                         <th className="px-4 py-3">ID</th>
                                         <th className="px-4 py-3">Nombre</th>
+                                        <th className="px-4 py-3">Motor</th>
                                         <th className="px-4 py-3">Endpoint</th>
                                         <th className="px-4 py-3">Usuario</th>
                                         <th className="px-4 py-3">Nodo</th>
@@ -915,101 +1340,145 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                         <th className="px-4 py-3 text-right">Acciones</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-neutral-800">
-                                    {hosts.map((h) => (
-                                        <tr
-                                            key={h.id}
-                                            onClick={() =>
-                                                openDatabaseManager({
-                                                    title: h.name,
-                                                    subtitle: `Database Host #${h.id} (${h.node_name})`,
-                                                    endpoint: `${h.host}:${h.port}`,
-                                                    username: h.username,
-                                                })
-                                            }
-                                            className="cursor-pointer transition hover:bg-orange-500/10"
-                                        >
-                                            <td className="px-4 py-3 text-neutral-400">#{h.id}</td>
-                                            <td className="px-4 py-3 font-semibold text-white">{h.name}</td>
-                                            <td className="px-4 py-3 font-mono text-cyan-400">
-                                                {h.host}:{h.port}
-                                            </td>
-                                            <td className="px-4 py-3 text-neutral-300">{h.username}</td>
-                                            <td className="px-4 py-3 text-neutral-300">{h.node_name}</td>
-                                            <td className="px-4 py-3 text-neutral-300">{h.max_databases}</td>
-                                            <td className="px-4 py-3 text-right">
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) => handleDelete(e, h.id)}
-                                                    className="inline-flex items-center gap-1 rounded bg-red-600/20 px-3 py-1 text-xs text-red-400 hover:bg-red-600 hover:text-white"
-                                                >
-                                                    <Trash2 className="h-3.5 w-3.5" /> Eliminar
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                <tbody className="divide-y divide-neutral-800/80">
+                                    {filteredHosts.map((h) => {
+                                        const drv = normalizeDriver(h.driver, h.port);
+                                        const spec = DB_ENGINES[drv];
+                                        return (
+                                            <tr
+                                                key={h.id}
+                                                onClick={() =>
+                                                    openDatabaseManager({
+                                                        title: h.name,
+                                                        subtitle: `Database Host #${h.id} (${h.node_name})`,
+                                                        driver: drv,
+                                                        endpoint: h.port ? `${h.host}:${h.port}` : h.host,
+                                                        username: h.username,
+                                                    })
+                                                }
+                                                className="cursor-pointer transition hover:bg-orange-500/10"
+                                            >
+                                                <td className="px-4 py-3 text-slate-400">#{h.id}</td>
+                                                <td className="px-4 py-3 font-semibold text-slate-100">{h.name}</td>
+                                                <td className="px-4 py-3">
+                                                    <span className={`rounded border px-2.5 py-0.5 font-mono text-xs font-semibold ${spec.badgeClass}`}>
+                                                        {spec.label}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3 font-mono text-cyan-300">
+                                                    {h.port ? `${h.host}:${h.port}` : h.host}
+                                                </td>
+                                                <td className="px-4 py-3 text-slate-300">{h.username}</td>
+                                                <td className="px-4 py-3 text-slate-300">{h.node_name}</td>
+                                                <td className="px-4 py-3 text-slate-300">{h.max_databases}</td>
+                                                <td className="px-4 py-3 text-right">
+                                                    <div className="inline-flex items-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                openDatabaseManager({
+                                                                    title: h.name,
+                                                                    subtitle: `Database Host #${h.id} (${h.node_name})`,
+                                                                    driver: drv,
+                                                                    endpoint: h.port ? `${h.host}:${h.port}` : h.host,
+                                                                    username: h.username,
+                                                                });
+                                                            }}
+                                                            className="inline-flex items-center gap-1 rounded border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-xs text-cyan-300 hover:bg-cyan-500 hover:text-black"
+                                                        >
+                                                            <Terminal className="h-3.5 w-3.5" /> Abrir Gestor
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => handleDelete(e, h.id)}
+                                                            className="inline-flex items-center gap-1 rounded bg-red-600/20 px-3 py-1 text-xs text-red-400 hover:bg-red-600 hover:text-white"
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" /> Eliminar
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
                     </div>
 
                     {/* Bases de Datos por Servidor */}
-                    <div className="rounded-xl border border-orange-500/40 bg-neutral-950 p-5">
+                    <div className="rounded-xl border border-orange-500/30 bg-neutral-950/90 p-5">
                         <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-orange-400">
                             <Server className="h-4 w-4" /> Bases de Datos de Servidores
                         </h2>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
-                                <thead className="border-b border-orange-500/30 text-xs uppercase text-orange-300">
+                                <thead className="border-b border-orange-500/25 text-xs uppercase text-orange-300">
                                     <tr>
                                         <th className="px-4 py-3">Servidor</th>
                                         <th className="px-4 py-3">Base de Datos</th>
+                                        <th className="px-4 py-3">Motor</th>
                                         <th className="px-4 py-3">Usuario</th>
                                         <th className="px-4 py-3">Host:Puerto</th>
                                         <th className="px-4 py-3">Nodo</th>
                                         <th className="px-4 py-3 text-right">Acciones</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-neutral-800">
+                                <tbody className="divide-y divide-neutral-800/80">
                                     {servers.map((s) =>
                                         (s.databases && s.databases.length > 0
                                             ? s.databases
-                                            : [{ id: 1, name: `s${s.id}_cinammon`, user: `u${s.id}_admin`, host: '127.0.0.1', port: 3306 }]
-                                        ).map((db) => (
-                                            <tr
-                                                key={`${s.id}-${db.id}`}
-                                                onClick={() =>
-                                                    openDatabaseManager({
-                                                        title: db.name,
-                                                        subtitle: `${s.name} · ${s.node_name}`,
-                                                        endpoint: `${db.host}:${db.port}`,
-                                                        username: db.user,
-                                                        serverId: s.id,
-                                                    })
-                                                }
-                                                className="cursor-pointer transition hover:bg-orange-500/10"
-                                            >
-                                                <td className="px-4 py-3 font-semibold text-white">{s.name}</td>
-                                                <td className="px-4 py-3 font-mono font-semibold text-cyan-400">{db.name}</td>
-                                                <td className="px-4 py-3 font-mono text-neutral-300">{db.user}</td>
-                                                <td className="px-4 py-3 font-mono text-xs text-emerald-400">
-                                                    {db.host}:{db.port}
-                                                </td>
-                                                <td className="px-4 py-3 text-neutral-300">{s.node_name}</td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            router.visit(`/servers/${s.id}/edit?tab=databases`);
-                                                        }}
-                                                        className="rounded border border-cyan-500/50 bg-cyan-500/10 px-3 py-1 text-xs text-cyan-300 hover:bg-cyan-500 hover:text-black"
+                                            : [{ id: 1, name: `s${s.id}_cinammon`, driver: 'mysql' as DbDriver, user: `u${s.id}_admin`, host: '127.0.0.1', port: 3306 }]
+                                        )
+                                            .filter((db) => {
+                                                const drv = normalizeDriver(db.driver, db.port);
+                                                return engineFilter === 'all' || drv === engineFilter;
+                                            })
+                                            .map((db) => {
+                                                const drv = normalizeDriver(db.driver, db.port);
+                                                const spec = DB_ENGINES[drv];
+                                                return (
+                                                    <tr
+                                                        key={`${s.id}-${db.id}`}
+                                                        onClick={() =>
+                                                            openDatabaseManager({
+                                                                title: db.name,
+                                                                subtitle: `${s.name} · ${s.node_name}`,
+                                                                driver: drv,
+                                                                endpoint: db.port ? `${db.host}:${db.port}` : db.host,
+                                                                username: db.user,
+                                                                serverId: s.id,
+                                                            })
+                                                        }
+                                                        className="cursor-pointer transition hover:bg-orange-500/10"
                                                     >
-                                                        Gestionar en Servidor
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        )),
+                                                        <td className="px-4 py-3 font-semibold text-slate-100">{s.name}</td>
+                                                        <td className="px-4 py-3 font-mono font-semibold text-cyan-300">{db.name}</td>
+                                                        <td className="px-4 py-3">
+                                                            <span className={`rounded border px-2.5 py-0.5 font-mono text-xs font-semibold ${spec.badgeClass}`}>
+                                                                {spec.label}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-3 font-mono text-slate-300">{db.user}</td>
+                                                        <td className="px-4 py-3 font-mono text-xs text-emerald-300">
+                                                            {db.port ? `${db.host}:${db.port}` : db.host}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-slate-300">{s.node_name}</td>
+                                                        <td className="px-4 py-3 text-right">
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    router.visit(`/servers/${s.id}/edit?tab=databases`);
+                                                                }}
+                                                                className="inline-flex items-center gap-1 rounded border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-xs text-cyan-300 hover:bg-cyan-500 hover:text-black"
+                                                            >
+                                                                <Server className="h-3.5 w-3.5" /> Gestionar en Servidor
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            }),
                                     )}
                                 </tbody>
                             </table>
@@ -1022,6 +1491,8 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
 }
 
 function SqlConsoleSection({
+    driver,
+    spec,
     sqlQuery,
     setSqlQuery,
     sqlLoading,
@@ -1030,6 +1501,8 @@ function SqlConsoleSection({
     runSqlQuery,
     tables,
 }: {
+    driver: DbDriver;
+    spec: DatabaseEngineSpec;
     sqlQuery: string;
     setSqlQuery: (q: string) => void;
     sqlLoading: boolean;
@@ -1038,19 +1511,52 @@ function SqlConsoleSection({
     runSqlQuery: (customQuery?: string, e?: FormEvent) => Promise<void>;
     tables: DbTableInfo[];
 }) {
-    const presetQueries = [
-        { label: 'Listar Tablas (sqlite_master)', sql: "SELECT name, type FROM sqlite_master WHERE type='table' ORDER BY name;" },
-        { label: 'Usuarios', sql: 'SELECT id, name, email, created_at FROM "users" LIMIT 25;' },
-        { label: 'Servidores', sql: 'SELECT id, name, uuid, memory, disk, cpu FROM "servers" LIMIT 25;' },
-        { label: 'Nodos', sql: 'SELECT id, name, fqdn, scheme, daemon_listen FROM "nodes" LIMIT 25;' },
-        { label: 'Webhooks', sql: 'SELECT id, name, url, format, enabled, last_status_code FROM "webhooks" LIMIT 25;' },
-    ];
+    const presetQueries =
+        driver === 'mongodb'
+            ? [
+                  { label: 'show collections', sql: 'show collections' },
+                  { label: 'db.users.find()', sql: 'db.users.find({}).limit(25)' },
+                  { label: 'db.servers.find()', sql: 'db.servers.find({}).limit(25)' },
+                  { label: 'db.nodes.find()', sql: 'db.nodes.find({}).limit(25)' },
+                  { label: 'countDocuments()', sql: 'db.users.countDocuments()' },
+              ]
+            : driver === 'redis'
+              ? [
+                    { label: 'PING', sql: 'PING' },
+                    { label: 'INFO', sql: 'INFO' },
+                    { label: 'KEYS *', sql: 'KEYS *' },
+                    { label: 'HGETALL server:1', sql: 'HGETALL server:1' },
+                    { label: 'HGETALL user:1', sql: 'HGETALL user:1' },
+                ]
+              : driver === 'pgsql'
+                ? [
+                      { label: 'Listar Tablas (pg_tables)', sql: 'SELECT schemaname, tablename, tableowner FROM pg_catalog.pg_tables;' },
+                      { label: 'Usuarios', sql: 'SELECT id, name, email, created_at FROM "users" LIMIT 25;' },
+                      { label: 'Servidores', sql: 'SELECT id, name, uuid, memory, disk, cpu FROM "servers" LIMIT 25;' },
+                      { label: 'Nodos', sql: 'SELECT id, name, fqdn, scheme, daemon_listen FROM "nodes" LIMIT 25;' },
+                      { label: '\\d servers', sql: '\\d servers' },
+                  ]
+                : driver === 'mysql' || driver === 'mariadb'
+                  ? [
+                        { label: 'SHOW TABLES', sql: 'SHOW TABLES;' },
+                        { label: 'DESCRIBE users', sql: 'DESCRIBE users;' },
+                        { label: 'Usuarios', sql: 'SELECT id, name, email, created_at FROM "users" LIMIT 25;' },
+                        { label: 'Servidores', sql: 'SELECT id, name, uuid, memory, disk, cpu FROM "servers" LIMIT 25;' },
+                        { label: 'Webhooks', sql: 'SELECT id, name, url, format, enabled, last_status_code FROM "webhooks" LIMIT 25;' },
+                    ]
+                  : [
+                        { label: 'Listar Tablas (sqlite_master)', sql: "SELECT name, type FROM sqlite_master WHERE type='table' ORDER BY name;" },
+                        { label: 'Usuarios', sql: 'SELECT id, name, email, created_at FROM "users" LIMIT 25;' },
+                        { label: 'Servidores', sql: 'SELECT id, name, uuid, memory, disk, cpu FROM "servers" LIMIT 25;' },
+                        { label: 'Nodos', sql: 'SELECT id, name, fqdn, scheme, daemon_listen FROM "nodes" LIMIT 25;' },
+                        { label: 'Webhooks', sql: 'SELECT id, name, url, format, enabled, last_status_code FROM "webhooks" LIMIT 25;' },
+                    ];
 
     return (
         <div className="space-y-4 p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="mr-1 text-xs text-orange-300">Consultas rápidas:</span>
+                    <span className="mr-1 text-xs text-orange-300">Atajos {spec.shortLabel}:</span>
                     {presetQueries.map((preset) => (
                         <button
                             key={preset.label}
@@ -1059,7 +1565,7 @@ function SqlConsoleSection({
                                 setSqlQuery(preset.sql);
                                 void runSqlQuery(preset.sql);
                             }}
-                            className="rounded border border-orange-500/40 bg-orange-500/10 px-2.5 py-1 font-mono text-xs text-orange-300 hover:bg-orange-500 hover:text-black"
+                            className="rounded border border-orange-500/35 bg-orange-500/10 px-2.5 py-1 font-mono text-xs text-orange-300 hover:bg-orange-500 hover:text-black"
                         >
                             {preset.label}
                         </button>
@@ -1067,23 +1573,23 @@ function SqlConsoleSection({
                 </div>
                 {tables.length > 0 && (
                     <select
-                        aria-label="Seleccionar tabla para SELECT"
+                        aria-label="Seleccionar entidad para consulta"
                         defaultValue=""
                         onChange={(e) => {
                             if (e.target.value) {
-                                const q = `SELECT * FROM "${e.target.value}" LIMIT 50;`;
+                                const q = getDefaultQueryForDriver(driver, e.target.value);
                                 setSqlQuery(q);
                                 void runSqlQuery(q);
                             }
                         }}
-                        className="rounded-lg border border-orange-500/40 bg-neutral-900 px-3 py-1.5 font-mono text-xs text-cyan-300 outline-none focus:border-orange-400"
+                        className="rounded-lg border border-orange-500/35 bg-neutral-900 px-3 py-1.5 font-mono text-xs text-cyan-300 outline-none focus:border-orange-400"
                     >
                         <option value="" disabled>
-                            SELECT * FROM tabla…
+                            Consultar {spec.entitySingular.toLowerCase()}…
                         </option>
                         {tables.map((t) => (
                             <option key={t.name} value={t.name}>
-                                {t.name} ({t.count} filas)
+                                {t.name} ({t.count})
                             </option>
                         ))}
                     </select>
@@ -1095,36 +1601,36 @@ function SqlConsoleSection({
                     rows={4}
                     value={sqlQuery}
                     onChange={(e) => setSqlQuery(e.target.value)}
-                    placeholder="SELECT * FROM users LIMIT 25;"
-                    className="w-full rounded-lg border border-orange-500/40 bg-neutral-900 p-3.5 font-mono text-sm text-cyan-300 outline-none focus:border-orange-400"
+                    placeholder={getDefaultQueryForDriver(driver, 'users')}
+                    className="w-full rounded-lg border border-orange-500/35 bg-neutral-900/90 p-3.5 font-mono text-sm text-cyan-200 outline-none focus:border-orange-400"
                 />
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-xs text-neutral-400">
-                        Motor conectado a SQLite (`SELECT`, `PRAGMA`, `EXPLAIN`). Los campos sensibles se enmascaran automáticamente.
+                    <p className="text-xs text-slate-400">
+                        Motor conectado a <strong className="text-orange-300">{spec.label}</strong> ({spec.scheme}). Los campos sensibles se enmascaran automáticamente.
                     </p>
                     <button type="submit" disabled={sqlLoading || !sqlQuery.trim()} className={primary}>
-                        <Play size={15} /> {sqlLoading ? 'Ejecutando…' : 'Ejecutar SQL'}
+                        <Play size={15} /> {sqlLoading ? 'Ejecutando…' : `Ejecutar en ${spec.shortLabel}`}
                     </button>
                 </div>
             </form>
 
             {sqlError && (
                 <div className="rounded-lg border border-red-500/40 bg-red-950/30 p-3 font-mono text-xs text-red-300">
-                    Error SQL: {sqlError}
+                    Error: {sqlError}
                 </div>
             )}
 
             {sqlResult && (
                 <div className="space-y-3 pt-2">
-                    <div className="flex items-center justify-between text-xs text-neutral-400">
+                    <div className="flex items-center justify-between text-xs text-slate-400">
                         <span>
-                            Resultado: <strong className="text-cyan-400">{sqlResult.row_count}</strong> filas devueltas
+                            Resultado: <strong className="text-cyan-300">{sqlResult.row_count}</strong> registros devueltos
                         </span>
-                        <span className="font-mono text-emerald-400">Tiempo: {sqlResult.execution_time_ms} ms</span>
+                        <span className="font-mono text-emerald-300">Tiempo: {sqlResult.execution_time_ms} ms</span>
                     </div>
-                    <div className="overflow-x-auto rounded-lg border border-orange-500/30">
+                    <div className="overflow-x-auto rounded-lg border border-orange-500/25">
                         <table className="w-full text-left text-sm">
-                            <thead className="border-b border-orange-500/30 bg-neutral-900/80 text-xs uppercase text-orange-300">
+                            <thead className="border-b border-orange-500/25 bg-neutral-900/70 text-xs uppercase text-orange-300">
                                 <tr>
                                     {sqlResult.columns.map((col) => (
                                         <th key={col} className="whitespace-nowrap px-4 py-2.5 font-mono text-orange-300">
@@ -1133,10 +1639,10 @@ function SqlConsoleSection({
                                     ))}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-neutral-800">
+                            <tbody className="divide-y divide-neutral-800/80">
                                 {sqlResult.rows.length === 0 ? (
                                     <tr>
-                                        <td colSpan={Math.max(1, sqlResult.columns.length)} className="p-8 text-center text-neutral-400">
+                                        <td colSpan={Math.max(1, sqlResult.columns.length)} className="p-8 text-center text-slate-400">
                                             La consulta no devolvió filas.
                                         </td>
                                     </tr>
@@ -1154,11 +1660,11 @@ function SqlConsoleSection({
                                                 return (
                                                     <td
                                                         key={col}
-                                                        className="max-w-[260px] truncate whitespace-nowrap px-4 py-2.5 font-mono text-xs text-neutral-200"
+                                                        className="max-w-[260px] truncate whitespace-nowrap px-4 py-2.5 font-mono text-xs text-slate-200"
                                                         title={text}
                                                     >
                                                         {val === null || val === undefined ? (
-                                                            <span className="italic text-neutral-500">NULL</span>
+                                                            <span className="italic text-slate-500">NULL</span>
                                                         ) : (
                                                             text
                                                         )}
