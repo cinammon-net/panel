@@ -166,7 +166,7 @@ class ServerController extends Controller
             'name' => 'required|string|max:255',
             'node_id' => 'required|integer|exists:nodes,id',
             'owner_id' => 'required|integer|exists:users,id',
-            'allocation_id' => 'nullable|integer|exists:allocations,id',
+            'allocation_id' => 'required_without:primary_allocation_id|integer|exists:allocations,id',
             'description' => 'nullable|string',
             'primary_allocation_id' => 'nullable|integer|exists:allocations,id',
             'egg_id' => 'required|integer|exists:eggs,id',
