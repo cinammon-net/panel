@@ -336,14 +336,31 @@ class ServerController extends Controller
             [
                 'id' => 1,
                 'name' => 's' . $server->id . '_cinammon',
+                'driver' => 'mysql',
                 'user' => 'u' . $server->id . '_admin',
                 'host' => '127.0.0.1',
                 'port' => 3306,
                 'password' => 'cnm_' . substr(md5('srv_db_' . $server->id), 0, 12),
             ],
         ];
-        $databases = \Illuminate\Support\Facades\Cache::get("server_databases_{$server->id}", $defaultDatabases);
-        $server->setAttribute('databases', array_values($databases));
+        $databases = collect(\Illuminate\Support\Facades\Cache::get("server_databases_{$server->id}", $defaultDatabases))
+            ->map(function ($db) {
+                if (empty($db['driver'])) {
+                    $port = (int) ($db['port'] ?? 3306);
+                    $db['driver'] = match ($port) {
+                        5432 => 'pgsql',
+                        27017 => 'mongodb',
+                        6379 => 'redis',
+                        1433 => 'sqlsrv',
+                        0 => 'sqlite',
+                        default => 'mysql',
+                    };
+                }
+                return $db;
+            })
+            ->values()
+            ->all();
+        $server->setAttribute('databases', $databases);
 
         // Decodificar imágenes de los eggs
         $eggs = Egg::with('variables')
