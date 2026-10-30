@@ -185,6 +185,10 @@ Route::middleware(['auth'])->group(function () {
 
     // Servers
     Route::get('/servers/{server}/files', [App\Http\Controllers\ServerFilesController::class, 'page'])->name('servers.files');
+    Route::post('/servers/{server}/files/write', [App\Http\Controllers\ServerFilesController::class, 'write']);
+    Route::post('/servers/{server}/files/upload', [App\Http\Controllers\ServerFilesController::class, 'upload']);
+    Route::post('/servers/{server}/files/action', [App\Http\Controllers\ServerFilesController::class, 'action']);
+    Route::get('/servers/{server}/files/download', [App\Http\Controllers\ServerFilesController::class, 'download']);
     Route::get('/servers/{server}/files/list', [App\Http\Controllers\ServerFilesController::class, 'listing']);
     Route::get('/servers/{server}/files/contents', [App\Http\Controllers\ServerFilesController::class, 'contents']);
     Route::get('/servers/{server}/console', [App\Http\Controllers\ServerRuntimeController::class, 'console'])->name('servers.console');
