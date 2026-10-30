@@ -24,6 +24,9 @@ $script = <<<'SH'
 #!/bin/sh
 set -eu
 cd /mnt/server
+for item in package.json package-lock.json src node_modules; do
+    if [ ! -e "$item" ]; then cp -R "/opt/bot/$item" .; fi
+done
 if [ ! -f bot-config.json ]; then
     printf '{"token":"","guild_id":""}\n' > bot-config.json
     chmod 0600 bot-config.json
@@ -38,14 +41,14 @@ Sin token, el proceso queda en espera. Eso no significa que esté conectado a Di
 TXT
 SH;
 $server = DB::transaction(function () use ($node, $script) {
-    $egg = Egg::firstOrCreate(['name' => 'Discord Bot (Local)'], [
+    $egg = Egg::firstOrCreate(['name' => 'Node.js 24'], [
         'uuid' => (string) Str::uuid(), 'author' => 'admin@cinammon.local', 'category' => 'discord',
         'description' => 'Cinammon Discord bot, Node.js 24. Private token configuration.',
-        'startup' => 'node /opt/bot/src/index.js', 'config_stop' => 'stop',
+        'startup' => 'node src/index.js', 'config_stop' => 'stop',
         'config_startup' => json_encode(['done' => 'BOT_HOST_READY']),
         'config_files' => '{}', 'features' => '[]', 'file_denylist' => '[]',
         'docker_images' => json_encode(['Node.js 24 (Local)' => 'cinammon-discord-bot:node24']),
-        'script_install' => $script, 'script_container' => 'alpine:3.22', 'script_entry' => 'sh',
+        'script_install' => $script, 'script_container' => 'cinammon-discord-bot:node24', 'script_entry' => 'sh',
     ]);
     $allocation = Allocation::firstOrCreate(['node_id' => $node->id, 'ip' => '127.0.0.1', 'port' => 3001]);
     if ($allocation->server_id || Server::where('allocation_id', $allocation->id)->exists()) throw new RuntimeException('Allocation already assigned.');
