@@ -84,9 +84,12 @@ export default function Servers() {
             <div className="min-h-screen bg-white p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
                 {/* Header */}
                 <div className="border-cyan mb-6 flex items-center justify-between">
-                    <h1 className="text-3xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400 dark:drop-shadow-[0_0_5px_#0ff]">
-                        SERVERS
-                    </h1>
+                    <div className="flex items-center gap-3">
+                        <Server className="h-8 w-8 text-cyan-400" />
+                        <h1 className="text-3xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400">
+                            SERVERS
+                        </h1>
+                    </div>
                     <button
                         onClick={() => router.visit('/servers/create')}
                         className="rounded border border-cyan-400 bg-cyan-100/50 px-4 py-1.5 text-sm text-cyan-800 transition hover:bg-cyan-200/70 dark:border-cyan-500 dark:bg-cyan-900/30 dark:text-cyan-300 dark:hover:bg-cyan-700/50"
@@ -158,54 +161,54 @@ export default function Servers() {
                                 <thead>
                                     <tr className="bg-cyan-900">
                                         {/* CONDITIONS */}
-                                        <th className="px-4 py-2 text-left text-cyan-500">
-                                            <div className="flex items-center gap-1">
+                                        <th className="px-4 py-2 text-left text-cyan-400">
+                                            <div className="flex items-center gap-1.5">
+                                                <Activity className="h-4 w-4 shrink-0" />
                                                 <span className="hidden sm:inline">Conditions</span>
-                                                <Activity className="h-4 w-4 sm:hidden" />
                                             </div>
                                         </th>
 
                                         {/* NAME */}
-                                        <th className="px-4 py-2 text-left text-cyan-500">
-                                            <button onClick={() => handleSort('name')} className="flex items-center gap-1">
+                                        <th className="px-4 py-2 text-left text-cyan-400">
+                                            <button onClick={() => handleSort('name')} className="flex items-center gap-1.5">
+                                                <Server className="h-4 w-4 shrink-0" />
                                                 <span className="hidden sm:inline">Name</span>
-                                                <Server className="h-4 w-4 sm:hidden" />
                                                 {filters.sort === 'name' && (filters.direction === 'asc' ? <ChevronUp /> : <ChevronDown />)}
                                             </button>
                                         </th>
 
                                         {/* EGG */}
-                                        <th className="px-4 py-2 text-left text-cyan-500">
-                                            <button onClick={() => handleSort('egg')} className="flex items-center gap-1">
+                                        <th className="px-4 py-2 text-left text-cyan-400">
+                                            <button onClick={() => handleSort('egg')} className="flex items-center gap-1.5">
+                                                <Egg className="h-4 w-4 shrink-0" />
                                                 <span className="hidden sm:inline">Egg</span>
-                                                <Egg className="h-4 w-4 sm:hidden" />
                                                 {filters.sort === 'egg' && (filters.direction === 'asc' ? <ChevronUp /> : <ChevronDown />)}
                                             </button>
                                         </th>
 
                                         {/* USERNAME */}
-                                        <th className="px-4 py-2 text-left text-cyan-500">
-                                            <button onClick={() => handleSort('username')} className="flex items-center gap-1">
+                                        <th className="px-4 py-2 text-left text-cyan-400">
+                                            <button onClick={() => handleSort('username')} className="flex items-center gap-1.5">
+                                                <User className="h-4 w-4 shrink-0" />
                                                 <span className="hidden sm:inline">Username</span>
-                                                <User className="h-4 w-4 sm:hidden" />
                                                 {filters.sort === 'username' && (filters.direction === 'asc' ? <ChevronUp /> : <ChevronDown />)}
                                             </button>
                                         </th>
 
                                         {/* PRIMARY ALLOCATION */}
-                                        <th className="px-4 py-2 text-left text-cyan-500">
-                                            <button onClick={() => handleSort('allocation')} className="flex items-center gap-1">
+                                        <th className="px-4 py-2 text-left text-cyan-400">
+                                            <button onClick={() => handleSort('allocation')} className="flex items-center gap-1.5">
+                                                <MapPin className="h-4 w-4 shrink-0" />
                                                 <span className="hidden sm:inline ">Primary Allocation</span>
-                                                <MapPin className="h-4 w-4 sm:hidden" />
                                                 {filters.sort === 'allocation' && (filters.direction === 'asc' ? <ChevronUp /> : <ChevronDown />)}
                                             </button>
                                         </th>
 
                                         {/* BACKUPS */}
-                                        <th className="px-4 py-2 text-left text-cyan-500">
-                                            <button onClick={() => handleSort('backups')} className="flex items-center gap-1">
+                                        <th className="px-4 py-2 text-left text-cyan-400">
+                                            <button onClick={() => handleSort('backups')} className="flex items-center gap-1.5">
+                                                <Database className="h-4 w-4 shrink-0" />
                                                 <span className="hidden sm:inline">Backups</span>
-                                                <Database className="h-4 w-4 sm:hidden" />
                                                 {filters.sort === 'backups' && (filters.direction === 'asc' ? <ChevronUp /> : <ChevronDown />)}
                                             </button>
                                         </th>

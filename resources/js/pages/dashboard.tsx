@@ -1,7 +1,7 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, usePage } from '@inertiajs/react';
 import { BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Title, Tooltip } from 'chart.js';
-import { HelpCircle, Info, Server, Settings, TrendingUp, Users } from 'lucide-react';
+import { HelpCircle, Info, LayoutGrid, Server, Settings, TrendingUp, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Bar } from 'react-chartjs-2';
 
@@ -76,9 +76,12 @@ export default function Dashboard() {
                 <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-br from-black via-[#0d0118] to-black" />
                 <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle,#751aff11_1px,transparent_1px)] bg-[length:18px_18px]" />
 
-                <div>
-                    <h1 className="text-3xl font-bold tracking-widest text-purple-300 uppercase">Dashboard</h1>
-                    <p className="text-sm text-purple-500">Real-time system summary for Cinammon.</p>
+                <div className="flex items-center gap-3">
+                    <LayoutGrid className="h-8 w-8 text-purple-400" />
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-widest text-purple-300 uppercase">Dashboard</h1>
+                        <p className="text-sm text-purple-400/80">Real-time system summary for Cinammon.</p>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
