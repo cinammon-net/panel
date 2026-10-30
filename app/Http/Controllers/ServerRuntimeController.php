@@ -22,7 +22,7 @@ class ServerRuntimeController extends Controller
         return Inertia::render('Servers/Console', ['server' => [
             'id' => $server->id, 'name' => $server->name, 'uuid' => $server->uuid,
             'address' => app()->environment('local') ? 'localhost:'.$server->allocation->port : $server->allocation->ip.':'.$server->allocation->port,
-            'egg' => $server->egg->name, 'memory' => $server->memory,
+            'egg' => $server->egg->name, 'memory' => $server->memory, 'disk' => $server->disk, 'cpu' => $server->cpu,
             'discord_bot' => $server->egg->category === 'discord',
             'minecraft' => str_contains(strtolower($server->egg->name), 'paper'),
         ]]);
