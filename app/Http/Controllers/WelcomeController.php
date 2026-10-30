@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Review;
 use Inertia\Inertia;
 use App\Models\Post;
+use Illuminate\Support\Facades\Storage;
 
 class WelcomeController extends Controller
 {
