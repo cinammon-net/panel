@@ -173,9 +173,9 @@ export default function Users() {
                                                         link.active ? 'bg-pink-600 text-white' : 'bg-pink-200 text-pink-800 hover:bg-pink-300'
                                                     }`}
                                                 >
-                                                    {link.label === 'Previous' ? (
+                                                    {link.label.includes('Previous') ? (
                                                         <ChevronLeft className="h-4 w-4" />
-                                                    ) : link.label === 'Next' ? (
+                                                    ) : link.label.includes('Next') ? (
                                                         <ChevronRight className="h-4 w-4" />
                                                     ) : (
                                                         link.label

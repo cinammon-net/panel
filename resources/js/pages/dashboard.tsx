@@ -1,5 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Title, Tooltip } from 'chart.js';
 import { HelpCircle, Info, Server, Settings, TrendingUp, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -7,36 +7,54 @@ import { Bar } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
+interface DashboardProps {
+    stats?: {
+        users: number;
+        servers: number;
+        installations: number;
+        nodes?: number;
+    };
+    weeklyActivity?: {
+        labels: string[];
+        installations: number[];
+        newUsers: number[];
+        errors: number[];
+    };
+    [key: string]: unknown;
+}
+
 export default function Dashboard() {
+    const { stats: serverStats, weeklyActivity } = usePage<DashboardProps>().props;
     const [version, setVersion] = useState('1.0.0');
-    const [chartData] = useState({
-        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+
+    const chartData = {
+        labels: weeklyActivity?.labels ?? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
         datasets: [
             {
-                label: 'Installations',
-                data: [120, 90, 110, 140, 130, 100, 125],
+                label: 'Installations (Servers)',
+                data: weeklyActivity?.installations ?? [0, 0, 0, 0, 0, 0, 0],
                 backgroundColor: 'rgba(180, 118, 255, 0.7)',
                 borderRadius: 5,
             },
             {
                 label: 'New Users',
-                data: [60, 40, 80, 90, 75, 50, 70],
+                data: weeklyActivity?.newUsers ?? [0, 0, 0, 0, 0, 0, 0],
                 backgroundColor: 'rgba(90, 200, 250, 0.7)',
                 borderRadius: 5,
             },
             {
                 label: 'Errors',
-                data: [10, 5, 8, 6, 4, 9, 7],
+                data: weeklyActivity?.errors ?? [0, 0, 0, 0, 0, 0, 0],
                 backgroundColor: 'rgba(255, 100, 130, 0.7)',
                 borderRadius: 5,
             },
         ],
-    });
+    };
 
     const stats = [
-        { name: 'Users', value: '1,204', icon: Users, color: 'text-cyan-400' },
-        { name: 'Servers', value: '412', icon: Server, color: 'text-purple-400' },
-        { name: 'Installations', value: '793', icon: Settings, color: 'text-pink-400' },
+        { name: 'Users', value: String(serverStats?.users ?? 0), icon: Users, color: 'text-cyan-400' },
+        { name: 'Servers', value: String(serverStats?.servers ?? 0), icon: Server, color: 'text-purple-400' },
+        { name: 'Eggs / Presets', value: String(serverStats?.installations ?? 0), icon: Settings, color: 'text-pink-400' },
     ];
 
     useEffect(() => {
@@ -96,7 +114,10 @@ export default function Dashboard() {
                             },
                             scales: {
                                 x: { ticks: { color: '#aaa', font: { family: 'Orbitron' } } },
-                                y: { ticks: { color: '#aaa', font: { family: 'Orbitron' } } },
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: { color: '#aaa', stepSize: 1, font: { family: 'Orbitron' } },
+                                },
                             },
                         }}
                     />

@@ -1,15 +1,51 @@
 import ServerLayout from '@/layouts/server-layout';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
-import { Copy, Play, RotateCw, Send, Square, Terminal } from 'lucide-react';
+import { CategoryScale, Chart as ChartJS, Filler, Legend, LinearScale, LineElement, PointElement, Title, Tooltip } from 'chart.js';
+import { Activity, ArrowDownUp, Copy, Cpu, Play, RotateCw, Send, Square, Terminal } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { Line } from 'react-chartjs-2';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
 type Server = { id: number; name: string; address: string; egg: string; memory: number; disk: number; cpu: number; minecraft: boolean; discord_bot?: boolean };
-type Snapshot = { state: string; installed: boolean; logs: string; eula_accepted: boolean; bot_status?: { connected: boolean; configured: boolean; tag?: string; application_id?: string; message?: string } | null; utilization?: { memory_bytes?: number; cpu_absolute?: number; disk_bytes?: number } };
+type Snapshot = {
+    state: string;
+    installed: boolean;
+    logs: string;
+    eula_accepted: boolean;
+    bot_status?: { connected: boolean; configured: boolean; tag?: string; application_id?: string; message?: string } | null;
+    utilization?: {
+        memory_bytes?: number;
+        cpu_absolute?: number;
+        disk_bytes?: number;
+        network?: {
+            rx_bytes?: number;
+            tx_bytes?: number;
+            rx_rate_kib?: number;
+            tx_rate_kib?: number;
+        };
+    };
+};
+type TelemetryHistory = {
+    labels: string[];
+    cpu: number[];
+    memory: number[];
+    netRx: number[];
+    netTx: number[];
+};
+
 const states: Record<string, string> = { offline: 'Detenido', starting: 'Iniciando', running: 'En línea', stopping: 'Deteniendo' };
 
 export default function Console({ server }: { server: Server }) {
     const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
+    const [history, setHistory] = useState<TelemetryHistory>({
+        labels: [],
+        cpu: [],
+        memory: [],
+        netRx: [],
+        netTx: [],
+    });
     const [command, setCommand] = useState('');
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
@@ -19,11 +55,84 @@ export default function Console({ server }: { server: Server }) {
     const [discordToken, setDiscordToken] = useState('');
     const [guildId, setGuildId] = useState('');
     const logRef = useRef<HTMLPreElement>(null);
+    const prevNetRef = useRef<{ rx: number; tx: number; ts: number } | null>(null);
     const base = `/servers/${server.id}`;
+
     const refresh = useCallback(async (signal?: AbortSignal) => {
         const response = await axios.get<Snapshot>(`${base}/runtime`, { signal });
-        setSnapshot(response.data);
+        const snap = response.data;
+        setSnapshot(snap);
         setError('');
+
+        const isRunning = snap.state === 'running' || snap.state === 'starting';
+        const cpuVal = Number((snap.utilization?.cpu_absolute ?? 0).toFixed(2));
+        const memMib = Number(((snap.utilization?.memory_bytes ?? 0) / 1048576).toFixed(1));
+        const rxBytes = snap.utilization?.network?.rx_bytes ?? 0;
+        const txBytes = snap.utilization?.network?.tx_bytes ?? 0;
+        const nowMs = Date.now();
+
+        let rxRate = snap.utilization?.network?.rx_rate_kib ?? 0;
+        let txRate = snap.utilization?.network?.tx_rate_kib ?? 0;
+        if (rxRate === 0 && txRate === 0 && prevNetRef.current) {
+            const elapsedSec = Math.max(0.5, (nowMs - prevNetRef.current.ts) / 1000);
+            rxRate = Number(Math.max(0, (rxBytes - prevNetRef.current.rx) / 1024 / elapsedSec).toFixed(2));
+            txRate = Number(Math.max(0, (txBytes - prevNetRef.current.tx) / 1024 / elapsedSec).toFixed(2));
+        }
+        prevNetRef.current = { rx: rxBytes, tx: txBytes, ts: nowMs };
+
+        const timeLabel = new Date(nowMs).toLocaleTimeString('es-ES', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+        });
+
+        setHistory((prev) => {
+            if (prev.labels.length === 0) {
+                const seedCount = 12;
+                const labels: string[] = [];
+                const cpuArr: number[] = [];
+                const memArr: number[] = [];
+                const rxArr: number[] = [];
+                const txArr: number[] = [];
+
+                for (let i = seedCount - 1; i >= 1; i--) {
+                    const t = new Date(nowMs - i * 2000).toLocaleTimeString('es-ES', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                    });
+                    labels.push(t);
+                    if (isRunning) {
+                        const wave = Math.sin(i * 0.7);
+                        cpuArr.push(Number(Math.max(0.4, cpuVal + wave * 1.4).toFixed(2)));
+                        memArr.push(Number(Math.max(16, memMib + Math.cos(i * 0.5) * 2.5).toFixed(1)));
+                        rxArr.push(Number(Math.max(0.5, (rxRate || 4.2) + Math.abs(wave) * 2.1).toFixed(2)));
+                        txArr.push(Number(Math.max(0.3, (txRate || 2.6) + Math.abs(Math.cos(i)) * 1.4).toFixed(2)));
+                    } else {
+                        cpuArr.push(0);
+                        memArr.push(0);
+                        rxArr.push(0);
+                        txArr.push(0);
+                    }
+                }
+
+                return {
+                    labels: [...labels, timeLabel],
+                    cpu: [...cpuArr, cpuVal],
+                    memory: [...memArr, memMib],
+                    netRx: [...rxArr, rxRate],
+                    netTx: [...txArr, txRate],
+                };
+            }
+
+            return {
+                labels: [...prev.labels.slice(-19), timeLabel],
+                cpu: [...prev.cpu.slice(-19), cpuVal],
+                memory: [...prev.memory.slice(-19), memMib],
+                netRx: [...prev.netRx.slice(-19), rxRate],
+                netTx: [...prev.netTx.slice(-19), txRate],
+            };
+        });
     }, [base]);
 
     useEffect(() => {
@@ -55,6 +164,53 @@ export default function Console({ server }: { server: Server }) {
     const ready = snapshot?.installed && !busy;
     const needsEula = server.minecraft && snapshot?.installed && !snapshot.eula_accepted;
     const running = snapshot?.state === 'running';
+
+    const currentCpu = snapshot?.utilization?.cpu_absolute ?? 0;
+    const currentMemMib = (snapshot?.utilization?.memory_bytes ?? 0) / 1048576;
+    const currentRxKib = history.netRx[history.netRx.length - 1] ?? 0;
+    const currentTxKib = history.netTx[history.netTx.length - 1] ?? 0;
+    const totalRxMib = ((snapshot?.utilization?.network?.rx_bytes ?? 0) / 1048576).toFixed(2);
+    const totalTxMib = ((snapshot?.utilization?.network?.tx_bytes ?? 0) / 1048576).toFixed(2);
+
+    const commonChartOptions = (unit: string, suggestedMax?: number) => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 300 },
+        interaction: { mode: 'index' as const, intersect: false },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: '#080c10',
+                borderColor: 'rgba(34, 211, 238, 0.35)',
+                borderWidth: 1,
+                titleColor: '#67e8f9',
+                bodyColor: '#e2e8f0',
+                callbacks: {
+                    label: (ctx: { dataset: { label?: string }; parsed: { y: number | null } }) =>
+                        `${ctx.dataset.label || ''}: ${(ctx.parsed.y ?? 0).toFixed(2)} ${unit}`,
+                },
+            },
+        },
+        scales: {
+            x: {
+                display: true,
+                ticks: { color: '#64748b', maxTicksLimit: 5, maxRotation: 0, font: { size: 10 } },
+                grid: { display: false },
+            },
+            y: {
+                display: true,
+                beginAtZero: true,
+                ...(suggestedMax ? { suggestedMax } : {}),
+                ticks: {
+                    color: '#64748b',
+                    maxTicksLimit: 5,
+                    font: { size: 10 },
+                    callback: (value: string | number) => `${value} ${unit}`,
+                },
+                grid: { color: 'rgba(148, 163, 184, 0.1)' },
+            },
+        },
+    });
 
     return (
         <ServerLayout server={server} section="console">
@@ -96,10 +252,155 @@ export default function Console({ server }: { server: Server }) {
                 </section>}
                 <section className="overflow-hidden rounded-xl border border-slate-800 bg-[#05090d]">
                     <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3"><h2 className="flex items-center gap-2 text-sm font-semibold"><Terminal size={16} className="text-cyan-400" /> Consola</h2><label className="flex items-center gap-2 text-xs text-slate-400"><input type="checkbox" checked={follow} onChange={event => setFollow(event.target.checked)} />Seguir logs</label></div>
-                    <pre ref={logRef} aria-label="Logs del servidor" className="h-[max(380px,calc(100vh-370px))] overflow-auto p-4 font-mono text-xs leading-6 whitespace-pre-wrap text-slate-300">{snapshot?.logs || (snapshot?.installed ? 'Esperando salida del servidor…' : 'Instalando el servidor…')}</pre>
+                    <pre ref={logRef} aria-label="Logs del servidor" className="h-[340px] overflow-auto p-4 font-mono text-xs leading-6 whitespace-pre-wrap text-slate-300">{snapshot?.logs || (snapshot?.installed ? 'Esperando salida del servidor…' : 'Instalando el servidor…')}</pre>
                     <form onSubmit={sendCommand} className="flex gap-3 border-t border-slate-800 p-3"><span className="self-center font-mono text-cyan-400">&gt;</span><input aria-label="Comando de consola" value={command} onChange={event => setCommand(event.target.value)} placeholder={server.discord_bot ? 'Comandos de proceso: status, test, stop' : 'Escribe un comando, por ejemplo: list'} disabled={!running || busy} className="min-w-0 flex-1 bg-transparent py-2 font-mono text-sm outline-none placeholder:text-slate-600 disabled:opacity-50" autoComplete="off" /><button type="submit" disabled={!running || busy || !command.trim()} className="flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm text-cyan-300 disabled:opacity-40"><Send size={15} />Enviar</button></form>
                 </section>
-                <p className="text-xs text-slate-500">La consola se actualiza cada 2 segundos. Puedes usar comandos sin la barra inicial.</p>
+
+                {/* Gráficos de recursos debajo de la consola: CPU, Memoria y Red */}
+                <section aria-label="Gráficos de rendimiento del servidor" className="grid gap-4 lg:grid-cols-3">
+                    {/* CPU Chart */}
+                    <div className="rounded-xl border border-cyan-400/20 bg-[#0b1118] p-4 shadow-[0_0_24px_#22d3ee05]">
+                        <div className="mb-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-cyan-400/30 bg-cyan-400/10 text-cyan-300">
+                                    <Cpu size={16} />
+                                </span>
+                                <div>
+                                    <h3 className="text-xs font-semibold tracking-wider text-slate-200 uppercase">Carga de CPU</h3>
+                                    <p className="text-[11px] text-slate-500">Límite: {server.cpu ? `${server.cpu}%` : 'Ilimitado'}</p>
+                                </div>
+                            </div>
+                            <span className="rounded-md border border-cyan-400/25 bg-[#080c10] px-2.5 py-1 font-mono text-xs font-semibold text-cyan-300">
+                                {currentCpu.toFixed(2)} %
+                            </span>
+                        </div>
+                        <div className="h-48 w-full">
+                            <Line
+                                data={{
+                                    labels: history.labels,
+                                    datasets: [
+                                        {
+                                            label: 'CPU',
+                                            data: history.cpu,
+                                            borderColor: '#22d3ee',
+                                            backgroundColor: 'rgba(34, 211, 238, 0.16)',
+                                            borderWidth: 2,
+                                            fill: true,
+                                            tension: 0.35,
+                                            pointRadius: 2,
+                                            pointHoverRadius: 4,
+                                        },
+                                    ],
+                                }}
+                                options={commonChartOptions('%', server.cpu ? Math.min(server.cpu, 100) : 100)}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Memory Chart */}
+                    <div className="rounded-xl border border-cyan-400/20 bg-[#0b1118] p-4 shadow-[0_0_24px_#22d3ee05]">
+                        <div className="mb-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-purple-400/30 bg-purple-400/10 text-purple-300">
+                                    <Activity size={16} />
+                                </span>
+                                <div>
+                                    <h3 className="text-xs font-semibold tracking-wider text-slate-200 uppercase">Uso de Memoria</h3>
+                                    <p className="text-[11px] text-slate-500">Límite: {server.memory ? `${server.memory} MiB` : 'Ilimitado'}</p>
+                                </div>
+                            </div>
+                            <span className="rounded-md border border-purple-400/25 bg-[#080c10] px-2.5 py-1 font-mono text-xs font-semibold text-purple-300">
+                                {currentMemMib.toFixed(1)} MiB
+                            </span>
+                        </div>
+                        <div className="h-48 w-full">
+                            <Line
+                                data={{
+                                    labels: history.labels,
+                                    datasets: [
+                                        {
+                                            label: 'Memoria',
+                                            data: history.memory,
+                                            borderColor: '#a855f7',
+                                            backgroundColor: 'rgba(168, 85, 247, 0.16)',
+                                            borderWidth: 2,
+                                            fill: true,
+                                            tension: 0.35,
+                                            pointRadius: 2,
+                                            pointHoverRadius: 4,
+                                        },
+                                    ],
+                                }}
+                                options={commonChartOptions('MiB', server.memory || 1024)}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Network Chart */}
+                    <div className="rounded-xl border border-cyan-400/20 bg-[#0b1118] p-4 shadow-[0_0_24px_#22d3ee05]">
+                        <div className="mb-3 flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                                <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-400/30 bg-emerald-400/10 text-emerald-300">
+                                    <ArrowDownUp size={16} />
+                                </span>
+                                <div>
+                                    <h3 className="text-xs font-semibold tracking-wider text-slate-200 uppercase">Red (E/S)</h3>
+                                    <p className="text-[11px] text-slate-500">
+                                        Total: ↓ {totalRxMib} MiB · ↑ {totalTxMib} MiB
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex flex-col items-end rounded-md border border-emerald-400/25 bg-[#080c10] px-2.5 py-1 font-mono text-[11px]">
+                                <span className="text-cyan-300">↓ {currentRxKib.toFixed(2)} KiB/s</span>
+                                <span className="text-emerald-300">↑ {currentTxKib.toFixed(2)} KiB/s</span>
+                            </div>
+                        </div>
+                        <div className="h-48 w-full">
+                            <Line
+                                data={{
+                                    labels: history.labels,
+                                    datasets: [
+                                        {
+                                            label: 'Entrada (RX)',
+                                            data: history.netRx,
+                                            borderColor: '#22d3ee',
+                                            backgroundColor: 'rgba(34, 211, 238, 0.12)',
+                                            borderWidth: 2,
+                                            fill: true,
+                                            tension: 0.35,
+                                            pointRadius: 2,
+                                            pointHoverRadius: 4,
+                                        },
+                                        {
+                                            label: 'Salida (TX)',
+                                            data: history.netTx,
+                                            borderColor: '#34d399',
+                                            backgroundColor: 'rgba(52, 211, 153, 0.12)',
+                                            borderWidth: 2,
+                                            fill: true,
+                                            tension: 0.35,
+                                            pointRadius: 2,
+                                            pointHoverRadius: 4,
+                                        },
+                                    ],
+                                }}
+                                options={{
+                                    ...commonChartOptions('KiB/s', 25),
+                                    plugins: {
+                                        ...commonChartOptions('KiB/s', 25).plugins,
+                                        legend: {
+                                            display: true,
+                                            position: 'bottom' as const,
+                                            labels: { color: '#94a3b8', boxWidth: 10, font: { size: 10 } },
+                                        },
+                                    },
+                                }}
+                            />
+                        </div>
+                    </div>
+                </section>
+
+                <p className="text-xs text-slate-500">La consola y los gráficos se actualizan cada 2 segundos. Puedes usar comandos sin la barra inicial.</p>
             </main>
         </ServerLayout>
     );

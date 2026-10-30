@@ -1,18 +1,25 @@
 import axios from 'axios';
-import { ArcElement, CategoryScale, Chart as ChartJS, Filler, Legend, LinearScale, Title, Tooltip } from 'chart.js';
+import { ArcElement, CategoryScale, Chart as ChartJS, Filler, Legend, LinearScale, LineElement, PointElement, Title, Tooltip } from 'chart.js';
 import React, { useEffect, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 
-ChartJS.register(CategoryScale, LinearScale, ArcElement, Title, Tooltip, Legend, Filler);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Title, Tooltip, Legend, Filler);
 
-const CPU: React.FC = () => {
+interface CPUProps {
+    id?: number | string;
+    [key: string]: unknown;
+}
+
+const CPU: React.FC<CPUProps> = ({ id }) => {
     const [cpuData, setCpuDataState] = useState<number[]>([]);
     const [timeLabels, setTimeLabels] = useState<string[]>([]);
 
     useEffect(() => {
         const fetchCpuData = async () => {
             try {
-                const response = await axios.get('/nodes/cpu-data');
+                const response = await axios.get('/nodes/cpu-data', {
+                    params: id ? { node_id: id } : {},
+                });
                 setCpuDataState(response.data.cpu_usage || []);
                 setTimeLabels(response.data.time_labels || []);
             } catch (error) {
@@ -21,7 +28,9 @@ const CPU: React.FC = () => {
         };
 
         fetchCpuData();
-    }, []);
+        const interval = setInterval(fetchCpuData, 5000);
+        return () => clearInterval(interval);
+    }, [id]);
 
     const data = {
         labels: timeLabels,
