@@ -14,7 +14,7 @@ import {
 
 interface NodeItem {
     status: string;
-    online: any;
+    online: boolean;
     id: number;
     name: string;
     fqdn: string;
