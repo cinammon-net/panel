@@ -24,6 +24,26 @@ class ServerController extends Controller
             $query->where('servers.name', 'like', '%' . $request->search . '%');
         }
 
+        // Filtro categoría
+        $selectedCategory = $request->input('category', 'all');
+        if ($selectedCategory === 'bots') {
+            $query->whereHas('egg', function ($q) {
+                $q->whereIn('category', ['bots', 'generic']);
+            });
+        } elseif ($selectedCategory && $selectedCategory !== 'all') {
+            $query->whereHas('egg', function ($q) use ($selectedCategory) {
+                $q->where('category', $selectedCategory);
+            });
+        }
+
+        // Filtro estado (activos / inactivos)
+        $selectedStatus = $request->input('status', 'all');
+        if ($selectedStatus === 'online') {
+            $query->where('servers.status', 1);
+        } elseif ($selectedStatus === 'offline') {
+            $query->where('servers.status', 0);
+        }
+
         // Orden dinámico
         $sort = $request->input('sort', 'name');
         $direction = $request->input('direction', 'asc');
@@ -82,7 +102,8 @@ class ServerController extends Controller
         }
 
         // Paginar resultados
-        $paginated = $query->paginate(15)->withQueryString();
+        $perPage = min(100, max(5, (int) $request->input('per_page', 50)));
+        $paginated = $query->paginate($perPage)->withQueryString();
 
         // Hacer relaciones manualmente porque no usamos with()
         $serverIds = $paginated->pluck('id');
@@ -101,6 +122,7 @@ class ServerController extends Controller
                 'name' => $server->name,
                 'status' => $server->status ? 'online' : 'offline',
                 'egg' => $full?->egg?->name ?? '–',
+                'category' => $full?->egg?->category ?? 'minecraft',
                 'username' => $full?->owner?->name ?? 'Unknown',
                 'node' => $full?->node?->name ?? 'Unknown',
                 'allocation' => $full?->allocation
@@ -115,9 +137,30 @@ class ServerController extends Controller
 
         $paginated->setCollection($servers);
 
+        $categoryCounts = [
+            'all' => Server::count(),
+            'minecraft' => Server::whereHas('egg', fn($q) => $q->where('category', 'minecraft'))->count(),
+            'games' => Server::whereHas('egg', fn($q) => $q->where('category', 'games'))->count(),
+            'bots' => Server::whereHas('egg', fn($q) => $q->whereIn('category', ['bots', 'generic']))->count(),
+            'database' => Server::whereHas('egg', fn($q) => $q->where('category', 'database'))->count(),
+            'voice' => Server::whereHas('egg', fn($q) => $q->where('category', 'voice'))->count(),
+            'software' => Server::whereHas('egg', fn($q) => $q->where('category', 'software'))->count(),
+        ];
+
+        $statusCounts = [
+            'all' => Server::count(),
+            'online' => Server::where('status', 1)->count(),
+            'offline' => Server::where('status', 0)->count(),
+        ];
+
         return Inertia::render('Servers', [
             'servers' => $paginated,
-            'filters' => $request->only('search', 'sort', 'direction'),
+            'filters' => array_merge($request->only('search', 'sort', 'direction', 'per_page'), [
+                'category' => $selectedCategory,
+                'status' => $selectedStatus,
+            ]),
+            'categoryCounts' => $categoryCounts,
+            'statusCounts' => $statusCounts,
             'availableTags' => [],
         ]);
     }
@@ -201,8 +244,16 @@ class ServerController extends Controller
             $data['uuid'] = (string) Str::uuid();
             $data['uuid_short'] = substr($data['uuid'], 0, 8);
             $data['active'] = 1;
-            $data['status'] = 1;
+            $data['status'] = 0;
             $server = Server::create($data);
+            if (!empty($data['allocation_id'])) {
+                Allocation::where('id', $data['allocation_id'])->update(['server_id' => $server->id]);
+            }
+            try {
+                app(\App\Services\Daemon\WingsClient::class)->provision($server);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('No se pudo aprovisionar en Wings: ' . $e->getMessage());
+            }
         }
 
         if (isset($validated['additional_allocations'])) {

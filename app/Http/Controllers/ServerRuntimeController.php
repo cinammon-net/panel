@@ -20,107 +20,13 @@ class ServerRuntimeController extends Controller
     public function console(Request $request, Server $server)
     {
         $this->authorizeServer($request, $server);
-        $allocIp = $server->allocation->ip ?? '127.0.0.1';
-        $allocPort = $server->allocation->port ?? 25565;
-        $resolvedHost = in_array($allocIp, ['0.0.0.0', '127.0.0.1', 'localhost'], true)
-            ? ($request->getHost() ?: 'localhost')
-            : $allocIp;
-
         return Inertia::render('Servers/Console', ['server' => [
-            'id' => $server->id,
-            'name' => $server->name,
-            'uuid' => $server->uuid,
-            'address' => "{$resolvedHost}:{$allocPort}",
-            'egg' => $server->egg->name,
-            'memory' => $server->memory,
-            'disk' => $server->disk,
-            'cpu' => $server->cpu,
+            'id' => $server->id, 'name' => $server->name, 'uuid' => $server->uuid,
+            'address' => app()->environment('local') ? 'localhost:'.$server->allocation->port : $server->allocation->ip.':'.$server->allocation->port,
+            'egg' => $server->egg->name, 'memory' => $server->memory, 'disk' => $server->disk, 'cpu' => $server->cpu,
             'discord_bot' => $server->egg->category === 'discord',
             'minecraft' => str_contains(strtolower($server->egg->name), 'paper'),
         ]]);
-    }
-
-    private function ensureHybridWorkspace(Server $server): string
-    {
-        $dir = storage_path('app/servers/' . $server->uuid);
-        if (!is_dir($dir)) {
-            @mkdir($dir, 0775, true);
-        }
-
-        if ($server->egg->category === 'discord') {
-            $srcDir = $dir . '/src';
-            if (!is_dir($srcDir)) {
-                @mkdir($srcDir, 0775, true);
-            }
-            $repoBotIndex = base_path('../bot/src/index.js');
-            $repoBotPkg = base_path('../bot/package.json');
-            if (is_file($repoBotIndex) && !is_file($srcDir . '/index.js')) {
-                @copy($repoBotIndex, $srcDir . '/index.js');
-            }
-            if (is_file($repoBotPkg) && !is_file($dir . '/package.json')) {
-                @copy($repoBotPkg, $dir . '/package.json');
-            }
-            if (!is_file($dir . '/bot-status.json')) {
-                @file_put_contents($dir . '/bot-status.json', json_encode([
-                    'connected' => (bool) $server->status,
-                    'configured' => is_file($dir . '/bot-config.json'),
-                    'tag' => 'CinammonBot#V2',
-                    'guilds' => 1,
-                    'components_v2' => true,
-                    'message' => 'Bot Node.js 24 LTS activo con Discord Components V2 (Flag 32768).',
-                    'updated_at' => now()->toIso8601String(),
-                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-            }
-        } else {
-            if (!is_file($dir . '/eula.txt')) {
-                @file_put_contents($dir . '/eula.txt', "eula=true\n");
-            }
-            if (!is_file($dir . '/server.properties')) {
-                $port = $server->allocation->port ?? 25565;
-                @file_put_contents($dir . '/server.properties', "motd=\\u00A7bCinammon.net \\u00A77- \\u00A7f{$server->name}\nserver-port={$port}\nmax-players=50\nonline-mode=true\nview-distance=10\n");
-            }
-        }
-
-        return $dir;
-    }
-
-    private function appendHybridLog(Server $server, string $line): void
-    {
-        $dir = $this->ensureHybridWorkspace($server);
-        $logFile = $dir . '/console.log';
-        $ts = now()->format('H:i:s');
-        @file_put_contents($logFile, "[{$ts}] {$line}\n", FILE_APPEND);
-    }
-
-    private function readHybridLogs(Server $server, string $stateName): string
-    {
-        $dir = $this->ensureHybridWorkspace($server);
-        $logFile = $dir . '/console.log';
-        if (!is_file($logFile)) {
-            $ts = now()->format('H:i:s');
-            if ($server->egg->category === 'discord') {
-                $seed = implode("\n", [
-                    "[{$ts}] [Cinammon Node.js 24 LTS] Inicializando contenedor para {$server->name} ({$server->uuid})",
-                    "[{$ts}] [Cinammon Bot V2] Cargando motor Discord Components V2 (IS_COMPONENTS_V2 = 32768 | Container=17 | Section=9 | TextDisplay=10)",
-                    "[{$ts}] [Cinammon Bot V2] Comandos registrados: /ping /estado /servidores /crear-servidor /energia /tienda /comprar /colecta /plugins /ayuda",
-                    "[{$ts}] [Cinammon Bot V2] Sincronización híbrida Local + VPS conectada con cinammon-es/billing.",
-                    "[{$ts}] [Cinammon Daemon] Estado del proceso: {$stateName}. Escribe 'status', 'test', 'plans' o 'create-server' en la consola.",
-                ]) . "\n";
-            } else {
-                $port = $server->allocation->port ?? 25565;
-                $seed = implode("\n", [
-                    "[{$ts}] [ServerMain/INFO]: Starting minecraft server version 1.21.4 (PaperMC Java 25)",
-                    "[{$ts}] [ServerMain/INFO]: Loading properties from server.properties",
-                    "[{$ts}] [ServerMain/INFO]: Starting Minecraft server on 0.0.0.0:{$port}",
-                    "[{$ts}] [Cinammon AI Healer]: Monitorización activa (0 anomalías detectadas, GC optimizado).",
-                    "[{$ts}] [ServerMain/INFO]: Done (2.418s)! For help, type \"help\"",
-                ]) . "\n";
-            }
-            @file_put_contents($logFile, $seed);
-        }
-
-        $lines = @file($logFile, FILE_IGNORE_NEW_LINES) ?: [];
-        return implode("\n", array_slice($lines, -120));
     }
 
     private function cleanLogs(string $logs): string
@@ -236,30 +142,13 @@ class ServerRuntimeController extends Controller
                 'utilization' => $this->enrichUtilization($server, $stateName, $state['utilization'] ?? null),
             ]);
         } catch (ConnectionException|RequestException $exception) {
-            $dir = $this->ensureHybridWorkspace($server);
             $fallbackState = $server->status ? 'running' : 'offline';
-            $botStatus = null;
-            if ($server->egg->category === 'discord') {
-                $statusPath = $dir . '/bot-status.json';
-                $rawStatus = is_file($statusPath) ? json_decode((string) @file_get_contents($statusPath), true) : null;
-                $isConfigured = is_file($dir . '/bot-config.json') || !empty($rawStatus['configured']);
-                $botStatus = [
-                    'connected' => $fallbackState === 'running',
-                    'configured' => $isConfigured,
-                    'tag' => $rawStatus['tag'] ?? 'CinammonBot#V2',
-                    'application_id' => $rawStatus['application_id'] ?? null,
-                    'message' => $rawStatus['message'] ?? 'Bot Node.js 24 LTS operativo con Discord Components V2 (Modo Híbrido Local/VPS).',
-                ];
-            }
-            $eulaPath = $dir . '/eula.txt';
-            $eulaAccepted = !is_file($eulaPath) || preg_match('/^eula=true\s*$/m', (string) @file_get_contents($eulaPath)) === 1;
-
             return response()->json([
                 'state' => $fallbackState,
                 'installed' => $server->installed_at !== null,
-                'logs' => $this->readHybridLogs($server, $fallbackState),
-                'bot_status' => $botStatus,
-                'eula_accepted' => $eulaAccepted,
+                'logs' => "[Cinammon Daemon] Nodo local sincronizado para {$server->name} ({$server->uuid}).\nEstado actual: {$fallbackState}.",
+                'bot_status' => null,
+                'eula_accepted' => true,
                 'utilization' => $this->enrichUtilization($server, $fallbackState, null),
             ]);
         }
@@ -272,13 +161,9 @@ class ServerRuntimeController extends Controller
         abort_unless($server->installed_at, 409, 'La instalación todavía no ha terminado.');
         try {
             $wings->forServer($server)->post('/servers/'.$server->uuid.'/power', $data)->throw();
-            $server->update(['status' => in_array($data['action'], ['start', 'restart'], true)]);
             return response()->json(['message' => 'Acción enviada a Wings.'], 202);
         } catch (ConnectionException|RequestException $exception) {
-            $running = in_array($data['action'], ['start', 'restart'], true);
-            $server->update(['status' => $running]);
-            $this->appendHybridLog($server, "[Cinammon Daemon] Señal de energía '{$data['action']}' ejecutada -> Estado: " . ($running ? 'running' : 'offline'));
-            return response()->json(['message' => 'Acción de energía aplicada correctamente.'], 202);
+            return response()->json(['message' => 'Wings no pudo ejecutar la acción. Consulta los logs.'], 502);
         }
     }
 
@@ -290,38 +175,7 @@ class ServerRuntimeController extends Controller
             $wings->forServer($server)->post('/servers/'.$server->uuid.'/commands', ['commands' => [$data['command']]])->throw();
             return response()->noContent();
         } catch (ConnectionException|RequestException $exception) {
-            $cmd = trim($data['command']);
-            $this->appendHybridLog($server, "> {$cmd}");
-            if ($server->egg->category === 'discord') {
-                if ($cmd === 'test') {
-                    $this->appendHybridLog($server, "[Self-Test V2] /ping -> IS_COMPONENTS_V2 (32768) OK | /tienda -> 4 planes activos | /plugins -> 6 módulos OK.");
-                } elseif ($cmd === 'status') {
-                    $this->appendHybridLog($server, "[Bot Status] Node " . PHP_VERSION . " / Node.js 24 | Components V2 Flag=32768 | Billing Repo: cinammon-es/billing sincronizado.");
-                } elseif ($cmd === 'plans') {
-                    $this->appendHybridLog($server, "[Billing Plans] starter-mc (4.99€) | pro-mc (11.99€) | bot-v2 (2.49€) | ultra-ryzen (24.99€)");
-                } elseif (str_starts_with($cmd, 'create-server')) {
-                    $this->appendHybridLog($server, "[Bot Provisioner] Servidor aprovisionado vía API local/VPS con Components V2.");
-                } elseif ($cmd === 'stop') {
-                    $server->update(['status' => false]);
-                    $this->appendHybridLog($server, "[Cinammon Bot V2] Proceso detenido limpiamente.");
-                } else {
-                    $this->appendHybridLog($server, "[Cinammon Bot V2] Comando '{$cmd}' procesado. Comandos disponibles: status, test, plans, create-server, sync, stop.");
-                }
-            } else {
-                if ($cmd === 'list') {
-                    $this->appendHybridLog($server, "[Server thread/INFO]: There are 3 of a max of 50 players online: nini_admin, alex_pvp, luna_craft");
-                } elseif ($cmd === 'tps') {
-                    $this->appendHybridLog($server, "[Server thread/INFO]: TPS from last 1m, 5m, 15m: *20.0, *20.0, *20.0");
-                } elseif ($cmd === 'save-all') {
-                    $this->appendHybridLog($server, "[Server thread/INFO]: Saved the game");
-                } elseif ($cmd === 'stop') {
-                    $server->update(['status' => false]);
-                    $this->appendHybridLog($server, "[Server thread/INFO]: Stopping server");
-                } else {
-                    $this->appendHybridLog($server, "[Server thread/INFO]: Executed command '{$cmd}'");
-                }
-            }
-            return response()->noContent();
+            return response()->json(['message' => 'No se pudo enviar el comando.'], 502);
         }
     }
 
@@ -335,34 +189,19 @@ class ServerRuntimeController extends Controller
             'password' => ['required', 'string', 'min:30', 'max:256', 'regex:/^[A-Za-z0-9_.-]+$/'],
             'guild_id' => ['nullable', 'regex:/^[0-9]{17,22}$/'],
         ]);
-
-        $dir = $this->ensureHybridWorkspace($server);
-        @file_put_contents($dir . '/bot-config.json', json_encode([
-            'token' => $data['password'],
-            'guild_id' => $data['guild_id'] ?? '',
-            'components_v2' => true,
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-        @file_put_contents($dir . '/bot-status.json', json_encode([
-            'connected' => true,
-            'configured' => true,
-            'tag' => 'CinammonBot#V2',
-            'guilds' => 1,
-            'components_v2' => true,
-            'message' => 'Token guardado y bot Node.js conectado con Discord Components V2.',
-            'updated_at' => now()->toIso8601String(),
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-        $this->appendHybridLog($server, "[Cinammon Bot V2] Configuración privada de Discord actualizada y comandos Slash V2 sincronizados.");
-
         try {
             $wings->forServer($server)->withBody(json_encode([
                 'token' => $data['password'], 'guild_id' => $data['guild_id'] ?? '',
             ], JSON_THROW_ON_ERROR), 'application/json')
                 ->post('/servers/'.$server->uuid.'/files/write?file=bot-config.json')->throw();
+        } catch (ConnectionException|RequestException $exception) {
+            return response()->json(['message' => 'No se pudo guardar la configuración privada.'], 502);
+        }
+        try {
             $wings->forServer($server)->post('/servers/'.$server->uuid.'/power', ['action' => 'restart'])->throw();
             return response()->json(['message' => 'Configuración guardada. El bot se está reiniciando.']);
         } catch (ConnectionException|RequestException $exception) {
-            $server->update(['status' => true]);
-            return response()->json(['message' => 'Configuración guardada y bot reiniciado en el nodo activo.']);
+            return response()->json(['message' => 'Configuración guardada, pero no se pudo reiniciar. Usa el botón Iniciar.'], 502);
         }
     }
 
@@ -372,17 +211,12 @@ class ServerRuntimeController extends Controller
         $request->validate(['accepted' => 'required|accepted']);
         abort_unless(str_contains(strtolower($server->egg->name), 'paper'), 422);
         abort_unless($server->installed_at, 409);
-
-        $dir = $this->ensureHybridWorkspace($server);
-        @file_put_contents($dir . '/eula.txt', "eula=true\n");
-        $this->appendHybridLog($server, "[ServerMain/INFO]: EULA de Minecraft aceptada (eula=true).");
-
         try {
             $wings->forServer($server)->withBody("eula=true\n", 'text/plain')
                 ->post('/servers/'.$server->uuid.'/files/write?file=eula.txt')->throw();
             return response()->noContent();
         } catch (ConnectionException|RequestException $exception) {
-            return response()->noContent();
+            return response()->json(['message' => 'No se pudo guardar la aceptación de la EULA.'], 502);
         }
     }
 }
