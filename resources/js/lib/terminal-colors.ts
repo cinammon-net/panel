@@ -37,7 +37,10 @@ function escapeHtml(text: string): string {
 export function colorizeLogs(rawLogs: string): string {
     if (!rawLogs) return '';
 
-    const lines = rawLogs.split('\n');
+    // Oculta el eco del comando de inicio del Egg (":/home/container$ <startup>" o "container@pterodactyl~ <startup>"):
+    // es solo informativo y se repite en todos los Eggs basados en las imágenes yolks.
+    const startupEcho = /^(?:\x1b\[[0-9;]*m)*\s*(?::\/home\/container\$|container@pterodactyl~)/;
+    const lines = rawLogs.split('\n').filter((line) => !startupEcho.test(line));
     const coloredLines = lines.map((line) => {
         // Strip out any residual npm spinner loops or leading spinner junk
         line = line.replace(/^[\s\\|\/\-]+(?=[a-zA-Z0-9\[\(])/, '');
