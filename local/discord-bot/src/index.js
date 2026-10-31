@@ -1,102 +1,270 @@
-import { Client, Events, GatewayIntentBits, MessageFlags } from 'discord.js';
-import { readFile, writeFile, chmod } from 'node:fs/promises';
-import process from 'node:process';
-import { createInterface } from 'node:readline';
-import { commands, commandReply } from './commands.js';
-import { selfTest } from './self-test.js';
+#!/usr/bin/env node
+/**
+ * Cinammon Discord Bot · Punto de entrada limpio y modular
+ */
+const fs = require('fs');
+const readline = require('readline');
+const { state, log, readConfig, writeStatus, discoverPanelUrl, callPanelApi, CONFIG_PATH } = require('./api/panel');
+const { registerSlashCommands } = require('./commands/registry');
+const { buildV2Response, handleV2ButtonComponent } = require('./handlers/interactions');
+const { v2Container, v2Text } = require('./components/v2');
 
-const configPath = '/home/container/bot-config.json';
-const statusPath = '/home/container/bot-status.json';
-let client;
-let connected = false;
-let stopping = false;
-let status = { connected: false, configured: false, tag: null, guilds: 0, message: 'Esperando configuración.' };
+let ws = null;
+let heartbeatTimer = null;
 
-async function saveStatus(update = {}) {
-  status = { ...status, ...update, updated_at: new Date().toISOString() };
-  await writeFile(statusPath, JSON.stringify(status));
-}
+async function connectDiscordGateway() {
+    const cfg = readConfig();
+    await discoverPanelUrl(cfg.panel_url);
 
-async function stop() {
-  if (stopping) return;
-  stopping = true;
-  connected = false;
-  client?.destroy();
-  await saveStatus({ connected: false, message: 'Bot detenido.' });
-  process.exit(0);
-}
-process.on('SIGINT', () => void stop());
-process.on('SIGTERM', () => void stop());
-
-const cli = createInterface({ input: process.stdin, terminal: false });
-cli.on('line', line => {
-  const command = line.trim().toLowerCase();
-  if (command === 'stop') void stop();
-  else if (command === 'test') console.log(selfTest());
-  else if (command === 'status') console.log(connected ? 'Discord: conectado.' : 'Discord: desconectado. Configura el token desde el panel.');
-  else console.log('Comandos de consola: status, test, stop. Los comandos /ping, /ayuda y /estado se usan en Discord.');
-});
-
-async function main() {
-  console.log(selfTest());
-  let config = {};
-  try {
-    config = JSON.parse(await readFile(configPath, 'utf8'));
-    await chmod(configPath, 0o600);
-  } catch (error) {
-    if (error.code !== 'ENOENT') console.log('No se pudo leer la configuración privada. Guárdala de nuevo desde el panel.');
-  }
-  const token = typeof config.token === 'string' ? config.token.trim() : '';
-  const guildId = typeof config.guild_id === 'string' ? config.guild_id.trim() : '';
-  await saveStatus({ configured: Boolean(token), connected: false });
-  console.log('BOT_HOST_READY · Proceso del bot iniciado en el panel.');
-  // Keep the host available for console tests even before a Discord token exists.
-  setInterval(() => void saveStatus({ connected }).catch(() => {}), 10_000);
-  if (!token) {
-    console.log('DISCORD DESCONECTADO · Falta el token. Añádelo en la sección Discord del panel; no lo pegues en la consola ni en el chat.');
-    return;
-  }
-  client = new Client({ intents: [GatewayIntentBits.Guilds] });
-  client.once(Events.ClientReady, async ready => {
-    connected = true;
-    await saveStatus({ connected: true, tag: ready.user.tag, application_id: ready.user.id, guilds: ready.guilds.cache.size, message: 'Conectado a Discord.' });
-    console.log(`DISCORD CONECTADO · ${ready.user.tag}`);
-    try {
-      if (guildId) {
-        const guild = await ready.guilds.fetch(guildId);
-        await guild.commands.set(commands);
-        console.log('Comandos registrados en el servidor de prueba. Prueba /ping en Discord.');
-      } else {
-        await ready.application.commands.set(commands);
-        console.log('Comandos globales registrados. Prueba /ping en un servidor donde hayas invitado el bot.');
-      }
-    } catch {
-      console.log('No se pudieron registrar los comandos. Comprueba la invitación del bot y el ID del servidor.');
-      await saveStatus({ message: 'Conectado, pero no se pudieron registrar los comandos.' });
+    if (!cfg.token || cfg.token.length < 25) {
+        writeStatus({
+            connected: false,
+            configured: false,
+            tag: null,
+            guilds: 0,
+            message: 'Motor Node.js (Components V2) activo. Configura el token de Discord desde la consola del panel.',
+        });
+        log('Bot en espera de token de Discord. Consola interactiva lista (escribe "status", "test", "plans").');
+        return;
     }
-  });
-  client.on(Events.ShardDisconnect, () => { connected = false; void saveStatus({ connected: false, message: 'Reconectando con Discord.' }); });
-  client.on(Events.ShardResume, () => { connected = true; void saveStatus({ connected: true, message: 'Conectado a Discord.' }); });
-  client.on(Events.Error, () => console.log('Error de conexión con Discord. No se han mostrado credenciales.'));
-  client.on(Events.InteractionCreate, async interaction => {
-    if (!interaction.isChatInputCommand()) return;
-    const content = commandReply(interaction.commandName, { latency: client.ws.ping, uptime: (client.uptime || 0) / 1000 });
-    if (!content) return;
+
+    writeStatus({
+        configured: true,
+        message: 'Conectando al Gateway v10 de Discord con soporte Components V2...',
+    });
+
     try {
-      await interaction.reply({ content, flags: MessageFlags.Ephemeral, allowedMentions: { parse: [] } });
-      console.log(`Comando /${interaction.commandName} respondido en Discord.`);
-    } catch { console.log('No se pudo responder a una interacción de Discord.'); }
-  });
-  try { await client.login(token); }
-  catch {
-    connected = false;
-    await saveStatus({ connected: false, message: 'No se pudo iniciar sesión. Revisa el token y reinicia el bot.' });
-    console.log('DISCORD DESCONECTADO · No se pudo iniciar sesión. Revisa el token y reinicia desde el panel.');
-    client.destroy();
-  }
+        const meRes = await fetch('https://discord.com/api/v10/users/@me', {
+            headers: { Authorization: `Bot ${cfg.token}` },
+        });
+        if (!meRes.ok) {
+            writeStatus({
+                connected: false,
+                configured: true,
+                message: `Token rechazado por Discord (HTTP ${meRes.status}). Verifica el token en el panel.`,
+            });
+            log(`Error de autenticación con Discord: HTTP ${meRes.status}`);
+            return;
+        }
+        const me = await meRes.json();
+        const tag = me.discriminator && me.discriminator !== '0' ? `${me.username}#${me.discriminator}` : me.username;
+        state.application_id = me.id;
+        state.tag = tag;
+
+        await registerSlashCommands(cfg.token, me.id, cfg.guild_id, log);
+
+        if (typeof WebSocket === 'undefined') {
+            writeStatus({
+                connected: true,
+                configured: true,
+                tag,
+                application_id: me.id,
+                message: `Autenticado como ${tag} (Components V2 REST activo).`,
+            });
+            return;
+        }
+
+        ws = new WebSocket('wss://gateway.discord.gg/?v=10&encoding=json');
+        let lastSeq = null;
+
+        ws.addEventListener('message', async (event) => {
+            try {
+                const payload = JSON.parse(typeof event.data === 'string' ? event.data : event.data.toString());
+                const { op, d, t, s } = payload;
+                if (typeof s === 'number') lastSeq = s;
+
+                if (op === 7 || op === 9) {
+                    ws.close(4000, 'reconnect');
+                    return;
+                }
+
+                if (op === 10 && d?.heartbeat_interval) {
+                    if (heartbeatTimer) clearInterval(heartbeatTimer);
+                    heartbeatTimer = setInterval(() => {
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            ws.send(JSON.stringify({ op: 1, d: lastSeq }));
+                        }
+                    }, d.heartbeat_interval);
+
+                    ws.send(
+                        JSON.stringify({
+                            op: 2,
+                            d: {
+                                token: cfg.token,
+                                intents: 1, // Intent estándar Guilds (no requiere activar intents privilegiados en el portal)
+                                properties: {
+                                    os: process.platform,
+                                    browser: 'cinammon-v2-bot',
+                                    device: 'cinammon-panel',
+                                },
+                            },
+                        }),
+                    );
+                }
+
+                if (t === 'READY') {
+                    const guildCount = Array.isArray(d?.guilds) ? d.guilds.length : 1;
+                    writeStatus({
+                        connected: true,
+                        configured: true,
+                        tag,
+                        application_id: me.id,
+                        guilds: guildCount,
+                        message: `Conectado como ${tag} (${guildCount} servidor/es) · Prefix "${cfg.prefix}" + Discord Components V2 activos.`,
+                    });
+                    log(`READY! Bot conectado como ${tag}. Prefix: "${cfg.prefix}" | Slash commands + Components V2 activos.`);
+                }
+
+                // 1. Mensajes de texto normales con PREFIX (ej. !ayuda, !servidores, !tienda)
+                if (t === 'MESSAGE_CREATE' && d && !d.author?.bot) {
+                    const rawContent = (d.content || '').trim();
+                    const currentPrefix = cfg.prefix || '!';
+
+                    if (rawContent.startsWith(currentPrefix)) {
+                        const withoutPrefix = rawContent.slice(currentPrefix.length).trim();
+                        const [cmdName, ...args] = withoutPrefix.split(/\s+/);
+                        const cleanCmd = (cmdName || '').toLowerCase();
+                        const user = d.author || { username: 'Usuario' };
+
+                        log(`Comando por Prefix recibido: ${currentPrefix}${cleanCmd} por @${user.username}`);
+
+                        // Mapear argumentos a opciones
+                        const options = [];
+                        if (cleanCmd === 'crear-servidor') {
+                            if (args[0]) options.push({ name: 'nombre', value: args[0] });
+                            if (args[1]) options.push({ name: 'tipo', value: args[1] });
+                        } else if (cleanCmd === 'energia') {
+                            if (args[0]) options.push({ name: 'servidor_id', value: args[0] });
+                            if (args[1]) options.push({ name: 'accion', value: args[1] });
+                        } else if (cleanCmd === 'comprar') {
+                            if (args[0]) options.push({ name: 'plan_id', value: args[0] });
+                            if (args[1]) options.push({ name: 'nombre_servidor', value: args[1] });
+                        } else if (cleanCmd === 'colecta') {
+                            if (args[0]) options.push({ name: 'servidor', value: args[0] });
+                            if (args[1]) options.push({ name: 'aporte_eur', value: Number(args[1]) || 2.5 });
+                        }
+
+                        let v2Data;
+                        try {
+                            v2Data = await buildV2Response(cleanCmd, options, user);
+                        } catch (err) {
+                            v2Data = v2Container({
+                                accentColor: 0xef4444,
+                                children: [v2Text(`### ⚠️ Error en comando ${currentPrefix}${cleanCmd}\n${err.message}`)],
+                            });
+                        }
+
+                        // Responder en el mismo canal con Components V2
+                        await fetch(`https://discord.com/api/v10/channels/${d.channel_id}/messages`, {
+                            method: 'POST',
+                            headers: {
+                                Authorization: `Bot ${cfg.token}`,
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(v2Data),
+                        }).catch((err) => log(`Error al enviar mensaje por prefix: ${err.message}`));
+                    }
+                }
+
+                // 2. Interacciones (Slash commands y Botones Components V2)
+                if (t === 'INTERACTION_CREATE' && (d?.type === 2 || d?.type === 3)) {
+                    const user = d.member?.user || d.user || { username: 'Usuario' };
+                    const callbackUrl = `https://discord.com/api/v10/interactions/${d.id}/${d.token}/callback`;
+
+                    const ack = await fetch(callbackUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ type: 5 }),
+                    });
+                    if (!ack.ok) return;
+
+                    let v2Data;
+                    try {
+                        if (d.type === 2) {
+                            const cmdName = d.data?.name || 'ayuda';
+                            const options = d.data?.options || [];
+                            log(`Slash Command V2: /${cmdName} por @${user.username}`);
+                            v2Data = await buildV2Response(cmdName, options, user);
+                        } else {
+                            const customId = d.data?.custom_id || 'v2_cmd:ayuda';
+                            log(`Botón Components V2: ${customId} por @${user.username}`);
+                            v2Data = await handleV2ButtonComponent(customId, user);
+                        }
+                    } catch (err) {
+                        v2Data = v2Container({
+                            accentColor: 0xef4444,
+                            children: [v2Text(`### ⚠️ Error en la acción\n${err.message}`)],
+                        });
+                    }
+
+                    await fetch(`https://discord.com/api/v10/webhooks/${me.id}/${d.token}/messages/@original`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(v2Data),
+                    });
+                }
+            } catch (err) {
+                log(`Error en Gateway: ${err.message}`);
+            }
+        });
+
+        ws.addEventListener('close', (event) => {
+            if (heartbeatTimer) clearInterval(heartbeatTimer);
+            if ([4004, 4010, 4011, 4012, 4013, 4014].includes(event.code)) {
+                writeStatus({ connected: false, message: `Conexión cerrada (código ${event.code}). Revisa el token.` });
+                return;
+            }
+            writeStatus({ connected: false, message: 'Gateway desconectado. Reconectando en 10s...' });
+            setTimeout(() => void connectDiscordGateway(), 10000);
+        });
+    } catch (err) {
+        writeStatus({ connected: false, message: `Error: ${err.message}` });
+    }
 }
-main().catch(async () => {
-  console.log('El bot no pudo iniciar. Revisa la configuración desde el panel.');
-  try { await saveStatus({ connected: false, message: 'Error al iniciar.' }); } catch { /* No credential output. */ }
-  process.exit(1);
-});
+
+async function handleConsoleCommand(rawLine) {
+    const line = (rawLine || '').trim();
+    if (!line) return;
+    const [cmd, ...args] = line.split(/\s+/);
+    const command = cmd.toLowerCase();
+
+    if (command === 'status' || command === 'estado') {
+        const overview = await callPanelApi('/api/bot/overview').catch(() => null);
+        log(`ESTADO V2 -> Discord: ${state.connected ? 'CONECTADO (' + state.tag + ')' : 'Listo'} | Servidores: ${overview?.stats?.servers ?? 'N/A'}`);
+        writeStatus();
+        return;
+    }
+    if (command === 'test') {
+        const sample = await buildV2Response('estado', [], { username: 'Admin' });
+        log(`✔ Payload Components V2 generado (flags=${sample.flags}).`);
+        return;
+    }
+    if (command === 'stop' || command === 'exit') {
+        log('Deteniendo bot...');
+        process.exit(0);
+    }
+    log('Comandos de consola: status | test | stop');
+}
+
+if (process.argv.includes('--self-test')) {
+    (async () => {
+        const sample = v2Container({ accentColor: 0x06b6d4, children: [v2Text('Modular Self-test OK')] });
+        log(`Self-test Modular OK en Node.js ${process.version} (flags=${sample.flags}, type=${sample.components[0].type}).`);
+        process.exit(0);
+    })();
+} else {
+    writeStatus();
+    void connectDiscordGateway();
+    setInterval(() => writeStatus(), 10000);
+
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: false });
+    rl.on('line', (l) => void handleConsoleCommand(l));
+
+    try {
+        fs.watchFile(CONFIG_PATH, { interval: 3000 }, () => {
+            log('Recargando bot-config.json...');
+            if (ws) { try { ws.close(); } catch {} }
+            void connectDiscordGateway();
+        });
+    } catch {}
+}
