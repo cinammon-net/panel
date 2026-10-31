@@ -549,7 +549,7 @@ class ServerController extends Controller
         $server = Server::where('uuid', $uuid)->orWhere('id', $uuid)->firstOrFail();
         $server->delete();
 
-        return redirect()->route('servers.index')->with('success', 'Servidor eliminado correctamente.');
+        return redirect()->route('servers.index')->with('success', 'Servidor y todos sus recursos (contenedor, archivos y puertos) eliminados correctamente.');
     }
 
     public function toggleInstall($uuid)
