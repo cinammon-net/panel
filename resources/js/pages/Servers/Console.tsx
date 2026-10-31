@@ -238,9 +238,9 @@ export default function Console({ server }: { server: Server }) {
                     <div className="flex min-w-0 items-center justify-between rounded border border-cyan-800/80 bg-black/70 px-4 py-3.5 text-sm transition hover:border-cyan-600/70">
                         <span className="shrink-0 text-xs font-semibold uppercase tracking-wider text-cyan-500">Dirección</span>
                         {server.discord_bot ? (
-                            <span className="font-mono text-sm text-cyan-200">localhost:{server.address.split(':')[1] || '3001'}</span>
+                            <span className="text-sm font-semibold tracking-wide text-cyan-200">localhost:{server.address.split(':')[1] || '3001'}</span>
                         ) : (
-                            <button className="flex min-w-0 items-center gap-1.5 font-mono text-sm text-cyan-300 hover:text-cyan-100" onClick={async () => { try { await navigator.clipboard.writeText(server.address); setNotice('Dirección copiada.'); } catch { setError('No se pudo copiar la dirección.'); } }}>
+                            <button className="flex min-w-0 items-center gap-1.5 text-sm font-semibold tracking-wide text-cyan-300 hover:text-cyan-100" onClick={async () => { try { await navigator.clipboard.writeText(server.address); setNotice('Dirección copiada.'); } catch { setError('No se pudo copiar la dirección.'); } }}>
                                 <span>{server.address}</span>
                                 <Copy size={13} className="shrink-0 opacity-70 hover:opacity-100" />
                             </button>
@@ -281,8 +281,8 @@ export default function Console({ server }: { server: Server }) {
                     <pre
                         ref={logRef}
                         aria-label="Logs del servidor"
-                        className="terminal-font h-[440px] overflow-auto bg-[#05080f] p-4 text-xs leading-6 whitespace-pre-wrap text-neutral-200 selection:bg-cyan-500/30 selection:text-cyan-200"
-                        style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}
+                        className="h-[440px] overflow-auto bg-[#05080f] p-4 text-xs leading-6 whitespace-pre-wrap text-neutral-200 selection:bg-cyan-500/30 selection:text-cyan-200"
+                        style={{ fontFamily: "'Orbitron', sans-serif, monospace", letterSpacing: '0.035em' }}
                     >
                         {htmlLogs ? (
                             <span dangerouslySetInnerHTML={{ __html: htmlLogs }} />
@@ -293,15 +293,15 @@ export default function Console({ server }: { server: Server }) {
                         )}
                     </pre>
                     <form onSubmit={sendCommand} className="flex items-center gap-3 border-t border-cyan-900/80 bg-[#090e18] px-4 py-3">
-                        <span className="self-center font-mono text-base font-bold text-cyan-400 select-none">»</span>
+                        <span className="self-center text-sm font-bold text-cyan-400 select-none">&gt;_</span>
                         <input
                             aria-label="Comando de consola"
                             value={command}
                             onChange={event => setCommand(event.target.value)}
                             placeholder={server.discord_bot ? 'Escribe un comando, por ejemplo: status, test, stop' : 'Escribe un comando, por ejemplo: list'}
                             disabled={!running || busy}
-                            className="terminal-font min-w-0 flex-1 bg-transparent py-1 text-xs text-cyan-100 outline-none placeholder:text-neutral-500 disabled:opacity-50"
-                            style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}
+                            className="min-w-0 flex-1 bg-transparent py-1 text-xs text-cyan-100 outline-none placeholder:text-neutral-500 disabled:opacity-50"
+                            style={{ fontFamily: "'Orbitron', sans-serif, monospace", letterSpacing: '0.035em' }}
                             autoComplete="off"
                         />
                         <button
@@ -468,7 +468,7 @@ function Metric({ label, value, live = false }: { label: string; value: string; 
     return (
         <div className="flex min-w-0 items-center justify-between rounded border border-cyan-800/80 bg-black/70 px-4 py-3.5 text-sm transition hover:border-cyan-600/70">
             <span className="shrink-0 text-xs font-semibold uppercase tracking-wider text-cyan-500">{label}</span>
-            <span className={`flex items-center gap-1.5 font-mono text-sm font-medium break-words ${live ? 'text-emerald-400 font-bold' : 'text-neutral-200'}`}>
+            <span className={`flex items-center gap-1.5 text-sm font-semibold tracking-wide break-words ${live ? 'text-emerald-400 font-bold drop-shadow-[0_0_6px_rgba(52,211,153,0.6)]' : 'text-cyan-200'}`}>
                 {live && <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse" />}
                 {value}
             </span>

@@ -158,23 +158,19 @@
 
     html,
     body,
-    button,
-    input,
-    select,
-    textarea {
-        font-family: var(--app-font, 'Orbitron'), 'Orbitron', sans-serif !important;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-    }
-
     pre,
     code,
     kbd,
     samp,
+    button,
+    input,
+    select,
+    textarea,
     .terminal-font {
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+        font-family: var(--app-font, 'Orbitron'), 'Orbitron', monospace, sans-serif !important;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+        letter-spacing: 0.025em;
     }
 
     body {
