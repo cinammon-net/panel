@@ -91,12 +91,20 @@ class ServerRuntimeController extends Controller
         $logs = preg_replace("/\n{3,}/", "\n\n", $logs);
         $logs = trim($logs);
 
-        if ($server && !empty($logs) && !str_contains($logs, 'C I N A M M O N . N E T')) {
-            $banner = "\x1b[1;36m  ╔═╗╦╔╗╔╔═╗╔╦╗╔╦╗╔═╗╔╗╔    ╔╗╔╔═╗╔╦╗\n" .
-                      "  ║  ║║║║╠═╣║║║║║║║ ║║║║    ║║║║╣  ║ \n" .
-                      "  ╚═╝╩╝╚╝╩ ╩╩ ╩╩ ╩╚═╝╝╚╝  o ╝╚╝╚═╝ ╩ \x1b[0m\n" .
-                      "\x1b[1;30m ─────────────────────────────────────\x1b[0m\n" .
-                      "\x1b[1;37m        C I N A M M O N . N E T\x1b[0m\n\n";
+        if ($server && !empty($logs) && !str_contains($logs, 'C I N A M M O N')) {
+            $serverName = $server->name;
+            $nodeName = 'Node-1 (Local)';
+            $banner = "\x1b[1;36m" .
+                      "   ________   _   _____    __  _____  ____  _   __\n" .
+                      "  / ____/ /  / | / /   |  /  |/  /  |/  / / / | / /\n" .
+                      " / /   / /  /  |/ / /| | / /|_/ / /|_/ / / /  |/ / \n" .
+                      "/ /___/ /  / /|  / ___ |/ /  / / /  / / / / /|  /   .  N  E  T\n" .
+                      "\\____/_/  /_/ |_/_/  |_/_/  /_/_/  /_/_/_/_/ |_/   ═══════════\x1b[0m\n" .
+                      "\x1b[1;30m────────────────────────────────────────────────────────────\x1b[0m\n" .
+                      "\x1b[1;32m  ● ONLINE\x1b[0m  \x1b[1;36mWeb:\x1b[0m \x1b[1;37mhttps://cinammon.net\x1b[0m  \x1b[1;30m|\x1b[0m  \x1b[1;36mNodo:\x1b[0m \x1b[1;37m{$nodeName}\x1b[0m\n" .
+                      "\x1b[1;33m  ✓ Servidor:\x1b[0m \x1b[1;37m{$serverName}\x1b[0m\n" .
+                      "\x1b[1;30m────────────────────────────────────────────────────────────\x1b[0m\n" .
+                      "\x1b[1;32m➜\x1b[0m \x1b[1;37mIniciando contenedor Docker en cinammon.net...\x1b[0m\n\n";
 
             $prefix = 'cinammon@'.\Illuminate\Support\Str::slug($server->name).' ~ Server marked as starting...';
             if (!str_contains($logs, 'Server marked as starting')) {
