@@ -677,56 +677,92 @@ export default function Console({ server }: { server: Server }) {
                         )}
                     </pre>
 
-                    {/* Barra de Comandos Rápidos Clickables */}
-                    {running && (
-                        <div className="flex items-center gap-2 border-t border-cyan-900/60 bg-[#070b15] px-4 py-2 overflow-x-auto text-[11px] font-mono select-none">
-                            <span className="text-neutral-500 text-[10px] uppercase tracking-wider font-sans mr-1 whitespace-nowrap">Rápidos:</span>
-                            {quickCommands.map((cmd) => (
-                                <button
-                                    key={cmd}
-                                    type="button"
-                                    onClick={() => executeQuick(cmd)}
-                                    disabled={busy}
-                                    className="px-2.5 py-1 rounded bg-cyan-950/60 hover:bg-cyan-900/90 text-cyan-300 hover:text-white border border-cyan-800/40 hover:border-cyan-500/60 transition whitespace-nowrap shadow-sm"
-                                >
-                                    {cmd}
-                                </button>
-                            ))}
-                            <span className="text-neutral-600 text-[10px] ml-auto hidden md:inline whitespace-nowrap">
-                                Tip: Navega con ↑ / ↓ en el input
-                            </span>
-                        </div>
-                    )}
+                    {/* Zona inferior: comandos rápidos + entrada de comandos */}
+                    <div className="border-t border-cyan-900/70 bg-gradient-to-b from-[#070b15] to-[#05080f] px-3 py-3 md:px-5 md:py-4 space-y-3">
+                        {/* Comandos rápidos como chips */}
+                        {running && (
+                            <div className="flex items-center gap-2 overflow-x-auto pb-0.5 select-none">
+                                <span className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-500">⚡ Rápidos</span>
+                                {quickCommands.map((cmd) => (
+                                    <button
+                                        key={cmd}
+                                        type="button"
+                                        onClick={() => executeQuick(cmd)}
+                                        disabled={busy}
+                                        className="group whitespace-nowrap rounded-full border px-3 py-1 font-mono text-[11px] transition hover:-translate-y-0.5 disabled:opacity-40"
+                                        style={{
+                                            color: 'var(--t1, #22d3ee)',
+                                            borderColor: 'color-mix(in srgb, var(--t1, #22d3ee) 35%, transparent)',
+                                            background: 'color-mix(in srgb, var(--t1, #22d3ee) 8%, transparent)',
+                                        }}
+                                    >
+                                        <span className="opacity-60 group-hover:opacity-100">/</span>
+                                        {cmd}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
 
-                    {/* Barra Inferior de Entrada de Comandos */}
-                    <form onSubmit={sendCommand} className="flex items-center gap-3 border-t border-cyan-900/80 bg-[#080d19] px-4 py-3">
-                        <span className="self-center font-mono text-xs font-bold text-cyan-400 select-none flex items-center gap-1">
-                            <span>$</span>
-                            <span className="text-cyan-500">&gt;</span>
-                        </span>
-                        <input
-                            aria-label="Comando de consola"
-                            value={command}
-                            onChange={event => setCommand(event.target.value)}
-                            onKeyDown={handleKeyDown}
-                            placeholder={
-                                server.discord_bot
-                                    ? 'Escribe un comando (/ping, test, status, stop...) o navega con ↑ / ↓'
-                                    : 'Escribe un comando (list, tps, say, stop...) o navega con ↑ / ↓'
-                            }
-                            disabled={!running || busy}
-                            className="min-w-0 flex-1 bg-transparent py-1 text-xs md:text-sm text-cyan-100 outline-none placeholder:text-neutral-500 disabled:opacity-50 font-mono tracking-wide"
-                            autoComplete="off"
-                        />
-                        <button
-                            type="submit"
-                            disabled={!running || busy || !command.trim()}
-                            className="flex items-center gap-2 rounded-lg border border-cyan-500/50 bg-cyan-950/80 px-4 py-2 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-900 hover:text-white hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(34,211,238,0.3)] disabled:opacity-30 disabled:hover:shadow-none cursor-pointer"
+                        {/* Campo de comandos: borde degradado que se ilumina al escribir */}
+                        <form
+                            onSubmit={sendCommand}
+                            className="group/cmd rounded-xl p-px transition-all duration-300 focus-within:shadow-[0_0_24px_-4px_var(--t1,#22d3ee)]"
+                            style={{
+                                background: running
+                                    ? 'linear-gradient(120deg, var(--t1, #22d3ee), var(--t2, #a78bfa), var(--t3, #f472b6))'
+                                    : 'linear-gradient(120deg, #334155, #1e293b)',
+                                opacity: running ? 1 : 0.7,
+                            }}
                         >
-                            <Send size={13} />
-                            <span className="hidden sm:inline">Ejecutar</span>
-                        </button>
-                    </form>
+                            <div className="flex items-center gap-3 rounded-[11px] bg-[#060a14] px-3 py-2.5 md:px-4">
+                                {/* Prompt */}
+                                <span className="hidden shrink-0 select-none items-center gap-1 font-mono text-xs font-bold sm:flex" style={{ color: 'var(--t1, #22d3ee)' }}>
+                                    <span className="text-neutral-500">cinammon@</span>
+                                    <span>{server.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}</span>
+                                    <span className="text-neutral-500">~</span>
+                                    <span style={{ color: 'var(--t3, #f472b6)' }}>❯</span>
+                                </span>
+                                <span className="sm:hidden font-mono text-sm font-bold" style={{ color: 'var(--t3, #f472b6)' }}>❯</span>
+
+                                <input
+                                    aria-label="Comando de consola"
+                                    value={command}
+                                    onChange={event => setCommand(event.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    placeholder={
+                                        !running
+                                            ? '🔒 Servidor detenido — inícialo para escribir comandos'
+                                            : server.discord_bot
+                                            ? 'Escribe un comando…  (status, test, ping, stop)'
+                                            : 'Escribe un comando…  (list, tps, say, stop)'
+                                    }
+                                    disabled={!running || busy}
+                                    className="min-w-0 flex-1 bg-transparent py-1 font-mono text-xs tracking-wide text-white caret-current outline-none placeholder:text-neutral-500 disabled:opacity-60 md:text-sm"
+                                    style={{ caretColor: 'var(--t1, #22d3ee)' }}
+                                    autoComplete="off"
+                                    spellCheck={false}
+                                />
+
+                                {/* Atajos de teclado */}
+                                <span className="hidden shrink-0 items-center gap-1 text-[10px] text-neutral-500 lg:flex">
+                                    <kbd className="rounded border border-neutral-700 bg-neutral-900 px-1.5 py-0.5 font-mono">↑</kbd>
+                                    <kbd className="rounded border border-neutral-700 bg-neutral-900 px-1.5 py-0.5 font-mono">↓</kbd>
+                                    <span>historial</span>
+                                </span>
+
+                                <button
+                                    type="submit"
+                                    disabled={!running || busy || !command.trim()}
+                                    className="flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold text-[#04060d] transition hover:brightness-110 hover:shadow-[0_0_18px_-2px_var(--t1,#22d3ee)] active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:shadow-none"
+                                    style={{ background: 'linear-gradient(120deg, var(--t1, #22d3ee), var(--t2, #a78bfa))' }}
+                                >
+                                    <Send size={13} />
+                                    <span className="hidden sm:inline">Ejecutar</span>
+                                    <kbd className="hidden rounded bg-black/20 px-1.5 py-0.5 font-mono text-[10px] md:inline">↵</kbd>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </section>
 
                 {/* Gráficos de recursos debajo de la consola: CPU, Memoria y Red */}
