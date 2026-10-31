@@ -18,6 +18,15 @@ class ServerController extends Controller
     public function index(Request $request)
     {
         $query = Server::query();
+        $user = $request->user();
+
+        // Filtro de pertenencia (Mis servidores, Servidores de otros, Todos los servidores)
+        $selectedScope = $request->input('scope', 'all');
+        if ($selectedScope === 'mine' && $user) {
+            $query->where('servers.owner_id', $user->id);
+        } elseif ($selectedScope === 'others' && $user) {
+            $query->where('servers.owner_id', '!=', $user->id);
+        }
 
         // Filtro búsqueda
         if ($request->has('search')) {
@@ -156,12 +165,21 @@ class ServerController extends Controller
             'offline' => Server::where('status', 0)->count(),
         ];
 
+        $userId = $user?->id;
+        $scopeCounts = [
+            'all' => Server::count(),
+            'mine' => $userId ? Server::where('owner_id', $userId)->count() : 0,
+            'others' => $userId ? Server::where('owner_id', '!=', $userId)->count() : 0,
+        ];
+
         return Inertia::render('Servers', [
             'servers' => $paginated,
             'filters' => array_merge($request->only('search', 'sort', 'direction', 'per_page'), [
                 'category' => $selectedCategory,
                 'status' => $selectedStatus,
+                'scope' => $selectedScope,
             ]),
+            'scopeCounts' => $scopeCounts,
             'categoryCounts' => $categoryCounts,
             'statusCounts' => $statusCounts,
             'availableTags' => [],

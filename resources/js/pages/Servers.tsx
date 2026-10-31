@@ -85,33 +85,6 @@ function CopyAddress({ address }: { address: string }) {
     );
 }
 
-const PRESET_BANNERS = [
-    {
-        name: 'Minecraft Bosque',
-        url: 'https://images.unsplash.com/photo-1627856013091-fed6e4e30025?auto=format&fit=crop&w=1200&q=80',
-    },
-    {
-        name: 'Minecraft Nether',
-        url: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1200&q=80',
-    },
-    {
-        name: 'Cyberpunk Neon',
-        url: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=1200&q=80',
-    },
-    {
-        name: 'Discord Purple Wave',
-        url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
-    },
-    {
-        name: 'Datacenter Matrix',
-        url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1200&q=80',
-    },
-    {
-        name: 'Gaming Red Arena',
-        url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80',
-    },
-];
-
 function ServerCard({ item }: { item: ServerItem }) {
     const isOnline = item.status === 'online';
     const cpuVal = item.cpu ? `${item.cpu}%` : '∞';
@@ -126,30 +99,13 @@ function ServerCard({ item }: { item: ServerItem }) {
             : `${item.disk} MiB`
         : '∞';
 
-    // Determinar fondo por defecto según huevo/categoría
-    const defaultBanner = useMemo(() => {
-        const cat = (item.category || '').toLowerCase();
-        const egg = (item.egg || '').toLowerCase();
-        const name = (item.name || '').toLowerCase();
-        if (cat.includes('bot') || egg.includes('discord') || name.includes('bot')) {
-            return 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80';
-        }
-        if (cat.includes('minecraft') || egg.includes('minecraft') || egg.includes('paper') || egg.includes('purpur')) {
-            return 'https://images.unsplash.com/photo-1627856013091-fed6e4e30025?auto=format&fit=crop&w=1200&q=80';
-        }
-        if (cat.includes('game')) {
-            return 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80';
-        }
-        return 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1200&q=80';
-    }, [item.category, item.egg, item.name]);
-
-    const [bannerUrl, setBannerUrl] = useState<string>(() => {
+    const [bannerUrl, setBannerUrl] = useState<string | null>(() => {
         if (item.banner) return item.banner;
         if (typeof window !== 'undefined') {
             const cached = localStorage.getItem(`cinammon_server_banner_${item.id}`);
             if (cached) return cached;
         }
-        return defaultBanner;
+        return null;
     });
 
     const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
@@ -157,7 +113,7 @@ function ServerCard({ item }: { item: ServerItem }) {
     const [isSaving, setIsSaving] = useState(false);
 
     const handleApplyBanner = (url: string) => {
-        setBannerUrl(url);
+        setBannerUrl(url || null);
         if (typeof window !== 'undefined') {
             if (url) {
                 localStorage.setItem(`cinammon_server_banner_${item.id}`, url);
@@ -180,23 +136,40 @@ function ServerCard({ item }: { item: ServerItem }) {
         );
     };
 
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const result = event.target?.result as string;
+            if (result) {
+                setCustomInput(result);
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+
     return (
         <div
             onClick={() => router.visit(`/servers/${item.id}/console`)}
             className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border min-h-[240px] transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:shadow-2xl ${
                 isOnline
-                    ? 'border-emerald-500/40 bg-neutral-950/90 hover:border-emerald-400 hover:shadow-[0_0_35px_rgba(16,185,129,0.25)]'
-                    : 'border-neutral-800 bg-neutral-950/90 hover:border-cyan-500/70 hover:shadow-[0_0_30px_rgba(34,211,238,0.2)]'
+                    ? 'border-emerald-500/40 bg-[#070b14] hover:border-emerald-400 hover:shadow-[0_0_35px_rgba(16,185,129,0.25)]'
+                    : 'border-neutral-800 bg-[#060910] hover:border-cyan-500/70 hover:shadow-[0_0_30px_rgba(34,211,238,0.2)]'
             }`}
         >
-            {/* Imagen de fondo con zoom suave en hover */}
-            <div
-                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 ease-out group-hover:scale-105"
-                style={{ backgroundImage: `url(${bannerUrl || defaultBanner})` }}
-            />
-
-            {/* Capa de degradado oscuro de alto contraste y legibilidad */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#040711] via-[#040711]/92 to-[#040711]/70 backdrop-blur-[1px] transition-opacity duration-300 group-hover:via-[#040711]/85" />
+            {/* Si el usuario ha seleccionado una imagen, se renderiza como fondo */}
+            {bannerUrl ? (
+                <>
+                    <div
+                        className="absolute inset-0 bg-cover bg-center transition-transform duration-700 ease-out group-hover:scale-105"
+                        style={{ backgroundImage: `url(${bannerUrl})` }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#040711] via-[#040711]/92 to-[#040711]/70 backdrop-blur-[1px] transition-opacity duration-300 group-hover:via-[#040711]/85" />
+                </>
+            ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-[#0c1322] via-[#070b13] to-black" />
+            )}
 
             {/* Borde lateral de estado */}
             <div
@@ -248,7 +221,7 @@ function ServerCard({ item }: { item: ServerItem }) {
                                 setIsBannerModalOpen(true);
                             }}
                             className="p-2 rounded-lg border border-purple-500/50 bg-purple-950/40 text-purple-300 hover:border-purple-400 hover:bg-purple-900/60 transition shadow-sm"
-                            title="Personalizar imagen de fondo del servidor"
+                            title="Elegir foto de fondo del servidor"
                         >
                             <ImageIcon size={16} />
                         </button>
@@ -365,20 +338,20 @@ function ServerCard({ item }: { item: ServerItem }) {
             {/* Modal para personalizar Fondo del Servidor */}
             {isBannerModalOpen && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 font-[Orbitron]"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 font-[Orbitron] overflow-y-auto"
                     onClick={(e) => {
                         e.stopPropagation();
                         setIsBannerModalOpen(false);
                     }}
                 >
                     <div
-                        className="w-full max-w-lg rounded-2xl border border-cyan-700/80 bg-[#090e17] p-6 text-white shadow-2xl space-y-4"
+                        className="w-full max-w-md rounded-2xl border border-cyan-700/80 bg-[#090e17] p-6 text-white shadow-2xl space-y-4"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between border-b border-cyan-900/60 pb-3">
                             <div className="flex items-center gap-2 text-cyan-300">
                                 <ImageIcon className="h-5 w-5 text-cyan-400" />
-                                <h3 className="text-base font-bold tracking-wider">FONDO DEL SERVIDOR</h3>
+                                <h3 className="text-base font-bold tracking-wider">IMAGEN DE FONDO</h3>
                             </div>
                             <button
                                 type="button"
@@ -390,52 +363,54 @@ function ServerCard({ item }: { item: ServerItem }) {
                         </div>
 
                         <p className="text-xs text-neutral-400">
-                            Elige una imagen de fondo predefinida o introduce una URL (Minecraft, Discord bot, Cyberpunk, etc.).
+                            Elige la foto que prefieras para este servidor pegando una URL o seleccionando una imagen desde tu dispositivo.
                         </p>
 
-                        {/* Presets */}
+                        {/* Input de URL */}
                         <div className="space-y-2">
-                            <span className="text-xs font-semibold text-cyan-400">Fondos recomendados:</span>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                {PRESET_BANNERS.map((preset) => (
-                                    <button
-                                        key={preset.name}
-                                        type="button"
-                                        onClick={() => {
-                                            setCustomInput(preset.url);
-                                            handleApplyBanner(preset.url);
-                                        }}
-                                        className="group/preset relative h-16 rounded-lg overflow-hidden border border-cyan-900/60 hover:border-cyan-400 transition"
-                                    >
-                                        <img src={preset.url} alt={preset.name} className="h-full w-full object-cover group-hover/preset:scale-110 transition duration-300" />
-                                        <div className="absolute inset-0 bg-black/60 flex items-end p-1.5">
-                                            <span className="text-[10px] font-bold text-neutral-200 truncate">{preset.name}</span>
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* URL Personalizada */}
-                        <div className="space-y-2 pt-2">
-                            <label className="text-xs font-semibold text-cyan-400">O introduce una URL de imagen:</label>
+                            <label className="text-xs font-semibold text-cyan-400">URL de la imagen:</label>
                             <input
                                 type="url"
                                 value={customInput}
                                 onChange={(e) => setCustomInput(e.target.value)}
-                                placeholder="https://ejemplo.com/mi-fondo.png"
+                                placeholder="https://ejemplo.com/tu-foto.png"
                                 className="w-full rounded-lg border border-cyan-800 bg-black/80 px-3 py-2 text-xs text-cyan-200 outline-none focus:border-cyan-400"
                             />
                         </div>
 
+                        {/* Subir archivo desde PC/Mac */}
+                        <div className="space-y-1.5 pt-1">
+                            <label className="text-xs font-semibold text-neutral-400">O elige una foto de tu equipo:</label>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleFileUpload}
+                                className="block w-full text-xs text-neutral-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border file:border-cyan-800 file:text-xs file:font-semibold file:bg-cyan-950/60 file:text-cyan-300 hover:file:bg-cyan-900 cursor-pointer"
+                            />
+                        </div>
+
+                        {/* Vista previa de la foto seleccionada */}
+                        {customInput && (
+                            <div className="space-y-1 pt-2">
+                                <span className="text-[11px] font-mono text-cyan-500">Vista previa:</span>
+                                <div className="h-28 w-full rounded-lg overflow-hidden border border-cyan-800/80 bg-black">
+                                    <img src={customInput} alt="Preview" className="h-full w-full object-cover" />
+                                </div>
+                            </div>
+                        )}
+
                         <div className="flex items-center justify-between gap-3 pt-3 border-t border-cyan-950">
-                            <button
-                                type="button"
-                                onClick={() => handleApplyBanner('')}
-                                className="text-xs text-rose-400 hover:text-rose-300 underline"
-                            >
-                                Restaurar por defecto
-                            </button>
+                            {bannerUrl ? (
+                                <button
+                                    type="button"
+                                    onClick={() => handleApplyBanner('')}
+                                    className="text-xs text-rose-400 hover:text-rose-300 underline"
+                                >
+                                    Quitar imagen
+                                </button>
+                            ) : (
+                                <span />
+                            )}
 
                             <div className="flex items-center gap-2">
                                 <button
@@ -447,11 +422,11 @@ function ServerCard({ item }: { item: ServerItem }) {
                                 </button>
                                 <button
                                     type="button"
-                                    disabled={isSaving}
+                                    disabled={isSaving || !customInput.trim()}
                                     onClick={() => handleApplyBanner(customInput)}
-                                    className="rounded-lg bg-cyan-500 hover:bg-cyan-400 px-4 py-1.5 text-xs font-bold text-black transition shadow-[0_0_15px_rgba(34,211,238,0.3)] disabled:opacity-50"
+                                    className="rounded-lg bg-cyan-500 hover:bg-cyan-400 px-4 py-1.5 text-xs font-bold text-black transition shadow-[0_0_15px_rgba(34,211,238,0.3)] disabled:opacity-40"
                                 >
-                                    {isSaving ? 'Guardando…' : 'Guardar fondo'}
+                                    {isSaving ? 'Guardando…' : 'Guardar imagen'}
                                 </button>
                             </div>
                         </div>
@@ -463,11 +438,12 @@ function ServerCard({ item }: { item: ServerItem }) {
 }
 
 export default function Servers() {
-    const { servers, filters, categoryCounts, statusCounts } = usePage<{
+    const { servers, filters, categoryCounts, statusCounts, scopeCounts } = usePage<{
         servers: Pagination<ServerItem>;
-        filters: { search?: string; sort?: string; direction?: string; per_page?: number; category?: string; status?: string };
+        filters: { search?: string; sort?: string; direction?: string; per_page?: number; category?: string; status?: string; scope?: string };
         categoryCounts?: Record<string, number>;
         statusCounts?: { all: number; online: number; offline: number };
+        scopeCounts?: { all: number; mine: number; others: number };
     }>().props;
 
     const [search, setSearch] = useState(filters.search || '');
@@ -475,6 +451,9 @@ export default function Servers() {
     const [showFilters, setShowFilters] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<string>(filters.category || 'all');
     const [selectedStatus, setSelectedStatus] = useState<string>(filters.status || 'all');
+    const [selectedScope, setSelectedScope] = useState<'mine' | 'others' | 'all'>(
+        ((filters as any).scope as any) || 'all',
+    );
     const [selectedMcSubcat, setSelectedMcSubcat] = useState<string>('all');
     const [isMcExpanded, setIsMcExpanded] = useState<boolean>(true);
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
@@ -542,15 +521,17 @@ export default function Servers() {
         return 'mods';
     };
 
-    const applyFilters = (newCategory: string, newStatus: string) => {
+    const applyFilters = (newCategory: string, newStatus: string, newScope: string = selectedScope) => {
         setSelectedCategory(newCategory);
         setSelectedStatus(newStatus);
+        setSelectedScope(newScope as any);
         router.get(
             '/servers',
             {
                 ...filters,
                 category: newCategory,
                 status: newStatus,
+                scope: newScope,
                 search,
                 page: 1,
             },
@@ -562,18 +543,18 @@ export default function Servers() {
         if (catId === 'minecraft') {
             setIsMcExpanded(true);
         }
-        applyFilters(catId, selectedStatus);
+        applyFilters(catId, selectedStatus, selectedScope);
     };
 
     const handleSelectStatus = (statusId: string) => {
-        applyFilters(selectedCategory, statusId);
+        applyFilters(selectedCategory, statusId, selectedScope);
     };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         router.get(
             '/servers',
-            { ...filters, search, category: selectedCategory, status: selectedStatus },
+            { ...filters, search, category: selectedCategory, status: selectedStatus, scope: selectedScope },
             { preserveScroll: true, preserveState: true },
         );
     };
@@ -591,6 +572,7 @@ export default function Servers() {
                 search,
                 category: selectedCategory,
                 status: selectedStatus,
+                scope: selectedScope,
             },
             {
                 preserveScroll: true,
@@ -645,8 +627,8 @@ export default function Servers() {
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet" />
             </Head>
             <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-white p-3 sm:p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
-                {/* Header Superior con Filtros Rápidos Pelican */}
-                <div className="mb-5 flex flex-wrap items-center justify-between gap-4 border-b border-cyan-900/50 pb-4">
+                {/* Header Superior con Selector Pelican: Mis servidores, Servidores de otros, Todos los servidores */}
+                <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-cyan-900/50 pb-5">
                     <div className="flex items-center gap-3">
                         <Server className="h-7 w-7 text-cyan-400 shrink-0" />
                         <div>
@@ -654,12 +636,81 @@ export default function Servers() {
                                 SERVERS
                             </h1>
                             <p className="text-xs text-neutral-500 dark:text-neutral-400 font-mono">
-                                {statusCounts?.all ?? servers.total} servidores registrados
+                                {scopeCounts?.all ?? servers.total} servidores registrados
                             </p>
                         </div>
                     </div>
 
-                    {/* Filtros rápidos de estado estilo Pelican */}
+                    {/* Selector de Pertenencia estilo Pelican */}
+                    <div className="flex flex-wrap items-center justify-center gap-1 rounded-xl border border-cyan-900/60 bg-neutral-950/80 p-1 backdrop-blur-md">
+                        <button
+                            type="button"
+                            onClick={() => applyFilters(selectedCategory, selectedStatus, 'mine')}
+                            className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+                                selectedScope === 'mine'
+                                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 shadow-[0_0_12px_rgba(16,185,129,0.25)]'
+                                    : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
+                            }`}
+                        >
+                            <span>Mis servidores</span>
+                            <span
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-mono font-bold ${
+                                    selectedScope === 'mine' ? 'bg-emerald-500/30 text-emerald-300' : 'bg-neutral-800 text-neutral-400'
+                                }`}
+                            >
+                                {scopeCounts?.mine ?? 0}
+                            </span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => applyFilters(selectedCategory, selectedStatus, 'others')}
+                            className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+                                selectedScope === 'others'
+                                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 shadow-[0_0_12px_rgba(16,185,129,0.25)]'
+                                    : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
+                            }`}
+                        >
+                            <span>Servidores de otros</span>
+                            <span
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-mono font-bold ${
+                                    selectedScope === 'others' ? 'bg-emerald-500/30 text-emerald-300' : 'bg-neutral-800 text-neutral-400'
+                                }`}
+                            >
+                                {scopeCounts?.others ?? 0}
+                            </span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => applyFilters(selectedCategory, selectedStatus, 'all')}
+                            className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
+                                selectedScope === 'all'
+                                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 shadow-[0_0_12px_rgba(16,185,129,0.25)]'
+                                    : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
+                            }`}
+                        >
+                            <span>Todos los servidores</span>
+                            <span
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-mono font-bold ${
+                                    selectedScope === 'all' ? 'bg-emerald-500/30 text-emerald-300' : 'bg-neutral-800 text-neutral-400'
+                                }`}
+                            >
+                                {scopeCounts?.all ?? servers.total}
+                            </span>
+                        </button>
+                    </div>
+
+                    <button
+                        onClick={() => router.visit('/servers/create')}
+                        className="rounded-lg border border-cyan-400 bg-cyan-500/20 px-4 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-500 hover:text-black transition-all shadow-[0_0_12px_rgba(34,211,238,0.2)]"
+                    >
+                        + New Server
+                    </button>
+                </div>
+
+                {/* Filtros rápidos de estado y categoría */}
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-2">
                         <button
                             type="button"
@@ -709,13 +760,6 @@ export default function Servers() {
                             <Filter size={13} className={selectedCategory !== 'all' ? 'text-cyan-400' : ''} />
                             <span>Categorías {selectedCategory !== 'all' ? `(${selectedCategory})` : ''}</span>
                             {showFilters ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                        </button>
-
-                        <button
-                            onClick={() => router.visit('/servers/create')}
-                            className="rounded-lg border border-cyan-400 bg-cyan-500/20 px-4 py-1.5 text-xs font-semibold text-cyan-300 hover:bg-cyan-500 hover:text-black transition-all shadow-[0_0_12px_rgba(34,211,238,0.2)] ml-2"
-                        >
-                            + New Server
                         </button>
                     </div>
                 </div>
