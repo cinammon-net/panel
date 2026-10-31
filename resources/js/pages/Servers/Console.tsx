@@ -398,8 +398,8 @@ export default function Console({ server }: { server: Server }) {
                     <pre
                         ref={logRef}
                         aria-label="Logs del servidor"
-                        className="h-[440px] overflow-auto bg-[#05080f] p-4 text-xs leading-6 whitespace-pre-wrap text-neutral-200 selection:bg-cyan-500/30 selection:text-cyan-200"
-                        style={{ fontFamily: "'Orbitron', sans-serif, monospace", letterSpacing: '0.035em' }}
+                        className="h-[440px] overflow-auto bg-[#05080f] p-4 text-xs leading-6 whitespace-pre-wrap text-neutral-200 selection:bg-cyan-500/30 selection:text-cyan-200 font-mono"
+                        style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace" }}
                     >
                         {htmlLogs ? (
                             <span dangerouslySetInnerHTML={{ __html: htmlLogs }} />

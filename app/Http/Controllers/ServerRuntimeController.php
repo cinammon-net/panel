@@ -91,9 +91,19 @@ class ServerRuntimeController extends Controller
         $logs = preg_replace("/\n{3,}/", "\n\n", $logs);
         $logs = trim($logs);
 
-        if ($server && !empty($logs) && !str_contains($logs, 'Server marked as starting')) {
+        if ($server && !empty($logs) && !str_contains($logs, 'C I N A M M O N . N E T')) {
+            $banner = "\x1b[1;36m  ╔═╗╦╔╗╔╔═╗╔╦╗╔╦╗╔═╗╔╗╔    ╔╗╔╔═╗╔╦╗\n" .
+                      "  ║  ║║║║╠═╣║║║║║║║ ║║║║    ║║║║╣  ║ \n" .
+                      "  ╚═╝╩╝╚╝╩ ╩╩ ╩╩ ╩╚═╝╝╚╝  o ╝╚╝╚═╝ ╩ \x1b[0m\n" .
+                      "\x1b[1;30m ─────────────────────────────────────\x1b[0m\n" .
+                      "\x1b[1;37m        C I N A M M O N . N E T\x1b[0m\n\n";
+
             $prefix = 'cinammon@'.\Illuminate\Support\Str::slug($server->name).' ~ Server marked as starting...';
-            $logs = $prefix."\n".$logs;
+            if (!str_contains($logs, 'Server marked as starting')) {
+                $logs = $banner . $prefix . "\n" . $logs;
+            } else {
+                $logs = $banner . $logs;
+            }
         }
 
         return $logs;
@@ -211,7 +221,7 @@ class ServerRuntimeController extends Controller
             return response()->json([
                 'state' => $fallbackState,
                 'installed' => $server->installed_at !== null,
-                'logs' => "[Cinammon Daemon] Nodo local sincronizado para {$server->name} ({$server->uuid}).\nEstado actual: {$fallbackState}.",
+                'logs' => $this->cleanLogs("[Cinammon Daemon] Nodo local sincronizado para {$server->name} ({$server->uuid}).\nEstado actual: {$fallbackState}.", $server),
                 'bot_status' => null,
                 'eula_accepted' => true,
                 'utilization' => $this->enrichUtilization($server, $fallbackState, null),
