@@ -29,10 +29,21 @@ class ServerRuntimeController extends Controller
         ]]);
     }
 
-    private function cleanLogs(string $logs): string
+    private function cleanLogs(string $logs, ?Server $server = null): string
     {
         $logs = preg_replace('/\x1B(?:\[[0-?]*[ -\/]*[@-~]|[ -~])/', '', $logs) ?? $logs;
-        return str_replace([">....\r", "\r"], '', $logs);
+        $logs = str_replace([">....\r", "\r"], '', $logs);
+        // Clean npm progress spinners (\, |, /, -) on their own lines
+        $logs = preg_replace('/^[\\|\/\-]\s*$/m', '', $logs);
+        $logs = preg_replace("/\n{3,}/", "\n\n", $logs);
+        $logs = trim($logs);
+
+        if ($server && !empty($logs) && !str_contains($logs, 'Server marked as starting')) {
+            $prefix = 'cinammon@'.\Illuminate\Support\Str::slug($server->name).' ~ Server marked as starting...';
+            $logs = $prefix."\n".$logs;
+        }
+
+        return $logs;
     }
 
     private function enrichUtilization(Server $server, string $stateName, ?array $utilization): array
@@ -136,7 +147,7 @@ class ServerRuntimeController extends Controller
             return response()->json([
                 'state' => $stateName,
                 'installed' => $server->installed_at !== null,
-                'logs' => $this->cleanLogs(is_array($lines) ? implode("\n", $lines) : (string) $lines),
+                'logs' => $this->cleanLogs(is_array($lines) ? implode("\n", $lines) : (string) $lines, $server),
                 'bot_status' => $botStatus,
                 'eula_accepted' => $eula && $eula->successful() && preg_match('/^eula=true\s*$/m', $eula->body()) === 1,
                 'utilization' => $this->enrichUtilization($server, $stateName, $state['utilization'] ?? null),

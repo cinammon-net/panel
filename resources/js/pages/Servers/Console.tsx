@@ -254,7 +254,14 @@ export default function Console({ server }: { server: Server }) {
                 </section>}
                 <section className="overflow-hidden rounded-lg border border-cyan-700 bg-neutral-950">
                     <div className="flex items-center justify-between border-b border-cyan-700 bg-cyan-900 px-4 py-2.5"><h2 className="flex items-center gap-2 text-sm font-semibold text-cyan-400"><Terminal size={16} className="text-cyan-400" /> Consola</h2><label className="flex items-center gap-2 text-xs text-cyan-300"><input type="checkbox" checked={follow} onChange={event => setFollow(event.target.checked)} className="accent-cyan-400" />Seguir logs</label></div>
-                    <pre ref={logRef} aria-label="Logs del servidor" className="h-[340px] overflow-auto bg-black p-4 text-xs leading-6 whitespace-pre-wrap text-cyan-200">{snapshot?.logs || (snapshot?.installed ? 'Esperando salida del servidor…' : 'Instalando el servidor…')}</pre>
+                    <pre
+                        ref={logRef}
+                        aria-label="Logs del servidor"
+                        style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}
+                        className="h-[340px] overflow-auto bg-black p-4 text-xs leading-6 whitespace-pre-wrap text-neutral-200"
+                    >
+                        {snapshot?.logs || (snapshot?.installed ? 'Esperando salida del servidor…' : 'Instalando el servidor…')}
+                    </pre>
                     <form onSubmit={sendCommand} className="flex gap-3 border-t border-cyan-700 bg-neutral-950 p-3"><span className="self-center text-cyan-400">&gt;</span><input aria-label="Comando de consola" value={command} onChange={event => setCommand(event.target.value)} placeholder={server.discord_bot ? 'Comandos de proceso: status, test, stop' : 'Escribe un comando, por ejemplo: list'} disabled={!running || busy} className="min-w-0 flex-1 bg-transparent py-2 text-sm text-cyan-200 outline-none placeholder:text-cyan-700 disabled:opacity-50" autoComplete="off" /><button type="submit" disabled={!running || busy || !command.trim()} className="flex items-center gap-2 rounded border border-cyan-500 bg-cyan-900/30 px-4 py-2 text-sm text-cyan-300 hover:bg-cyan-700/50 disabled:opacity-40"><Send size={15} />Enviar</button></form>
                 </section>
 

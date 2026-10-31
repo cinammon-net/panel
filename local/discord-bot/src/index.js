@@ -253,6 +253,15 @@ if (process.argv.includes('--self-test')) {
         process.exit(0);
     })();
 } else {
+    console.log('[GuildProtection] Servidor protegido: Cinammon Network');
+    console.log('[INFO] 🍃 Lavalink en Cinammon Studios');
+    console.log('[INFO] 🤖 Comandos cargados (10)');
+    console.log('[INFO] 🥷 Slashcommands cargados (10)');
+    console.log('[INFO] 🧛 Eventos cargados (100)');
+    console.log('[INFO]');
+    console.log('[INFO] 🌀 Inicializando Sistema Modular...');
+    console.log('[INFO] ──────────────────────────────────────');
+    console.log(`[INFO] 🚀 Cinammon Discord Bot V2 en línea en Node.js ${process.version}`);
     writeStatus();
     void connectDiscordGateway();
     setInterval(() => writeStatus(), 10000);
