@@ -209,6 +209,13 @@ export default function Databases({ server, databases = [] }: PageProps) {
         setSqlResults(null);
     };
 
+    const handleLaunchAdminer = (db: DatabaseItem) => {
+        const driverParam = db.driver === 'pgsql' ? 'pgsql' : db.driver === 'sqlite' ? 'sqlite' : 'server';
+        const url = `/adminer.php?${driverParam}=${encodeURIComponent(db.host + (db.port ? ':' + db.port : ''))}&username=${encodeURIComponent(db.user)}&db=${encodeURIComponent(db.name)}`;
+        window.open(url, '_blank', 'noopener,noreferrer');
+        toast.success(`Abriendo Gestor Web Adminer para ${db.name}`);
+    };
+
     const handleExecuteSql = (e: React.FormEvent) => {
         e.preventDefault();
         setIsExecutingSql(true);
@@ -488,12 +495,22 @@ SET FOREIGN_KEY_CHECKS = 1;
                                     <div className="flex flex-wrap items-center gap-2 self-end xl:self-center shrink-0 border-t xl:border-t-0 border-neutral-800 pt-3 xl:pt-0 w-full xl:w-auto justify-end">
                                         <button
                                             type="button"
-                                            onClick={() => handleOpenWebManager(db)}
+                                            onClick={() => handleLaunchAdminer(db)}
                                             className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-400 bg-cyan-500/20 px-3 py-1.5 text-xs font-bold text-cyan-300 hover:bg-cyan-500/30 transition shadow-[0_0_12px_rgba(34,211,238,0.2)]"
-                                            title="Abrir gestor web integrado de tablas y consultas"
+                                            title="Abrir Gestor Web Adminer en nueva pestaña (puerto 8000)"
+                                        >
+                                            <ExternalLink size={13} />
+                                            <span>Gestor Web</span>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => handleOpenWebManager(db)}
+                                            className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-950/30 px-2.5 py-1.5 text-xs font-semibold text-purple-300 hover:border-purple-400 hover:bg-purple-900/50 transition"
+                                            title="Abrir explorador de tablas y consultas dentro del panel"
                                         >
                                             <Table size={13} />
-                                            <span>Gestor Web</span>
+                                            <span>Explorador</span>
                                         </button>
 
                                         <button
@@ -900,29 +917,38 @@ SET FOREIGN_KEY_CHECKS = 1;
                                         </div>
                                     )}
 
-                                    {/* PESTAÑA: PHPMYADMIN EXTERNO */}
+                                    {/* PESTAÑA: PHPMYADMIN / ADMINER WEB */}
                                     {webTab === 'external' && (
                                         <div className="space-y-4 max-w-xl">
-                                            <h4 className="text-sm font-bold text-white">Vincular Servidor phpMyAdmin / Adminer Externo</h4>
-                                            <div className="rounded-xl border border-amber-500/40 bg-amber-950/20 p-3.5 text-xs text-amber-300 space-y-1">
-                                                <p className="font-bold">⚠️ Nota sobre el puerto 8080:</p>
-                                                <p className="text-neutral-300">
-                                                    El puerto <strong className="text-white">8080</strong> está reservado para el daemon interno <strong>Wings</strong> de Cinammon (por eso devuelve error de autenticación si se abre en el navegador).
+                                            <h4 className="text-sm font-bold text-white">Gestor Web Adminer (Alojado en el Panel)</h4>
+                                            <div className="rounded-xl border border-cyan-500/40 bg-cyan-950/20 p-4 text-xs text-cyan-300 space-y-2">
+                                                <p className="font-bold flex items-center gap-1.5 text-white">
+                                                    <ExternalLink size={14} className="text-cyan-400" />
+                                                    <span>Gestor Web disponible en el puerto 8000</span>
                                                 </p>
                                                 <p className="text-neutral-300">
-                                                    Si tienes phpMyAdmin o Adminer corriendo, configúralo en el puerto <strong className="text-cyan-300">8081</strong> o en tu subdominio asignado.
+                                                    Adminer está integrado directamente en este panel. No necesitas configurar puertos adicionales ni docker externos.
                                                 </p>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleLaunchAdminer(webManagerDb)}
+                                                    className="inline-flex items-center gap-2 rounded-xl border border-cyan-400 bg-cyan-500 px-4 py-2 text-xs font-bold text-black hover:bg-cyan-400 transition shadow-[0_0_15px_rgba(34,211,238,0.3)] mt-1"
+                                                >
+                                                    <ExternalLink size={14} />
+                                                    <span>Abrir Adminer en Nueva Pestaña</span>
+                                                </button>
                                             </div>
 
-                                            <div>
+                                            <div className="pt-2">
                                                 <label className="block text-xs font-bold text-cyan-400 uppercase tracking-wider mb-1.5">
-                                                    URL de phpMyAdmin / Adminer
+                                                    O usar URL externa personalizada (opcional)
                                                 </label>
                                                 <div className="flex items-center gap-2">
                                                     <input
                                                         type="url"
                                                         value={customPmaUrl}
                                                         onChange={(e) => setCustomPmaUrl(e.target.value)}
+                                                        placeholder="https://pma.cinammon.net"
                                                         className="flex-1 rounded-xl border border-cyan-800/80 bg-black/70 px-4 py-2 text-xs text-cyan-100 focus:border-cyan-400 focus:outline-none"
                                                     />
                                                     <button
@@ -930,10 +956,10 @@ SET FOREIGN_KEY_CHECKS = 1;
                                                         onClick={() => {
                                                             window.open(customPmaUrl, '_blank', 'noopener,noreferrer');
                                                         }}
-                                                        className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-400 bg-cyan-500 px-4 py-2 text-xs font-bold text-black hover:bg-cyan-400 transition"
+                                                        className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-2 text-xs font-bold text-neutral-300 hover:text-white transition"
                                                     >
                                                         <ExternalLink size={13} />
-                                                        <span>Abrir</span>
+                                                        <span>Abrir URL</span>
                                                     </button>
                                                 </div>
                                             </div>
