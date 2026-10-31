@@ -158,15 +158,21 @@
 
     html,
     body,
-    pre,
-    code,
-    kbd,
-    samp,
     button,
     input,
     select,
     textarea {
         font-family: var(--app-font, 'Orbitron'), 'Orbitron', sans-serif !important;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    pre,
+    code,
+    kbd,
+    samp,
+    .terminal-font {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
     }

@@ -1,9 +1,10 @@
 import ServerLayout from '@/layouts/server-layout';
+import { colorizeLogs } from '@/lib/terminal-colors';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import { CategoryScale, Chart as ChartJS, Filler, Legend, LinearScale, LineElement, PointElement, Title, Tooltip } from 'chart.js';
 import { Activity, ArrowDownUp, Copy, Cpu, Play, RotateCw, Send, Square, Terminal } from 'lucide-react';
-import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
@@ -165,6 +166,11 @@ export default function Console({ server }: { server: Server }) {
     const needsEula = server.minecraft && snapshot?.installed && !snapshot.eula_accepted;
     const running = snapshot?.state === 'running';
 
+    const htmlLogs = useMemo(() => {
+        if (!snapshot?.logs) return null;
+        return colorizeLogs(snapshot.logs);
+    }, [snapshot?.logs]);
+
     const currentCpu = snapshot?.utilization?.cpu_absolute ?? 0;
     const currentMemMib = (snapshot?.utilization?.memory_bytes ?? 0) / 1048576;
     const currentRxKib = history.netRx[history.netRx.length - 1] ?? 0;
@@ -220,19 +226,29 @@ export default function Console({ server }: { server: Server }) {
             <main className="min-h-screen space-y-6 bg-white p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
                 <header className="flex flex-wrap items-center justify-between gap-5">
                     <h1 className="text-3xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400 dark:drop-shadow-[0_0_5px_#0ff] uppercase">CONSOLA</h1>
-                    <div className="flex flex-wrap gap-2">
-                        <button disabled={!ready || snapshot?.state !== 'offline' || needsEula} onClick={() => void action('power', { action: 'start' })} className="flex items-center gap-2 rounded border border-cyan-400 bg-cyan-500 px-4 py-1.5 text-sm font-semibold text-black transition hover:bg-cyan-400 disabled:opacity-40"><Play size={16} /> Iniciar</button>
-                        <button disabled={!ready || !running} onClick={() => void action('power', { action: 'restart' })} className="flex items-center gap-2 rounded border border-cyan-500 bg-cyan-900/30 px-4 py-1.5 text-sm text-cyan-300 transition hover:bg-cyan-700/50 disabled:opacity-40"><RotateCw size={16} /> Reiniciar</button>
-                        <button disabled={!ready || !['running', 'starting'].includes(snapshot?.state || '')} onClick={() => void action('power', { action: 'stop' })} className="flex items-center gap-2 rounded border border-red-500 bg-red-900/30 px-4 py-1.5 text-sm text-red-300 transition hover:bg-red-700/50 disabled:opacity-40"><Square size={16} /> Detener</button>
+                    <div className="flex flex-wrap gap-2.5">
+                        <button disabled={!ready || snapshot?.state !== 'offline' || needsEula} onClick={() => void action('power', { action: 'start' })} className="flex items-center gap-2 rounded border border-emerald-500/80 bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_0_15px_rgba(16,185,129,0.3)] transition hover:bg-emerald-500 disabled:opacity-40"><Play size={15} className="fill-current" /> Iniciar</button>
+                        <button disabled={!ready || !running} onClick={() => void action('power', { action: 'restart' })} className="flex items-center gap-2 rounded border border-neutral-700 bg-neutral-900/90 px-4 py-2 text-sm font-medium text-neutral-200 transition hover:bg-neutral-800 hover:border-neutral-500 disabled:opacity-40"><RotateCw size={15} /> Reiniciar</button>
+                        <button disabled={!ready || !['running', 'starting'].includes(snapshot?.state || '')} onClick={() => void action('power', { action: 'stop' })} className="flex items-center gap-2 rounded border border-rose-600/80 bg-rose-950/60 px-4 py-2 text-sm font-medium text-rose-300 shadow-[0_0_15px_rgba(244,63,94,0.25)] transition hover:bg-rose-900/70 disabled:opacity-40"><Square size={15} className="fill-current" /> Detener</button>
                     </div>
                 </header>
-                <section aria-label="Estadísticas del servidor" className="grid gap-4 rounded-lg border border-cyan-700 bg-neutral-950 p-4 sm:grid-cols-2 xl:grid-cols-3">
+                <section aria-label="Estadísticas del servidor" className="grid gap-3 rounded-lg border border-cyan-800/80 bg-[#080d16] p-4 sm:grid-cols-2 xl:grid-cols-3">
                     <Metric label="Nombre" value={server.name} />
                     <Metric label="Estado" value={snapshot ? states[snapshot.state] || snapshot.state : 'Conectando…'} live={running} />
-                    <div className="flex items-center gap-2 rounded border border-cyan-800 bg-black px-4 py-4 text-sm"><span className="text-cyan-500">Dirección</span>{server.discord_bot ? <span className="text-cyan-200">Conexión saliente</span> : <button className="flex min-w-0 items-center gap-2 break-all text-cyan-300" onClick={async () => { try { await navigator.clipboard.writeText(server.address); setNotice('Dirección copiada.'); } catch { setError('No se pudo copiar la dirección.'); } }}>{server.address}<Copy size={13} className="shrink-0" /></button>}</div>
-                    <Metric label="CPU" value={`${snapshot?.utilization?.cpu_absolute?.toFixed(2) ?? '—'} % / ${server.cpu || '∞'}${server.cpu ? ' %' : ''}`} />
-                    <Metric label="Memoria" value={`${snapshot?.utilization?.memory_bytes !== undefined ? (snapshot.utilization.memory_bytes / 1048576).toFixed(1) : '—'} MiB / ${server.memory || '∞'}${server.memory ? ' MiB' : ''}`} />
-                    <Metric label="Almacenamiento" value={`${snapshot?.utilization?.disk_bytes !== undefined ? (snapshot.utilization.disk_bytes / 1073741824).toFixed(2) : '—'} GiB / ${server.disk ? (server.disk / 1024).toFixed(1) + ' GiB' : '∞'}`} />
+                    <div className="flex min-w-0 items-center justify-between rounded border border-cyan-800/80 bg-black/70 px-4 py-3.5 text-sm transition hover:border-cyan-600/70">
+                        <span className="shrink-0 text-xs font-semibold uppercase tracking-wider text-cyan-500">Dirección</span>
+                        {server.discord_bot ? (
+                            <span className="font-mono text-sm text-cyan-200">localhost:{server.address.split(':')[1] || '3001'}</span>
+                        ) : (
+                            <button className="flex min-w-0 items-center gap-1.5 font-mono text-sm text-cyan-300 hover:text-cyan-100" onClick={async () => { try { await navigator.clipboard.writeText(server.address); setNotice('Dirección copiada.'); } catch { setError('No se pudo copiar la dirección.'); } }}>
+                                <span>{server.address}</span>
+                                <Copy size={13} className="shrink-0 opacity-70 hover:opacity-100" />
+                            </button>
+                        )}
+                    </div>
+                    <Metric label="CPU" value={`${snapshot?.utilization?.cpu_absolute?.toFixed(2) ?? '0.00'} % / ${server.cpu || '∞'}${server.cpu ? ' %' : ''}`} />
+                    <Metric label="Memoria" value={`${snapshot?.utilization?.memory_bytes !== undefined ? (snapshot.utilization.memory_bytes / 1048576).toFixed(1) : '0.0'} MiB / ${server.memory || '∞'}${server.memory ? ' MiB' : ''}`} />
+                    <Metric label="Almacenamiento" value={`${snapshot?.utilization?.disk_bytes !== undefined ? (snapshot.utilization.disk_bytes / 1073741824).toFixed(2) : '0.00'} GiB / ${server.disk ? (server.disk / 1024).toFixed(1) + ' GiB' : '∞'}`} />
                 </section>
                 {server.discord_bot && <section className="space-y-4 rounded-lg border border-cyan-700 bg-neutral-950 p-5">
                     <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold text-cyan-400">Conexión con Discord</h2><span className={snapshot?.bot_status?.connected ? 'text-sm text-green-400' : 'text-sm text-amber-300'}>{snapshot?.bot_status?.connected ? `Conectado · ${snapshot.bot_status.tag || 'Cinammon'}` : 'Discord desconectado'}</span></div>
@@ -252,17 +268,50 @@ export default function Console({ server }: { server: Server }) {
                     <label className="flex items-center gap-2"><input type="checkbox" checked={accepted} onChange={event => setAccepted(event.target.checked)} />He leído y acepto la EULA de Minecraft para este servidor.</label>
                     <button disabled={!accepted || busy} className="rounded bg-amber-400 px-4 py-2 font-semibold text-black disabled:opacity-40" onClick={() => void action('eula', { accepted: true })}>Guardar aceptación</button>
                 </section>}
-                <section className="overflow-hidden rounded-lg border border-cyan-700 bg-neutral-950">
-                    <div className="flex items-center justify-between border-b border-cyan-700 bg-cyan-900 px-4 py-2.5"><h2 className="flex items-center gap-2 text-sm font-semibold text-cyan-400"><Terminal size={16} className="text-cyan-400" /> Consola</h2><label className="flex items-center gap-2 text-xs text-cyan-300"><input type="checkbox" checked={follow} onChange={event => setFollow(event.target.checked)} className="accent-cyan-400" />Seguir logs</label></div>
+                <section className="overflow-hidden rounded-lg border border-cyan-800/80 bg-[#070b13] shadow-2xl">
+                    <div className="flex items-center justify-between border-b border-cyan-900/80 bg-[#0b101b] px-4 py-2.5">
+                        <h2 className="flex items-center gap-2 text-xs font-semibold tracking-wider uppercase text-cyan-400">
+                            <Terminal size={15} className="text-cyan-400" /> Consola
+                        </h2>
+                        <label className="flex items-center gap-2 text-xs text-neutral-400 hover:text-cyan-300 cursor-pointer">
+                            <input type="checkbox" checked={follow} onChange={event => setFollow(event.target.checked)} className="accent-cyan-400" />
+                            Seguir logs
+                        </label>
+                    </div>
                     <pre
                         ref={logRef}
                         aria-label="Logs del servidor"
+                        className="terminal-font h-[440px] overflow-auto bg-[#05080f] p-4 text-xs leading-6 whitespace-pre-wrap text-neutral-200 selection:bg-cyan-500/30 selection:text-cyan-200"
                         style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}
-                        className="h-[340px] overflow-auto bg-black p-4 text-xs leading-6 whitespace-pre-wrap text-neutral-200"
                     >
-                        {snapshot?.logs || (snapshot?.installed ? 'Esperando salida del servidor…' : 'Instalando el servidor…')}
+                        {htmlLogs ? (
+                            <span dangerouslySetInnerHTML={{ __html: htmlLogs }} />
+                        ) : (
+                            <span className="text-neutral-500">
+                                {snapshot?.installed ? 'Esperando salida del servidor…' : 'Instalando el servidor…'}
+                            </span>
+                        )}
                     </pre>
-                    <form onSubmit={sendCommand} className="flex gap-3 border-t border-cyan-700 bg-neutral-950 p-3"><span className="self-center text-cyan-400">&gt;</span><input aria-label="Comando de consola" value={command} onChange={event => setCommand(event.target.value)} placeholder={server.discord_bot ? 'Comandos de proceso: status, test, stop' : 'Escribe un comando, por ejemplo: list'} disabled={!running || busy} className="min-w-0 flex-1 bg-transparent py-2 text-sm text-cyan-200 outline-none placeholder:text-cyan-700 disabled:opacity-50" autoComplete="off" /><button type="submit" disabled={!running || busy || !command.trim()} className="flex items-center gap-2 rounded border border-cyan-500 bg-cyan-900/30 px-4 py-2 text-sm text-cyan-300 hover:bg-cyan-700/50 disabled:opacity-40"><Send size={15} />Enviar</button></form>
+                    <form onSubmit={sendCommand} className="flex items-center gap-3 border-t border-cyan-900/80 bg-[#090e18] px-4 py-3">
+                        <span className="self-center font-mono text-base font-bold text-cyan-400 select-none">»</span>
+                        <input
+                            aria-label="Comando de consola"
+                            value={command}
+                            onChange={event => setCommand(event.target.value)}
+                            placeholder={server.discord_bot ? 'Escribe un comando, por ejemplo: status, test, stop' : 'Escribe un comando, por ejemplo: list'}
+                            disabled={!running || busy}
+                            className="terminal-font min-w-0 flex-1 bg-transparent py-1 text-xs text-cyan-100 outline-none placeholder:text-neutral-500 disabled:opacity-50"
+                            style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}
+                            autoComplete="off"
+                        />
+                        <button
+                            type="submit"
+                            disabled={!running || busy || !command.trim()}
+                            className="flex items-center gap-2 rounded border border-cyan-700/60 bg-cyan-950/50 px-4 py-1.5 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-900/60 disabled:opacity-40"
+                        >
+                            <Send size={13} /> Enviar
+                        </button>
+                    </form>
                 </section>
 
                 {/* Gráficos de recursos debajo de la consola: CPU, Memoria y Red */}
@@ -416,5 +465,13 @@ export default function Console({ server }: { server: Server }) {
 }
 
 function Metric({ label, value, live = false }: { label: string; value: string; live?: boolean }) {
-    return <div className="flex min-w-0 items-center gap-2 rounded border border-cyan-800 bg-black px-4 py-4 text-sm"><span className="shrink-0 text-cyan-500">{label}</span><span className={`break-words ${live ? 'text-green-400 font-bold' : 'text-cyan-200'}`}>{value}</span></div>;
+    return (
+        <div className="flex min-w-0 items-center justify-between rounded border border-cyan-800/80 bg-black/70 px-4 py-3.5 text-sm transition hover:border-cyan-600/70">
+            <span className="shrink-0 text-xs font-semibold uppercase tracking-wider text-cyan-500">{label}</span>
+            <span className={`flex items-center gap-1.5 font-mono text-sm font-medium break-words ${live ? 'text-emerald-400 font-bold' : 'text-neutral-200'}`}>
+                {live && <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse" />}
+                {value}
+            </span>
+        </div>
+    );
 }

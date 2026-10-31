@@ -31,10 +31,55 @@ class ServerRuntimeController extends Controller
 
     private function cleanLogs(string $logs, ?Server $server = null): string
     {
-        $logs = preg_replace('/\x1B(?:\[[0-?]*[ -\/]*[@-~]|[ -~])/', '', $logs) ?? $logs;
-        $logs = str_replace([">....\r", "\r"], '', $logs);
-        // Clean npm progress spinners (\, |, /, -) on their own lines
-        $logs = preg_replace('/^[\\|\/\-]\s*$/m', '', $logs);
+        // 1. Only strip non-color ANSI sequences (cursor positioning, screen clear), keep \e[...m colors
+        $logs = preg_replace('/\x1B\[[0-9;]*[A-HJKSTfhilmnprsu]/', function ($matches) {
+            $code = $matches[0];
+            // Keep style/color codes ending in 'm'
+            if (str_ends_with($code, 'm')) {
+                return $code;
+            }
+            return '';
+        }, $logs) ?? $logs;
+
+        // 2. Handle carriage returns (\r) and terminal spinners
+        $lines = explode("\n", $logs);
+        $cleanedLines = [];
+
+        foreach ($lines as $line) {
+            if (str_contains($line, "\r")) {
+                $parts = explode("\r", $line);
+                $rendered = '';
+                foreach ($parts as $p) {
+                    if ($p === '') {
+                        continue;
+                    }
+                    // If part is pure spinner or progress chars, skip
+                    if (preg_match('/^[\s\x5c\|\/\-]+$/', $p)) {
+                        continue;
+                    }
+                    if ($rendered === '') {
+                        $rendered = $p;
+                    } else {
+                        $len = mb_strlen($p);
+                        $rendered = $p . mb_substr($rendered, $len);
+                    }
+                }
+                $line = $rendered;
+            }
+
+            // Remove spinner sequences and leading spinner garbage like \|/-\|/-\|
+            $line = preg_replace('/^[\s\x5c\|\/\-]+(?=[a-zA-Z0-9\[\(\x1b])/', '', $line);
+            $line = preg_replace('/[\x5c\|\/\-]{2,}(?=[a-zA-Z0-9\[\(\x1b])/', '', $line);
+
+            // Skip lines that are only spinner characters or whitespace
+            if (preg_match('/^[\s\x5c\|\/\-]+$/', $line)) {
+                continue;
+            }
+
+            $cleanedLines[] = $line;
+        }
+
+        $logs = implode("\n", $cleanedLines);
         $logs = preg_replace("/\n{3,}/", "\n\n", $logs);
         $logs = trim($logs);
 
