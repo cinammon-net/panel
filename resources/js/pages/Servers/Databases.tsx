@@ -209,32 +209,14 @@ export default function Databases({ server, databases = [] }: PageProps) {
         setSqlResults(null);
     };
 
-    const handleLaunchAdminer = (db: DatabaseItem) => {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '/adminer.php';
-        form.target = '_blank';
-
-        const fields: Record<string, string> = {
-            'auth[driver]': db.driver === 'pgsql' ? 'pgsql' : db.driver === 'sqlite' ? 'sqlite' : 'server',
-            'auth[server]': db.host + (db.port ? `:${db.port}` : ''),
-            'auth[username]': db.user,
-            'auth[password]': db.password || 'cnm_ffb44f998731',
-            'auth[db]': db.name,
-        };
-
-        for (const [key, value] of Object.entries(fields)) {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = key;
-            input.value = value;
-            form.appendChild(input);
+    const handleLaunchPhpMyAdmin = (db: DatabaseItem) => {
+        if (db.password) {
+            navigator.clipboard.writeText(db.password);
+            toast.success(`Abriendo phpMyAdmin en puerto 8081. Contraseña de "${db.user}" copiada.`);
+        } else {
+            toast.info('Abriendo phpMyAdmin en puerto 8081...');
         }
-
-        document.body.appendChild(form);
-        form.submit();
-        document.body.removeChild(form);
-        toast.success(`Iniciando sesión automáticamente en ${db.name}...`);
+        window.open('http://localhost:8081', '_blank', 'noopener,noreferrer');
     };
 
     const handleExecuteSql = (e: React.FormEvent) => {
@@ -516,12 +498,12 @@ SET FOREIGN_KEY_CHECKS = 1;
                                     <div className="flex flex-wrap items-center gap-2 self-end xl:self-center shrink-0 border-t xl:border-t-0 border-neutral-800 pt-3 xl:pt-0 w-full xl:w-auto justify-end">
                                         <button
                                             type="button"
-                                            onClick={() => handleLaunchAdminer(db)}
-                                            className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-400 bg-cyan-500/20 px-3 py-1.5 text-xs font-bold text-cyan-300 hover:bg-cyan-500/30 transition shadow-[0_0_12px_rgba(34,211,238,0.2)]"
-                                            title="Abrir Gestor Web Adminer en nueva pestaña (puerto 8000)"
+                                            onClick={() => handleLaunchPhpMyAdmin(db)}
+                                            className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/80 bg-amber-500/20 px-3 py-1.5 text-xs font-bold text-amber-300 hover:bg-amber-500/30 transition shadow-[0_0_12px_rgba(245,158,11,0.2)]"
+                                            title="Abrir phpMyAdmin oficial en nueva pestaña (puerto 8081)"
                                         >
                                             <ExternalLink size={13} />
-                                            <span>Gestor Web</span>
+                                            <span>phpMyAdmin</span>
                                         </button>
 
                                         <button
@@ -938,25 +920,30 @@ SET FOREIGN_KEY_CHECKS = 1;
                                         </div>
                                     )}
 
-                                    {/* PESTAÑA: PHPMYADMIN / ADMINER WEB */}
+                                    {/* PESTAÑA: PHPMYADMIN WEB */}
                                     {webTab === 'external' && (
                                         <div className="space-y-4 max-w-xl">
-                                            <h4 className="text-sm font-bold text-white">Gestor Web Adminer (Alojado en el Panel)</h4>
-                                            <div className="rounded-xl border border-cyan-500/40 bg-cyan-950/20 p-4 text-xs text-cyan-300 space-y-2">
+                                            <h4 className="text-sm font-bold text-white">phpMyAdmin Oficial (Puerto 8081)</h4>
+                                            <div className="rounded-xl border border-amber-500/40 bg-amber-950/20 p-4 text-xs text-amber-300 space-y-3">
                                                 <p className="font-bold flex items-center gap-1.5 text-white">
-                                                    <ExternalLink size={14} className="text-cyan-400" />
-                                                    <span>Gestor Web disponible en el puerto 8000</span>
+                                                    <ExternalLink size={14} className="text-amber-400" />
+                                                    <span>phpMyAdmin Oficial corriendo en http://localhost:8081</span>
                                                 </p>
                                                 <p className="text-neutral-300">
-                                                    Adminer está integrado directamente en este panel. No necesitas configurar puertos adicionales ni docker externos.
+                                                    phpMyAdmin oficial está conectado directamente al motor MariaDB (3306). Al hacer clic en el botón, tu contraseña se copia automáticamente al portapapeles.
                                                 </p>
+                                                <div className="rounded-lg bg-black/60 p-2.5 font-mono text-[11px] text-neutral-300 border border-neutral-800 space-y-1">
+                                                    <div><span className="text-neutral-500">Servidor:</span> 127.0.0.1 (db)</div>
+                                                    <div><span className="text-neutral-500">Usuario:</span> <span className="text-cyan-300 font-bold">{webManagerDb?.user}</span></div>
+                                                    <div><span className="text-neutral-500">Base de Datos:</span> <span className="text-cyan-300 font-bold">{webManagerDb?.name}</span></div>
+                                                </div>
                                                 <button
                                                     type="button"
-                                                    onClick={() => handleLaunchAdminer(webManagerDb)}
-                                                    className="inline-flex items-center gap-2 rounded-xl border border-cyan-400 bg-cyan-500 px-4 py-2 text-xs font-bold text-black hover:bg-cyan-400 transition shadow-[0_0_15px_rgba(34,211,238,0.3)] mt-1"
+                                                    onClick={() => webManagerDb && handleLaunchPhpMyAdmin(webManagerDb)}
+                                                    className="inline-flex items-center gap-2 rounded-xl border border-amber-400 bg-amber-500 px-4 py-2 text-xs font-bold text-black hover:bg-amber-400 transition shadow-[0_0_15px_rgba(245,158,11,0.3)] mt-1"
                                                 >
                                                     <ExternalLink size={14} />
-                                                    <span>Abrir Adminer en Nueva Pestaña</span>
+                                                    <span>Abrir phpMyAdmin en Nueva Pestaña</span>
                                                 </button>
                                             </div>
 
@@ -969,7 +956,7 @@ SET FOREIGN_KEY_CHECKS = 1;
                                                         type="url"
                                                         value={customPmaUrl}
                                                         onChange={(e) => setCustomPmaUrl(e.target.value)}
-                                                        placeholder="https://pma.cinammon.net"
+                                                        placeholder="http://localhost:8081"
                                                         className="flex-1 rounded-xl border border-cyan-800/80 bg-black/70 px-4 py-2 text-xs text-cyan-100 focus:border-cyan-400 focus:outline-none"
                                                     />
                                                     <button
