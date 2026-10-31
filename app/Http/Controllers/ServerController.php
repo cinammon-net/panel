@@ -120,9 +120,11 @@ class ServerController extends Controller
                 'id' => $server->id,
                 'uuid' => $server->uuid,
                 'name' => $server->name,
+                'banner' => $server->banner,
                 'status' => $server->status ? 'online' : 'offline',
                 'egg' => $full?->egg?->name ?? '–',
                 'category' => $full?->egg?->category ?? 'minecraft',
+                'owner_id' => $server->owner_id,
                 'username' => $full?->owner?->name ?? 'Unknown',
                 'node' => $full?->node?->name ?? 'Unknown',
                 'allocation' => $full?->allocation
@@ -131,6 +133,7 @@ class ServerController extends Controller
                 'database' => $server->database_limit ?? 0,
                 'cpu' => $server->cpu ?? 0,
                 'memory' => $server->memory ?? 0,
+                'disk' => $server->disk ?? 0,
                 'backups' => $server->backup_limit ?? 0,
             ];
         });
@@ -326,6 +329,21 @@ class ServerController extends Controller
         // También puedes actualizar relaciones si lo necesitas
 
         return redirect()->route('servers.index')->with('success', 'Servidor actualizado exitosamente.');
+    }
+
+    public function updateBanner(Request $request, Server $server)
+    {
+        $validated = $request->validate([
+            'banner' => 'nullable|string|max:2048',
+        ]);
+
+        $server->update(['banner' => $validated['banner'] ?? null]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'banner' => $server->banner]);
+        }
+
+        return back()->with('success', 'Fondo del servidor actualizado exitosamente.');
     }
 
 

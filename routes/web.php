@@ -60,7 +60,7 @@ Route::get('/auth/github/callback', function () {
 
     Auth::login($user);
 
-    return redirect('/dashboard');
+    return redirect('/servers');
 });
 
 Route::get('/auth/discord/redirect', function () {
@@ -81,7 +81,7 @@ Route::get('/auth/discord/callback', function () {
     ]);
 
     Auth::login($user);
-    return redirect('/dashboard');
+    return redirect('/servers');
 });
 
 Route::get('/auth/gitlab/redirect', function () {
@@ -101,7 +101,7 @@ Route::get('/auth/gitlab/callback', function () {
     ]);
 
     Auth::login($user);
-    return redirect('/dashboard');
+    return redirect('/servers');
 });
 Route::get('/auth/google/redirect', function () {
     return Socialite::driver('google')->redirect();
@@ -120,7 +120,7 @@ Route::get('/auth/google/callback', function () {
     ]);
 
     Auth::login($user);
-    return redirect('/dashboard');
+    return redirect('/servers');
 });
 Route::get('/auth/apple/redirect', function () {
     return Socialite::driver('apple')->redirect();
@@ -139,7 +139,7 @@ Route::get('/auth/apple/callback', function () {
     ]);
 
     Auth::login($user);
-    return redirect('/dashboard');
+    return redirect('/servers');
 });
 
 // 🔐 Rutas autenticadas y verificadas
@@ -268,6 +268,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/servers/{uuid}/reinstall', [ServerController::class, 'reinstall']);
     Route::post('/servers/{server}/databases', [ServerController::class, 'storeDatabase']);
     Route::delete('/servers/{server}/databases/{dbId}', [ServerController::class, 'destroyDatabase']);
+    Route::post('/servers/{server}/banner', [ServerController::class, 'updateBanner'])->name('servers.banner.update');
     Route::get('/servers/edit', fn() => redirect('/servers'));
     Route::resource('servers', ServerController::class)->except(['show']);
     Route::get('/servers/{server}/edit', [ServerController::class, 'edit'])->name('servers.edit');

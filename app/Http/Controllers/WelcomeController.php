@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\Server;
 use App\Models\Node;
 use App\Models\Egg;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class WelcomeController extends Controller
