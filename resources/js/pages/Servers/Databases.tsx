@@ -210,10 +210,31 @@ export default function Databases({ server, databases = [] }: PageProps) {
     };
 
     const handleLaunchAdminer = (db: DatabaseItem) => {
-        const driverParam = db.driver === 'pgsql' ? 'pgsql' : db.driver === 'sqlite' ? 'sqlite' : 'server';
-        const url = `/adminer.php?${driverParam}=${encodeURIComponent(db.host + (db.port ? ':' + db.port : ''))}&username=${encodeURIComponent(db.user)}&db=${encodeURIComponent(db.name)}`;
-        window.open(url, '_blank', 'noopener,noreferrer');
-        toast.success(`Abriendo Gestor Web Adminer para ${db.name}`);
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/adminer.php';
+        form.target = '_blank';
+
+        const fields: Record<string, string> = {
+            'auth[driver]': db.driver === 'pgsql' ? 'pgsql' : db.driver === 'sqlite' ? 'sqlite' : 'server',
+            'auth[server]': db.host + (db.port ? `:${db.port}` : ''),
+            'auth[username]': db.user,
+            'auth[password]': db.password || 'cnm_ffb44f998731',
+            'auth[db]': db.name,
+        };
+
+        for (const [key, value] of Object.entries(fields)) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = value;
+            form.appendChild(input);
+        }
+
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+        toast.success(`Iniciando sesión automáticamente en ${db.name}...`);
     };
 
     const handleExecuteSql = (e: React.FormEvent) => {
