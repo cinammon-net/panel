@@ -400,7 +400,7 @@ export default function Console({ server }: { server: Server }) {
                         aria-label="Logs del servidor"
                         className="server-console-terminal h-[440px] overflow-auto bg-[#05080f] p-4 text-xs whitespace-pre text-neutral-200 selection:bg-cyan-500/30 selection:text-cyan-200"
                         style={{
-                            fontFamily: "'JetBrains Mono', 'Fira Code', 'Courier New', Courier, monospace",
+                            fontFamily: "ui-monospace, Menlo, Monaco, 'Courier New', monospace",
                             lineHeight: '1.15',
                             letterSpacing: '0px',
                         }}
