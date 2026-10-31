@@ -7,6 +7,8 @@ const STATUS_PATH = path.join(ROOT_DIR, 'bot-status.json');
 
 const DEFAULT_CANDIDATE_URLS = [
     process.env.PANEL_URL,
+    'http://172.18.0.1:8000',
+    'http://172.17.0.1:8000',
     'http://127.0.0.1:8000',
     'http://localhost:8000',
     'http://host.docker.internal:8000',
@@ -105,11 +107,14 @@ async function callPanelApi(endpoint, method = 'GET', body = null) {
         response = await fetch(`${baseUrl}${endpoint}`, opts);
     } catch (err) {
         discoveredPanelUrl = null;
+        log(`[API ERROR] ${method} ${endpoint} (en ${baseUrl}): ${err.message}`);
         throw err;
     }
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-        throw new Error(data.error || data.message || `HTTP ${response.status}`);
+        const errMsg = data.error || data.message || `HTTP ${response.status}`;
+        log(`[API ERROR] ${method} ${endpoint} -> ${errMsg}`);
+        throw new Error(errMsg);
     }
     return data;
 }

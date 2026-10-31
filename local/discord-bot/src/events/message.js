@@ -74,7 +74,10 @@ async function onMessage({ message, cfg, log }) {
 
     // Buscar en comandos registrados y sus alias
     const cmd = commands.get(cmdName);
-    if (!cmd) return;
+    if (!cmd) {
+        log(`[CMD WARN] Comando no reconocido por prefijo: "${prefix}${cmdName}" (por @${user.username})`);
+        return;
+    }
 
     log(`Comando por prefijo: ${prefix}${cmdName} por @${user.username}`);
 
@@ -82,6 +85,7 @@ async function onMessage({ message, cfg, log }) {
         const payload = await cmd.execute({
             options: args.map((val, i) => ({ name: `arg${i}`, value: val })),
             user,
+            log,
         });
 
         await fetch(`https://discord.com/api/v10/channels/${message.channel_id}/messages`, {
@@ -93,7 +97,24 @@ async function onMessage({ message, cfg, log }) {
             body: JSON.stringify(payload),
         });
     } catch (err) {
-        log(`Error en prefijo ${cmdName}: ${err.message}`);
+        log(`[CMD ERROR] Error en prefijo ${prefix}${cmdName} por @${user.username}: ${err.message}`);
+        if (err.stack) {
+            const trace = err.stack.split('\n').slice(0, 3).map((l) => l.trim()).join(' | ');
+            log(`[CMD ERROR TRACE] ${trace}`);
+        }
+        await fetch(`https://discord.com/api/v10/channels/${message.channel_id}/messages`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bot ${cfg.token}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(
+                v2Container({
+                    accentColor: 0xef4444,
+                    children: [v2Text(`### ⚠️ Error en comando \`${prefix}${cmdName}\`\n${err.message}`)],
+                })
+            ),
+        }).catch(() => null);
     }
 }
 

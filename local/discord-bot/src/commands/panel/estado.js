@@ -5,8 +5,14 @@ module.exports = {
     name: 'estado',
     aliases: ['status', 'info', 'stats', 'panel'],
     description: 'Muestra el estado global de nodos, servidores y recursos',
-    async execute() {
-        const overview = await callPanelApi('/api/bot/overview').catch(() => ({ stats: { servers: 0, nodes: 1, users: 1 } }));
+    async execute({ log } = {}) {
+        let overview;
+        try {
+            overview = await callPanelApi('/api/bot/overview');
+        } catch (err) {
+            if (typeof log === 'function') log(`[CMD ERROR] /estado fallo consultando overview: ${err.message}`);
+            overview = { stats: { servers: 0, nodes: 1, users: 1 } };
+        }
         return v2Container({
             accentColor: 0x10b981,
             children: [

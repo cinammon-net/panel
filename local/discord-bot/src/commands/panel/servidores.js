@@ -5,8 +5,14 @@ module.exports = {
     name: 'servidores',
     aliases: ['servers', 'sv', 'lista', 'mis-servidores', 'servs'],
     description: 'Lista los servidores con controles interactivos de energía',
-    async execute() {
-        const overview = await callPanelApi('/api/bot/overview').catch(() => ({ servers: [] }));
+    async execute({ log } = {}) {
+        let overview;
+        try {
+            overview = await callPanelApi('/api/bot/overview');
+        } catch (err) {
+            if (typeof log === 'function') log(`[CMD ERROR] /servidores fallo consultando overview: ${err.message}`);
+            overview = { servers: [] };
+        }
         const servers = (overview.servers || []).slice(0, 5);
 
         if (servers.length === 0) {

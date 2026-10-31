@@ -20,11 +20,12 @@ class ServerRuntimeController extends Controller
     public function console(Request $request, Server $server)
     {
         $this->authorizeServer($request, $server);
+        $isDiscord = $server->egg->category === 'discord' || $server->egg->category === 'bots' || str_contains(strtolower($server->name), 'discord') || str_contains(strtolower($server->egg->name), 'discord');
         return Inertia::render('Servers/Console', ['server' => [
             'id' => $server->id, 'name' => $server->name, 'uuid' => $server->uuid,
             'address' => app()->environment('local') ? 'localhost:'.$server->allocation->port : $server->allocation->ip.':'.$server->allocation->port,
             'egg' => $server->egg->name, 'memory' => $server->memory, 'disk' => $server->disk, 'cpu' => $server->cpu,
-            'discord_bot' => $server->egg->category === 'discord',
+            'discord_bot' => $isDiscord,
             'minecraft' => str_contains(strtolower($server->egg->name), 'paper'),
         ]]);
     }
@@ -178,12 +179,13 @@ class ServerRuntimeController extends Controller
             $lines = $logs->successful() ? $logs->json('data', []) : [];
             $eula = null;
             $botStatus = null;
-            if ($server->egg->category === 'discord') {
+            $isDiscord = $server->egg->category === 'discord' || $server->egg->category === 'bots' || str_contains(strtolower($server->name), 'discord') || str_contains(strtolower($server->egg->name), 'discord');
+            if ($isDiscord) {
                 $result = $client->get('/servers/'.$server->uuid.'/files/contents', ['file' => 'bot-status.json']);
                 $data = $result->successful() ? $result->json() : null;
                 if (is_array($data)) {
                     $botStatus = array_intersect_key($data, array_flip(['connected', 'configured', 'tag', 'guilds', 'message', 'application_id', 'updated_at']));
-                    $fresh = isset($data['updated_at']) && strtotime($data['updated_at']) >= time() - 30;
+                    $fresh = isset($data['updated_at']) && strtotime($data['updated_at']) >= time() - 90;
                     $botStatus['connected'] = $stateName === 'running' && $fresh && ($data['connected'] ?? false) === true;
                 }
             } else {
