@@ -371,8 +371,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/servers/{uuid}/suspend', [ServerController::class, 'suspend']);
     Route::post('/servers/{uuid}/transfer', [ServerController::class, 'transfer']);
     Route::post('/servers/{uuid}/reinstall', [ServerController::class, 'reinstall']);
-    Route::post('/servers/{server}/databases', [ServerController::class, 'storeDatabase']);
-    Route::delete('/servers/{server}/databases/{dbId}', [ServerController::class, 'destroyDatabase']);
+    Route::get('/servers/{server}/databases', [ServerController::class, 'databases'])->name('servers.databases');
+    Route::post('/servers/{server}/databases', [ServerController::class, 'storeDatabase'])->name('servers.databases.store');
+    Route::delete('/servers/{server}/databases/{dbId}', [ServerController::class, 'destroyDatabase'])->name('servers.databases.destroy');
     Route::post('/servers/{server}/banner', [ServerController::class, 'updateBanner'])->name('servers.banner.update');
     Route::get('/servers/{server}/subusers', [App\Http\Controllers\ServerSubusersController::class, 'index'])->name('servers.subusers');
     Route::post('/servers/{server}/subusers', [App\Http\Controllers\ServerSubusersController::class, 'store'])->name('servers.subusers.store');

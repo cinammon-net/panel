@@ -12,12 +12,13 @@ export default function ServerLayout({
     children,
 }: {
     server: { id: number; name: string; owner_id?: number };
-    section: 'console' | 'files' | 'users' | 'edit';
+    section: 'console' | 'files' | 'databases' | 'users' | 'edit';
     children: ReactNode;
 }) {
     const sectionTitles: Record<string, string> = {
         console: 'Consola',
         files: 'Archivos',
+        databases: 'Bases de Datos',
         users: 'Usuarios',
         edit: 'Configuración',
     };
@@ -27,7 +28,10 @@ export default function ServerLayout({
         { title: server.name, href: `/servers/${server.id}/console` },
         {
             title: sectionTitles[section] ?? section,
-            href: section === 'users' ? `/servers/${server.id}/subusers` : `/servers/${server.id}/${section}`,
+            href:
+                section === 'users'
+                    ? `/servers/${server.id}/subusers`
+                    : `/servers/${server.id}/${section}`,
         },
     ];
 
