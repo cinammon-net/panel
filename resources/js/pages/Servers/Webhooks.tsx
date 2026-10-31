@@ -313,3 +313,4 @@ export default function WebhooksPage({ server, webhooks = [] }: PageProps) {
         </ServerLayout>
     );
 }
+

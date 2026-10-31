@@ -172,3 +172,4 @@ export default function MountsPage({ server, mounts = [] }: PageProps) {
         </ServerLayout>
     );
 }
+

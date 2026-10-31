@@ -329,3 +329,4 @@ export default function BackupsPage({ server, backups = [] }: PageProps) {
         </ServerLayout>
     );
 }
+

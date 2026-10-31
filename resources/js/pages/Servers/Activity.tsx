@@ -227,3 +227,4 @@ export default function ActivityPage({ server, activity = [] }: PageProps) {
         </ServerLayout>
     );
 }
+
