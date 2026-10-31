@@ -517,24 +517,27 @@ export default function Servers() {
                             </form>
 
                             {/* Indicador de desplazamiento horizontal en móvil */}
-                            <div className="flex items-center justify-between border-b border-cyan-900/30 bg-cyan-950/20 px-4 py-1 text-[10px] text-cyan-500/80 lg:hidden">
-                                <span>← Desliza horizontalmente la tabla para ver todos los datos →</span>
+                            <div className="flex items-center justify-between border-b border-cyan-900/30 bg-cyan-950/30 px-4 py-1.5 text-[11px] text-cyan-400 lg:hidden">
+                                <span className="flex items-center gap-1.5">
+                                    <span className="inline-block animate-pulse">👈👉</span>
+                                    <span>Desplaza horizontalmente para ver todas las columnas</span>
+                                </span>
                             </div>
 
                             {/* Contenedor de la Tabla con Scroll Horizontal Fluido */}
-                            <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-cyan-700 scrollbar-track-neutral-900">
-                                <table className="w-full min-w-[850px] text-left text-sm border-collapse">
+                            <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-cyan-700 scrollbar-track-neutral-900" style={{ WebkitOverflowScrolling: 'touch' }}>
+                                <table className="w-full min-w-[950px] table-auto border-collapse text-left text-sm">
                                     <thead>
-                                        <tr className="bg-cyan-100/60 dark:bg-cyan-950/60">
-                                            <th className="w-28 px-3.5 py-2.5 text-xs font-semibold text-cyan-800 dark:text-cyan-400">
+                                        <tr className="border-b border-cyan-800/50 bg-cyan-100/60 dark:bg-cyan-950/70">
+                                            <th className="w-32 min-w-[120px] px-3.5 py-3 text-xs font-semibold text-cyan-800 dark:text-cyan-400 whitespace-nowrap">
                                                 <div className="flex items-center gap-1.5">
                                                     <Activity className="h-3.5 w-3.5 shrink-0" />
                                                     <span>Status</span>
                                                 </div>
                                             </th>
 
-                                            <th className="w-60 min-w-[200px] px-3.5 py-2.5 text-xs font-semibold text-cyan-800 dark:text-cyan-400">
-                                                <button onClick={() => handleSort('name')} className="flex items-center gap-1.5">
+                                            <th className="w-64 min-w-[220px] px-3.5 py-3 text-xs font-semibold text-cyan-800 dark:text-cyan-400 whitespace-nowrap">
+                                                <button onClick={() => handleSort('name')} className="flex items-center gap-1.5 hover:text-cyan-300">
                                                     <Server className="h-3.5 w-3.5 shrink-0" />
                                                     <span>Name</span>
                                                     {filters.sort === 'name' &&
@@ -546,8 +549,8 @@ export default function Servers() {
                                                 </button>
                                             </th>
 
-                                            <th className="w-44 min-w-[150px] px-3.5 py-2.5 text-xs font-semibold text-cyan-800 dark:text-cyan-400">
-                                                <button onClick={() => handleSort('egg')} className="flex items-center gap-1.5">
+                                            <th className="w-48 min-w-[160px] px-3.5 py-3 text-xs font-semibold text-cyan-800 dark:text-cyan-400 whitespace-nowrap">
+                                                <button onClick={() => handleSort('egg')} className="flex items-center gap-1.5 hover:text-cyan-300">
                                                     <Egg className="h-3.5 w-3.5 shrink-0" />
                                                     <span>Egg</span>
                                                     {filters.sort === 'egg' &&
@@ -559,8 +562,8 @@ export default function Servers() {
                                                 </button>
                                             </th>
 
-                                            <th className="w-28 min-w-[100px] px-3.5 py-2.5 text-xs font-semibold text-cyan-800 dark:text-cyan-400">
-                                                <button onClick={() => handleSort('username')} className="flex items-center gap-1.5">
+                                            <th className="w-28 min-w-[110px] px-3.5 py-3 text-xs font-semibold text-cyan-800 dark:text-cyan-400 whitespace-nowrap">
+                                                <button onClick={() => handleSort('username')} className="flex items-center gap-1.5 hover:text-cyan-300">
                                                     <User className="h-3.5 w-3.5 shrink-0" />
                                                     <span>User</span>
                                                     {filters.sort === 'username' &&
@@ -572,8 +575,8 @@ export default function Servers() {
                                                 </button>
                                             </th>
 
-                                            <th className="w-36 min-w-[130px] px-3.5 py-2.5 text-xs font-semibold text-cyan-800 dark:text-cyan-400">
-                                                <button onClick={() => handleSort('allocation')} className="flex items-center gap-1.5">
+                                            <th className="w-44 min-w-[160px] px-3.5 py-3 text-xs font-semibold text-cyan-800 dark:text-cyan-400 whitespace-nowrap">
+                                                <button onClick={() => handleSort('allocation')} className="flex items-center gap-1.5 hover:text-cyan-300">
                                                     <MapPin className="h-3.5 w-3.5 shrink-0" />
                                                     <span>Port / IP</span>
                                                     {filters.sort === 'allocation' &&
@@ -585,8 +588,8 @@ export default function Servers() {
                                                 </button>
                                             </th>
 
-                                            <th className="w-20 min-w-[75px] px-3.5 py-2.5 text-xs font-semibold text-cyan-800 dark:text-cyan-400">
-                                                <button onClick={() => handleSort('backups')} className="flex items-center gap-1.5">
+                                            <th className="w-24 min-w-[85px] px-3.5 py-3 text-xs font-semibold text-cyan-800 dark:text-cyan-400 whitespace-nowrap">
+                                                <button onClick={() => handleSort('backups')} className="flex items-center gap-1.5 hover:text-cyan-300">
                                                     <Database className="h-3.5 w-3.5 shrink-0" />
                                                     <span>Backups</span>
                                                     {filters.sort === 'backups' &&
@@ -598,7 +601,7 @@ export default function Servers() {
                                                 </button>
                                             </th>
 
-                                            <th className="w-36 min-w-[130px] px-3.5 py-2.5 text-right text-xs font-semibold text-cyan-500">
+                                            <th className="w-36 min-w-[130px] px-3.5 py-3 text-right text-xs font-semibold text-cyan-500 whitespace-nowrap">
                                                 Acciones
                                             </th>
                                         </tr>
@@ -613,9 +616,9 @@ export default function Servers() {
                                                         className="cursor-pointer hover:bg-cyan-500/5 transition"
                                                         onClick={() => router.visit(`/servers/${item.id}/files`)}
                                                     >
-                                                        <td className="px-3.5 py-2.5 whitespace-nowrap">
+                                                        <td className="px-3.5 py-3 whitespace-nowrap">
                                                             <span
-                                                                className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                                                                className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
                                                                     item.status === 'offline'
                                                                         ? 'border border-red-500/60 bg-red-950/40 text-red-400'
                                                                         : 'border border-green-500/60 bg-green-950/40 text-green-400'
@@ -629,23 +632,30 @@ export default function Servers() {
                                                                 {item.status}
                                                             </span>
                                                         </td>
-                                                        <td className="px-3.5 py-2.5 font-medium text-neutral-900 dark:text-neutral-100 max-w-[240px] truncate" title={item.name}>
-                                                            {item.name}
+                                                        <td className="px-3.5 py-3 min-w-[220px]">
+                                                            <div className="font-semibold text-neutral-900 dark:text-neutral-100 truncate max-w-[260px]" title={item.name}>
+                                                                {item.name}
+                                                            </div>
+                                                            <div className="text-[10px] text-neutral-400 dark:text-neutral-500 truncate font-mono">
+                                                                {item.node}
+                                                            </div>
                                                         </td>
-                                                        <td className="px-3.5 py-2.5 text-xs text-neutral-600 dark:text-cyan-300 max-w-[180px] truncate" title={item.egg}>
-                                                            {item.egg}
+                                                        <td className="px-3.5 py-3 min-w-[160px]">
+                                                            <span className="text-xs text-neutral-700 dark:text-cyan-300 truncate max-w-[170px] block" title={item.egg}>
+                                                                {item.egg}
+                                                            </span>
                                                         </td>
-                                                        <td className="px-3.5 py-2.5 text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
+                                                        <td className="px-3.5 py-3 text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
                                                             {item.username}
                                                         </td>
-                                                        <td className="px-3.5 py-2.5 font-mono text-xs text-neutral-600 dark:text-cyan-400 whitespace-nowrap">
+                                                        <td className="px-3.5 py-3 font-mono text-xs text-neutral-700 dark:text-cyan-400 whitespace-nowrap tracking-wide">
                                                             {item.allocation || <span className="italic text-neutral-500">–</span>}
                                                         </td>
-                                                        <td className="px-3.5 py-2.5 text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
+                                                        <td className="px-3.5 py-3 text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap font-mono">
                                                             {item.backups ?? item.database ?? 0}
                                                         </td>
-                                                        <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
-                                                            <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                                                        <td className="px-3.5 py-3 text-right whitespace-nowrap">
+                                                            <div className="flex justify-end items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                                                                 <button
                                                                     title="Consola"
                                                                     onClick={() => router.visit(`/servers/${item.id}/console`)}
@@ -710,9 +720,9 @@ export default function Servers() {
                                                                 className="cursor-pointer hover:bg-cyan-500/5 transition"
                                                                 onClick={() => router.visit(`/servers/${item.id}/files`)}
                                                             >
-                                                                <td className="px-3.5 py-2.5 whitespace-nowrap">
+                                                                <td className="px-3.5 py-3 whitespace-nowrap">
                                                                     <span
-                                                                        className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                                                                        className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
                                                                             item.status === 'offline'
                                                                                 ? 'border border-red-500/60 bg-red-950/40 text-red-400'
                                                                                 : 'border border-green-500/60 bg-green-950/40 text-green-400'
@@ -726,23 +736,30 @@ export default function Servers() {
                                                                         {item.status}
                                                                     </span>
                                                                 </td>
-                                                                <td className="px-3.5 py-2.5 font-medium text-neutral-900 dark:text-neutral-100 max-w-[240px] truncate" title={item.name}>
-                                                                    {item.name}
+                                                                <td className="px-3.5 py-3 min-w-[220px]">
+                                                                    <div className="font-semibold text-neutral-900 dark:text-neutral-100 truncate max-w-[260px]" title={item.name}>
+                                                                        {item.name}
+                                                                    </div>
+                                                                    <div className="text-[10px] text-neutral-400 dark:text-neutral-500 truncate font-mono">
+                                                                        {item.node}
+                                                                    </div>
                                                                 </td>
-                                                                <td className="px-3.5 py-2.5 text-xs text-neutral-600 dark:text-cyan-300 max-w-[180px] truncate" title={item.egg}>
-                                                                    {item.egg}
+                                                                <td className="px-3.5 py-3 min-w-[160px]">
+                                                                    <span className="text-xs text-neutral-700 dark:text-cyan-300 truncate max-w-[170px] block" title={item.egg}>
+                                                                        {item.egg}
+                                                                    </span>
                                                                 </td>
-                                                                <td className="px-3.5 py-2.5 text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
+                                                                <td className="px-3.5 py-3 text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
                                                                     {item.username}
                                                                 </td>
-                                                                <td className="px-3.5 py-2.5 font-mono text-xs text-neutral-600 dark:text-cyan-400 whitespace-nowrap">
+                                                                <td className="px-3.5 py-3 font-mono text-xs text-neutral-700 dark:text-cyan-400 whitespace-nowrap tracking-wide">
                                                                     {item.allocation || <span className="italic text-neutral-500">–</span>}
                                                                 </td>
-                                                                <td className="px-3.5 py-2.5 text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
+                                                                <td className="px-3.5 py-3 text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap font-mono">
                                                                     {item.backups ?? item.database ?? 0}
                                                                 </td>
-                                                                <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
-                                                                    <div className="flex justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                                                                <td className="px-3.5 py-3 text-right whitespace-nowrap">
+                                                                    <div className="flex justify-end items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                                                                         <button
                                                                             title="Consola"
                                                                             onClick={() => router.visit(`/servers/${item.id}/console`)}
