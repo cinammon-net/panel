@@ -57,7 +57,7 @@ class ServerFilesController extends Controller
     public function page(Request $request, Server $server)
     {
         $this->authorizeServer($request, $server);
-        return Inertia::render('Servers/Files', ['server' => ['id' => $server->id, 'name' => $server->name]]);
+        return Inertia::render('Servers/Files', ['server' => ['id' => $server->id, 'name' => $server->name, 'owner_id' => $server->owner_id]]);
     }
 
     public function listing(Request $request, Server $server, WingsClient $wings)

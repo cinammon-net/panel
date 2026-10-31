@@ -29,7 +29,7 @@ class ServerRuntimeController extends Controller
         $this->authorizeServer($request, $server);
         $isDiscord = $server->egg->category === 'discord' || $server->egg->category === 'bots' || str_contains(strtolower($server->name), 'discord') || str_contains(strtolower($server->egg->name), 'discord');
         return Inertia::render('Servers/Console', ['server' => [
-            'id' => $server->id, 'name' => $server->name, 'uuid' => $server->uuid,
+            'id' => $server->id, 'name' => $server->name, 'uuid' => $server->uuid, 'owner_id' => $server->owner_id,
             'address' => $server->allocation ? (app()->environment('local') ? 'localhost:'.$server->allocation->port : $server->allocation->ip.':'.$server->allocation->port) : 'localhost',
             'egg' => $server->egg->name, 'memory' => $server->memory, 'disk' => $server->disk, 'cpu' => $server->cpu,
             'discord_bot' => $isDiscord,
