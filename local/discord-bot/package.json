@@ -1,9 +1,15 @@
 {
   "name": "cinammon-discord-bot",
-  "version": "1.0.0",
-  "private": true,
-  "type": "module",
-  "engines": { "node": ">=24.17" },
-  "scripts": { "start": "node src/index.js", "test": "node --test test/*.test.js" },
-  "dependencies": { "discord.js": "14.27.0" }
+  "version": "2.4.0",
+  "description": "Bot oficial en Node.js para Cinammon Panel, Wings y Cinammon Billing (Components V2, Creación de servidores, Monetización, Split-Pay y Plugins)",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node src/index.js --self-test"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "Cinammon.net",
+  "license": "MIT"
 }
