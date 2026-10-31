@@ -373,6 +373,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/servers/{uuid}/reinstall', [ServerController::class, 'reinstall']);
     Route::get('/servers/{server}/databases', [ServerController::class, 'databases'])->name('servers.databases');
     Route::post('/servers/{server}/databases', [ServerController::class, 'storeDatabase'])->name('servers.databases.store');
+    Route::post('/servers/{server}/databases/{dbId}/rotate', [ServerController::class, 'rotateDatabasePassword'])->name('servers.databases.rotate');
     Route::delete('/servers/{server}/databases/{dbId}', [ServerController::class, 'destroyDatabase'])->name('servers.databases.destroy');
 
     // Módulos del Servidor (Red, Backups, Mounts, Webhooks, Subdominios, Actividad)

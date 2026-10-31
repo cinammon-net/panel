@@ -567,6 +567,32 @@ class ServerController extends Controller
         return back()->with('success', 'Base de datos creada correctamente.');
     }
 
+    public function rotateDatabasePassword(Request $request, Server $server, $dbId)
+    {
+        $user = $request->user();
+        abort_unless(
+            $user->id === $server->owner_id ||
+            $user->hasAnyRole(['Owner', 'Admin']) ||
+            $server->subusers()->where('user_id', $user->id)->exists(),
+            403
+        );
+
+        $key = "server_databases_{$server->id}";
+        $databases = \Illuminate\Support\Facades\Cache::get($key, []);
+        $newPassword = 'cnm_' . \Illuminate\Support\Str::random(14);
+
+        foreach ($databases as &$db) {
+            if ((string) ($db['id'] ?? '') === (string) $dbId) {
+                $db['password'] = $newPassword;
+                break;
+            }
+        }
+
+        \Illuminate\Support\Facades\Cache::forever($key, $databases);
+
+        return back()->with('success', 'Contraseña de la base de datos rotada y actualizada con éxito.');
+    }
+
     public function destroyDatabase(Server $server, $dbId)
     {
         $key = "server_databases_{$server->id}";
