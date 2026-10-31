@@ -604,6 +604,13 @@ export default function Console({ server }: { server: Server }) {
                             >{`╔═╗╦╔╗╔╔═╗╔╦╗╔╦╗╔═╗╔╗╔    ╔╗╔╔═╗╔╦╗
 ║  ║║║║╠═╣║║║║║║║ ║║║║    ║║║║╣  ║
 ╚═╝╩╝╚╝╩ ╩╩ ╩╩ ╩╚═╝╝╚╝  o ╝╚╝╚═╝ ╩`}</pre>
+                            <div
+                                className="mx-auto mt-2 h-px w-[85%] max-w-[560px] bg-gradient-to-r from-transparent via-cyan-400/70 to-transparent"
+                                aria-hidden="true"
+                            />
+                            <div className="mt-2 text-[0.55em] font-semibold tracking-[0.5em] text-white" style={{ textShadow: 'none' }}>
+                                C I N A M M O N . N E T
+                            </div>
                         </div>
                         {clearedAt ? (
                             <div className="text-neutral-500 italic py-2">
