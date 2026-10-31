@@ -22,4 +22,9 @@ class WingsClient
             'uuid' => $server->uuid, 'start_on_completion' => (bool) $server->start_after_install,
         ])->throw();
     }
+
+    public function reinstall(Server $server): void
+    {
+        $this->forServer($server)->post("/servers/{$server->uuid}/reinstall")->throw();
+    }
 }
