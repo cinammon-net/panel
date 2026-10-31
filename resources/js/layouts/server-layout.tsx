@@ -11,7 +11,7 @@ export default function ServerLayout({
     section,
     children,
 }: {
-    server: { id: number; name: string };
+    server: { id: number; name: string; owner_id?: number };
     section: 'console' | 'files' | 'users' | 'edit';
     children: ReactNode;
 }) {

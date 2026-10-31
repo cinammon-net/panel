@@ -11,7 +11,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
     BookOpenCheck,
@@ -44,9 +44,17 @@ export default function ServerSidebar({
     server,
     section,
 }: {
-    server: { id: number; name: string };
+    server: { id: number; name: string; owner_id?: number };
     section: 'console' | 'files' | 'users' | 'edit';
 }) {
+    const page = usePage();
+    const { auth } = page.props as any;
+    const user = auth?.user;
+    const userRoles: string[] = user?.roles ?? [];
+    const isAdmin = userRoles.includes('Owner') || userRoles.includes('Admin');
+    const isServerOwner = user && server?.owner_id ? user.id === server.owner_id : false;
+    const canManageServer = isServerOwner || isAdmin;
+
     const serverNavItems = [
         {
             key: 'console',
@@ -54,6 +62,7 @@ export default function ServerSidebar({
             href: `/servers/${server.id}/console`,
             icon: Terminal,
             color: 'text-cyan-400',
+            show: true,
         },
         {
             key: 'files',
@@ -61,6 +70,7 @@ export default function ServerSidebar({
             href: `/servers/${server.id}/files`,
             icon: Files,
             color: 'text-cyan-400',
+            show: true,
         },
         {
             key: 'users',
@@ -68,6 +78,7 @@ export default function ServerSidebar({
             href: `/servers/${server.id}/subusers`,
             icon: Users,
             color: 'text-cyan-400',
+            show: canManageServer,
         },
         {
             key: 'edit',
@@ -75,8 +86,9 @@ export default function ServerSidebar({
             href: `/servers/${server.id}/edit`,
             icon: Settings,
             color: 'text-cyan-400',
+            show: canManageServer,
         },
-    ];
+    ].filter((item) => item.show);
 
     return (
         <Sidebar
