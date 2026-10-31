@@ -129,3 +129,4 @@ class ServerSubusersController extends Controller
         return back()->with('success', "Se revocó el acceso a {$userName}.");
     }
 }
+
