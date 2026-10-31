@@ -168,19 +168,70 @@ async function startBot() {
 async function handleConsoleCommand(rawLine) {
     const line = (rawLine || '').trim();
     if (!line) return;
-    const command = line.toLowerCase();
+    const [rawCmd, ...args] = line.split(/\s+/);
+    const command = (rawCmd || '').toLowerCase();
 
-    if (command === 'status' || command === 'estado') {
-        const overview = await callPanelApi('/api/bot/overview').catch(() => null);
-        log(`Estado: ${state.connected ? 'Conectado (' + state.tag + ')' : 'En espera'} | Servidores: ${overview?.stats?.servers ?? 0}`);
-        return;
+    try {
+        if (command === 'status' || command === 'estado') {
+            const overview = await callPanelApi('/api/bot/overview');
+            log(`Estado: ${state.connected ? 'Conectado (' + state.tag + ')' : 'En espera'} | Servidores: ${overview?.stats?.servers ?? 0}`);
+            return;
+        }
+        if (command === 'test' || command === 'prueba') {
+            log('Iniciando prueba local de comandos...');
+            await commands.get('ping')?.execute({ user: { username: 'Consola' }, log });
+            log('✓ Comando ping: OK');
+            await commands.get('servidores')?.execute({ user: { username: 'Consola' }, log });
+            log('✓ Comando servidores: OK');
+            await commands.get('estado')?.execute({ user: { username: 'Consola' }, log });
+            log('✓ Comando estado: OK');
+            log('Prueba local completada con éxito.');
+            return;
+        }
+        if (command === 'stop' || command === 'exit' || command === 'detener') {
+            log('Deteniendo bot...');
+            process.exit(0);
+        }
+
+        // Si escribe un comando del bot directamente en la consola (ej: ping, sv, servidores, estado, ayuda, perfil)
+        const botCmd = commands.get(command);
+        if (botCmd) {
+            log(`Ejecutando "${command}" desde consola...`);
+            await botCmd.execute({
+                options: args.map((val, i) => ({ name: `arg${i}`, value: val })),
+                user: { username: 'Consola' },
+                log,
+            });
+            log(`✓ Comando "${command}" finalizado.`);
+            return;
+        }
+
+        log(`[CMD ERROR] Comando de consola no reconocido: "${line}". Disponibles: status, test, servidores, ping, estado, stop`);
+    } catch (err) {
+        log(`[CMD ERROR] Error ejecutando comando de consola "${line}": ${err.message}`);
+        if (err.stack) {
+            const trace = err.stack.split('\n').slice(0, 3).map((l) => l.trim()).join(' | ');
+            log(`[CMD ERROR TRACE] ${trace}`);
+        }
     }
-    if (command === 'stop' || command === 'exit') {
-        log('Deteniendo bot...');
-        process.exit(0);
-    }
-    log('Comandos de consola disponibles: status | stop');
 }
+
+process.on('uncaughtException', (err) => {
+    log(`[FATAL ERROR] Excepción no capturada: ${err.message}`);
+    if (err.stack) {
+        const trace = err.stack.split('\n').slice(0, 4).map((l) => l.trim()).join(' | ');
+        log(`[FATAL ERROR TRACE] ${trace}`);
+    }
+});
+
+process.on('unhandledRejection', (reason) => {
+    const msg = reason instanceof Error ? reason.message : String(reason);
+    log(`[CMD ERROR] Promesa rechazada no capturada: ${msg}`);
+    if (reason instanceof Error && reason.stack) {
+        const trace = reason.stack.split('\n').slice(0, 3).map((l) => l.trim()).join(' | ');
+        log(`[CMD ERROR TRACE] ${trace}`);
+    }
+});
 
 // Inicialización
 log(`Iniciando Cinammon Bot en Node.js ${process.version}...`);

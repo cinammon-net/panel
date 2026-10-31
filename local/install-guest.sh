@@ -33,7 +33,7 @@ for name in cinammon-panel cinammon-scheduler; do
 done
 sudo docker run -d --name cinammon-panel --restart unless-stopped \
   --user "$(id -u):$(id -g)" --network host -v "$repo:$repo" -w "$repo" \
-  cinammon-panel-local:php84 php artisan serve --host=127.0.0.1 --port=8000
+  cinammon-panel-local:php84 php artisan serve --host=0.0.0.0 --port=8000
 sudo docker run -d --name cinammon-scheduler --restart unless-stopped \
   --user "$(id -u):$(id -g)" --network host -v "$repo:$repo" -w "$repo" \
   cinammon-panel-local:php84 php artisan schedule:work

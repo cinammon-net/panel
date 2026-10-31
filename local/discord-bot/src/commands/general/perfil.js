@@ -26,7 +26,7 @@ module.exports = {
             required: false,
         },
     ],
-    async execute({ options = [] }) {
+    async execute({ options = [], log } = {}) {
         const cfg = readConfig();
         const newStatus = options.find((o) => o.name === 'estado' || o.name === 'arg0')?.value;
         const newName = options.find((o) => o.name === 'nombre' || o.name === 'arg1')?.value;
@@ -47,6 +47,8 @@ module.exports = {
                     state.updatePresence(cleanStatus);
                 }
 
+                if (typeof log === 'function') log(`[CMD PERFIL] Estado actualizado a: "${cleanStatus}"`);
+
                 return v2Container({
                     accentColor: 0x10b981,
                     children: [
@@ -57,6 +59,7 @@ module.exports = {
                     ],
                 });
             } catch (err) {
+                if (typeof log === 'function') log(`[CMD ERROR] /perfil error al guardar estado: ${err.message}`);
                 return v2Container({
                     accentColor: 0xef4444,
                     children: [v2Text(`Error al guardar estado: \`${err.message}\``)],
@@ -79,6 +82,7 @@ module.exports = {
                 if (res.ok) {
                     const data = await res.json();
                     state.tag = data.username;
+                    if (typeof log === 'function') log(`[CMD PERFIL] Nombre de bot actualizado a: "${data.username}"`);
                     return v2Container({
                         accentColor: 0x10b981,
                         children: [
@@ -90,14 +94,17 @@ module.exports = {
                     });
                 } else {
                     const errData = await res.json().catch(() => ({}));
+                    const errMsg = errData.message || 'Límite de cambios de nombre alcanzado (máx. 2 por hora)';
+                    if (typeof log === 'function') log(`[CMD ERROR] /perfil rechazo de Discord al cambiar nombre: ${errMsg}`);
                     return v2Container({
                         accentColor: 0xef4444,
                         children: [
-                            v2Text(`## ⚠️ Aviso de Discord\n\`${errData.message || 'Límite de cambios de nombre alcanzado (máx. 2 por hora)'}\``),
+                            v2Text(`## ⚠️ Aviso de Discord\n\`${errMsg}\``),
                         ],
                     });
                 }
             } catch (err) {
+                if (typeof log === 'function') log(`[CMD ERROR] /perfil error al conectar con Discord para renombrar: ${err.message}`);
                 return v2Container({
                     accentColor: 0xef4444,
                     children: [v2Text(`Error al actualizar nombre: \`${err.message}\``)],

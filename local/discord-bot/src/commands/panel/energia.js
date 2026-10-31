@@ -24,7 +24,7 @@ module.exports = {
             ],
         },
     ],
-    async execute({ options }) {
+    async execute({ options, log } = {}) {
         let serverId = options?.find((o) => o.name === 'servidor_id' || o.name === 'arg0')?.value;
         let action = options?.find((o) => o.name === 'accion' || o.name === 'arg1')?.value || 'restart';
 
@@ -42,6 +42,9 @@ module.exports = {
                 ],
             });
         } catch (err) {
+            if (typeof log === 'function') {
+                log(`[CMD ERROR] /energia fallo accion ${action} en servidor #${serverId}: ${err.message}`);
+            }
             return v2Container({
                 accentColor: 0xef4444,
                 children: [

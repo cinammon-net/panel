@@ -36,3 +36,8 @@ Route::get('/gallery/list', function () {
 
     return response()->json($images);
 });
+
+// 🤖 API para Cinammon Discord Bot
+Route::get('/bot/overview', [App\Http\Controllers\BotApiController::class, 'overview']);
+Route::post('/servers/{server}/power', [App\Http\Controllers\BotApiController::class, 'power']);
+

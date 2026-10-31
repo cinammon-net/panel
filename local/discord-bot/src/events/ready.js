@@ -36,7 +36,18 @@ async function onReady({ user, token, guildId, log }) {
         message: `Conectado como ${tag} · Comandos listos.`,
     });
 
+    setInterval(() => {
+        writeStatus({
+            connected: true,
+            configured: true,
+            tag,
+            application_id: user.id,
+            message: `Conectado como ${tag} · Comandos listos.`,
+        });
+    }, 15000);
+
     log(`READY! Bot conectado exitosamente como ${tag}.`);
 }
 
 module.exports = { onReady };
+
