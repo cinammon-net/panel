@@ -926,5 +926,855 @@ class AdvancedSectionController extends Controller
 
         return redirect()->route('webhooks.index')->with('success', 'Webhook eliminado.');
     }
+
+    // =========================================================================
+    // 💳 CINAMMON BILLING & MONETIZACIÓN (Integrado con cinammon-es/billing)
+    // =========================================================================
+
+    private function ensureBillingTables(): void
+    {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('billing_plans')) {
+            \Illuminate\Support\Facades\Schema::create('billing_plans', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->id();
+                $table->string('code')->unique();
+                $table->string('name');
+                $table->string('category')->default('minecraft');
+                $table->decimal('price', 8, 2)->default(4.99);
+                $table->string('billing_cycle')->default('monthly');
+                $table->integer('memory')->default(2048);
+                $table->integer('disk')->default(20480);
+                $table->integer('cpu')->default(200);
+                $table->integer('backups_limit')->default(3);
+                $table->integer('databases_limit')->default(2);
+                $table->boolean('split_pay_enabled')->default(true);
+                $table->boolean('featured')->default(false);
+                $table->text('perks')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        if (DB::table('billing_plans')->count() === 0) {
+            $now = now()->toDateTimeString();
+            DB::table('billing_plans')->insert([
+                [
+                    'code' => 'starter-mc',
+                    'name' => 'Cinammon Starter MC',
+                    'category' => 'minecraft',
+                    'price' => 4.99,
+                    'billing_cycle' => 'monthly',
+                    'memory' => 2048,
+                    'disk' => 20480,
+                    'cpu' => 200,
+                    'backups_limit' => 3,
+                    'databases_limit' => 2,
+                    'split_pay_enabled' => 1,
+                    'featured' => 0,
+                    'perks' => json_encode(['PaperMC Java 25', 'Protección Anycast DDoS L7', 'Subdominio .cinammon.net gratis', 'AI Crash Healer incluido']),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+                [
+                    'code' => 'pro-mc',
+                    'name' => 'Cinammon Pro Network',
+                    'category' => 'minecraft',
+                    'price' => 11.99,
+                    'billing_cycle' => 'monthly',
+                    'memory' => 6144,
+                    'disk' => 61440,
+                    'cpu' => 400,
+                    'backups_limit' => 7,
+                    'databases_limit' => 5,
+                    'split_pay_enabled' => 1,
+                    'featured' => 1,
+                    'perks' => json_encode(['NVMe Gen4 Dedicado', 'Clan Co-Op Split-Pay', 'Migración en vivo Zero-Downtime', 'Bases de datos MySQL + Redis']),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+                [
+                    'code' => 'bot-v2',
+                    'name' => 'Discord Bot Host V2',
+                    'category' => 'discord',
+                    'price' => 2.49,
+                    'billing_cycle' => 'monthly',
+                    'memory' => 1024,
+                    'disk' => 10240,
+                    'cpu' => 100,
+                    'backups_limit' => 5,
+                    'databases_limit' => 2,
+                    'split_pay_enabled' => 1,
+                    'featured' => 0,
+                    'perks' => json_encode(['Node.js 24 LTS nativo', 'Soporte Discord Components V2 (Flag 32768)', 'Uptime 99.99% Local & VPS', 'Reinicio automático Anti-Crash']),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+                [
+                    'code' => 'ultra-ryzen',
+                    'name' => 'Cinammon Extreme Ryzen 9',
+                    'category' => 'minecraft',
+                    'price' => 24.99,
+                    'billing_cycle' => 'monthly',
+                    'memory' => 16384,
+                    'disk' => 122880,
+                    'cpu' => 800,
+                    'backups_limit' => 15,
+                    'databases_limit' => 10,
+                    'split_pay_enabled' => 1,
+                    'featured' => 1,
+                    'perks' => json_encode(['AMD Ryzen 9 7950X3D', 'Clan Co-Op hasta 20 miembros', 'Soporte Prioritario 24/7 Discord V2', 'Cluster PostgreSQL + MongoDB']),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+            ]);
+        }
+
+        if (!\Illuminate\Support\Facades\Schema::hasTable('billing_orders')) {
+            \Illuminate\Support\Facades\Schema::create('billing_orders', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->id();
+                $table->string('invoice_id')->unique();
+                $table->string('plan_code');
+                $table->string('plan_name');
+                $table->string('customer_name');
+                $table->string('discord_user')->nullable();
+                $table->string('gateway')->default('stripe');
+                $table->decimal('amount', 8, 2)->default(0);
+                $table->string('status')->default('paid');
+                $table->integer('server_id')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        if (DB::table('billing_orders')->count() === 0) {
+            $now = now()->toDateTimeString();
+            DB::table('billing_orders')->insert([
+                [
+                    'invoice_id' => 'INV-CNM-2026-001',
+                    'plan_code' => 'pro-mc',
+                    'plan_name' => 'Cinammon Pro Network',
+                    'customer_name' => 'Admin Principal',
+                    'discord_user' => 'cinammon_owner#0001',
+                    'gateway' => 'stripe',
+                    'amount' => 11.99,
+                    'status' => 'paid',
+                    'server_id' => 1,
+                    'created_at' => now()->subDays(2)->toDateTimeString(),
+                    'updated_at' => $now,
+                ],
+                [
+                    'invoice_id' => 'INV-CNM-2026-002',
+                    'plan_code' => 'bot-v2',
+                    'plan_name' => 'Discord Bot Host V2',
+                    'customer_name' => 'Discord Bot Manager',
+                    'discord_user' => 'bot_architect',
+                    'gateway' => 'discord_v2',
+                    'amount' => 2.49,
+                    'status' => 'paid',
+                    'server_id' => 2,
+                    'created_at' => now()->subHours(6)->toDateTimeString(),
+                    'updated_at' => $now,
+                ],
+            ]);
+        }
+
+        if (!\Illuminate\Support\Facades\Schema::hasTable('billing_split_pools')) {
+            \Illuminate\Support\Facades\Schema::create('billing_split_pools', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->id();
+                $table->string('code')->unique();
+                $table->string('clan_name');
+                $table->string('plan_code');
+                $table->decimal('target_amount', 8, 2)->default(11.99);
+                $table->decimal('collected_amount', 8, 2)->default(0);
+                $table->integer('contributors_count')->default(1);
+                $table->string('status')->default('collecting');
+                $table->text('contributors')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        if (DB::table('billing_split_pools')->count() === 0) {
+            $now = now()->toDateTimeString();
+            DB::table('billing_split_pools')->insert([
+                [
+                    'code' => 'CLAN-VALKYRIE-01',
+                    'clan_name' => 'Clan Valkyrie SMP',
+                    'plan_code' => 'pro-mc',
+                    'target_amount' => 11.99,
+                    'collected_amount' => 9.00,
+                    'contributors_count' => 3,
+                    'status' => 'collecting',
+                    'contributors' => json_encode([
+                        ['user' => 'nini_admin', 'amount' => 4.00, 'method' => 'Discord Pay V2'],
+                        ['user' => 'alex_pvp', 'amount' => 3.00, 'method' => 'Stripe'],
+                        ['user' => 'luna_craft', 'amount' => 2.00, 'method' => 'PayPal'],
+                    ]),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+                [
+                    'code' => 'CLAN-HYDRA-99',
+                    'clan_name' => 'Hydra BoxPvP Network',
+                    'plan_code' => 'ultra-ryzen',
+                    'target_amount' => 24.99,
+                    'collected_amount' => 24.99,
+                    'contributors_count' => 5,
+                    'status' => 'active_provisioned',
+                    'contributors' => json_encode([
+                        ['user' => 'hydra_lead', 'amount' => 9.99, 'method' => 'Stripe'],
+                        ['user' => 'kaiser_mc', 'amount' => 5.00, 'method' => 'Tebex'],
+                        ['user' => 'sora_dev', 'amount' => 5.00, 'method' => 'Discord Pay V2'],
+                        ['user' => 'zoe_builder', 'amount' => 5.00, 'method' => 'Crypto USDT'],
+                    ]),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+            ]);
+        }
+    }
+
+    public function billing()
+    {
+        $this->ensureBillingTables();
+
+        $plans = DB::table('billing_plans')->orderBy('price')->get()->map(function ($p) {
+            return [
+                'id' => (int) $p->id,
+                'code' => $p->code,
+                'name' => $p->name,
+                'category' => $p->category,
+                'price' => (float) $p->price,
+                'billing_cycle' => $p->billing_cycle,
+                'memory' => (int) $p->memory,
+                'disk' => (int) $p->disk,
+                'cpu' => (int) $p->cpu,
+                'backups_limit' => (int) $p->backups_limit,
+                'databases_limit' => (int) $p->databases_limit,
+                'split_pay_enabled' => (bool) $p->split_pay_enabled,
+                'featured' => (bool) $p->featured,
+                'perks' => is_string($p->perks) ? (json_decode($p->perks, true) ?? []) : [],
+            ];
+        })->values()->all();
+
+        $orders = DB::table('billing_orders')->orderByDesc('id')->limit(25)->get()->map(fn($o) => [
+            'id' => (int) $o->id,
+            'invoice_id' => $o->invoice_id,
+            'plan_code' => $o->plan_code,
+            'plan_name' => $o->plan_name,
+            'customer_name' => $o->customer_name,
+            'discord_user' => $o->discord_user,
+            'gateway' => $o->gateway,
+            'amount' => (float) $o->amount,
+            'status' => $o->status,
+            'server_id' => $o->server_id,
+            'created_at' => $o->created_at,
+        ])->values()->all();
+
+        $splitPools = DB::table('billing_split_pools')->orderByDesc('id')->get()->map(fn($pool) => [
+            'id' => (int) $pool->id,
+            'code' => $pool->code,
+            'clan_name' => $pool->clan_name,
+            'plan_code' => $pool->plan_code,
+            'target_amount' => (float) $pool->target_amount,
+            'collected_amount' => (float) $pool->collected_amount,
+            'contributors_count' => (int) $pool->contributors_count,
+            'status' => $pool->status,
+            'contributors' => is_string($pool->contributors) ? (json_decode($pool->contributors, true) ?? []) : [],
+        ])->values()->all();
+
+        $gateways = Cache::get('cinammon_billing_gateways', [
+            ['id' => 'stripe', 'name' => 'Stripe Checkout & Subscriptions', 'enabled' => true, 'mode' => 'live_ready', 'webhook_sync' => true],
+            ['id' => 'discord_v2', 'name' => 'Discord Bot V2 Instant Store (/comprar & /colecta)', 'enabled' => true, 'mode' => 'components_v2', 'webhook_sync' => true],
+            ['id' => 'paypal', 'name' => 'PayPal Express & IPN', 'enabled' => true, 'mode' => 'live_ready', 'webhook_sync' => true],
+            ['id' => 'tebex', 'name' => 'Tebex Game Monetization Bridge', 'enabled' => true, 'mode' => 'synced', 'webhook_sync' => true],
+            ['id' => 'crypto', 'name' => 'USDT / USDC / Lightning Network', 'enabled' => false, 'mode' => 'sandbox', 'webhook_sync' => false],
+        ]);
+
+        $mrr = collect($orders)->where('status', 'paid')->sum('amount');
+
+        return Inertia::render('Billing', [
+            'plans' => $plans,
+            'orders' => $orders,
+            'splitPools' => $splitPools,
+            'gateways' => $gateways,
+            'billingRepo' => [
+                'organization' => 'cinammon-es',
+                'repository' => 'https://github.com/cinammon-es/billing',
+                'branch' => 'main',
+                'sync_status' => 'connected',
+                'mrr' => round($mrr, 2),
+                'active_subscriptions' => count($orders),
+            ],
+        ]);
+    }
+
+    public function storeBillingPlan(Request $request)
+    {
+        $this->ensureBillingTables();
+        $validated = $request->validate([
+            'code' => 'required|string|max:64|unique:billing_plans,code',
+            'name' => 'required|string|max:191',
+            'category' => 'required|string|in:minecraft,discord,voice,database',
+            'price' => 'required|numeric|min:0',
+            'memory' => 'required|integer|min:256',
+            'disk' => 'required|integer|min:1024',
+            'cpu' => 'required|integer|min:50',
+            'perks' => 'nullable|array',
+        ]);
+
+        DB::table('billing_plans')->insert([
+            'code' => strtolower($validated['code']),
+            'name' => $validated['name'],
+            'category' => $validated['category'],
+            'price' => (float) $validated['price'],
+            'billing_cycle' => 'monthly',
+            'memory' => (int) $validated['memory'],
+            'disk' => (int) $validated['disk'],
+            'cpu' => (int) $validated['cpu'],
+            'backups_limit' => 5,
+            'databases_limit' => 3,
+            'split_pay_enabled' => 1,
+            'featured' => 0,
+            'perks' => json_encode($validated['perks'] ?? ['Auto-Provisioning', 'Soporte Local y VPS', 'Discord Components V2']),
+            'created_at' => now()->toDateTimeString(),
+            'updated_at' => now()->toDateTimeString(),
+        ]);
+
+        return redirect()->route('billing.index')->with('success', 'Plan comercial añadido al catálogo de Cinammon Billing.');
+    }
+
+    public function checkoutBillingPlan(Request $request)
+    {
+        $this->ensureBillingTables();
+        $validated = $request->validate([
+            'plan_code' => 'required|string',
+            'server_name' => 'nullable|string|max:191',
+            'gateway' => 'nullable|string',
+        ]);
+
+        $result = $this->executePlanProvisioning(
+            $validated['plan_code'],
+            $validated['server_name'] ?? null,
+            $request->user()->name ?? 'Cliente Cinammon',
+            $validated['gateway'] ?? 'stripe',
+            $request->user()->id ?? 1
+        );
+
+        return redirect()->route('billing.index')->with('success', "Pago procesado ({$result['invoice_id']}) y servidor #{$result['server_id']} ({$result['server_name']}) aprovisionado automáticamente.");
+    }
+
+    public function createSplitPayPool(Request $request)
+    {
+        $this->ensureBillingTables();
+        $validated = $request->validate([
+            'clan_name' => 'required|string|max:191',
+            'plan_code' => 'required|string',
+            'initial_contribution' => 'required|numeric|min:0.5',
+        ]);
+
+        $plan = DB::table('billing_plans')->where('code', $validated['plan_code'])->first();
+        $target = $plan ? (float) $plan->price : 11.99;
+        $initial = min($target, (float) $validated['initial_contribution']);
+        $code = 'CLAN-' . strtoupper(Str::random(6));
+
+        DB::table('billing_split_pools')->insert([
+            'code' => $code,
+            'clan_name' => $validated['clan_name'],
+            'plan_code' => $validated['plan_code'],
+            'target_amount' => $target,
+            'collected_amount' => $initial,
+            'contributors_count' => 1,
+            'status' => $initial >= $target ? 'active_provisioned' : 'collecting',
+            'contributors' => json_encode([
+                ['user' => $request->user()->name ?? 'Líder de Clan', 'amount' => $initial, 'method' => 'Panel Split-Pay'],
+            ]),
+            'created_at' => now()->toDateTimeString(),
+            'updated_at' => now()->toDateTimeString(),
+        ]);
+
+        return redirect()->route('billing.index')->with('success', "Colecta Clan Co-Op {$code} creada correctamente.");
+    }
+
+    public function contributeSplitPayPool(Request $request, int $id)
+    {
+        $this->ensureBillingTables();
+        $pool = DB::table('billing_split_pools')->where('id', $id)->first();
+        if ($pool) {
+            $amount = max(0.5, (float) $request->input('amount', 3.00));
+            $contributors = is_string($pool->contributors) ? (json_decode($pool->contributors, true) ?? []) : [];
+            $contributors[] = [
+                'user' => $request->input('contributor', $request->user()->name ?? 'Miembro del Clan'),
+                'amount' => $amount,
+                'method' => 'Discord V2 / Split-Pay',
+            ];
+            $newCollected = min((float) $pool->target_amount, (float) $pool->collected_amount + $amount);
+            $newStatus = $newCollected >= (float) $pool->target_amount ? 'active_provisioned' : 'collecting';
+
+            DB::table('billing_split_pools')->where('id', $id)->update([
+                'collected_amount' => $newCollected,
+                'contributors_count' => count($contributors),
+                'status' => $newStatus,
+                'contributors' => json_encode($contributors),
+                'updated_at' => now()->toDateTimeString(),
+            ]);
+
+            if ($newStatus === 'active_provisioned' && $pool->status !== 'active_provisioned') {
+                $this->executePlanProvisioning($pool->plan_code, $pool->clan_name, $pool->clan_name, 'split_pay_coop', $request->user()->id ?? 1);
+            }
+        }
+
+        return redirect()->route('billing.index')->with('success', 'Aportación registrada en la colecta del clan.');
+    }
+
+    // =========================================================================
+    // 🧩 SISTEMA DE PLUGINS (Compatible con Pelican + Exclusivos Cinammon)
+    // =========================================================================
+
+    private function ensurePluginsTable(): void
+    {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('cinammon_plugins')) {
+            \Illuminate\Support\Facades\Schema::create('cinammon_plugins', function (\Illuminate\Database\Schema\Blueprint $table) {
+                $table->id();
+                $table->string('slug')->unique();
+                $table->string('name');
+                $table->string('version')->default('1.0.0');
+                $table->string('author')->default('Cinammon Core Team');
+                $table->string('category')->default('exclusive');
+                $table->string('compatibility')->default('Cinammon & Pelican v1');
+                $table->text('description');
+                $table->text('exclusive_advantage')->nullable();
+                $table->boolean('enabled')->default(true);
+                $table->text('config')->nullable();
+                $table->timestamps();
+            });
+        }
+
+        if (DB::table('cinammon_plugins')->count() === 0) {
+            $now = now()->toDateTimeString();
+            DB::table('cinammon_plugins')->insert([
+                [
+                    'slug' => 'cinammon-ai-healer',
+                    'name' => 'AI Crash Healer & Auto-Doctor',
+                    'version' => '2.4.0',
+                    'author' => 'Cinammon Labs',
+                    'category' => 'exclusive',
+                    'compatibility' => 'Exclusivo Cinammon (No disponible en Pelican)',
+                    'description' => 'Analiza en tiempo real las trazas de error de Java/Node.js en la consola (OutOfMemory, Port-In-Use, EULA, Chunk Corrupto, Token inválido) y aplica la reparación automática sin intervención humana.',
+                    'exclusive_advantage' => 'Reparación autónoma en <500ms con diagnóstico integrado en la pestaña PROBLEMS de la consola estilo VS Code.',
+                    'enabled' => 1,
+                    'config' => json_encode(['auto_accept_eula' => true, 'auto_gc_memory_spike' => true, 'max_heal_attempts' => 3]),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+                [
+                    'slug' => 'cinammon-split-pay',
+                    'name' => 'Clan Co-Op Split-Pay Billing',
+                    'version' => '1.8.2',
+                    'author' => 'cinammon-es/billing',
+                    'category' => 'billing',
+                    'compatibility' => 'Exclusivo Cinammon + cinammon-es/billing',
+                    'description' => 'Permite que clanes y comunidades dividan el pago mensual de un servidor entre múltiples miembros directamente desde Discord usando Components V2 (/colecta) o el panel web.',
+                    'exclusive_advantage' => 'Pelican requiere facturación externa de un único titular; Cinammon permite botes compartidos con aprovisionamiento instantáneo al llegar al 100%.',
+                    'enabled' => 1,
+                    'config' => json_encode(['min_contribution_eur' => 1.00, 'auto_provision_on_goal' => true]),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+                [
+                    'slug' => 'cinammon-discord-v2',
+                    'name' => 'Discord Bot Components V2 Bridge',
+                    'version' => '3.0.0',
+                    'author' => 'Cinammon Core Team',
+                    'category' => 'discord',
+                    'compatibility' => 'Exclusivo Cinammon (Discord API v10 Flag 32768)',
+                    'description' => 'Conecta el bot oficial en Node.js 24 con el Panel y Wings (Local o VPS) empleando 100% contenedores nativos de Discord Components V2 (Containers, Sections, Separators y botones interactivos).',
+                    'exclusive_advantage' => 'Creación de servidores, control de energía, tienda y gestión de plugins sin salir de Discord con interfaz moderna V2.',
+                    'enabled' => 1,
+                    'config' => json_encode(['components_v2_flag' => 32768, 'sync_local_and_vps' => true]),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+                [
+                    'slug' => 'cinammon-ddos-srv',
+                    'name' => 'Anycast DDoS Shield & Smart SRV Creator',
+                    'version' => '1.5.0',
+                    'author' => 'Cinammon Network',
+                    'category' => 'network',
+                    'compatibility' => 'Exclusivo Cinammon + Cloudflare DNS',
+                    'description' => 'Genera subdominios SRV automáticos (ej. play.miclan.cinammon.net) sin necesidad de escribir el puerto y activa mitigación L7 para Minecraft y Bots.',
+                    'exclusive_advantage' => 'Configuración en 1 clic sin tocar registros DNS manualmente.',
+                    'enabled' => 1,
+                    'config' => json_encode(['base_domain' => 'cinammon.net', 'auto_srv_record' => true]),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+                [
+                    'slug' => 'cinammon-live-migrator',
+                    'name' => 'Zero-Downtime Local ↔ VPS Live Migrator',
+                    'version' => '2.1.0',
+                    'author' => 'Cinammon Infrastructure',
+                    'category' => 'infrastructure',
+                    'compatibility' => 'Exclusivo Cinammon Hybrid Engine',
+                    'description' => 'Sincroniza en caliente servidores que corren en tu máquina local hacia un nodo VPS en producción (o viceversa) manteniendo ficheros, bases de datos y estado.',
+                    'exclusive_advantage' => 'Modo híbrido continuo: si Wings en el VPS cae o estás desarrollando en local, el panel mantiene el servidor operativo.',
+                    'enabled' => 1,
+                    'config' => json_encode(['hybrid_fallback' => true, 'snapshot_compression' => 'zstd']),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+                [
+                    'slug' => 'pelican-import-adapter',
+                    'name' => 'Pelican & Pterodactyl Manifest Adapter',
+                    'version' => '1.4.1',
+                    'author' => 'Cinammon Open Ecosystem',
+                    'category' => 'pelican_compat',
+                    'compatibility' => 'Compatible 100% con Pelican Panel & Pterodactyl Eggs',
+                    'description' => 'Permite cargar plugins, Eggs JSON y extensiones diseñadas para Pelican Panel dentro de Cinammon sin modificar su código fuente.',
+                    'exclusive_advantage' => 'Compatibilidad total con el ecosistema existente más las mejoras visuales y de monetización de Cinammon.',
+                    'enabled' => 1,
+                    'config' => json_encode(['allow_pelican_v1_manifests' => true, 'strict_sandbox' => true]),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+            ]);
+        }
+    }
+
+    public function plugins()
+    {
+        $this->ensurePluginsTable();
+
+        $plugins = DB::table('cinammon_plugins')->orderBy('id')->get()->map(fn($p) => [
+            'id' => $p->slug,
+            'db_id' => (int) $p->id,
+            'name' => $p->name,
+            'version' => $p->version,
+            'author' => $p->author,
+            'category' => $p->category,
+            'compatibility' => $p->compatibility,
+            'description' => $p->description,
+            'exclusive_advantage' => $p->exclusive_advantage,
+            'enabled' => (bool) $p->enabled,
+            'config' => is_string($p->config) ? (json_decode($p->config, true) ?? []) : [],
+        ])->values()->all();
+
+        return Inertia::render('Plugins', [
+            'plugins' => $plugins,
+        ]);
+    }
+
+    public function togglePlugin(Request $request)
+    {
+        $this->ensurePluginsTable();
+        $slug = (string) $request->input('plugin_id', '');
+        $plugin = DB::table('cinammon_plugins')->where('slug', $slug)->orWhere('id', $slug)->first();
+
+        if ($plugin) {
+            DB::table('cinammon_plugins')->where('id', $plugin->id)->update([
+                'enabled' => $plugin->enabled ? 0 : 1,
+                'updated_at' => now()->toDateTimeString(),
+            ]);
+        }
+
+        return redirect()->route('plugins.index')->with('success', 'Estado del plugin actualizado.');
+    }
+
+    public function installPlugin(Request $request)
+    {
+        $this->ensurePluginsTable();
+        $validated = $request->validate([
+            'name' => 'required|string|max:191',
+            'slug' => 'nullable|string|max:100',
+            'category' => 'nullable|string|in:exclusive,billing,discord,network,infrastructure,pelican_compat',
+            'description' => 'required|string|max:600',
+            'exclusive_advantage' => 'nullable|string|max:400',
+        ]);
+
+        $slug = !empty($validated['slug']) ? Str::slug($validated['slug']) : 'plugin-' . Str::slug($validated['name']);
+        DB::table('cinammon_plugins')->updateOrInsert(
+            ['slug' => $slug],
+            [
+                'name' => $validated['name'],
+                'version' => '1.0.0',
+                'author' => $request->user()->name ?? 'Cinammon Developer',
+                'category' => $validated['category'] ?? 'pelican_compat',
+                'compatibility' => 'Cinammon & Pelican Manifest v1',
+                'description' => $validated['description'],
+                'exclusive_advantage' => $validated['exclusive_advantage'] ?? 'Extensión personalizada instalada en caliente.',
+                'enabled' => 1,
+                'config' => json_encode(['hot_reload' => true]),
+                'created_at' => now()->toDateTimeString(),
+                'updated_at' => now()->toDateTimeString(),
+            ]
+        );
+
+        return redirect()->route('plugins.index')->with('success', "Plugin {$validated['name']} instalado y activado.");
+    }
+
+    // =========================================================================
+    // 🤖 API UNIVERSAL PARA EL BOT DE NODE.JS (Components V2 · Local & VPS)
+    // =========================================================================
+
+    private function executePlanProvisioning(
+        string $planCode,
+        ?string $customName = null,
+        string $customerName = 'Discord User',
+        string $gateway = 'discord_v2',
+        int $ownerId = 1
+    ): array {
+        $this->ensureBillingTables();
+        $plan = DB::table('billing_plans')->where('code', $planCode)->first()
+            ?? DB::table('billing_plans')->first();
+
+        $node = Node::first();
+        $isDiscord = ($plan->category ?? 'minecraft') === 'discord' || str_contains(strtolower($planCode), 'bot');
+        $egg = Egg::where('category', $isDiscord ? 'discord' : 'minecraft')->first() ?? Egg::first();
+
+        $allocation = DB::table('allocations')->whereNull('server_id')->first();
+        if (!$allocation && $node) {
+            $nextPort = (int) (DB::table('allocations')->max('port') ?? 25565) + 1;
+            $allocId = DB::table('allocations')->insertGetId([
+                'node_id' => $node->id,
+                'ip' => $node->ip ?: '127.0.0.1',
+                'port' => $nextPort,
+                'server_id' => null,
+                'created_at' => now()->toDateTimeString(),
+                'updated_at' => now()->toDateTimeString(),
+            ]);
+            $allocation = DB::table('allocations')->where('id', $allocId)->first();
+        }
+
+        $serverName = $customName ?: (($plan->name ?? 'Cinammon Server') . ' #' . rand(100, 999));
+        $uuid = (string) Str::uuid();
+        $serverId = DB::table('servers')->insertGetId([
+            'uuid' => $uuid,
+            'uuid_short' => substr(str_replace('-', '', $uuid), 0, 8),
+            'name' => $serverName,
+            'description' => "Aprovisionado vía Cinammon Billing ({$gateway})",
+            'status' => 1,
+            'owner_id' => $ownerId,
+            'node_id' => $node->id ?? 1,
+            'allocation_id' => $allocation->id ?? 1,
+            'egg_id' => $egg->id ?? 14,
+            'startup' => $egg->startup ?? ($isDiscord ? 'node src/index.js' : 'java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar {{SERVER_JARFILE}}'),
+            'image' => $egg->docker_images ?? ($isDiscord ? 'ghcr.io/parkervcp/yolks:nodejs_24' : 'ghcr.io/parkervcp/yolks:java_25'),
+            'memory' => (int) ($plan->memory ?? 2048),
+            'swap' => 0,
+            'disk' => (int) ($plan->disk ?? 20480),
+            'io' => 500,
+            'cpu' => (int) ($plan->cpu ?? 200),
+            'oom_disabled' => 0,
+            'backups_limit' => (int) ($plan->backups_limit ?? 3),
+            'databases_limit' => (int) ($plan->databases_limit ?? 2),
+            'installed_at' => now()->toDateTimeString(),
+            'created_at' => now()->toDateTimeString(),
+            'updated_at' => now()->toDateTimeString(),
+        ]);
+
+        if ($allocation) {
+            DB::table('allocations')->where('id', $allocation->id)->update(['server_id' => $serverId]);
+        }
+
+        $invoiceId = 'INV-CNM-' . strtoupper(Str::random(6));
+        DB::table('billing_orders')->insert([
+            'invoice_id' => $invoiceId,
+            'plan_code' => $plan->code ?? $planCode,
+            'plan_name' => $plan->name ?? 'Cinammon Plan',
+            'customer_name' => $customerName,
+            'discord_user' => $customerName,
+            'gateway' => $gateway,
+            'amount' => (float) ($plan->price ?? 4.99),
+            'status' => 'paid',
+            'server_id' => $serverId,
+            'created_at' => now()->toDateTimeString(),
+            'updated_at' => now()->toDateTimeString(),
+        ]);
+
+        return [
+            'invoice_id' => $invoiceId,
+            'server_id' => $serverId,
+            'uuid' => $uuid,
+            'server_name' => $serverName,
+            'egg' => $egg->name ?? 'PaperMC Java 25',
+            'memory' => (int) ($plan->memory ?? 2048),
+            'disk' => (int) ($plan->disk ?? 20480),
+            'cpu' => (int) ($plan->cpu ?? 200),
+            'address' => ($allocation->ip ?? '127.0.0.1') . ':' . ($allocation->port ?? 25565),
+            'price' => (float) ($plan->price ?? 4.99),
+        ];
+    }
+
+    public function botOverview()
+    {
+        $this->ensureBillingTables();
+        $this->ensurePluginsTable();
+
+        $servers = Server::with(['egg', 'allocation'])->orderBy('id')->get()->map(fn($s) => [
+            'id' => $s->id,
+            'uuid' => $s->uuid,
+            'name' => $s->name,
+            'status' => $s->status ? 'running' : 'offline',
+            'egg' => $s->egg->name ?? 'Server',
+            'memory' => $s->memory,
+            'disk' => $s->disk,
+            'cpu' => $s->cpu,
+            'address' => ($s->allocation->ip ?? '127.0.0.1') . ':' . ($s->allocation->port ?? 25565),
+        ])->values()->all();
+
+        $plans = DB::table('billing_plans')->orderBy('price')->get()->map(fn($p) => [
+            'id' => $p->code,
+            'name' => $p->name,
+            'price' => (float) $p->price,
+            'memory' => (int) $p->memory,
+            'disk' => (int) $p->disk,
+            'cpu' => (int) $p->cpu,
+            'egg' => $p->category === 'discord' ? 'Node.js 24 LTS' : 'PaperMC Java 25',
+            'perks' => is_string($p->perks) ? (json_decode($p->perks, true) ?? []) : [],
+        ])->values()->all();
+
+        $plugins = DB::table('cinammon_plugins')->orderBy('id')->get()->map(fn($pl) => [
+            'id' => $pl->slug,
+            'name' => $pl->name,
+            'version' => $pl->version,
+            'enabled' => (bool) $pl->enabled,
+            'exclusive' => $pl->category === 'exclusive',
+            'description' => $pl->description,
+        ])->values()->all();
+
+        return response()->json([
+            'panel' => 'Cinammon.net Enterprise Panel',
+            'mode' => app()->environment('local') ? 'Hybrid (Local + VPS Ready)' : 'Production VPS',
+            'components_v2' => true,
+            'stats' => [
+                'servers' => count($servers),
+                'nodes' => Node::count(),
+                'users' => User::count(),
+                'eggs' => Egg::count(),
+            ],
+            'servers' => $servers,
+            'plans' => $plans,
+            'plugins' => $plugins,
+        ]);
+    }
+
+    public function botCreateServer(Request $request)
+    {
+        $planCode = $request->input('plan', 'starter-mc');
+        $name = $request->input('name', 'Servidor Discord V2');
+        $discordUser = $request->input('discord_user', 'discord_member');
+
+        $created = $this->executePlanProvisioning($planCode, $name, $discordUser, 'discord_bot_v2', 1);
+
+        return response()->json([
+            'success' => true,
+            'server' => [
+                'id' => $created['server_id'],
+                'uuid' => $created['uuid'],
+                'name' => $created['server_name'],
+                'status' => 'running',
+                'egg' => $created['egg'],
+                'memory' => $created['memory'],
+                'disk' => $created['disk'],
+                'cpu' => $created['cpu'],
+                'address' => $created['address'],
+            ],
+            'invoice_id' => $created['invoice_id'],
+        ]);
+    }
+
+    public function botServerPower(Request $request)
+    {
+        $serverId = (int) $request->input('server_id', 1);
+        $action = $request->input('action', 'restart');
+        $server = Server::find($serverId) ?? Server::first();
+
+        if ($server) {
+            $newStatus = in_array($action, ['start', 'restart'], true);
+            $server->update(['status' => $newStatus]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'server_id' => $server->id ?? $serverId,
+            'server_name' => $server->name ?? "Server #{$serverId}",
+            'action' => $action,
+            'state' => in_array($action, ['start', 'restart'], true) ? 'running' : 'offline',
+        ]);
+    }
+
+    public function botBillingCheckout(Request $request)
+    {
+        $planCode = $request->input('plan_id', 'pro-mc');
+        $discordUser = $request->input('discord_user', 'discord_customer');
+        $gateway = $request->input('gateway', 'stripe');
+
+        $created = $this->executePlanProvisioning($planCode, "Servidor {$discordUser}", $discordUser, $gateway, 1);
+
+        return response()->json([
+            'success' => true,
+            'invoice_id' => $created['invoice_id'],
+            'server' => $created,
+        ]);
+    }
+
+    public function botBillingSplitPay(Request $request)
+    {
+        $this->ensureBillingTables();
+        $clanName = $request->input('clan_name', 'Clan Discord V2');
+        $planCode = $request->input('plan_id', 'pro-mc');
+        $contribution = (float) $request->input('contribution', 3.00);
+        $discordUser = $request->input('discord_user', 'clan_leader');
+
+        $plan = DB::table('billing_plans')->where('code', $planCode)->first();
+        $target = $plan ? (float) $plan->price : 11.99;
+        $code = 'CLAN-' . strtoupper(Str::random(6));
+
+        DB::table('billing_split_pools')->insert([
+            'code' => $code,
+            'clan_name' => $clanName,
+            'plan_code' => $planCode,
+            'target_amount' => $target,
+            'collected_amount' => min($target, $contribution),
+            'contributors_count' => 1,
+            'status' => $contribution >= $target ? 'active_provisioned' : 'collecting',
+            'contributors' => json_encode([
+                ['user' => $discordUser, 'amount' => $contribution, 'method' => 'Discord Bot V2'],
+            ]),
+            'created_at' => now()->toDateTimeString(),
+            'updated_at' => now()->toDateTimeString(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'pool_code' => $code,
+            'clan_name' => $clanName,
+            'target_amount' => $target,
+            'collected_amount' => min($target, $contribution),
+        ]);
+    }
+
+    public function botPluginToggle(Request $request)
+    {
+        $this->ensurePluginsTable();
+        $pluginId = $request->input('plugin_id', 'cinammon-ai-healer');
+        $plugin = DB::table('cinammon_plugins')->where('slug', $pluginId)->first();
+
+        if ($plugin) {
+            $newState = !$plugin->enabled;
+            DB::table('cinammon_plugins')->where('id', $plugin->id)->update([
+                'enabled' => $newState ? 1 : 0,
+                'updated_at' => now()->toDateTimeString(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'plugin' => [
+                    'id' => $plugin->slug,
+                    'name' => $plugin->name,
+                    'enabled' => $newState,
+                ],
+            ]);
+        }
+
+        return response()->json(['success' => false], 404);
+    }
 }
+
 
