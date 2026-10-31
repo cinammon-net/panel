@@ -13,16 +13,23 @@ import {
 } from '@/components/ui/sidebar';
 import { Link, usePage } from '@inertiajs/react';
 import {
+    Activity,
+    Archive,
     ArrowLeft,
     BookOpenCheck,
     Database,
     Files,
     FolderGit2,
+    FolderTree,
+    Globe,
+    Network,
     Settings,
     Terminal,
     Users,
+    Webhook,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
+import { ServerSection } from '@/layouts/server-layout';
 
 const footerNavItems = [
     {
@@ -46,7 +53,7 @@ export default function ServerSidebar({
     section,
 }: {
     server: { id: number; name: string; owner_id?: number };
-    section: 'console' | 'files' | 'databases' | 'users' | 'edit';
+    section: ServerSection;
 }) {
     const page = usePage();
     const { auth } = page.props as any;
@@ -56,48 +63,111 @@ export default function ServerSidebar({
     const isServerOwner = user && server?.owner_id ? user.id === server.owner_id : false;
     const canManageServer = isServerOwner || isAdmin;
 
-    const serverNavItems = [
+    const navGroups = [
         {
-            key: 'console',
-            title: 'Consola',
-            href: `/servers/${server.id}/console`,
-            icon: Terminal,
-            color: 'text-cyan-400',
-            show: true,
+            title: 'Gestión Principal',
+            items: [
+                {
+                    key: 'console',
+                    title: 'Consola',
+                    href: `/servers/${server.id}/console`,
+                    icon: Terminal,
+                    color: 'text-cyan-400',
+                    show: true,
+                },
+                {
+                    key: 'files',
+                    title: 'Archivos',
+                    href: `/servers/${server.id}/files`,
+                    icon: Files,
+                    color: 'text-cyan-400',
+                    show: true,
+                },
+                {
+                    key: 'databases',
+                    title: 'Bases de Datos',
+                    href: `/servers/${server.id}/databases`,
+                    icon: Database,
+                    color: 'text-cyan-400',
+                    show: true,
+                },
+                {
+                    key: 'backups',
+                    title: 'Copias de Seguridad',
+                    href: `/servers/${server.id}/backups`,
+                    icon: Archive,
+                    color: 'text-cyan-400',
+                    show: true,
+                },
+                {
+                    key: 'network',
+                    title: 'Red y Puertos',
+                    href: `/servers/${server.id}/network`,
+                    icon: Network,
+                    color: 'text-cyan-400',
+                    show: true,
+                },
+            ],
         },
         {
-            key: 'files',
-            title: 'Archivos',
-            href: `/servers/${server.id}/files`,
-            icon: Files,
-            color: 'text-cyan-400',
-            show: true,
+            title: 'Integraciones',
+            items: [
+                {
+                    key: 'subdomains',
+                    title: 'Subdominios',
+                    href: `/servers/${server.id}/subdomains`,
+                    icon: Globe,
+                    color: 'text-cyan-400',
+                    show: true,
+                },
+                {
+                    key: 'mounts',
+                    title: 'Puntos de Montaje',
+                    href: `/servers/${server.id}/mounts`,
+                    icon: FolderTree,
+                    color: 'text-cyan-400',
+                    show: true,
+                },
+                {
+                    key: 'webhooks',
+                    title: 'Webhooks',
+                    href: `/servers/${server.id}/webhooks`,
+                    icon: Webhook,
+                    color: 'text-cyan-400',
+                    show: true,
+                },
+                {
+                    key: 'activity',
+                    title: 'Actividad',
+                    href: `/servers/${server.id}/activity`,
+                    icon: Activity,
+                    color: 'text-cyan-400',
+                    show: true,
+                },
+            ],
         },
         {
-            key: 'databases',
-            title: 'Bases de Datos',
-            href: `/servers/${server.id}/databases`,
-            icon: Database,
-            color: 'text-cyan-400',
-            show: true,
+            title: 'Administración',
+            items: [
+                {
+                    key: 'users',
+                    title: 'Usuarios',
+                    href: `/servers/${server.id}/subusers`,
+                    icon: Users,
+                    color: 'text-cyan-400',
+                    show: canManageServer,
+                },
+                {
+                    key: 'edit',
+                    title: 'Configuración',
+                    href: `/servers/${server.id}/edit`,
+                    icon: Settings,
+                    color: 'text-cyan-400',
+                    show: canManageServer,
+                },
+            ],
         },
-        {
-            key: 'users',
-            title: 'Usuarios',
-            href: `/servers/${server.id}/subusers`,
-            icon: Users,
-            color: 'text-cyan-400',
-            show: canManageServer,
-        },
-        {
-            key: 'edit',
-            title: 'Configuración',
-            href: `/servers/${server.id}/edit`,
-            icon: Settings,
-            color: 'text-cyan-400',
-            show: canManageServer,
-        },
-    ].filter((item) => item.show);
+    ];
 
     return (
         <Sidebar
@@ -133,41 +203,48 @@ export default function ServerSidebar({
                 </div>
             </SidebarHeader>
 
-            <SidebarContent className="pt-4">
-                <SidebarGroup className="px-2 py-1">
-                    <SidebarGroupLabel className="px-2 text-xs font-bold text-cyan-500 tracking-wider uppercase">
-                        Gestión del Servidor
-                    </SidebarGroupLabel>
-                    <SidebarMenu className="mt-1 space-y-1">
-                        {serverNavItems.map((item) => {
-                            const isCurrent = section === item.key;
-                            return (
-                                <SidebarMenuItem key={item.key}>
-                                    <SidebarMenuButton
-                                        asChild
-                                        isActive={isCurrent}
-                                        tooltip={{ children: item.title }}
-                                        className={
-                                            isCurrent
-                                                ? 'bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-500/50 shadow-[0_0_10px_rgba(34,211,238,0.25)] dark:bg-cyan-950/60'
-                                                : 'text-neutral-600 dark:text-neutral-300 hover:text-cyan-400 dark:hover:text-cyan-300 hover:bg-cyan-500/10'
-                                        }
-                                    >
-                                        <Link href={item.href} className="flex items-center gap-3">
-                                            <item.icon
-                                                className={`h-4 w-4 ${item.color}`}
-                                                style={{
-                                                    filter: isCurrent ? 'drop-shadow(0 0 6px currentColor)' : undefined,
-                                                }}
-                                            />
-                                            <span>{item.title}</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            );
-                        })}
-                    </SidebarMenu>
-                </SidebarGroup>
+            <SidebarContent className="pt-2 pb-4 space-y-3">
+                {navGroups.map((group) => {
+                    const visibleItems = group.items.filter((item) => item.show);
+                    if (visibleItems.length === 0) return null;
+
+                    return (
+                        <SidebarGroup key={group.title} className="px-2 py-0">
+                            <SidebarGroupLabel className="px-2 text-[10px] font-bold text-cyan-500/80 tracking-wider uppercase">
+                                {group.title}
+                            </SidebarGroupLabel>
+                            <SidebarMenu className="mt-1 space-y-0.5">
+                                {visibleItems.map((item) => {
+                                    const isCurrent = section === item.key;
+                                    return (
+                                        <SidebarMenuItem key={item.key}>
+                                            <SidebarMenuButton
+                                                asChild
+                                                isActive={isCurrent}
+                                                tooltip={{ children: item.title }}
+                                                className={
+                                                    isCurrent
+                                                        ? 'bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-500/50 shadow-[0_0_10px_rgba(34,211,238,0.25)] dark:bg-cyan-950/60'
+                                                        : 'text-neutral-600 dark:text-neutral-300 hover:text-cyan-400 dark:hover:text-cyan-300 hover:bg-cyan-500/10'
+                                                }
+                                            >
+                                                <Link href={item.href} className="flex items-center gap-2.5 text-xs">
+                                                    <item.icon
+                                                        className={`h-4 w-4 ${item.color} shrink-0`}
+                                                        style={{
+                                                            filter: isCurrent ? 'drop-shadow(0 0 6px currentColor)' : undefined,
+                                                        }}
+                                                    />
+                                                    <span className="truncate">{item.title}</span>
+                                                </Link>
+                                            </SidebarMenuButton>
+                                        </SidebarMenuItem>
+                                    );
+                                })}
+                            </SidebarMenu>
+                        </SidebarGroup>
+                    );
+                })}
             </SidebarContent>
 
             <SidebarFooter className="mt-auto border-t border-neutral-300 dark:border-cyan-900/60">

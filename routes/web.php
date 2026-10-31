@@ -374,6 +374,30 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/servers/{server}/databases', [ServerController::class, 'databases'])->name('servers.databases');
     Route::post('/servers/{server}/databases', [ServerController::class, 'storeDatabase'])->name('servers.databases.store');
     Route::delete('/servers/{server}/databases/{dbId}', [ServerController::class, 'destroyDatabase'])->name('servers.databases.destroy');
+
+    // Módulos del Servidor (Red, Backups, Mounts, Webhooks, Subdominios, Actividad)
+    Route::get('/servers/{server}/network', [App\Http\Controllers\ServerModulesController::class, 'network'])->name('servers.network');
+    Route::post('/servers/{server}/network', [App\Http\Controllers\ServerModulesController::class, 'assignNetwork'])->name('servers.network.assign');
+    Route::post('/servers/{server}/network/primary', [App\Http\Controllers\ServerModulesController::class, 'setPrimaryNetwork'])->name('servers.network.primary');
+    Route::delete('/servers/{server}/network/{allocation}', [App\Http\Controllers\ServerModulesController::class, 'destroyNetwork'])->name('servers.network.destroy');
+
+    Route::get('/servers/{server}/backups', [App\Http\Controllers\ServerModulesController::class, 'backups'])->name('servers.backups');
+    Route::post('/servers/{server}/backups', [App\Http\Controllers\ServerModulesController::class, 'storeBackup'])->name('servers.backups.store');
+    Route::post('/servers/{server}/backups/{backupId}/lock', [App\Http\Controllers\ServerModulesController::class, 'toggleBackupLock'])->name('servers.backups.lock');
+    Route::delete('/servers/{server}/backups/{backupId}', [App\Http\Controllers\ServerModulesController::class, 'destroyBackup'])->name('servers.backups.destroy');
+
+    Route::get('/servers/{server}/mounts', [App\Http\Controllers\ServerModulesController::class, 'mounts'])->name('servers.mounts');
+
+    Route::get('/servers/{server}/webhooks', [App\Http\Controllers\ServerModulesController::class, 'webhooks'])->name('servers.webhooks');
+    Route::post('/servers/{server}/webhooks', [App\Http\Controllers\ServerModulesController::class, 'storeWebhook'])->name('servers.webhooks.store');
+    Route::post('/servers/{server}/webhooks/{webhookId}/test', [App\Http\Controllers\ServerModulesController::class, 'testWebhook'])->name('servers.webhooks.test');
+    Route::delete('/servers/{server}/webhooks/{webhookId}', [App\Http\Controllers\ServerModulesController::class, 'destroyWebhook'])->name('servers.webhooks.destroy');
+
+    Route::get('/servers/{server}/subdomains', [App\Http\Controllers\ServerModulesController::class, 'subdomains'])->name('servers.subdomains');
+    Route::post('/servers/{server}/subdomains', [App\Http\Controllers\ServerModulesController::class, 'storeSubdomain'])->name('servers.subdomains.store');
+    Route::delete('/servers/{server}/subdomains/{subdomainId}', [App\Http\Controllers\ServerModulesController::class, 'destroySubdomain'])->name('servers.subdomains.destroy');
+
+    Route::get('/servers/{server}/activity', [App\Http\Controllers\ServerModulesController::class, 'activity'])->name('servers.activity');
     Route::post('/servers/{server}/banner', [ServerController::class, 'updateBanner'])->name('servers.banner.update');
     Route::get('/servers/{server}/subusers', [App\Http\Controllers\ServerSubusersController::class, 'index'])->name('servers.subusers');
     Route::post('/servers/{server}/subusers', [App\Http\Controllers\ServerSubusersController::class, 'store'])->name('servers.subusers.store');
