@@ -181,3 +181,4 @@ export function UserSwitcherModal({ open, onClose }: UserSwitcherModalProps) {
         </div>
     );
 }
+

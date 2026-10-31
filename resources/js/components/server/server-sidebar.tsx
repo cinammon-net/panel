@@ -15,6 +15,7 @@ import { Link, usePage } from '@inertiajs/react';
 import {
     ArrowLeft,
     BookOpenCheck,
+    Database,
     Files,
     FolderGit2,
     Settings,
@@ -45,7 +46,7 @@ export default function ServerSidebar({
     section,
 }: {
     server: { id: number; name: string; owner_id?: number };
-    section: 'console' | 'files' | 'users' | 'edit';
+    section: 'console' | 'files' | 'databases' | 'users' | 'edit';
 }) {
     const page = usePage();
     const { auth } = page.props as any;
@@ -69,6 +70,14 @@ export default function ServerSidebar({
             title: 'Archivos',
             href: `/servers/${server.id}/files`,
             icon: Files,
+            color: 'text-cyan-400',
+            show: true,
+        },
+        {
+            key: 'databases',
+            title: 'Bases de Datos',
+            href: `/servers/${server.id}/databases`,
+            icon: Database,
             color: 'text-cyan-400',
             show: true,
         },

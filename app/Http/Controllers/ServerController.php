@@ -481,6 +481,42 @@ class ServerController extends Controller
         ]);
     }
 
+    public function databases(Request $request, Server $server)
+    {
+        $user = $request->user();
+        abort_unless(
+            $user->id === $server->owner_id ||
+            $user->hasAnyRole(['Owner', 'Admin']) ||
+            $server->subusers()->where('user_id', $user->id)->exists(),
+            403,
+            'No tienes permiso para ver las bases de datos de este servidor.'
+        );
+
+        $key = "server_databases_{$server->id}";
+        $databases = \Illuminate\Support\Facades\Cache::get($key, [
+            [
+                'id' => 1,
+                'name' => 's' . $server->id . '_cinammon',
+                'driver' => 'mysql',
+                'user' => 'u' . $server->id . '_admin',
+                'host' => '127.0.0.1',
+                'port' => 3306,
+                'password' => 'cnm_' . substr(md5('srv_db_' . $server->id), 0, 12),
+            ],
+        ]);
+
+        return Inertia::render('Servers/Databases', [
+            'server' => [
+                'id' => $server->id,
+                'name' => $server->name,
+                'uuid' => $server->uuid,
+                'owner_id' => $server->owner_id,
+                'database_limit' => $server->database_limit ?: 3,
+            ],
+            'databases' => $databases,
+        ]);
+    }
+
     public function storeDatabase(Request $request, Server $server)
     {
         $validated = $request->validate([
