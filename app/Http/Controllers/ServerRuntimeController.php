@@ -32,7 +32,7 @@ class ServerRuntimeController extends Controller
     private function cleanLogs(string $logs, ?Server $server = null): string
     {
         // 1. Only strip non-color ANSI sequences (cursor positioning, screen clear), keep \e[...m colors
-        $logs = preg_replace('/\x1B\[[0-9;]*[A-HJKSTfhilmnprsu]/', function ($matches) {
+        $logs = preg_replace_callback('/\x1B\[[0-9;]*[A-HJKSTfhilmnprsu]/', function ($matches) {
             $code = $matches[0];
             // Keep style/color codes ending in 'm'
             if (str_ends_with($code, 'm')) {
