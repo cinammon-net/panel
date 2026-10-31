@@ -1,16 +1,11 @@
 {
-  "name": "moxi",
-  "version": "1.10.0",
+  "name": "cinammon-discord-bot",
+  "version": "2.0.0",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "start:clean": "node index.js 2>&1 | findstr /V \"Multiple Resolves\" | findstr /V \"AbortError\" | findstr /V \"DeprecationWarning\"",
-    "dev": "set NODE_ENV=development&& set DEBUG=1&& set AUTO_DEPLOY_SLASH=true&& nodemon index.js",
-    "postinstall": "node scripts/postinstall.js",
-    "release:patch": "npm version patch -m \"chore(release): %s\"",
-    "release:minor": "npm version minor -m \"chore(release): %s\"",
-    "release:major": "npm version major -m \"chore(release): %s\""
+    "dev": "nodemon index.js"
   },
   "keywords": [
     "discord.js",
