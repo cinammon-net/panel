@@ -105,14 +105,6 @@ class ServerRuntimeController extends Controller
             }
         }
 
-            $prefix = 'cinammon@'.\Illuminate\Support\Str::slug($server->name).' ~ Server marked as starting...';
-            if (!str_contains($logs, 'Server marked as starting')) {
-                $logs = $banner . $prefix . "\n" . $logs;
-            } else {
-                $logs = $banner . $logs;
-            }
-        }
-
         return $logs;
     }
 
