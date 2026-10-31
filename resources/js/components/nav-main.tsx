@@ -100,17 +100,31 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                         isActive={item.href === page.url}
                                         tooltip={{ children: item.title }}
                                     >
-                                        <Link href={item.href}>
-                                            {item.icon && (
-                                                <item.icon
-                                                    className={`h-4 w-4 ${item.groupColor ?? 'text-white'}`}
-                                                    style={{
-                                                        filter: 'drop-shadow(0 0 6px currentColor)',
-                                                    }}
-                                                />
-                                            )}
-                                            <span>{item.title}</span>
-                                        </Link>
+                                        {item.href.startsWith('http') ? (
+                                            <a href={item.href} target="_blank" rel="noopener noreferrer">
+                                                {item.icon && (
+                                                    <item.icon
+                                                        className={`h-4 w-4 ${item.groupColor ?? 'text-white'}`}
+                                                        style={{
+                                                            filter: 'drop-shadow(0 0 6px currentColor)',
+                                                        }}
+                                                    />
+                                                )}
+                                                <span>{item.title}</span>
+                                            </a>
+                                        ) : (
+                                            <Link href={item.href}>
+                                                {item.icon && (
+                                                    <item.icon
+                                                        className={`h-4 w-4 ${item.groupColor ?? 'text-white'}`}
+                                                        style={{
+                                                            filter: 'drop-shadow(0 0 6px currentColor)',
+                                                        }}
+                                                    />
+                                                )}
+                                                <span>{item.title}</span>
+                                            </Link>
+                                        )}
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
                             ))}
