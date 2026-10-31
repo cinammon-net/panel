@@ -4,22 +4,33 @@ import {
     Activity,
     Bot,
     Box,
+    Check,
     ChevronDown,
     ChevronRight,
     ChevronUp,
+    Copy,
+    Cpu,
     Database,
     Egg,
     Filter,
+    Folder,
     Gamepad2,
+    HardDrive,
+    Image as ImageIcon,
     Layers,
+    LayoutGrid,
+    List,
     MapPin,
     Mic,
     Pencil,
+    Power,
     Radio,
     Server,
     Sparkles,
+    Terminal,
     Trash2,
     User,
+    Zap,
 } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 
@@ -27,6 +38,7 @@ interface ServerItem {
     id: number;
     uuid: string;
     name: string;
+    banner?: string | null;
     author?: string;
     description?: string;
     node: string;
@@ -39,6 +51,9 @@ interface ServerItem {
     backups?: number;
     allocation: string;
     username: string;
+    cpu?: number;
+    memory?: number;
+    disk?: number;
 }
 
 interface Pagination<T> {
@@ -50,6 +65,403 @@ interface Pagination<T> {
     per_page: number;
 }
 
+function CopyAddress({ address }: { address: string }) {
+    const [copied, setCopied] = useState(false);
+    return (
+        <button
+            type="button"
+            onClick={(e) => {
+                e.stopPropagation();
+                if (!address || address === '–') return;
+                navigator.clipboard.writeText(address);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1500);
+            }}
+            className="text-cyan-400/80 hover:text-cyan-300 transition-colors p-0.5"
+            title="Copiar IP:Puerto"
+        >
+            {copied ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
+        </button>
+    );
+}
+
+const PRESET_BANNERS = [
+    {
+        name: 'Minecraft Bosque',
+        url: 'https://images.unsplash.com/photo-1627856013091-fed6e4e30025?auto=format&fit=crop&w=1200&q=80',
+    },
+    {
+        name: 'Minecraft Nether',
+        url: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=1200&q=80',
+    },
+    {
+        name: 'Cyberpunk Neon',
+        url: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=1200&q=80',
+    },
+    {
+        name: 'Discord Purple Wave',
+        url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80',
+    },
+    {
+        name: 'Datacenter Matrix',
+        url: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1200&q=80',
+    },
+    {
+        name: 'Gaming Red Arena',
+        url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80',
+    },
+];
+
+function ServerCard({ item }: { item: ServerItem }) {
+    const isOnline = item.status === 'online';
+    const cpuVal = item.cpu ? `${item.cpu}%` : '∞';
+    const memVal = item.memory
+        ? item.memory >= 1024
+            ? `${(item.memory / 1024).toFixed(1)} GiB`
+            : `${item.memory} MiB`
+        : '∞';
+    const diskVal = item.disk
+        ? item.disk >= 1024
+            ? `${(item.disk / 1024).toFixed(1)} GiB`
+            : `${item.disk} MiB`
+        : '∞';
+
+    // Determinar fondo por defecto según huevo/categoría
+    const defaultBanner = useMemo(() => {
+        const cat = (item.category || '').toLowerCase();
+        const egg = (item.egg || '').toLowerCase();
+        const name = (item.name || '').toLowerCase();
+        if (cat.includes('bot') || egg.includes('discord') || name.includes('bot')) {
+            return 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80';
+        }
+        if (cat.includes('minecraft') || egg.includes('minecraft') || egg.includes('paper') || egg.includes('purpur')) {
+            return 'https://images.unsplash.com/photo-1627856013091-fed6e4e30025?auto=format&fit=crop&w=1200&q=80';
+        }
+        if (cat.includes('game')) {
+            return 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80';
+        }
+        return 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1200&q=80';
+    }, [item.category, item.egg, item.name]);
+
+    const [bannerUrl, setBannerUrl] = useState<string>(() => {
+        if (item.banner) return item.banner;
+        if (typeof window !== 'undefined') {
+            const cached = localStorage.getItem(`cinammon_server_banner_${item.id}`);
+            if (cached) return cached;
+        }
+        return defaultBanner;
+    });
+
+    const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
+    const [customInput, setCustomInput] = useState(bannerUrl || '');
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleApplyBanner = (url: string) => {
+        setBannerUrl(url);
+        if (typeof window !== 'undefined') {
+            if (url) {
+                localStorage.setItem(`cinammon_server_banner_${item.id}`, url);
+            } else {
+                localStorage.removeItem(`cinammon_server_banner_${item.id}`);
+            }
+        }
+        setIsSaving(true);
+        router.post(
+            `/servers/${item.id}/banner`,
+            { banner: url || null },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onFinish: () => {
+                    setIsSaving(false);
+                    setIsBannerModalOpen(false);
+                },
+            }
+        );
+    };
+
+    return (
+        <div
+            onClick={() => router.visit(`/servers/${item.id}/console`)}
+            className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border min-h-[240px] transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:shadow-2xl ${
+                isOnline
+                    ? 'border-emerald-500/40 bg-neutral-950/90 hover:border-emerald-400 hover:shadow-[0_0_35px_rgba(16,185,129,0.25)]'
+                    : 'border-neutral-800 bg-neutral-950/90 hover:border-cyan-500/70 hover:shadow-[0_0_30px_rgba(34,211,238,0.2)]'
+            }`}
+        >
+            {/* Imagen de fondo con zoom suave en hover */}
+            <div
+                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 ease-out group-hover:scale-105"
+                style={{ backgroundImage: `url(${bannerUrl || defaultBanner})` }}
+            />
+
+            {/* Capa de degradado oscuro de alto contraste y legibilidad */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#040711] via-[#040711]/92 to-[#040711]/70 backdrop-blur-[1px] transition-opacity duration-300 group-hover:via-[#040711]/85" />
+
+            {/* Borde lateral de estado */}
+            <div
+                className={`absolute left-0 top-0 bottom-0 w-2 transition-all ${
+                    isOnline ? 'bg-emerald-500 shadow-[0_0_15px_#10b981]' : 'bg-neutral-700'
+                }`}
+            />
+
+            {/* Contenido Superior e Intermedio */}
+            <div className="relative z-10 p-5 sm:p-6 space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1 pl-1">
+                        <div className="flex items-center gap-3">
+                            <span
+                                className={`flex h-3 w-3 shrink-0 rounded-full ${
+                                    isOnline
+                                        ? 'bg-emerald-400 shadow-[0_0_12px_#34d399] animate-pulse'
+                                        : 'bg-neutral-600'
+                                }`}
+                            />
+                            <h3
+                                className="truncate text-lg sm:text-xl font-bold tracking-wide text-white group-hover:text-cyan-300 transition-colors"
+                                title={item.name}
+                            >
+                                {item.name}
+                            </h3>
+                        </div>
+
+                        <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs">
+                            <span className="rounded-md bg-cyan-950/90 border border-cyan-800/80 px-2.5 py-0.5 text-cyan-300 font-semibold tracking-wide">
+                                {item.egg}
+                            </span>
+                            <span className="text-neutral-300 font-mono text-[11px] flex items-center gap-1 bg-black/60 px-2.5 py-0.5 rounded border border-neutral-800">
+                                <MapPin size={11} className="text-cyan-500" /> {item.node}
+                            </span>
+                            <span className="text-neutral-300 font-mono text-[11px] flex items-center gap-1 bg-black/60 px-2.5 py-0.5 rounded border border-neutral-800">
+                                <User size={11} className="text-purple-400" /> {item.username}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Acciones Rápidas */}
+                    <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                        {/* Botón Cambiar Fondo */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setCustomInput(bannerUrl || '');
+                                setIsBannerModalOpen(true);
+                            }}
+                            className="p-2 rounded-lg border border-purple-500/50 bg-purple-950/40 text-purple-300 hover:border-purple-400 hover:bg-purple-900/60 transition shadow-sm"
+                            title="Personalizar imagen de fondo del servidor"
+                        >
+                            <ImageIcon size={16} />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => router.visit(`/servers/${item.id}/console`)}
+                            className="p-2 rounded-lg border border-cyan-700/60 bg-cyan-950/50 text-cyan-400 hover:border-cyan-400 hover:bg-cyan-900/60 transition shadow-sm"
+                            title="Consola"
+                        >
+                            <Terminal size={16} />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => router.visit(`/servers/${item.id}/files`)}
+                            className="p-2 rounded-lg border border-cyan-700/60 bg-cyan-950/50 text-cyan-400 hover:border-cyan-400 hover:bg-cyan-900/60 transition shadow-sm"
+                            title="Archivos"
+                        >
+                            <Folder size={16} />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => router.visit(`/servers/${item.id}/edit`)}
+                            className="p-2 rounded-lg border border-neutral-700 bg-neutral-900/80 text-neutral-400 hover:text-white hover:border-neutral-500 transition shadow-sm"
+                            title="Configuración"
+                        >
+                            <Pencil size={15} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Dirección y Estado */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                    <div
+                        className="inline-flex items-center gap-2 rounded-lg bg-black/85 border border-cyan-900/80 px-3 py-1.5 text-cyan-300 font-mono text-xs shadow-inner"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <Radio size={13} className="text-cyan-400 shrink-0" />
+                        <span className="tracking-wider">{item.allocation}</span>
+                        <CopyAddress address={item.allocation} />
+                    </div>
+
+                    <span
+                        className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full border ${
+                            isOnline
+                                ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
+                                : 'bg-neutral-900 border-neutral-700 text-neutral-400'
+                        }`}
+                    >
+                        <Power size={12} className={isOnline ? 'text-emerald-400' : 'text-neutral-500'} />
+                        <span>{isOnline ? 'En línea' : 'Detenido'}</span>
+                    </span>
+                </div>
+            </div>
+
+            {/* Barras de Recursos (Gauges visuales de CPU, RAM y Disco) */}
+            <div className="relative z-10 border-t border-cyan-950/80 bg-black/75 p-4 sm:px-6">
+                <div className="grid grid-cols-3 gap-3 sm:gap-6">
+                    {/* CPU */}
+                    <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs font-mono">
+                            <span className="text-neutral-400 flex items-center gap-1.5">
+                                <Cpu size={12} className="text-cyan-400" /> CPU
+                            </span>
+                            <span className="font-bold text-neutral-200">{cpuVal}</span>
+                        </div>
+                        <div className="h-2 w-full bg-neutral-900/90 rounded-full overflow-hidden border border-cyan-950">
+                            <div
+                                className={`h-full rounded-full transition-all duration-500 ${
+                                    isOnline ? 'bg-gradient-to-r from-cyan-500 to-emerald-400 shadow-[0_0_8px_#10b981]' : 'bg-neutral-700'
+                                }`}
+                                style={{ width: item.cpu ? `${Math.min(100, item.cpu)}%` : isOnline ? '25%' : '0%' }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* RAM */}
+                    <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs font-mono">
+                            <span className="text-neutral-400 flex items-center gap-1.5">
+                                <Zap size={12} className="text-purple-400" /> RAM
+                            </span>
+                            <span className="font-bold text-neutral-200 truncate">{memVal}</span>
+                        </div>
+                        <div className="h-2 w-full bg-neutral-900/90 rounded-full overflow-hidden border border-cyan-950">
+                            <div
+                                className={`h-full rounded-full transition-all duration-500 ${
+                                    isOnline ? 'bg-gradient-to-r from-purple-500 to-pink-500 shadow-[0_0_8px_#ec4899]' : 'bg-neutral-700'
+                                }`}
+                                style={{ width: item.memory ? '50%' : isOnline ? '30%' : '0%' }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* DISCO */}
+                    <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs font-mono">
+                            <span className="text-neutral-400 flex items-center gap-1.5">
+                                <HardDrive size={12} className="text-blue-400" /> DISCO
+                            </span>
+                            <span className="font-bold text-neutral-200 truncate">{diskVal}</span>
+                        </div>
+                        <div className="h-2 w-full bg-neutral-900/90 rounded-full overflow-hidden border border-cyan-950">
+                            <div
+                                className={`h-full rounded-full transition-all duration-500 ${
+                                    isOnline ? 'bg-gradient-to-r from-blue-500 to-cyan-400 shadow-[0_0_8px_#06b6d4]' : 'bg-neutral-700'
+                                }`}
+                                style={{ width: item.disk ? '40%' : isOnline ? '20%' : '0%' }}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Modal para personalizar Fondo del Servidor */}
+            {isBannerModalOpen && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 font-[Orbitron]"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setIsBannerModalOpen(false);
+                    }}
+                >
+                    <div
+                        className="w-full max-w-lg rounded-2xl border border-cyan-700/80 bg-[#090e17] p-6 text-white shadow-2xl space-y-4"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between border-b border-cyan-900/60 pb-3">
+                            <div className="flex items-center gap-2 text-cyan-300">
+                                <ImageIcon className="h-5 w-5 text-cyan-400" />
+                                <h3 className="text-base font-bold tracking-wider">FONDO DEL SERVIDOR</h3>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setIsBannerModalOpen(false)}
+                                className="text-neutral-400 hover:text-white text-lg font-bold"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <p className="text-xs text-neutral-400">
+                            Elige una imagen de fondo predefinida o introduce una URL (Minecraft, Discord bot, Cyberpunk, etc.).
+                        </p>
+
+                        {/* Presets */}
+                        <div className="space-y-2">
+                            <span className="text-xs font-semibold text-cyan-400">Fondos recomendados:</span>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                {PRESET_BANNERS.map((preset) => (
+                                    <button
+                                        key={preset.name}
+                                        type="button"
+                                        onClick={() => {
+                                            setCustomInput(preset.url);
+                                            handleApplyBanner(preset.url);
+                                        }}
+                                        className="group/preset relative h-16 rounded-lg overflow-hidden border border-cyan-900/60 hover:border-cyan-400 transition"
+                                    >
+                                        <img src={preset.url} alt={preset.name} className="h-full w-full object-cover group-hover/preset:scale-110 transition duration-300" />
+                                        <div className="absolute inset-0 bg-black/60 flex items-end p-1.5">
+                                            <span className="text-[10px] font-bold text-neutral-200 truncate">{preset.name}</span>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* URL Personalizada */}
+                        <div className="space-y-2 pt-2">
+                            <label className="text-xs font-semibold text-cyan-400">O introduce una URL de imagen:</label>
+                            <input
+                                type="url"
+                                value={customInput}
+                                onChange={(e) => setCustomInput(e.target.value)}
+                                placeholder="https://ejemplo.com/mi-fondo.png"
+                                className="w-full rounded-lg border border-cyan-800 bg-black/80 px-3 py-2 text-xs text-cyan-200 outline-none focus:border-cyan-400"
+                            />
+                        </div>
+
+                        <div className="flex items-center justify-between gap-3 pt-3 border-t border-cyan-950">
+                            <button
+                                type="button"
+                                onClick={() => handleApplyBanner('')}
+                                className="text-xs text-rose-400 hover:text-rose-300 underline"
+                            >
+                                Restaurar por defecto
+                            </button>
+
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsBannerModalOpen(false)}
+                                    className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs text-neutral-400 hover:text-white"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={isSaving}
+                                    onClick={() => handleApplyBanner(customInput)}
+                                    className="rounded-lg bg-cyan-500 hover:bg-cyan-400 px-4 py-1.5 text-xs font-bold text-black transition shadow-[0_0_15px_rgba(34,211,238,0.3)] disabled:opacity-50"
+                                >
+                                    {isSaving ? 'Guardando…' : 'Guardar fondo'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function Servers() {
     const { servers, filters, categoryCounts, statusCounts } = usePage<{
         servers: Pagination<ServerItem>;
@@ -59,6 +471,8 @@ export default function Servers() {
     }>().props;
 
     const [search, setSearch] = useState(filters.search || '');
+    const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+    const [showFilters, setShowFilters] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<string>(filters.category || 'all');
     const [selectedStatus, setSelectedStatus] = useState<string>(filters.status || 'all');
     const [selectedMcSubcat, setSelectedMcSubcat] = useState<string>('all');
@@ -226,231 +640,161 @@ export default function Servers() {
     }, [groupedServers, groupBy, groupDirection]);
 
     return (
-        <AppLayout breadcrumbs={[{ title: 'Servers', href: '/servers' }]}>
+        <AppLayout variant="header" breadcrumbs={[{ title: 'Servers', href: '/servers' }]}>
             <Head title="Servers">
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet" />
             </Head>
             <div className="min-h-screen bg-white p-3 sm:p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
-                {/* Header Superior */}
-                <div className="mb-4 sm:mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-cyan-900/50 pb-4">
+                {/* Header Superior con Filtros Rápidos Pelican */}
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-4 border-b border-cyan-900/50 pb-4">
                     <div className="flex items-center gap-3">
-                        <Server className="h-7 w-7 sm:h-8 sm:w-8 text-cyan-400 shrink-0" />
+                        <Server className="h-7 w-7 text-cyan-400 shrink-0" />
                         <div>
-                            <h1 className="text-2xl sm:text-3xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400">
+                            <h1 className="text-2xl font-bold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400">
                                 SERVERS
                             </h1>
-                            <p className="text-[11px] sm:text-xs text-neutral-500 dark:text-cyan-600">
-                                Centro de control de nodos y servidores en Cinammon.net
+                            <p className="text-xs text-neutral-500 dark:text-neutral-400 font-mono">
+                                {statusCounts?.all ?? servers.total} servidores registrados
                             </p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+
+                    {/* Filtros rápidos de estado estilo Pelican */}
+                    <div className="flex flex-wrap items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => handleSelectStatus('all')}
+                            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                                selectedStatus === 'all'
+                                    ? 'bg-cyan-500 text-black shadow-md'
+                                    : 'border border-neutral-800 bg-neutral-900/80 text-neutral-400 hover:text-cyan-300'
+                            }`}
+                        >
+                            Todos <span className="opacity-70 font-mono text-[11px] ml-1">({statusCounts?.all ?? servers.total})</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleSelectStatus('online')}
+                            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                                selectedStatus === 'online'
+                                    ? 'bg-emerald-500 text-black shadow-md'
+                                    : 'border border-neutral-800 bg-neutral-900/80 text-emerald-400/90 hover:text-emerald-300'
+                            }`}
+                        >
+                            En línea <span className="opacity-70 font-mono text-[11px] ml-1">({statusCounts?.online ?? 0})</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleSelectStatus('offline')}
+                            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                                selectedStatus === 'offline'
+                                    ? 'bg-neutral-700 text-white shadow-md'
+                                    : 'border border-neutral-800 bg-neutral-900/80 text-neutral-400 hover:text-neutral-200'
+                            }`}
+                        >
+                            Detenidos <span className="opacity-70 font-mono text-[11px] ml-1">({statusCounts?.offline ?? 0})</span>
+                        </button>
+
+                        {/* Botón para desplegar filtros avanzados de categoría */}
+                        <button
+                            type="button"
+                            onClick={() => setShowFilters(!showFilters)}
+                            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold border transition ${
+                                showFilters || selectedCategory !== 'all'
+                                    ? 'border-cyan-400 bg-cyan-950/60 text-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.25)]'
+                                    : 'border-neutral-800 bg-neutral-900/80 text-neutral-400 hover:text-cyan-300 hover:border-cyan-800'
+                            }`}
+                            title="Filtros avanzados por categoría y juego"
+                        >
+                            <Filter size={13} className={selectedCategory !== 'all' ? 'text-cyan-400' : ''} />
+                            <span>Categorías {selectedCategory !== 'all' ? `(${selectedCategory})` : ''}</span>
+                            {showFilters ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                        </button>
+
                         <button
                             onClick={() => router.visit('/servers/create')}
-                            className="rounded border border-cyan-400 bg-cyan-100/50 px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-cyan-800 transition hover:bg-cyan-200/70 dark:border-cyan-500 dark:bg-cyan-900/30 dark:text-cyan-300 dark:hover:bg-cyan-700/50"
+                            className="rounded-lg border border-cyan-400 bg-cyan-500/20 px-4 py-1.5 text-xs font-semibold text-cyan-300 hover:bg-cyan-500 hover:text-black transition-all shadow-[0_0_12px_rgba(34,211,238,0.2)] ml-2"
                         >
                             + New Server
                         </button>
                     </div>
                 </div>
 
-                {/* BOTÓN COLAPSABLE PARA MÓVILES (Filtros & Categorías) */}
-                <div className="mb-4 lg:hidden">
-                    <button
-                        onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
-                        className="flex w-full items-center justify-between rounded-lg border border-cyan-700/60 bg-neutral-900/70 px-4 py-2.5 text-xs font-semibold text-cyan-300"
-                    >
-                        <div className="flex items-center gap-2">
-                            <Filter className="h-4 w-4 text-cyan-400" />
-                            <span>Filtrar por Categoría & Estado</span>
-                            <span className="rounded bg-cyan-500/20 px-1.5 py-0.5 text-[10px] text-cyan-300">
-                                {selectedCategory.toUpperCase()} • {selectedStatus.toUpperCase()}
+                {/* Cajón de Filtros Desplegable */}
+                {showFilters && (
+                    <div className="mb-5 rounded-xl border border-cyan-800/60 bg-neutral-950/90 p-4 shadow-xl backdrop-blur-md space-y-3">
+                        <div className="flex items-center justify-between border-b border-cyan-950 pb-2">
+                            <span className="text-xs font-bold text-cyan-400 tracking-wider uppercase flex items-center gap-1.5">
+                                <Layers size={13} /> Filtrar por Categoría
                             </span>
-                        </div>
-                        {isMobileSidebarOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    </button>
-                </div>
-
-                {/* Layout Principal: Lateral (Sidebar) + Tabla Contenido */}
-                <div className="flex flex-col gap-5 lg:flex-row">
-                    {/* PANEL LATERAL (SIDEBAR) */}
-                    <aside
-                        className={`w-full shrink-0 space-y-4 lg:w-72 ${
-                            isMobileSidebarOpen ? 'block' : 'hidden lg:block'
-                        }`}
-                    >
-                        {/* 1. Filtro por Estado (Activos / Inactivos) */}
-                        <div className="rounded-lg border border-cyan-800/40 bg-neutral-100/80 p-3.5 backdrop-blur dark:border-cyan-800/50 dark:bg-neutral-950">
-                            <div className="mb-2.5 flex items-center justify-between px-1">
-                                <span className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-cyan-800 dark:text-cyan-400">
-                                    <Activity className="h-3.5 w-3.5 text-cyan-400" />
-                                    ESTADO
-                                </span>
-                                <span className="text-[10px] text-neutral-500 dark:text-neutral-400 font-mono">
-                                    {statusCounts?.all ?? servers.total} total
-                                </span>
-                            </div>
-
-                            <div className="space-y-1">
+                            {selectedCategory !== 'all' && (
                                 <button
-                                    onClick={() => handleSelectStatus('all')}
-                                    className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-xs font-medium transition ${
-                                        selectedStatus === 'all'
-                                            ? 'border border-cyan-500/50 bg-cyan-500/20 text-cyan-900 font-semibold shadow-[0_0_8px_rgba(6,182,212,0.2)] dark:text-cyan-300 dark:bg-cyan-900/40'
-                                            : 'text-neutral-600 hover:bg-neutral-200/60 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-cyan-300'
-                                    }`}
+                                    type="button"
+                                    onClick={() => {
+                                        setSelectedCategory('all');
+                                        setSelectedMcSubcat('all');
+                                    }}
+                                    className="text-[11px] text-cyan-500 hover:underline"
                                 >
-                                    <div className="flex items-center gap-2">
-                                        <Radio className="h-3.5 w-3.5 text-cyan-400" />
-                                        <span>Todos los Estados</span>
-                                    </div>
-                                    <span className="font-mono text-[11px] opacity-80">{statusCounts?.all ?? servers.total}</span>
+                                    Restablecer categorías
                                 </button>
+                            )}
+                        </div>
 
-                                <button
-                                    onClick={() => handleSelectStatus('online')}
-                                    className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-xs font-medium transition ${
-                                        selectedStatus === 'online'
-                                            ? 'border border-green-500 bg-green-500/20 text-green-900 font-semibold shadow-[0_0_10px_rgba(34,197,94,0.3)] dark:text-green-300 dark:bg-green-950/60'
-                                            : 'text-neutral-600 hover:bg-neutral-200/60 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-green-300'
-                                    }`}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <span className="relative flex h-2.5 w-2.5">
-                                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
-                                            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500"></span>
+                        {/* Pills de categorías */}
+                        <div className="flex flex-wrap items-center gap-2">
+                            {categoryTabs.map((tab) => {
+                                const Icon = tab.icon;
+                                const isActive = selectedCategory === tab.id;
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        type="button"
+                                        onClick={() => handleSelectCategory(tab.id)}
+                                        className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                                            isActive
+                                                ? 'border border-cyan-400 bg-cyan-500 text-black shadow-sm'
+                                                : 'border border-neutral-800 bg-neutral-900 text-neutral-300 hover:border-cyan-700 hover:text-cyan-300'
+                                        }`}
+                                    >
+                                        <Icon size={13} className={isActive ? 'text-black' : 'text-cyan-400'} />
+                                        <span>{tab.label}</span>
+                                        <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono ${isActive ? 'bg-black/20 text-black' : 'bg-neutral-800 text-neutral-400'}`}>
+                                            {tab.count}
                                         </span>
-                                        <span>Activos / En Línea</span>
-                                    </div>
-                                    <span className="rounded-full bg-green-500/20 px-2 py-0.5 font-mono text-[11px] font-bold text-green-500">
-                                        {statusCounts?.online ?? 0}
-                                    </span>
-                                </button>
-
-                                <button
-                                    onClick={() => handleSelectStatus('offline')}
-                                    className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-xs font-medium transition ${
-                                        selectedStatus === 'offline'
-                                            ? 'border border-red-500/50 bg-red-500/10 text-red-900 font-semibold dark:text-red-300 dark:bg-red-950/40'
-                                            : 'text-neutral-600 hover:bg-neutral-200/60 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-red-300'
-                                    }`}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <span className="h-2.5 w-2.5 rounded-full bg-neutral-400 dark:bg-neutral-600"></span>
-                                        <span>Inactivos / Offline</span>
-                                    </div>
-                                    <span className="font-mono text-[11px] opacity-80">{statusCounts?.offline ?? 0}</span>
-                                </button>
-                            </div>
+                                    </button>
+                                );
+                            })}
                         </div>
 
-                        {/* 2. Categorías en Lateral */}
-                        <div className="rounded-lg border border-cyan-800/40 bg-neutral-100/80 p-3.5 backdrop-blur dark:border-cyan-800/50 dark:bg-neutral-950">
-                            <div className="mb-2.5 flex items-center justify-between px-1">
-                                <span className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-cyan-800 dark:text-cyan-400">
-                                    <Layers className="h-3.5 w-3.5 text-cyan-400" />
-                                    CATEGORÍAS
-                                </span>
-                            </div>
-
-                            <div className="space-y-1">
-                                {categoryTabs.map((tab) => {
-                                    const Icon = tab.icon;
-                                    const isActive = selectedCategory === tab.id;
+                        {/* Subcategorías de Minecraft si está activo */}
+                        {selectedCategory === 'minecraft' && (
+                            <div className="pt-2 border-t border-cyan-950/80 flex flex-wrap items-center gap-2">
+                                <span className="text-[11px] text-cyan-500 font-bold uppercase tracking-wider mr-1">Edición:</span>
+                                {mcSubcategories.map((subcat) => {
+                                    const isSubActive = selectedMcSubcat === subcat.id;
                                     return (
-                                        <div key={tab.id} className="space-y-1">
-                                            <button
-                                                onClick={() => handleSelectCategory(tab.id)}
-                                                className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-xs font-medium transition ${
-                                                    isActive
-                                                        ? 'border border-cyan-500/50 bg-cyan-500/20 text-cyan-900 font-semibold shadow-[0_0_8px_rgba(6,182,212,0.25)] dark:text-cyan-300 dark:bg-cyan-900/40'
-                                                        : 'text-neutral-600 hover:bg-neutral-200/60 dark:text-neutral-400 dark:hover:bg-neutral-900 dark:hover:text-cyan-300'
-                                                }`}
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <Icon className="h-3.5 w-3.5 shrink-0" />
-                                                    <span className="truncate">{tab.label}</span>
-                                                </div>
-                                                <div className="flex items-center gap-1.5 shrink-0">
-                                                    <span
-                                                        className={`rounded-full px-2 py-0.5 font-mono text-[10px] ${
-                                                            isActive
-                                                                ? 'bg-cyan-500/30 text-cyan-900 dark:bg-cyan-400/20 dark:text-cyan-200'
-                                                                : 'bg-neutral-200 text-neutral-600 dark:bg-neutral-900 dark:text-neutral-400'
-                                                        }`}
-                                                    >
-                                                        {tab.count}
-                                                    </span>
-                                                    {tab.hasSubcats && (
-                                                        <span
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setIsMcExpanded(!isMcExpanded);
-                                                            }}
-                                                            className="text-cyan-500 hover:text-cyan-300 p-0.5"
-                                                        >
-                                                            {isMcExpanded ? (
-                                                                <ChevronDown className="h-3.5 w-3.5" />
-                                                            ) : (
-                                                                <ChevronRight className="h-3.5 w-3.5" />
-                                                            )}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </button>
-
-                                            {/* Subcategorías de Minecraft en el Lateral */}
-                                            {tab.id === 'minecraft' && isMcExpanded && (
-                                                <div className="ml-3 space-y-0.5 border-l-2 border-cyan-800/40 pl-2 pt-1">
-                                                    {mcSubcategories.map((subcat) => {
-                                                        const isSubActive =
-                                                            selectedCategory === 'minecraft' &&
-                                                            selectedMcSubcat === subcat.id;
-                                                        return (
-                                                            <button
-                                                                key={subcat.id}
-                                                                onClick={() => {
-                                                                    setSelectedCategory('minecraft');
-                                                                    setSelectedMcSubcat(subcat.id);
-                                                                }}
-                                                                className={`flex w-full items-center justify-between rounded px-2 py-1 text-[11px] transition ${
-                                                                    isSubActive
-                                                                        ? 'bg-cyan-500/30 font-semibold text-cyan-800 dark:text-cyan-200'
-                                                                        : 'text-neutral-500 hover:bg-neutral-200/50 hover:text-cyan-600 dark:text-neutral-400 dark:hover:bg-neutral-900/60 dark:hover:text-cyan-300'
-                                                                }`}
-                                                            >
-                                                                <span className="truncate">{subcat.label}</span>
-                                                                <span className="font-mono text-[10px] opacity-70">
-                                                                    {subcat.count}
-                                                                </span>
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            )}
-                                        </div>
+                                        <button
+                                            key={subcat.id}
+                                            type="button"
+                                            onClick={() => setSelectedMcSubcat(subcat.id)}
+                                            className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition ${
+                                                isSubActive
+                                                    ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-400 font-semibold'
+                                                    : 'bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-cyan-300'
+                                            }`}
+                                        >
+                                            {subcat.label} ({subcat.count})
+                                        </button>
                                     );
                                 })}
                             </div>
-                        </div>
+                        )}
+                    </div>
+                )}
 
-                        {/* 3. Resumen Rápido de Nodos */}
-                        <div className="rounded-lg border border-cyan-900/30 bg-neutral-950/40 p-3 text-[11px] text-neutral-400">
-                            <div className="flex items-center justify-between">
-                                <span className="text-cyan-400">Nodo Principal:</span>
-                                <span className="font-semibold text-neutral-200">Cinammon Nodo</span>
-                            </div>
-                            <div className="mt-1 flex items-center justify-between">
-                                <span className="text-cyan-400">Wings Daemon:</span>
-                                <span className="flex items-center gap-1 text-green-400 font-semibold">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-green-400"></span> Online
-                                </span>
-                            </div>
-                        </div>
-                    </aside>
-
-                    {/* CONTENIDO PRINCIPAL: TABLA DE SERVIDORES */}
-                    <main className="flex-1 min-w-0">
+                {/* CONTENIDO PRINCIPAL: ANCHO COMPLETO */}
+                <div className="w-full min-w-0">
                         <div className="overflow-hidden rounded-lg border border-cyan-300 bg-white shadow-none transition dark:border-cyan-700 dark:bg-neutral-950">
                             {/* Barra de Filtros, Agrupación y Búsqueda */}
                             <form
@@ -494,6 +838,36 @@ export default function Servers() {
                                     )}
                                 </div>
 
+                                {/* Selector de Vista: Tarjetas vs Tabla */}
+                                <div className="flex items-center rounded-lg border border-cyan-800/60 bg-neutral-900/90 p-0.5 shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => setViewMode('grid')}
+                                        className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition ${
+                                            viewMode === 'grid'
+                                                ? 'bg-cyan-500 text-black shadow-sm'
+                                                : 'text-neutral-400 hover:text-cyan-300'
+                                        }`}
+                                        title="Vista en Tarjetas"
+                                    >
+                                        <LayoutGrid className="h-3.5 w-3.5" />
+                                        <span className="hidden sm:inline">Tarjetas</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setViewMode('table')}
+                                        className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition ${
+                                            viewMode === 'table'
+                                                ? 'bg-cyan-500 text-black shadow-sm'
+                                                : 'text-neutral-400 hover:text-cyan-300'
+                                        }`}
+                                        title="Vista en Tabla"
+                                    >
+                                        <List className="h-3.5 w-3.5" />
+                                        <span className="hidden sm:inline">Tabla</span>
+                                    </button>
+                                </div>
+
                                 {/* Campo de búsqueda */}
                                 <div className="relative w-full sm:w-64 md:w-72">
                                     <input
@@ -516,7 +890,52 @@ export default function Servers() {
                                 </div>
                             </form>
 
-                            {/* Indicador de desplazamiento horizontal en móvil */}
+                            {viewMode === 'grid' ? (
+                                <div className="p-4 sm:p-5">
+                                    {filteredServers.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-cyan-800/60 bg-neutral-950/40 py-16 text-center">
+                                            <Server className="h-12 w-12 text-cyan-600/50 mb-3" />
+                                            <h3 className="text-base font-bold text-neutral-200">No se encontraron servidores</h3>
+                                            <p className="mt-1 text-xs text-neutral-400 max-w-sm">
+                                                No hay servidores que coincidan con los filtros o la búsqueda actual.
+                                            </p>
+                                        </div>
+                                    ) : groupBy !== 'none' ? (
+                                        <div className="space-y-6">
+                                            {sortedGroups.map((group) => {
+                                                const groupItems = groupedServers[group] || [];
+                                                if (groupItems.length === 0) return null;
+                                                return (
+                                                    <div key={group} className="space-y-3">
+                                                        <div className="flex items-center gap-2 border-b border-cyan-900/60 pb-2">
+                                                            <span className="h-2 w-2 rounded-full bg-cyan-400" />
+                                                            <h3 className="text-sm font-bold text-cyan-300 tracking-wider uppercase">
+                                                                {group}
+                                                            </h3>
+                                                            <span className="rounded bg-cyan-950 px-2 py-0.5 text-[10px] font-mono text-cyan-400 border border-cyan-800/40">
+                                                                {groupItems.length}
+                                                            </span>
+                                                        </div>
+                                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+                                                            {groupItems.map((item) => (
+                                                                <ServerCard key={item.id} item={item} />
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+                                            {filteredServers.map((item) => (
+                                                <ServerCard key={item.id} item={item} />
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Indicador de desplazamiento horizontal en móvil */}
                             <div className="flex items-center justify-between border-b border-cyan-900/30 bg-cyan-950/30 px-4 py-1.5 text-[11px] text-cyan-400 lg:hidden">
                                 <span className="flex items-center gap-1.5">
                                     <span className="inline-block animate-pulse">👈👉</span>
@@ -802,6 +1221,8 @@ export default function Servers() {
                                     </tbody>
                                 </table>
                             </div>
+                                </>
+                            )}
 
                             <div className="bg-cyan-100/40 dark:bg-cyan-950/30">
                                 {/* Pagination */}
@@ -885,7 +1306,6 @@ export default function Servers() {
                                 </div>
                             </div>
                         </div>
-                    </main>
                 </div>
             </div>
         </AppLayout>

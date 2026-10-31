@@ -17,8 +17,6 @@ import {
     BookOpenCheck,
     Files,
     FolderGit2,
-    LayoutGrid,
-    Server as ServerIcon,
     Settings,
     Terminal,
 } from 'lucide-react';
@@ -139,30 +137,6 @@ export default function ServerSidebar({
                                 </SidebarMenuItem>
                             );
                         })}
-                    </SidebarMenu>
-                </SidebarGroup>
-
-                <SidebarGroup className="px-2 py-1 mt-4">
-                    <SidebarGroupLabel className="px-2 text-xs font-bold text-neutral-400 dark:text-neutral-500 tracking-wider uppercase">
-                        Navegación General
-                    </SidebarGroupLabel>
-                    <SidebarMenu className="mt-1 space-y-1">
-                        <SidebarMenuItem>
-                            <SidebarMenuButton asChild tooltip={{ children: 'Servidores' }}>
-                                <Link href="/servers" className="flex items-center gap-3 text-neutral-400 hover:text-white">
-                                    <ServerIcon className="h-4 w-4 text-blue-400" />
-                                    <span>Servidores</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                            <SidebarMenuButton asChild tooltip={{ children: 'Dashboard' }}>
-                                <Link href="/dashboard" className="flex items-center gap-3 text-neutral-400 hover:text-white">
-                                    <LayoutGrid className="h-4 w-4 text-purple-400" />
-                                    <span>Dashboard</span>
-                                </Link>
-                            </SidebarMenuButton>
-                        </SidebarMenuItem>
                     </SidebarMenu>
                 </SidebarGroup>
             </SidebarContent>
