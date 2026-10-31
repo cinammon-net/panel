@@ -1,6 +1,7 @@
 import ServerLayout from '@/layouts/server-layout';
 import { Head, router, useForm } from '@inertiajs/react';
 import {
+    ArrowLeftRight,
     Check,
     Crown,
     KeyRound,
@@ -33,6 +34,7 @@ interface PageProps {
         id: number;
         name: string;
         uuid: string;
+        owner_id?: number;
     };
     subusers: SubuserItem[];
     owner: {
@@ -40,6 +42,11 @@ interface PageProps {
         name?: string;
         email?: string;
     };
+    availableUsers?: Array<{
+        id: number;
+        name: string;
+        email: string;
+    }>;
 }
 
 const PERMISSION_DEFINITIONS = [
@@ -72,10 +79,43 @@ const PERMISSION_DEFINITIONS = [
 
 const ALL_PERMISSION_KEYS = PERMISSION_DEFINITIONS.flatMap((g) => g.items.map((i) => i.id));
 
-export default function Subusers({ server, subusers = [], owner }: PageProps) {
+export default function Subusers({ server, subusers = [], owner, availableUsers = [] }: PageProps) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSubuser, setEditingSubuser] = useState<SubuserItem | null>(null);
     const [isDeletingId, setIsDeletingId] = useState<number | null>(null);
+
+    // Estado para transferir propiedad
+    const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+    const [selectedNewOwnerId, setSelectedNewOwnerId] = useState<string>('');
+    const [isTransferring, setIsTransferring] = useState(false);
+
+    const handleTransferSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedNewOwnerId) {
+            toast.error('Selecciona el nuevo propietario.');
+            return;
+        }
+
+        setIsTransferring(true);
+        router.post(
+            `/servers/${server.id}/transfer-owner`,
+            { user_id: selectedNewOwnerId },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    toast.success('Propietario del servidor actualizado correctamente.');
+                    setIsTransferModalOpen(false);
+                    setSelectedNewOwnerId('');
+                },
+                onError: (err: any) => {
+                    toast.error(err.user_id || 'Error al transferir la propiedad del servidor.');
+                },
+                onFinish: () => {
+                    setIsTransferring(false);
+                },
+            }
+        );
+    };
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         email: '',
@@ -204,25 +244,36 @@ export default function Subusers({ server, subusers = [], owner }: PageProps) {
                 </div>
 
                 {/* Tarjeta del Propietario Principal */}
-                <div className="rounded-2xl border border-purple-500/40 bg-gradient-to-r from-purple-950/20 via-neutral-900/40 to-neutral-950/60 p-5 shadow-lg">
+                <div className="rounded-2xl border border-cyan-700/60 bg-gradient-to-r from-cyan-950/20 via-neutral-900/40 to-neutral-950/60 p-5 shadow-lg">
                     <div className="flex items-center justify-between gap-4 flex-wrap">
                         <div className="flex items-center gap-4">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-purple-400/50 bg-purple-900/30 text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-cyan-400/50 bg-cyan-900/30 text-cyan-300 shadow-[0_0_15px_rgba(34,211,238,0.25)]">
                                 <Crown className="h-6 w-6" />
                             </div>
                             <div>
                                 <div className="flex items-center gap-2">
                                     <span className="text-base font-bold text-white">{owner?.name || 'Propietario'}</span>
-                                    <span className="rounded-full border border-purple-500/50 bg-purple-950/80 px-2 py-0.5 text-[10px] font-bold text-purple-300 tracking-wider">
+                                    <span className="rounded-full border border-cyan-500/50 bg-cyan-950/80 px-2 py-0.5 text-[10px] font-bold text-cyan-300 tracking-wider">
                                         PROPIETARIO PRINCIPAL
                                     </span>
                                 </div>
                                 <p className="text-xs text-neutral-400 font-mono mt-0.5">{owner?.email || '–'}</p>
                             </div>
                         </div>
-                        <div className="text-xs text-neutral-400 flex items-center gap-1.5 bg-black/40 px-3 py-1.5 rounded-lg border border-neutral-800">
-                            <Shield size={14} className="text-purple-400" />
-                            <span>Acceso total sin restricciones</span>
+                        <div className="flex items-center gap-2.5">
+                            <div className="text-xs text-neutral-400 hidden sm:flex items-center gap-1.5 bg-black/40 px-3 py-1.5 rounded-lg border border-neutral-800">
+                                <Shield size={14} className="text-cyan-400" />
+                                <span>Acceso total</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setIsTransferModalOpen(true)}
+                                className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-500/60 bg-cyan-950/50 px-3 py-1.5 text-xs font-semibold text-cyan-300 hover:bg-cyan-500 hover:text-black transition shadow-sm"
+                                title="Transferir la propiedad de este servidor a otro usuario"
+                            >
+                                <ArrowLeftRight size={13} />
+                                <span>Cambiar Dueño</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -475,6 +526,78 @@ export default function Subusers({ server, subusers = [], owner }: PageProps) {
                                     >
                                         <Check size={14} />
                                         <span>{editingSubuser ? 'Guardar Cambios' : 'Conceder Acceso'}</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+                {/* Modal para Transferir Propiedad del Servidor */}
+                {isTransferModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="w-full max-w-md rounded-2xl border border-cyan-700/80 bg-[#090e17] text-white shadow-2xl overflow-hidden flex flex-col font-[Orbitron]">
+                            <div className="flex items-center justify-between border-b border-cyan-900/60 p-4 sm:p-5">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="rounded-xl border border-cyan-500/40 bg-cyan-950/40 p-2 text-cyan-400">
+                                        <Crown className="h-5 w-5" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-base font-bold text-white">Transferir Servidor</h3>
+                                        <p className="text-xs text-neutral-400">Cambia el propietario principal</p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsTransferModalOpen(false)}
+                                    className="p-1.5 rounded-lg border border-neutral-800 text-neutral-400 hover:text-white transition"
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleTransferSubmit} className="p-5 space-y-4">
+                                <div className="rounded-xl border border-amber-500/40 bg-amber-950/20 p-3 text-xs text-amber-300 space-y-1">
+                                    <p className="font-bold">⚠️ Atención:</p>
+                                    <p className="text-[11px] text-neutral-300">
+                                        Al transferir el servidor, el nuevo usuario se convertirá en el Propietario Principal con control total e irrevocable.
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-cyan-400 uppercase tracking-wider mb-2">
+                                        Selecciona el Nuevo Propietario
+                                    </label>
+                                    <select
+                                        value={selectedNewOwnerId}
+                                        onChange={(e) => setSelectedNewOwnerId(e.target.value)}
+                                        className="w-full rounded-xl border border-cyan-800/80 bg-black/70 px-4 py-2.5 text-xs text-cyan-100 focus:border-cyan-400 focus:outline-none"
+                                    >
+                                        <option value="">-- Elige un usuario registrado --</option>
+                                        {availableUsers
+                                            .filter((u) => u.id !== owner?.id)
+                                            .map((u) => (
+                                                <option key={u.id} value={u.id}>
+                                                    {u.name} ({u.email})
+                                                </option>
+                                            ))}
+                                    </select>
+                                </div>
+
+                                <div className="flex items-center justify-end gap-2.5 border-t border-cyan-900/60 pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsTransferModalOpen(false)}
+                                        className="rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-2 text-xs font-semibold text-neutral-300 hover:text-white transition"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={isTransferring || !selectedNewOwnerId}
+                                        className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-400 bg-cyan-500 px-4 py-2 text-xs font-bold text-black hover:bg-cyan-400 transition shadow-[0_0_12px_rgba(34,211,238,0.25)] disabled:opacity-40"
+                                    >
+                                        <Check size={14} />
+                                        <span>Confirmar Transferencia</span>
                                     </button>
                                 </div>
                             </form>

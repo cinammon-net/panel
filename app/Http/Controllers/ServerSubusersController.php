@@ -45,6 +45,7 @@ class ServerSubusersController extends Controller
                 'id' => $server->id,
                 'name' => $server->name,
                 'uuid' => $server->uuid,
+                'owner_id' => $server->owner_id,
             ],
             'subusers' => $subusers,
             'owner' => [
@@ -52,7 +53,27 @@ class ServerSubusersController extends Controller
                 'name' => $server->owner?->name,
                 'email' => $server->owner?->email,
             ],
+            'availableUsers' => User::select('id', 'name', 'email')->get(),
         ]);
+    }
+
+    public function transferOwner(Request $request, Server $server)
+    {
+        $this->authorizeManage($request, $server);
+
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $newOwner = User::findOrFail($validated['user_id']);
+        if ($newOwner->id === $server->owner_id) {
+            return back()->withErrors(['user_id' => 'El usuario seleccionado ya es el propietario de este servidor.']);
+        }
+
+        $server->update(['owner_id' => $newOwner->id]);
+        $server->subusers()->where('user_id', $newOwner->id)->delete();
+
+        return back()->with('success', "Propiedad del servidor transferida a {$newOwner->name} ({$newOwner->email}).");
     }
 
     public function store(Request $request, Server $server)
