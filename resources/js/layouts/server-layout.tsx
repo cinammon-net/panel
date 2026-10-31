@@ -12,19 +12,23 @@ export default function ServerLayout({
     children,
 }: {
     server: { id: number; name: string };
-    section: 'console' | 'files' | 'edit';
+    section: 'console' | 'files' | 'users' | 'edit';
     children: ReactNode;
 }) {
     const sectionTitles: Record<string, string> = {
         console: 'Consola',
         files: 'Archivos',
+        users: 'Usuarios',
         edit: 'Configuración',
     };
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Servers', href: '/servers' },
         { title: server.name, href: `/servers/${server.id}/console` },
-        { title: sectionTitles[section] ?? section, href: `/servers/${server.id}/${section}` },
+        {
+            title: sectionTitles[section] ?? section,
+            href: section === 'users' ? `/servers/${server.id}/subusers` : `/servers/${server.id}/${section}`,
+        },
     ];
 
     return (

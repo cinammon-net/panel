@@ -39,4 +39,9 @@ class Server extends Model
     {
         return $this->belongsTo(Allocation::class, 'allocation_id');
     }
+
+    public function subusers()
+    {
+        return $this->hasMany(Subuser::class, 'server_id');
+    }
 }

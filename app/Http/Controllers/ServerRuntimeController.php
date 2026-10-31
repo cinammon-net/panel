@@ -14,7 +14,14 @@ class ServerRuntimeController extends Controller
 {
     private function authorizeServer(Request $request, Server $server): void
     {
-        abort_unless($request->user()->id === $server->owner_id || $request->user()->hasAnyRole(['Owner', 'Admin']), 403);
+        $user = $request->user();
+        abort_unless(
+            $user->id === $server->owner_id ||
+            $user->hasAnyRole(['Owner', 'Admin']) ||
+            $server->subusers()->where('user_id', $user->id)->exists(),
+            403,
+            'No tienes permiso para acceder a este servidor.'
+        );
     }
 
     public function console(Request $request, Server $server)

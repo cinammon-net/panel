@@ -19,6 +19,7 @@ import {
     FolderGit2,
     Settings,
     Terminal,
+    Users,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 
@@ -44,7 +45,7 @@ export default function ServerSidebar({
     section,
 }: {
     server: { id: number; name: string };
-    section: 'console' | 'files' | 'edit';
+    section: 'console' | 'files' | 'users' | 'edit';
 }) {
     const serverNavItems = [
         {
@@ -59,6 +60,13 @@ export default function ServerSidebar({
             title: 'Archivos',
             href: `/servers/${server.id}/files`,
             icon: Files,
+            color: 'text-cyan-400',
+        },
+        {
+            key: 'users',
+            title: 'Usuarios',
+            href: `/servers/${server.id}/subusers`,
+            icon: Users,
             color: 'text-cyan-400',
         },
         {
