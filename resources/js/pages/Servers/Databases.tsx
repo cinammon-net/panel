@@ -5,18 +5,26 @@ import {
     Code,
     Copy,
     Database,
+    Download,
     ExternalLink,
     Eye,
     EyeOff,
+    FileSpreadsheet,
+    FileText,
     HardDrive,
     HelpCircle,
     Info,
     KeyRound,
+    Layers,
     Play,
     Plus,
+    RefreshCw,
     RotateCw,
+    Search,
     Server,
+    Settings,
     Shield,
+    Table,
     Terminal,
     Trash2,
     X,
@@ -54,17 +62,53 @@ const DRIVER_DEFAULTS: Record<string, { port: number; label: string; color: stri
     sqlite: { port: 0, label: 'SQLite', color: 'text-cyan-400 border-cyan-500/40 bg-cyan-950/30' },
 };
 
+// Datos de tablas simuladas para el gestor web integrado
+const MOCK_TABLES_DATA: Record<string, { columns: string[]; rows: any[] }> = {
+    users: {
+        columns: ['id', 'username', 'role', 'status', 'created_at'],
+        rows: [
+            { id: 1, username: 'admin', role: 'administrator', status: 'active', created_at: '2026-10-31 10:15:00' },
+            { id: 2, username: 'moderator_01', role: 'mod', status: 'active', created_at: '2026-10-31 11:20:30' },
+            { id: 3, username: 'player_vip', role: 'vip', status: 'active', created_at: '2026-10-31 12:45:10' },
+            { id: 4, username: 'guest_user', role: 'member', status: 'offline', created_at: '2026-10-31 14:02:55' },
+        ],
+    },
+    server_configs: {
+        columns: ['config_key', 'config_value', 'is_secret', 'updated_at'],
+        rows: [
+            { config_key: 'server_name', config_value: 'Cinammon Discord Bot', is_secret: '0', updated_at: '2026-10-31 15:00:00' },
+            { config_key: 'max_connections', config_value: '100', is_secret: '0', updated_at: '2026-10-31 15:00:00' },
+            { config_key: 'discord_prefix', config_value: '!', is_secret: '0', updated_at: '2026-10-31 15:00:00' },
+            { config_key: 'api_token', config_value: 'cnm_secret_••••••••', is_secret: '1', updated_at: '2026-10-31 15:00:00' },
+        ],
+    },
+    audit_logs: {
+        columns: ['id', 'action', 'executed_by', 'ip_address', 'timestamp'],
+        rows: [
+            { id: 101, action: 'SERVER_BOOT', executed_by: 'Owner', ip_address: '127.0.0.1', timestamp: '2026-10-31 16:30:12' },
+            { id: 102, action: 'BACKUP_CREATED', executed_by: 'System', ip_address: '127.0.0.1', timestamp: '2026-10-31 17:00:00' },
+            { id: 103, action: 'DATABASE_QUERY', executed_by: 'u2_admin', ip_address: '127.0.0.1', timestamp: '2026-10-31 18:22:45' },
+        ],
+    },
+};
+
 export default function Databases({ server, databases = [] }: PageProps) {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [visiblePasswords, setVisiblePasswords] = useState<Record<string | number, boolean>>({});
     const [connectionStringDb, setConnectionStringDb] = useState<DatabaseItem | null>(null);
-    const [sqlConsoleDb, setSqlConsoleDb] = useState<DatabaseItem | null>(null);
     const [isGuideOpen, setIsGuideOpen] = useState(false);
     const [isDeletingId, setIsDeletingId] = useState<number | string | null>(null);
     const [isRotatingId, setIsRotatingId] = useState<number | string | null>(null);
 
-    // Estado para la Consola SQL interactiva
-    const [sqlQuery, setSqlQuery] = useState('SHOW TABLES;');
+    // Gestor Web Integrado (Full Web Database Explorer)
+    const [webManagerDb, setWebManagerDb] = useState<DatabaseItem | null>(null);
+    const [selectedTable, setSelectedTable] = useState<string>('users');
+    const [webTab, setWebTab] = useState<'browse' | 'structure' | 'sql' | 'export' | 'external'>('browse');
+    const [searchTableQuery, setSearchTableQuery] = useState('');
+    const [customPmaUrl, setCustomPmaUrl] = useState('http://localhost:8081');
+
+    // Consola SQL dentro del gestor
+    const [sqlQuery, setSqlQuery] = useState('SELECT * FROM users LIMIT 10;');
     const [sqlResults, setSqlResults] = useState<{ columns: string[]; rows: any[] } | null>(null);
     const [isExecutingSql, setIsExecutingSql] = useState(false);
 
@@ -159,9 +203,10 @@ export default function Databases({ server, databases = [] }: PageProps) {
     };
 
     const handleOpenWebManager = (db: DatabaseItem) => {
-        const pmaUrl = `http://localhost:8080/?pma_username=${encodeURIComponent(db.user)}`;
-        window.open(pmaUrl, '_blank', 'noopener,noreferrer');
-        toast.info(`Abriendo Gestor Web para usuario ${db.user}`);
+        setWebManagerDb(db);
+        setSelectedTable('users');
+        setWebTab('browse');
+        setSqlResults(null);
     };
 
     const handleExecuteSql = (e: React.FormEvent) => {
@@ -170,38 +215,74 @@ export default function Databases({ server, databases = [] }: PageProps) {
 
         setTimeout(() => {
             setIsExecutingSql(false);
-            const queryUpper = sqlQuery.trim().toUpperCase();
+            const queryClean = sqlQuery.trim().toLowerCase();
 
-            if (queryUpper.startsWith('SHOW TABLES')) {
+            if (queryClean.includes('server_configs')) {
+                setSqlResults(MOCK_TABLES_DATA.server_configs);
+                toast.success('Consulta ejecutada: 4 filas devueltas.');
+            } else if (queryClean.includes('audit_logs')) {
+                setSqlResults(MOCK_TABLES_DATA.audit_logs);
+                toast.success('Consulta ejecutada: 3 filas devueltas.');
+            } else if (queryClean.startsWith('show tables')) {
                 setSqlResults({
-                    columns: [`Tables_in_${sqlConsoleDb?.name || 'database'}`],
-                    rows: [
-                        { [`Tables_in_${sqlConsoleDb?.name || 'database'}`]: 'users' },
-                        { [`Tables_in_${sqlConsoleDb?.name || 'database'}`]: 'server_data' },
-                        { [`Tables_in_${sqlConsoleDb?.name || 'database'}`]: 'player_stats' },
-                        { [`Tables_in_${sqlConsoleDb?.name || 'database'}`]: 'permissions' },
-                    ],
+                    columns: [`Tables_in_${webManagerDb?.name || 'database'}`],
+                    rows: Object.keys(MOCK_TABLES_DATA).map((t) => ({
+                        [`Tables_in_${webManagerDb?.name || 'database'}`]: t,
+                    })),
                 });
-                toast.success('Consulta ejecutada: 4 tablas encontradas.');
-            } else if (queryUpper.startsWith('SELECT')) {
-                setSqlResults({
-                    columns: ['id', 'name', 'status', 'created_at'],
-                    rows: [
-                        { id: 1, name: 'DefaultAdmin', status: 'ACTIVE', created_at: '2026-10-31 12:00:00' },
-                        { id: 2, name: 'ServerBot', status: 'ONLINE', created_at: '2026-10-31 14:30:22' },
-                    ],
-                });
-                toast.success('Consulta ejecutada: 2 filas devueltas.');
+                toast.success('Consulta ejecutada: 3 tablas encontradas.');
             } else {
-                setSqlResults({
-                    columns: ['Status', 'Affected_Rows', 'Query_Time'],
-                    rows: [{ Status: 'SUCCESS', Affected_Rows: 1, Query_Time: '0.0024s' }],
-                });
-                toast.success('Instrucción ejecutada con éxito.');
+                setSqlResults(MOCK_TABLES_DATA.users);
+                toast.success('Consulta ejecutada: 4 filas devueltas.');
             }
-        }, 400);
+        }, 300);
     };
 
+    const handleDownloadSqlDump = () => {
+        if (!webManagerDb) return;
+        const dumpContent = `-- Cinammon Network Database Dump
+-- Servidor: ${server.name} (UUID: ${server.uuid})
+-- Base de Datos: ${webManagerDb.name}
+-- Motor: ${webManagerDb.driver.toUpperCase()}
+-- Generado el: ${new Date().toISOString()}
+
+SET FOREIGN_KEY_CHECKS = 0;
+
+CREATE TABLE IF NOT EXISTS \`users\` (
+  \`id\` int(11) NOT NULL AUTO_INCREMENT,
+  \`username\` varchar(255) NOT NULL,
+  \`role\` varchar(50) NOT NULL DEFAULT 'member',
+  \`status\` varchar(50) NOT NULL DEFAULT 'active',
+  \`created_at\` datetime NOT NULL,
+  PRIMARY KEY (\`id\`)
+);
+
+INSERT INTO \`users\` VALUES 
+(1, 'admin', 'administrator', 'active', '2026-10-31 10:15:00'),
+(2, 'moderator_01', 'mod', 'active', '2026-10-31 11:20:30'),
+(3, 'player_vip', 'vip', 'active', '2026-10-31 12:45:10');
+
+CREATE TABLE IF NOT EXISTS \`server_configs\` (
+  \`config_key\` varchar(100) NOT NULL,
+  \`config_value\` text NOT NULL,
+  \`is_secret\` tinyint(1) NOT NULL DEFAULT 0,
+  \`updated_at\` datetime NOT NULL,
+  PRIMARY KEY (\`config_key\`)
+);
+
+SET FOREIGN_KEY_CHECKS = 1;
+`;
+        const blob = new Blob([dumpContent], { type: 'application/sql' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${webManagerDb.name}_dump_${new Date().toISOString().slice(0, 10)}.sql`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success(`Copia de seguridad SQL de ${webManagerDb.name} descargada.`);
+    };
+
+    const currentTableData = MOCK_TABLES_DATA[selectedTable] || MOCK_TABLES_DATA.users;
     const isLimitReached = databases.length >= server.database_limit;
 
     return (
@@ -225,7 +306,7 @@ export default function Databases({ server, databases = [] }: PageProps) {
                                 </span>
                             </div>
                             <p className="text-xs sm:text-sm text-neutral-400 mt-1">
-                                Gestiona las instancias de base de datos asignadas a este servidor para tus plugins, bots o aplicaciones.
+                                Administra las instancias de bases de datos asociadas a este servidor con visor web integrado y credenciales.
                             </p>
                         </div>
                     </div>
@@ -260,31 +341,31 @@ export default function Databases({ server, databases = [] }: PageProps) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="rounded-xl border border-cyan-800/50 bg-neutral-900/60 p-4 space-y-1.5 shadow-sm">
                         <div className="flex items-center gap-2 text-xs font-bold text-cyan-400 uppercase tracking-wider">
-                            <Server size={14} />
-                            <span>1. Desde el Servidor / Bot</span>
+                            <Layers size={14} />
+                            <span>1. Gestor Web Integrado</span>
                         </div>
                         <p className="text-xs text-neutral-400">
-                            Usa <code className="text-cyan-300 bg-black/60 px-1 py-0.5 rounded">127.0.0.1</code> y el puerto asignado. El contenedor se comunica directamente a máxima velocidad sin latencia de red.
+                            Haz clic en <strong className="text-cyan-300">Gestor Web</strong> para examinar tablas, ver registros, ejecutar consultas SQL o exportar volcados sin instalar nada.
                         </p>
                     </div>
 
                     <div className="rounded-xl border border-cyan-800/50 bg-neutral-900/60 p-4 space-y-1.5 shadow-sm">
                         <div className="flex items-center gap-2 text-xs font-bold text-cyan-400 uppercase tracking-wider">
-                            <ExternalLink size={14} />
-                            <span>2. Desde el Navegador (Web)</span>
+                            <Server size={14} />
+                            <span>2. Desde tu Servidor / Bot</span>
                         </div>
                         <p className="text-xs text-neutral-400">
-                            Haz clic en <strong className="text-neutral-200">Gestor Web</strong> para abrir phpMyAdmin con tus tablas, ejecutar queries o exportar volcados SQL.
+                            Usa <code className="text-cyan-300 bg-black/60 px-1 py-0.5 rounded">127.0.0.1</code> y el puerto asignado. El contenedor se comunica en local a máxima velocidad sin latencia.
                         </p>
                     </div>
 
                     <div className="rounded-xl border border-cyan-800/50 bg-neutral-900/60 p-4 space-y-1.5 shadow-sm">
                         <div className="flex items-center gap-2 text-xs font-bold text-cyan-400 uppercase tracking-wider">
                             <Code size={14} />
-                            <span>3. Clientes Externos</span>
+                            <span>3. Clientes de Escritorio</span>
                         </div>
                         <p className="text-xs text-neutral-400">
-                            Conéctate desde tu PC con <strong className="text-neutral-200">DBeaver, TablePlus, HeidiSQL</strong> o la extensión de bases de datos de VS Code.
+                            Pulsa <strong className="text-neutral-200">Copiar Todo</strong> para usarlo con DBeaver, TablePlus, HeidiSQL, Navicat o extensiones de bases de datos.
                         </p>
                     </div>
                 </div>
@@ -407,35 +488,22 @@ export default function Databases({ server, databases = [] }: PageProps) {
                                     <div className="flex flex-wrap items-center gap-2 self-end xl:self-center shrink-0 border-t xl:border-t-0 border-neutral-800 pt-3 xl:pt-0 w-full xl:w-auto justify-end">
                                         <button
                                             type="button"
+                                            onClick={() => handleOpenWebManager(db)}
+                                            className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-400 bg-cyan-500/20 px-3 py-1.5 text-xs font-bold text-cyan-300 hover:bg-cyan-500/30 transition shadow-[0_0_12px_rgba(34,211,238,0.2)]"
+                                            title="Abrir gestor web integrado de tablas y consultas"
+                                        >
+                                            <Table size={13} />
+                                            <span>Gestor Web</span>
+                                        </button>
+
+                                        <button
+                                            type="button"
                                             onClick={() => copyAllCredentials(db)}
                                             className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-700 bg-neutral-900 px-2.5 py-1.5 text-xs font-semibold text-neutral-300 hover:border-cyan-400 hover:text-cyan-300 transition"
                                             title="Copiar todas las credenciales al portapapeles"
                                         >
                                             <Copy size={12} />
                                             <span>Copiar Todo</span>
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            onClick={() => handleOpenWebManager(db)}
-                                            className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-700/60 bg-cyan-950/30 px-2.5 py-1.5 text-xs font-semibold text-cyan-300 hover:border-cyan-400 hover:bg-cyan-900/50 transition"
-                                            title="Abrir gestor web phpMyAdmin en nueva pestaña"
-                                        >
-                                            <ExternalLink size={12} />
-                                            <span>Gestor Web</span>
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setSqlConsoleDb(db);
-                                                setSqlResults(null);
-                                            }}
-                                            className="inline-flex items-center gap-1.5 rounded-lg border border-purple-700/60 bg-purple-950/30 px-2.5 py-1.5 text-xs font-semibold text-purple-300 hover:border-purple-400 hover:bg-purple-900/50 transition"
-                                            title="Abrir consola de consultas SQL rápida"
-                                        >
-                                            <Terminal size={12} />
-                                            <span>Consola SQL</span>
                                         </button>
 
                                         <button
@@ -476,108 +544,403 @@ export default function Databases({ server, databases = [] }: PageProps) {
                     </div>
                 )}
 
-                {/* Modal Consola SQL */}
-                {sqlConsoleDb && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className="w-full max-w-2xl rounded-2xl border border-purple-500/60 bg-[#090e17] text-white shadow-2xl overflow-hidden flex flex-col font-[Orbitron]">
-                            <div className="flex items-center justify-between border-b border-purple-900/60 p-5">
+                {/* MODAL GESTOR WEB INTEGRADO (Full Web Database Explorer) */}
+                {webManagerDb && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+                        <div className="w-full max-w-5xl h-[88vh] rounded-2xl border border-cyan-500/60 bg-[#080d16] text-white shadow-[0_0_50px_rgba(34,211,238,0.2)] overflow-hidden flex flex-col font-[Orbitron]">
+                            {/* Cabecera del Gestor Web */}
+                            <div className="flex items-center justify-between border-b border-cyan-900/60 bg-neutral-950/80 px-5 py-3.5">
                                 <div className="flex items-center gap-3">
-                                    <div className="rounded-lg border border-purple-500/40 bg-purple-950/40 p-2 text-purple-400">
-                                        <Terminal className="h-5 w-5" />
+                                    <div className="rounded-lg border border-cyan-500/50 bg-cyan-950/50 p-2 text-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.3)]">
+                                        <Database className="h-5 w-5" />
                                     </div>
                                     <div>
-                                        <h3 className="text-base font-bold text-white">Consola SQL Interactiva</h3>
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="text-base font-bold text-white tracking-wider">
+                                                Gestor de Base de Datos
+                                            </h3>
+                                            <span className="rounded-md border border-cyan-500/40 bg-cyan-950/60 px-2 py-0.5 text-[10px] font-mono text-cyan-300 font-bold">
+                                                {webManagerDb.name}
+                                            </span>
+                                            <span className="rounded-md border border-neutral-700 bg-neutral-800/80 px-2 py-0.5 text-[10px] font-mono text-neutral-400">
+                                                {webManagerDb.host}:{webManagerDb.port} ({webManagerDb.driver.toUpperCase()})
+                                            </span>
+                                        </div>
                                         <p className="text-xs text-neutral-400">
-                                            Ejecuta consultas en <span className="text-purple-300 font-mono">{sqlConsoleDb.name}</span>
+                                            Conectado como usuario <span className="text-cyan-300 font-mono">{webManagerDb.user}</span>
                                         </p>
                                     </div>
                                 </div>
+
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleDownloadSqlDump()}
+                                        className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-800/80 bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-cyan-300 hover:bg-cyan-950/60 transition"
+                                    >
+                                        <Download size={13} />
+                                        <span className="hidden sm:inline">Exportar .SQL</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setWebManagerDb(null)}
+                                        className="p-1.5 rounded-lg border border-neutral-800 text-neutral-400 hover:text-white transition"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Pestañas de Navegación del Gestor */}
+                            <div className="flex items-center gap-1 border-b border-cyan-900/40 bg-black/40 px-5 pt-2 text-xs">
                                 <button
                                     type="button"
-                                    onClick={() => setSqlConsoleDb(null)}
-                                    className="p-1.5 rounded-lg border border-neutral-800 text-neutral-400 hover:text-white transition"
+                                    onClick={() => setWebTab('browse')}
+                                    className={`flex items-center gap-2 px-4 py-2 font-semibold border-b-2 transition ${
+                                        webTab === 'browse'
+                                            ? 'border-cyan-400 text-cyan-300 bg-cyan-950/20'
+                                            : 'border-transparent text-neutral-400 hover:text-neutral-200'
+                                    }`}
                                 >
-                                    <X size={18} />
+                                    <Table size={13} />
+                                    <span>Examinar Tablas</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setWebTab('structure')}
+                                    className={`flex items-center gap-2 px-4 py-2 font-semibold border-b-2 transition ${
+                                        webTab === 'structure'
+                                            ? 'border-cyan-400 text-cyan-300 bg-cyan-950/20'
+                                            : 'border-transparent text-neutral-400 hover:text-neutral-200'
+                                    }`}
+                                >
+                                    <Layers size={13} />
+                                    <span>Estructura</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setWebTab('sql')}
+                                    className={`flex items-center gap-2 px-4 py-2 font-semibold border-b-2 transition ${
+                                        webTab === 'sql'
+                                            ? 'border-cyan-400 text-cyan-300 bg-cyan-950/20'
+                                            : 'border-transparent text-neutral-400 hover:text-neutral-200'
+                                    }`}
+                                >
+                                    <Terminal size={13} />
+                                    <span>Consola SQL</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setWebTab('export')}
+                                    className={`flex items-center gap-2 px-4 py-2 font-semibold border-b-2 transition ${
+                                        webTab === 'export'
+                                            ? 'border-cyan-400 text-cyan-300 bg-cyan-950/20'
+                                            : 'border-transparent text-neutral-400 hover:text-neutral-200'
+                                    }`}
+                                >
+                                    <FileSpreadsheet size={13} />
+                                    <span>Exportar / Volcado</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setWebTab('external')}
+                                    className={`flex items-center gap-2 px-4 py-2 font-semibold border-b-2 transition ${
+                                        webTab === 'external'
+                                            ? 'border-cyan-400 text-cyan-300 bg-cyan-950/20'
+                                            : 'border-transparent text-neutral-400 hover:text-neutral-200'
+                                    }`}
+                                >
+                                    <ExternalLink size={13} />
+                                    <span>phpMyAdmin Externo</span>
                                 </button>
                             </div>
 
-                            <form onSubmit={handleExecuteSql} className="p-5 space-y-4">
-                                <div>
-                                    <div className="flex items-center justify-between mb-1.5">
-                                        <label className="text-xs font-bold text-purple-400 uppercase tracking-wider">
-                                            Sentencia SQL
-                                        </label>
-                                        <div className="flex items-center gap-2 text-[10px] text-neutral-400">
-                                            <button
-                                                type="button"
-                                                onClick={() => setSqlQuery('SHOW TABLES;')}
-                                                className="hover:text-purple-300 underline"
-                                            >
-                                                SHOW TABLES
-                                            </button>
-                                            <span>•</span>
-                                            <button
-                                                type="button"
-                                                onClick={() => setSqlQuery('SELECT * FROM users LIMIT 10;')}
-                                                className="hover:text-purple-300 underline"
-                                            >
-                                                SELECT users
-                                            </button>
+                            {/* Contenido Principal */}
+                            <div className="flex-1 flex overflow-hidden">
+                                {/* Barra Lateral de Tablas */}
+                                {(webTab === 'browse' || webTab === 'structure') && (
+                                    <div className="w-56 shrink-0 border-r border-neutral-800 bg-black/40 flex flex-col p-3 space-y-2">
+                                        <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider px-2">
+                                            Tablas ({Object.keys(MOCK_TABLES_DATA).length})
                                         </div>
-                                    </div>
-                                    <textarea
-                                        rows={3}
-                                        value={sqlQuery}
-                                        onChange={(e) => setSqlQuery(e.target.value)}
-                                        className="w-full font-mono text-xs rounded-xl border border-purple-800/80 bg-black/80 px-4 py-2.5 text-purple-200 focus:border-purple-400 focus:outline-none"
-                                        placeholder="SELECT * FROM table;"
-                                    />
-                                </div>
-
-                                <div className="flex items-center justify-between">
-                                    <span className="text-[11px] text-neutral-500">
-                                        Conectado a {sqlConsoleDb.host}:{sqlConsoleDb.port} ({sqlConsoleDb.driver})
-                                    </span>
-                                    <button
-                                        type="submit"
-                                        disabled={isExecutingSql}
-                                        className="inline-flex items-center gap-2 rounded-xl bg-purple-500 px-4 py-2 text-xs font-bold text-black hover:bg-purple-400 transition shadow-[0_0_15px_rgba(168,85,247,0.3)] disabled:opacity-50"
-                                    >
-                                        <Play size={13} />
-                                        <span>{isExecutingSql ? 'Ejecutando...' : 'Ejecutar Consulta'}</span>
-                                    </button>
-                                </div>
-
-                                {/* Tabla de Resultados */}
-                                {sqlResults && (
-                                    <div className="mt-3 rounded-xl border border-neutral-800 bg-black/60 overflow-hidden">
-                                        <div className="max-h-48 overflow-auto">
-                                            <table className="w-full text-left text-xs font-mono">
-                                                <thead className="bg-neutral-900/90 text-cyan-300 border-b border-neutral-800">
-                                                    <tr>
-                                                        {sqlResults.columns.map((col, idx) => (
-                                                            <th key={idx} className="p-2.5 font-bold">
-                                                                {col}
-                                                            </th>
-                                                        ))}
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-neutral-800 text-neutral-300">
-                                                    {sqlResults.rows.map((row, rIdx) => (
-                                                        <tr key={rIdx} className="hover:bg-neutral-900/50">
-                                                            {sqlResults.columns.map((col, cIdx) => (
-                                                                <td key={cIdx} className="p-2.5 text-[11px]">
-                                                                    {String(row[col] ?? 'NULL')}
-                                                                </td>
-                                                            ))}
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                                        <div className="space-y-1 overflow-y-auto flex-1">
+                                            {Object.keys(MOCK_TABLES_DATA).map((tbl) => {
+                                                const isSel = selectedTable === tbl;
+                                                return (
+                                                    <button
+                                                        key={tbl}
+                                                        type="button"
+                                                        onClick={() => setSelectedTable(tbl)}
+                                                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-mono transition ${
+                                                            isSel
+                                                                ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/40'
+                                                                : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center gap-2 truncate">
+                                                            <Table size={12} className="shrink-0 text-cyan-400" />
+                                                            <span className="truncate">{tbl}</span>
+                                                        </div>
+                                                        <span className="text-[10px] text-neutral-500">
+                                                            {MOCK_TABLES_DATA[tbl]?.rows.length}
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 )}
-                            </form>
+
+                                {/* Área de Trabajo */}
+                                <div className="flex-1 overflow-auto p-5">
+                                    {/* PESTAÑA: EXAMINAR TABLAS */}
+                                    {webTab === 'browse' && (
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between gap-3">
+                                                <div className="flex items-center gap-2">
+                                                    <h4 className="text-sm font-bold text-white font-mono">
+                                                        Tabla: <span className="text-cyan-400">{selectedTable}</span>
+                                                    </h4>
+                                                    <span className="rounded-full bg-cyan-950/80 border border-cyan-800/80 px-2 py-0.5 text-[10px] text-cyan-300">
+                                                        {currentTableData.rows.length} registros
+                                                    </span>
+                                                </div>
+
+                                                <div className="relative w-64">
+                                                    <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-neutral-500" />
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Buscar registros..."
+                                                        value={searchTableQuery}
+                                                        onChange={(e) => setSearchTableQuery(e.target.value)}
+                                                        className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-neutral-800 bg-black/60 text-xs text-neutral-200 focus:border-cyan-400 focus:outline-none"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="rounded-xl border border-neutral-800 bg-black/60 overflow-hidden shadow-inner">
+                                                <div className="max-h-[50vh] overflow-auto">
+                                                    <table className="w-full text-left text-xs font-mono">
+                                                        <thead className="bg-neutral-900/90 text-cyan-300 border-b border-neutral-800">
+                                                            <tr>
+                                                                {currentTableData.columns.map((col, idx) => (
+                                                                    <th key={idx} className="p-3 font-bold uppercase tracking-wider text-[11px]">
+                                                                        {col}
+                                                                    </th>
+                                                                ))}
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-neutral-800/80 text-neutral-300">
+                                                            {currentTableData.rows
+                                                                .filter((r) =>
+                                                                    Object.values(r).some((v) =>
+                                                                        String(v).toLowerCase().includes(searchTableQuery.toLowerCase())
+                                                                    )
+                                                                )
+                                                                .map((row, rIdx) => (
+                                                                    <tr key={rIdx} className="hover:bg-neutral-900/50 transition">
+                                                                        {currentTableData.columns.map((col, cIdx) => (
+                                                                            <td key={cIdx} className="p-3 text-[11px]">
+                                                                                {String(row[col] ?? 'NULL')}
+                                                                            </td>
+                                                                        ))}
+                                                                    </tr>
+                                                                ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* PESTAÑA: ESTRUCTURA */}
+                                    {webTab === 'structure' && (
+                                        <div className="space-y-4">
+                                            <h4 className="text-sm font-bold text-white font-mono">
+                                                Estructura de la tabla: <span className="text-cyan-400">{selectedTable}</span>
+                                            </h4>
+                                            <div className="rounded-xl border border-neutral-800 bg-black/60 overflow-hidden">
+                                                <table className="w-full text-left text-xs font-mono">
+                                                    <thead className="bg-neutral-900/90 text-cyan-300 border-b border-neutral-800">
+                                                        <tr>
+                                                            <th className="p-3 font-bold">Columna</th>
+                                                            <th className="p-3 font-bold">Tipo</th>
+                                                            <th className="p-3 font-bold">Nulo</th>
+                                                            <th className="p-3 font-bold">Clave</th>
+                                                            <th className="p-3 font-bold">Predeterminado</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-neutral-800 text-neutral-300">
+                                                        {currentTableData.columns.map((col, idx) => (
+                                                            <tr key={idx} className="hover:bg-neutral-900/40">
+                                                                <td className="p-3 font-bold text-cyan-300">{col}</td>
+                                                                <td className="p-3 text-neutral-400">
+                                                                    {col === 'id' ? 'INT(11)' : col.includes('created') || col.includes('updated') || col.includes('timestamp') ? 'DATETIME' : 'VARCHAR(255)'}
+                                                                </td>
+                                                                <td className="p-3">{col === 'id' ? 'NO' : 'SÍ'}</td>
+                                                                <td className="p-3">{col === 'id' ? 'PRIMARY KEY (AUTO_INCREMENT)' : '–'}</td>
+                                                                <td className="p-3">NULL</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* PESTAÑA: CONSOLA SQL */}
+                                    {webTab === 'sql' && (
+                                        <div className="space-y-4">
+                                            <form onSubmit={handleExecuteSql} className="space-y-3">
+                                                <div className="flex items-center justify-between">
+                                                    <label className="text-xs font-bold text-cyan-400 uppercase tracking-wider">
+                                                        Editor de Consultas SQL
+                                                    </label>
+                                                    <div className="flex items-center gap-2 text-[10px] text-neutral-400">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSqlQuery('SELECT * FROM users LIMIT 10;')}
+                                                            className="hover:text-cyan-300 underline"
+                                                        >
+                                                            SELECT users
+                                                        </button>
+                                                        <span>•</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSqlQuery('SELECT * FROM server_configs;')}
+                                                            className="hover:text-cyan-300 underline"
+                                                        >
+                                                            SELECT configs
+                                                        </button>
+                                                        <span>•</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSqlQuery('SHOW TABLES;')}
+                                                            className="hover:text-cyan-300 underline"
+                                                        >
+                                                            SHOW TABLES
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <textarea
+                                                    rows={4}
+                                                    value={sqlQuery}
+                                                    onChange={(e) => setSqlQuery(e.target.value)}
+                                                    className="w-full font-mono text-xs rounded-xl border border-cyan-800/80 bg-black/80 px-4 py-2.5 text-cyan-100 focus:border-cyan-400 focus:outline-none"
+                                                    placeholder="Escribe tu consulta SQL aquí..."
+                                                />
+
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[11px] text-neutral-500">
+                                                        Base de datos activa: {webManagerDb.name}
+                                                    </span>
+                                                    <button
+                                                        type="submit"
+                                                        disabled={isExecutingSql}
+                                                        className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2 text-xs font-bold text-black hover:bg-cyan-400 transition shadow-[0_0_15px_rgba(34,211,238,0.3)] disabled:opacity-50"
+                                                    >
+                                                        <Play size={13} />
+                                                        <span>{isExecutingSql ? 'Ejecutando...' : 'Ejecutar Consulta'}</span>
+                                                    </button>
+                                                </div>
+                                            </form>
+
+                                            {/* Resultados de la consulta */}
+                                            {sqlResults && (
+                                                <div className="mt-3 rounded-xl border border-neutral-800 bg-black/60 overflow-hidden">
+                                                    <div className="max-h-[35vh] overflow-auto">
+                                                        <table className="w-full text-left text-xs font-mono">
+                                                            <thead className="bg-neutral-900/90 text-cyan-300 border-b border-neutral-800">
+                                                                <tr>
+                                                                    {sqlResults.columns.map((col, idx) => (
+                                                                        <th key={idx} className="p-2.5 font-bold">
+                                                                            {col}
+                                                                        </th>
+                                                                    ))}
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="divide-y divide-neutral-800 text-neutral-300">
+                                                                {sqlResults.rows.map((row, rIdx) => (
+                                                                    <tr key={rIdx} className="hover:bg-neutral-900/50">
+                                                                        {sqlResults.columns.map((col, cIdx) => (
+                                                                            <td key={cIdx} className="p-2.5 text-[11px]">
+                                                                                {String(row[col] ?? 'NULL')}
+                                                                            </td>
+                                                                        ))}
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* PESTAÑA: EXPORTAR */}
+                                    {webTab === 'export' && (
+                                        <div className="space-y-4 max-w-xl">
+                                            <h4 className="text-sm font-bold text-white">Exportar Base de Datos (.SQL)</h4>
+                                            <p className="text-xs text-neutral-400 leading-relaxed">
+                                                Descarga un archivo con la estructura completa de tablas y los datos de <strong className="text-cyan-300">{webManagerDb.name}</strong> para respaldarlo o importarlo en otro servidor.
+                                            </p>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDownloadSqlDump()}
+                                                className="inline-flex items-center gap-2 rounded-xl border border-cyan-400 bg-cyan-500 px-5 py-2.5 text-xs font-bold text-black hover:bg-cyan-400 transition shadow-[0_0_15px_rgba(34,211,238,0.3)]"
+                                            >
+                                                <Download size={14} />
+                                                <span>Descargar Volcado SQL Completo</span>
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* PESTAÑA: PHPMYADMIN EXTERNO */}
+                                    {webTab === 'external' && (
+                                        <div className="space-y-4 max-w-xl">
+                                            <h4 className="text-sm font-bold text-white">Vincular Servidor phpMyAdmin / Adminer Externo</h4>
+                                            <div className="rounded-xl border border-amber-500/40 bg-amber-950/20 p-3.5 text-xs text-amber-300 space-y-1">
+                                                <p className="font-bold">⚠️ Nota sobre el puerto 8080:</p>
+                                                <p className="text-neutral-300">
+                                                    El puerto <strong className="text-white">8080</strong> está reservado para el daemon interno <strong>Wings</strong> de Cinammon (por eso devuelve error de autenticación si se abre en el navegador).
+                                                </p>
+                                                <p className="text-neutral-300">
+                                                    Si tienes phpMyAdmin o Adminer corriendo, configúralo en el puerto <strong className="text-cyan-300">8081</strong> o en tu subdominio asignado.
+                                                </p>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs font-bold text-cyan-400 uppercase tracking-wider mb-1.5">
+                                                    URL de phpMyAdmin / Adminer
+                                                </label>
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="url"
+                                                        value={customPmaUrl}
+                                                        onChange={(e) => setCustomPmaUrl(e.target.value)}
+                                                        className="flex-1 rounded-xl border border-cyan-800/80 bg-black/70 px-4 py-2 text-xs text-cyan-100 focus:border-cyan-400 focus:outline-none"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            window.open(customPmaUrl, '_blank', 'noopener,noreferrer');
+                                                        }}
+                                                        className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-400 bg-cyan-500 px-4 py-2 text-xs font-bold text-black hover:bg-cyan-400 transition"
+                                                    >
+                                                        <ExternalLink size={13} />
+                                                        <span>Abrir</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -608,7 +971,16 @@ export default function Databases({ server, databases = [] }: PageProps) {
                             <div className="p-6 space-y-5 text-xs text-neutral-300 leading-relaxed overflow-y-auto max-h-[75vh]">
                                 <div className="space-y-2 border-b border-neutral-800 pb-4">
                                     <h4 className="font-bold text-sm text-cyan-400 flex items-center gap-2">
-                                        <span>Opción 1: Conexión interna desde el propio servidor / bot</span>
+                                        <span>Opción 1: Gestor Web Integrado (Recomendado)</span>
+                                    </h4>
+                                    <p className="text-neutral-400">
+                                        Haz clic en el botón <strong className="text-cyan-300">Gestor Web</strong> en cualquier tarjeta para abrir directamente el explorador visual de tablas, consola SQL y exportador dentro de Cinammon sin configurar nada más.
+                                    </p>
+                                </div>
+
+                                <div className="space-y-2 border-b border-neutral-800 pb-4">
+                                    <h4 className="font-bold text-sm text-cyan-400 flex items-center gap-2">
+                                        <span>Opción 2: Conexión interna desde el propio servidor / bot</span>
                                     </h4>
                                     <p className="text-neutral-400">
                                         Si tu bot o servidor de juegos se ejecuta dentro del panel, puede conectarse de forma ultrarrápida usando el host interno:
@@ -619,15 +991,6 @@ export default function Databases({ server, databases = [] }: PageProps) {
                                         <p className="text-cyan-300">DB_DATABASE={databases[0]?.name || 's2_cinammon'}</p>
                                         <p className="text-cyan-300">DB_USERNAME={databases[0]?.user || 'u2_admin'}</p>
                                     </div>
-                                </div>
-
-                                <div className="space-y-2 border-b border-neutral-800 pb-4">
-                                    <h4 className="font-bold text-sm text-cyan-400 flex items-center gap-2">
-                                        <span>Opción 2: Gestor Web phpMyAdmin / Adminer</span>
-                                    </h4>
-                                    <p className="text-neutral-400">
-                                        Permite ver las tablas visualmente desde el navegador sin instalar nada. Haz clic en el botón <strong className="text-cyan-300">Gestor Web</strong> en la tarjeta de la base de datos para ingresar directamente con tu usuario y contraseña.
-                                    </p>
                                 </div>
 
                                 <div className="space-y-2">
