@@ -70,6 +70,17 @@ class DaemonController extends Controller
         $data = $request->validate(['data' => 'present|array|max:100']);
         if ($data['data']) {
             Log::channel('single')->info('Wings activity', ['node_id' => $request->attributes->get('node')->id, 'events' => $data['data']]);
+            foreach ($data['data'] as $event) {
+                $serverUuid = $event['server'] ?? null;
+                $eventName = $event['event'] ?? '';
+                if ($serverUuid) {
+                    if (str_contains($eventName, 'crashed') || str_contains($eventName, 'stop') || str_contains($eventName, 'kill')) {
+                        \App\Models\Server::where('uuid', $serverUuid)->update(['status' => 0]);
+                    } elseif (str_contains($eventName, 'start') || str_contains($eventName, 'power:start') || str_contains($eventName, 'running')) {
+                        \App\Models\Server::where('uuid', $serverUuid)->update(['status' => 1]);
+                    }
+                }
+            }
         }
         return response()->noContent();
     }
