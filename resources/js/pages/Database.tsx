@@ -551,13 +551,13 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
             <Head title={selectedDb ? `${selectedDb.title} · ${activeSpec.label}` : 'Database Hosts'} />
 
             {selectedDb ? (
-                <div className="flex min-h-screen flex-col gap-6 bg-white p-6 font-[Orbitron] text-black dark:bg-black dark:text-slate-100">
+                <div className="flex min-h-screen flex-col gap-6 bg-white dark:bg-black text-black dark:text-slate-100 p-4 sm:p-6 lg:p-8 w-full max-w-[1680px] mx-auto">
                     <header className="flex flex-wrap items-center justify-between gap-4 border-b border-orange-500/25 pb-4">
                         <div className="flex items-center gap-3">
                             <DatabaseIcon className="h-7 w-7 text-orange-400" />
                             <div>
                                 <div className="flex flex-wrap items-center gap-2.5">
-                                    <h1 className="text-xl font-bold tracking-wider text-orange-400 uppercase sm:text-2xl">
+                                    <h1 className="text-xl font-bold tracking-wider text-orange-400 font-[Orbitron] uppercase sm:text-2xl">
                                         {selectedTable ? `${activeSpec.entitySingular}: ${selectedTable.name}` : selectedDb.title}
                                     </h1>
                                     <span className={`rounded border px-2.5 py-0.5 font-mono text-xs font-semibold ${activeSpec.badgeClass}`}>
@@ -1193,70 +1193,72 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                 </div>
             ) : (
                 /* VISTA PRINCIPAL DE DATABASE HOSTS MULTI-MOTOR */
-                <div className="flex flex-col gap-6 bg-white p-6 font-[Orbitron] text-black dark:bg-black dark:text-slate-100">
-                    <div className="flex flex-wrap items-center justify-between gap-4 border-b border-orange-500/25 pb-4">
-                        <div className="flex items-center gap-3">
-                            <DatabaseIcon className="h-8 w-8 text-orange-400" />
+                <div className="flex min-h-screen flex-col gap-6 bg-white dark:bg-black text-black dark:text-slate-100 p-4 sm:p-6 lg:p-8 w-full max-w-[1680px] mx-auto">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-orange-500/25 pb-5">
+                        <div className="flex items-center gap-3.5">
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-orange-500/40 bg-orange-500/10 text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.2)]">
+                                <DatabaseIcon className="h-7 w-7" />
+                            </div>
                             <div>
-                                <h1 className="text-2xl font-bold tracking-wider text-orange-400">DATABASE HOSTS</h1>
-                                <p className="text-xs text-neutral-500 dark:text-slate-400">
+                                <h1 className="text-xl sm:text-2xl font-bold tracking-wider text-orange-400 font-[Orbitron]">DATABASE HOSTS</h1>
+                                <p className="text-xs sm:text-sm text-neutral-500 dark:text-slate-400 mt-0.5">
                                     Soporte multi-motor para SQLite, MySQL, MariaDB, PostgreSQL, MongoDB, Redis y SQL Server
                                 </p>
                             </div>
                         </div>
 
                         {/* Filtro por motor con iconos consistentes */}
-                        <div className="flex flex-wrap items-center gap-1.5">
+                        <div className="flex flex-wrap items-center gap-2">
                             <button
                                 type="button"
                                 onClick={() => setEngineFilter('all')}
-                                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+                                className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs sm:text-sm font-semibold transition ${
                                     engineFilter === 'all'
-                                        ? 'border-orange-400 bg-orange-500 text-black'
+                                        ? 'border-orange-400 bg-orange-500 text-black shadow-[0_0_12px_rgba(249,115,22,0.3)]'
                                         : 'border-orange-500/30 bg-neutral-900 text-slate-300 hover:border-orange-400'
                                 }`}
                             >
-                                <DatabaseIcon size={13} /> Todos ({hosts.length})
+                                <DatabaseIcon size={14} /> Todos ({hosts.length})
                             </button>
                             {Object.values(DB_ENGINES).map((spec) => (
                                 <button
                                     key={spec.id}
                                     type="button"
                                     onClick={() => setEngineFilter(spec.id)}
-                                    className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
+                                    className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs sm:text-sm font-semibold transition ${
                                         engineFilter === spec.id
-                                            ? 'border-orange-400 bg-orange-500 text-black'
+                                            ? 'border-orange-400 bg-orange-500 text-black shadow-[0_0_12px_rgba(249,115,22,0.3)]'
                                             : `${spec.badgeClass} hover:opacity-90`
                                     }`}
                                 >
-                                    <HardDrive size={12} /> {spec.shortLabel}
+                                    <HardDrive size={13} /> {spec.shortLabel}
                                 </button>
                             ))}
                         </div>
                     </div>
 
                     {/* Tarjeta de Acceso Directo: Base de Datos de la Web (Cinammon Panel) */}
-                    <div className="rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-950/40 via-neutral-950 to-neutral-950 p-5 shadow-[0_0_20px_rgba(245,158,11,0.12)] flex flex-wrap items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-amber-400/50 bg-amber-500/20 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.25)]">
-                                <DatabaseIcon className="h-6 w-6" />
+                    <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-950/40 via-neutral-950 to-neutral-950 p-5 sm:p-6 shadow-[0_0_25px_rgba(245,158,11,0.12)] flex flex-col xl:flex-row xl:items-center justify-between gap-5">
+                        <div className="flex items-start sm:items-center gap-4">
+                            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-amber-400/50 bg-amber-500/20 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+                                <DatabaseIcon className="h-7 w-7" />
                             </div>
                             <div>
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <h3 className="font-bold text-base text-white">Base de Datos de la Web (Panel Cinammon)</h3>
-                                    <span className="rounded border border-amber-500/50 bg-amber-500/20 px-2.5 py-0.5 font-mono text-xs font-bold text-amber-300">
+                                <div className="flex flex-wrap items-center gap-2.5">
+                                    <h3 className="font-bold text-base sm:text-lg text-white font-[Orbitron]">Base de Datos de la Web (Panel Cinammon)</h3>
+                                    <span className="rounded-lg border border-amber-500/50 bg-amber-500/20 px-2.5 py-1 font-mono text-xs font-bold text-amber-300">
                                         cinammon_web
                                     </span>
-                                    <span className="rounded border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 font-mono text-[11px] text-emerald-400 flex items-center gap-1">
-                                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                    <span className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 font-mono text-xs text-emerald-400 flex items-center gap-1.5">
+                                        <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
                                         MariaDB Online :3306
                                     </span>
                                 </div>
-                                <p className="text-xs text-neutral-400 mt-1">
+                                <p className="text-xs sm:text-sm text-neutral-400 mt-1.5 max-w-3xl">
                                     Base de datos relacional de la web (usuarios, servidores, roles, tickets, nodos y logs). Acceso directo por phpMyAdmin o visor integrado.
                                 </p>
-                                <div className="mt-3 flex flex-wrap items-center gap-2.5 font-mono text-xs text-neutral-300">
-                                    <div className="flex items-center gap-1.5 rounded-lg border border-neutral-800 bg-black/70 px-2.5 py-1">
+                                <div className="mt-3.5 flex flex-wrap items-center gap-3 font-mono text-xs text-neutral-300">
+                                    <div className="flex items-center gap-2 rounded-xl border border-neutral-800 bg-black/80 px-3 py-1.5 shadow-sm">
                                         <span className="text-neutral-500">Usuario:</span>
                                         <span className="font-bold text-cyan-300">cinammon</span>
                                         <button
@@ -1265,14 +1267,14 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                                 navigator.clipboard.writeText('cinammon');
                                                 toast.success('Usuario "cinammon" copiado.');
                                             }}
-                                            className="text-neutral-400 hover:text-white transition ml-1"
+                                            className="text-neutral-400 hover:text-white transition ml-1 p-0.5"
                                             title="Copiar usuario"
                                         >
-                                            <Copy size={12} />
+                                            <Copy size={13} />
                                         </button>
                                     </div>
 
-                                    <div className="flex items-center gap-1.5 rounded-lg border border-neutral-800 bg-black/70 px-2.5 py-1">
+                                    <div className="flex items-center gap-2 rounded-xl border border-neutral-800 bg-black/80 px-3 py-1.5 shadow-sm">
                                         <span className="text-neutral-500">Contraseña:</span>
                                         <span className="font-bold text-amber-300">cinammon_secret</span>
                                         <button
@@ -1281,14 +1283,14 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                                 navigator.clipboard.writeText('cinammon_secret');
                                                 toast.success('Contraseña copiada.');
                                             }}
-                                            className="text-neutral-400 hover:text-white transition ml-1"
+                                            className="text-neutral-400 hover:text-white transition ml-1 p-0.5"
                                             title="Copiar contraseña"
                                         >
-                                            <Copy size={12} />
+                                            <Copy size={13} />
                                         </button>
                                     </div>
 
-                                    <div className="flex items-center gap-1.5 rounded-lg border border-neutral-800/80 bg-black/50 px-2.5 py-1 text-[11px] text-neutral-400">
+                                    <div className="flex items-center gap-2 rounded-xl border border-neutral-800/80 bg-black/50 px-3 py-1.5 text-xs text-neutral-400">
                                         <span className="text-neutral-500">Admin global:</span>
                                         <span className="text-neutral-300">root</span> / <span className="text-neutral-300">password</span>
                                     </div>
@@ -1296,17 +1298,17 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                             </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-2.5">
+                        <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full xl:w-auto">
                             <button
                                 type="button"
                                 onClick={() => {
                                     toast.success('Abriendo phpMyAdmin directamente en cinammon_web...');
                                     window.open('http://localhost:8081/index.php?route=/database/structure&db=cinammon_web', '_blank', 'noopener,noreferrer');
                                 }}
-                                className="inline-flex items-center gap-2 rounded-xl border border-amber-400 bg-amber-500 px-4 py-2 text-xs font-bold text-black hover:bg-amber-400 transition shadow-[0_0_15px_rgba(245,158,11,0.3)]"
+                                className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-400 bg-amber-500 px-5 py-2.5 text-xs sm:text-sm font-bold text-black hover:bg-amber-400 transition shadow-[0_0_18px_rgba(245,158,11,0.35)] w-full sm:w-auto"
                                 title="Abrir phpMyAdmin oficial en cinammon_web"
                             >
-                                <ExternalLink size={14} />
+                                <ExternalLink size={15} />
                                 <span>Abrir en phpMyAdmin</span>
                             </button>
 
@@ -1321,93 +1323,105 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                         username: 'cinammon',
                                     });
                                 }}
-                                className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-700 bg-neutral-900 px-3.5 py-2 text-xs font-semibold text-neutral-300 hover:text-white hover:border-neutral-500 transition"
+                                className="inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-700 bg-neutral-900 px-4 py-2.5 text-xs sm:text-sm font-semibold text-neutral-300 hover:text-white hover:border-neutral-500 transition w-full sm:w-auto"
                             >
-                                <Terminal size={13} />
+                                <Terminal size={14} />
                                 <span>Explorador Interno</span>
                             </button>
                         </div>
                     </div>
+
+                    {/* Formulario para nuevo Host con selector de Motor */}
                     <form
                         onSubmit={handleSubmit}
-                        className="grid grid-cols-1 gap-4 rounded-xl border border-orange-500/30 bg-neutral-900/80 p-5 sm:grid-cols-2 lg:grid-cols-7"
+                        className="rounded-2xl border border-orange-500/30 bg-neutral-900/80 p-5 sm:p-6 space-y-4"
                     >
-                        <div>
-                            <label className="mb-1 block text-xs text-orange-300">Motor / Tipo</label>
-                            <select
-                                value={form.driver}
-                                onChange={(e) => handleDriverSelectForForm(e.target.value as DbDriver)}
-                                className="w-full rounded-lg border border-orange-500/35 bg-neutral-950 px-3 py-2 text-sm text-cyan-300"
-                            >
-                                {Object.values(DB_ENGINES).map((spec) => (
-                                    <option key={spec.id} value={spec.id}>
-                                        {spec.label}
-                                    </option>
-                                ))}
-                            </select>
+                        <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+                            <h2 className="text-sm sm:text-base font-bold font-[Orbitron] text-orange-400 flex items-center gap-2">
+                                <Plus size={16} /> Añadir Nuevo Host de Base de Datos
+                            </h2>
+                            <span className="text-xs text-neutral-500">Configuración de Endpoint</span>
                         </div>
-                        <div>
-                            <label className="mb-1 block text-xs text-orange-300">Nombre</label>
-                            <input
-                                type="text"
-                                required
-                                value={form.name}
-                                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                placeholder={`${DB_ENGINES[form.driver].shortLabel} Principal`}
-                                className="w-full rounded-lg border border-orange-500/35 bg-neutral-950 px-3 py-2 text-sm text-slate-100"
-                            />
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                            <div>
+                                <label className="mb-1.5 block text-xs font-semibold text-orange-300">Motor / Tipo</label>
+                                <select
+                                    value={form.driver}
+                                    onChange={(e) => handleDriverSelectForForm(e.target.value as DbDriver)}
+                                    className="w-full rounded-xl border border-orange-500/35 bg-neutral-950 px-3.5 py-2.5 text-xs sm:text-sm text-cyan-300 focus:border-orange-400 focus:outline-none transition"
+                                >
+                                    {Object.values(DB_ENGINES).map((spec) => (
+                                        <option key={spec.id} value={spec.id}>
+                                            {spec.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="mb-1.5 block text-xs font-semibold text-orange-300">Nombre</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={form.name}
+                                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                                    placeholder={`${DB_ENGINES[form.driver].shortLabel} Principal`}
+                                    className="w-full rounded-xl border border-orange-500/35 bg-neutral-950 px-3.5 py-2.5 text-xs sm:text-sm text-slate-100 placeholder-neutral-600 focus:border-orange-400 focus:outline-none transition"
+                                />
+                            </div>
+                            <div>
+                                <label className="mb-1.5 block text-xs font-semibold text-orange-300">Host / Ruta</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={form.host}
+                                    onChange={(e) => setForm({ ...form, host: e.target.value })}
+                                    className="w-full rounded-xl border border-orange-500/35 bg-neutral-950 px-3.5 py-2.5 text-xs sm:text-sm text-slate-100 focus:border-orange-400 focus:outline-none transition"
+                                />
+                            </div>
+                            <div>
+                                <label className="mb-1.5 block text-xs font-semibold text-orange-300">Puerto</label>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    max={65535}
+                                    required
+                                    value={form.port}
+                                    onChange={(e) => setForm({ ...form, port: Number(e.target.value) })}
+                                    className="w-full rounded-xl border border-orange-500/35 bg-neutral-950 px-3.5 py-2.5 text-xs sm:text-sm text-slate-100 focus:border-orange-400 focus:outline-none transition"
+                                />
+                            </div>
+                            <div>
+                                <label className="mb-1.5 block text-xs font-semibold text-orange-300">Usuario</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={form.username}
+                                    onChange={(e) => setForm({ ...form, username: e.target.value })}
+                                    className="w-full rounded-xl border border-orange-500/35 bg-neutral-950 px-3.5 py-2.5 text-xs sm:text-sm text-slate-100 focus:border-orange-400 focus:outline-none transition"
+                                />
+                            </div>
+                            <div>
+                                <label className="mb-1.5 block text-xs font-semibold text-orange-300">Nodo Vinculado</label>
+                                <select
+                                    value={form.node_id}
+                                    onChange={(e) => setForm({ ...form, node_id: e.target.value })}
+                                    className="w-full rounded-xl border border-orange-500/35 bg-neutral-950 px-3.5 py-2.5 text-xs sm:text-sm text-slate-100 focus:border-orange-400 focus:outline-none transition"
+                                >
+                                    <option value="">Global</option>
+                                    {nodes.map((n) => (
+                                        <option key={n.id} value={n.id}>
+                                            {n.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
-                        <div>
-                            <label className="mb-1 block text-xs text-orange-300">Host / Ruta</label>
-                            <input
-                                type="text"
-                                required
-                                value={form.host}
-                                onChange={(e) => setForm({ ...form, host: e.target.value })}
-                                className="w-full rounded-lg border border-orange-500/35 bg-neutral-950 px-3 py-2 text-sm text-slate-100"
-                            />
-                        </div>
-                        <div>
-                            <label className="mb-1 block text-xs text-orange-300">Puerto</label>
-                            <input
-                                type="number"
-                                min={0}
-                                max={65535}
-                                required
-                                value={form.port}
-                                onChange={(e) => setForm({ ...form, port: Number(e.target.value) })}
-                                className="w-full rounded-lg border border-orange-500/35 bg-neutral-950 px-3 py-2 text-sm text-slate-100"
-                            />
-                        </div>
-                        <div>
-                            <label className="mb-1 block text-xs text-orange-300">Usuario</label>
-                            <input
-                                type="text"
-                                required
-                                value={form.username}
-                                onChange={(e) => setForm({ ...form, username: e.target.value })}
-                                className="w-full rounded-lg border border-orange-500/35 bg-neutral-950 px-3 py-2 text-sm text-slate-100"
-                            />
-                        </div>
-                        <div>
-                            <label className="mb-1 block text-xs text-orange-300">Nodo Vinculado</label>
-                            <select
-                                value={form.node_id}
-                                onChange={(e) => setForm({ ...form, node_id: e.target.value })}
-                                className="w-full rounded-lg border border-orange-500/35 bg-neutral-950 px-3 py-2 text-sm text-slate-100"
-                            >
-                                <option value="">Global</option>
-                                {nodes.map((n) => (
-                                    <option key={n.id} value={n.id}>
-                                        {n.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="flex items-end">
+
+                        <div className="flex justify-end pt-2">
                             <button
                                 type="submit"
-                                className="flex w-full items-center justify-center gap-2 rounded-lg bg-orange-500/90 px-4 py-2 text-sm font-bold text-black transition hover:bg-orange-400"
+                                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 hover:bg-orange-400 px-6 py-2.5 text-xs sm:text-sm font-bold text-black transition shadow-[0_0_15px_rgba(249,115,22,0.3)]"
                             >
                                 <Plus className="h-4 w-4" /> Añadir Host
                             </button>
@@ -1415,22 +1429,22 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                     </form>
 
                     {/* Tabla de Database Hosts */}
-                    <div className="rounded-xl border border-orange-500/30 bg-neutral-950/90 p-5">
-                        <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-orange-400">
-                            <DatabaseIcon className="h-4 w-4" /> Hosts Configurados ({filteredHosts.length})
-                        </h2>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead className="border-b border-orange-500/25 text-xs uppercase text-orange-300">
+                    <div className="rounded-2xl border border-orange-500/30 bg-neutral-950/90 p-4 sm:p-6 shadow-sm overflow-hidden">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="flex items-center gap-2 text-sm sm:text-base font-bold font-[Orbitron] text-orange-400">
+                                <DatabaseIcon className="h-5 w-5" /> Hosts Configurados ({filteredHosts.length})
+                            </h2>
+                            <span className="text-xs text-neutral-500">Endpoints Activos</span>
+                        </div>
+                        <div className="w-full rounded-xl border border-neutral-800/80">
+                            <table className="w-full text-left text-xs sm:text-sm table-auto">
+                                <thead className="border-b border-orange-500/25 bg-neutral-900/60 text-xs uppercase font-bold text-orange-300 font-[Orbitron]">
                                     <tr>
-                                        <th className="px-4 py-3">ID</th>
-                                        <th className="px-4 py-3">Nombre</th>
-                                        <th className="px-4 py-3">Motor</th>
-                                        <th className="px-4 py-3">Endpoint</th>
-                                        <th className="px-4 py-3">Usuario</th>
-                                        <th className="px-4 py-3">Nodo</th>
-                                        <th className="px-4 py-3">Máx DBs</th>
-                                        <th className="px-4 py-3 text-right">Acciones</th>
+                                        <th className="px-4 py-3 sm:px-5 sm:py-3.5">Host / Nombre</th>
+                                        <th className="px-4 py-3 sm:px-5 sm:py-3.5">Motor & Límite</th>
+                                        <th className="px-4 py-3 sm:px-5 sm:py-3.5">Endpoint</th>
+                                        <th className="px-4 py-3 sm:px-5 sm:py-3.5">Usuario</th>
+                                        <th className="px-4 py-3 sm:px-5 sm:py-3.5 text-right">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-neutral-800/80">
@@ -1451,31 +1465,36 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                                 }
                                                 className="cursor-pointer transition hover:bg-orange-500/10"
                                             >
-                                                <td className="px-4 py-3 text-slate-400">#{h.id}</td>
-                                                <td className="px-4 py-3 font-semibold text-slate-100">{h.name}</td>
-                                                <td className="px-4 py-3">
-                                                    <span className={`rounded border px-2.5 py-0.5 font-mono text-xs font-semibold ${spec.badgeClass}`}>
-                                                        {spec.label}
-                                                    </span>
+                                                <td className="px-4 py-3 sm:px-5 sm:py-3.5">
+                                                    <div className="font-semibold text-slate-100 flex items-center gap-1.5">
+                                                        <span className="font-mono text-xs text-orange-400 font-bold">#{h.id}</span>
+                                                        <span>{h.name}</span>
+                                                    </div>
+                                                    <div className="text-[11px] text-neutral-400 mt-0.5">Nodo: {h.node_name}</div>
                                                 </td>
-                                                <td className="px-4 py-3 font-mono text-cyan-300">
+                                                <td className="px-4 py-3 sm:px-5 sm:py-3.5">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className={`rounded-md border px-2 py-0.5 font-mono text-xs font-semibold ${spec.badgeClass}`}>
+                                                            {spec.label}
+                                                        </span>
+                                                        <span className="text-[11px] font-mono text-neutral-400">({h.max_databases} máx)</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3 sm:px-5 sm:py-3.5 font-mono text-cyan-300 font-medium">
                                                     {h.port ? `${h.host}:${h.port}` : h.host}
                                                 </td>
-                                                <td className="px-4 py-3 text-slate-300">{h.username}</td>
-                                                <td className="px-4 py-3 text-slate-300">{h.node_name}</td>
-                                                <td className="px-4 py-3 text-slate-300">{h.max_databases}</td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <div className="inline-flex items-center gap-2">
+                                                <td className="px-4 py-3 sm:px-5 sm:py-3.5 font-mono text-xs text-slate-300">{h.username}</td>
+                                                <td className="px-4 py-3 sm:px-5 sm:py-3.5 text-right">
+                                                    <div className="inline-flex items-center gap-1.5 justify-end flex-wrap sm:flex-nowrap">
                                                         {(drv === 'mysql' || drv === 'mariadb') && (
                                                             <button
                                                                 type="button"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    navigator.clipboard.writeText('cinammon_secret');
-                                                                    toast.success('Abriendo phpMyAdmin (puerto 8081). Contraseña copiada.');
+                                                                    toast.success('Abriendo phpMyAdmin (puerto 8081)...');
                                                                     window.open('http://localhost:8081', '_blank', 'noopener,noreferrer');
                                                                 }}
-                                                                className="inline-flex items-center gap-1 rounded border border-amber-400/80 bg-amber-500/20 px-2.5 py-1 text-xs font-semibold text-amber-300 hover:bg-amber-500 hover:text-black transition"
+                                                                className="inline-flex items-center gap-1 rounded-lg border border-amber-400/80 bg-amber-500/20 px-2.5 py-1 text-xs font-bold text-amber-300 hover:bg-amber-500 hover:text-black transition shadow-[0_0_8px_rgba(245,158,11,0.2)]"
                                                                 title="Abrir phpMyAdmin oficial en localhost:8081"
                                                             >
                                                                 <ExternalLink className="h-3.5 w-3.5" /> phpMyAdmin
@@ -1493,16 +1512,17 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                                                     username: h.username,
                                                                 });
                                                             }}
-                                                            className="inline-flex items-center gap-1 rounded border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-xs text-cyan-300 hover:bg-cyan-500 hover:text-black"
+                                                            className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-1 text-xs font-semibold text-cyan-300 hover:bg-cyan-500 hover:text-black transition"
                                                         >
-                                                            <Terminal className="h-3.5 w-3.5" /> Abrir Gestor
+                                                            <Terminal className="h-3.5 w-3.5" /> Gestor
                                                         </button>
                                                         <button
                                                             type="button"
                                                             onClick={(e) => handleDelete(e, h.id)}
-                                                            className="inline-flex items-center gap-1 rounded bg-red-600/20 px-3 py-1 text-xs text-red-400 hover:bg-red-600 hover:text-white"
+                                                            className="inline-flex items-center gap-1 rounded-lg bg-red-600/20 px-2 py-1 text-xs text-red-400 hover:bg-red-600 hover:text-white transition"
+                                                            title="Eliminar host"
                                                         >
-                                                            <Trash2 className="h-3.5 w-3.5" /> Eliminar
+                                                            <Trash2 className="h-3.5 w-3.5" />
                                                         </button>
                                                     </div>
                                                 </td>
@@ -1515,21 +1535,21 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                     </div>
 
                     {/* Bases de Datos por Servidor */}
-                    <div className="rounded-xl border border-orange-500/30 bg-neutral-950/90 p-5">
-                        <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-orange-400">
-                            <Server className="h-4 w-4" /> Bases de Datos de Servidores
-                        </h2>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead className="border-b border-orange-500/25 text-xs uppercase text-orange-300">
+                    <div className="rounded-2xl border border-orange-500/30 bg-neutral-950/90 p-4 sm:p-6 shadow-sm overflow-hidden">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="flex items-center gap-2 text-sm sm:text-base font-bold font-[Orbitron] text-orange-400">
+                                <Server className="h-5 w-5" /> Bases de Datos de Servidores
+                            </h2>
+                            <span className="text-xs text-neutral-500">Instancias por Instancia</span>
+                        </div>
+                        <div className="w-full rounded-xl border border-neutral-800/80">
+                            <table className="w-full text-left text-xs sm:text-sm table-auto">
+                                <thead className="border-b border-orange-500/25 bg-neutral-900/60 text-xs uppercase font-bold text-orange-300 font-[Orbitron]">
                                     <tr>
-                                        <th className="px-4 py-3">Servidor</th>
-                                        <th className="px-4 py-3">Base de Datos</th>
-                                        <th className="px-4 py-3">Motor</th>
-                                        <th className="px-4 py-3">Usuario</th>
-                                        <th className="px-4 py-3">Host:Puerto</th>
-                                        <th className="px-4 py-3">Nodo</th>
-                                        <th className="px-4 py-3 text-right">Acciones</th>
+                                        <th className="px-4 py-3 sm:px-5 sm:py-3.5">Servidor</th>
+                                        <th className="px-4 py-3 sm:px-5 sm:py-3.5">Base de Datos & Motor</th>
+                                        <th className="px-4 py-3 sm:px-5 sm:py-3.5">Conexión</th>
+                                        <th className="px-4 py-3 sm:px-5 sm:py-3.5 text-right">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-neutral-800/80">
@@ -1560,31 +1580,34 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                                         }
                                                         className="cursor-pointer transition hover:bg-orange-500/10"
                                                     >
-                                                        <td className="px-4 py-3 font-semibold text-slate-100">{s.name}</td>
-                                                        <td className="px-4 py-3 font-mono font-semibold text-cyan-300">{db.name}</td>
-                                                        <td className="px-4 py-3">
-                                                            <span className={`rounded border px-2.5 py-0.5 font-mono text-xs font-semibold ${spec.badgeClass}`}>
-                                                                {spec.label}
-                                                            </span>
+                                                        <td className="px-4 py-3 sm:px-5 sm:py-3.5">
+                                                            <div className="font-semibold text-slate-100">{s.name}</div>
+                                                            <div className="text-[11px] text-neutral-400 mt-0.5">{s.node_name}</div>
                                                         </td>
-                                                        <td className="px-4 py-3 font-mono text-slate-300">{db.user}</td>
-                                                        <td className="px-4 py-3 font-mono text-xs text-emerald-300">
-                                                            {db.port ? `${db.host}:${db.port}` : db.host}
+                                                        <td className="px-4 py-3 sm:px-5 sm:py-3.5">
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                <span className="font-mono font-bold text-cyan-300">{db.name}</span>
+                                                                <span className={`rounded-md border px-2 py-0.5 font-mono text-[11px] font-semibold ${spec.badgeClass}`}>
+                                                                    {spec.label}
+                                                                </span>
+                                                            </div>
                                                         </td>
-                                                        <td className="px-4 py-3 text-slate-300">{s.node_name}</td>
-                                                        <td className="px-4 py-3 text-right">
-                                                            <div className="inline-flex items-center gap-2 justify-end">
+                                                        <td className="px-4 py-3 sm:px-5 sm:py-3.5">
+                                                            <div className="font-mono text-xs text-emerald-300">{db.port ? `${db.host}:${db.port}` : db.host}</div>
+                                                            <div className="font-mono text-[11px] text-neutral-400 mt-0.5">user: {db.user}</div>
+                                                        </td>
+                                                        <td className="px-4 py-3 sm:px-5 sm:py-3.5 text-right">
+                                                            <div className="inline-flex items-center gap-1.5 justify-end flex-wrap sm:flex-nowrap">
                                                                 {(drv === 'mysql' || drv === 'mariadb') && (
                                                                     <button
                                                                         type="button"
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
-                                                                            navigator.clipboard.writeText('cnm_ffb44f998731');
-                                                                            toast.success(`Abriendo phpMyAdmin para ${db.name}. Contraseña copiada.`);
-                                                                            window.open('http://localhost:8081', '_blank', 'noopener,noreferrer');
+                                                                            toast.success(`Abriendo phpMyAdmin directamente en ${db.name}...`);
+                                                                            window.open(`http://localhost:8081/index.php?route=/database/structure&db=${encodeURIComponent(db.name)}`, '_blank', 'noopener,noreferrer');
                                                                         }}
-                                                                        className="inline-flex items-center gap-1 rounded border border-amber-400/80 bg-amber-500/20 px-2.5 py-1 text-xs font-semibold text-amber-300 hover:bg-amber-500 hover:text-black transition"
-                                                                        title="Abrir en phpMyAdmin"
+                                                                        className="inline-flex items-center gap-1 rounded-lg border border-amber-400/80 bg-amber-500/20 px-2.5 py-1 text-xs font-bold text-amber-300 hover:bg-amber-500 hover:text-black transition shadow-[0_0_8px_rgba(245,158,11,0.2)]"
+                                                                        title="Abrir directamente en phpMyAdmin"
                                                                     >
                                                                         <ExternalLink className="h-3.5 w-3.5" /> phpMyAdmin
                                                                     </button>
@@ -1595,7 +1618,7 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                                                         e.stopPropagation();
                                                                         router.visit(`/servers/${s.id}/edit?tab=databases`);
                                                                     }}
-                                                                    className="inline-flex items-center gap-1 rounded border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-xs text-cyan-300 hover:bg-cyan-500 hover:text-black"
+                                                                    className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-1 text-xs font-semibold text-cyan-300 hover:bg-cyan-500 hover:text-black transition"
                                                                 >
                                                                     <Server className="h-3.5 w-3.5" /> Servidor
                                                                 </button>
