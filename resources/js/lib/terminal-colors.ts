@@ -47,11 +47,7 @@ export function colorizeLogs(rawLogs: string): string {
 
         // 1. If line has ANSI escape codes, parse them
         if (line.includes('\x1b') || line.includes('\u001b')) {
-            const parsed = parseAnsiLine(line);
-            if (line.includes('╔═╗') || line.includes('║') || line.includes('╚═╝') || line.includes('C I N A M M O N')) {
-                return `<span style="font-size: 15px; font-weight: 700; line-height: 1.25; display: inline-block;">${parsed}</span>`;
-            }
-            return parsed;
+            return parseAnsiLine(line);
         }
 
         // 2. Otherwise apply Pterodactyl-style semantic log coloring (matches Bexx Studios)
