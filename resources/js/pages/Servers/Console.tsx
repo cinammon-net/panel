@@ -55,6 +55,7 @@ export default function Console({ server }: { server: Server }) {
     const [accepted, setAccepted] = useState(false);
     const [discordToken, setDiscordToken] = useState('');
     const [guildId, setGuildId] = useState('');
+    const [showDiscordConfig, setShowDiscordConfig] = useState(false);
     const logRef = useRef<HTMLPreElement>(null);
     const prevNetRef = useRef<{ rx: number; tx: number; ts: number } | null>(null);
     const base = `/servers/${server.id}`;
@@ -250,17 +251,133 @@ export default function Console({ server }: { server: Server }) {
                     <Metric label="Memoria" value={`${snapshot?.utilization?.memory_bytes !== undefined ? (snapshot.utilization.memory_bytes / 1048576).toFixed(1) : '0.0'} MiB / ${server.memory || '∞'}${server.memory ? ' MiB' : ''}`} />
                     <Metric label="Almacenamiento" value={`${snapshot?.utilization?.disk_bytes !== undefined ? (snapshot.utilization.disk_bytes / 1073741824).toFixed(2) : '0.00'} GiB / ${server.disk ? (server.disk / 1024).toFixed(1) + ' GiB' : '∞'}`} />
                 </section>
-                {server.discord_bot && <section className="space-y-4 rounded-lg border border-cyan-700 bg-neutral-950 p-5">
-                    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold text-cyan-400">Conexión con Discord</h2><span className={snapshot?.bot_status?.connected ? 'text-sm text-green-400' : 'text-sm text-amber-300'}>{snapshot?.bot_status?.connected ? `Conectado · ${snapshot.bot_status.tag || 'Cinammon'}` : 'Discord desconectado'}</span></div>
-                    <p className="text-sm text-cyan-200/80">{snapshot?.bot_status?.message || 'Añade el token de una aplicación de Discord para conectar el bot.'}</p>
-                    <p className="text-sm text-cyan-200/80">Crea una aplicación en el <a href="https://discord.com/developers/applications" target="_blank" rel="noreferrer" className="text-cyan-400 underline">portal de Discord</a> y copia su token desde la sección Bot. No lo pegues en el chat ni en la consola.</p>
-                    <form className="grid gap-4 md:grid-cols-2" onSubmit={async event => { event.preventDefault(); if (await action('discord', { password: discordToken, guild_id: guildId || null })) { setDiscordToken(''); setNotice('Configuración privada guardada. El bot se está reiniciando.'); } }}>
-                        <label className="space-y-2 text-sm text-cyan-300"><span>Token del bot</span><input type="password" value={discordToken} onChange={event => setDiscordToken(event.target.value)} autoComplete="new-password" minLength={30} maxLength={256} required className="block w-full rounded border border-cyan-700 bg-black p-3 text-cyan-200 outline-none focus:border-cyan-400" placeholder={snapshot?.bot_status?.configured ? 'Introduce un nuevo token para reemplazar el guardado' : 'Token privado de Discord'} /></label>
-                        <label className="space-y-2 text-sm text-cyan-300"><span>ID del servidor de Discord (opcional)</span><input value={guildId} onChange={event => setGuildId(event.target.value)} inputMode="numeric" pattern="[0-9]{17,22}" className="block w-full rounded border border-cyan-700 bg-black p-3 text-cyan-200 outline-none focus:border-cyan-400" placeholder="Para registrar los comandos en tu servidor de prueba" /></label>
-                        <div className="flex flex-wrap items-center gap-3 md:col-span-2"><button type="submit" disabled={!ready || discordToken.length < 30} className="rounded bg-cyan-500 px-4 py-2 text-sm font-semibold text-black disabled:opacity-40">Guardar token y conectar</button><button type="button" disabled={!running || busy} onClick={() => void action('command', { command: 'test' })} className="rounded border border-cyan-500 bg-cyan-900/30 px-4 py-2 text-sm text-cyan-300 disabled:opacity-40">Ejecutar prueba local</button>{snapshot?.bot_status?.application_id && <a className="text-sm text-cyan-300 underline" href={`https://discord.com/oauth2/authorize?client_id=${snapshot.bot_status.application_id}&scope=bot%20applications.commands&permissions=0`} target="_blank" rel="noreferrer">Invitar el bot a Discord</a>}</div>
-                    </form>
-                    <p className="text-xs text-cyan-500">La prueba local comprueba /ping, /ayuda y /estado sin conectar con Discord. La prueba real consiste en invitar el bot y ejecutar /ping en Discord.</p>
-                </section>}
+                {server.discord_bot && (
+                    <section className="space-y-4 rounded-lg border border-cyan-700 bg-neutral-950 p-5">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                            <h2 className="font-semibold text-cyan-400">Conexión con Discord</h2>
+                            <span className={snapshot?.bot_status?.connected ? 'text-sm font-medium text-green-400' : 'text-sm font-medium text-amber-300'}>
+                                {snapshot?.bot_status?.connected ? `Conectado · ${snapshot.bot_status.tag || 'Cinammon'}` : 'Discord desconectado'}
+                            </span>
+                        </div>
+                        <p className="text-sm text-cyan-200/80">{snapshot?.bot_status?.message || 'Añade el token de una aplicación de Discord para conectar el bot.'}</p>
+
+                        {snapshot?.bot_status?.connected && !showDiscordConfig ? (
+                            <div className="flex flex-wrap items-center gap-3 pt-1">
+                                {snapshot?.bot_status?.application_id && (
+                                    <a
+                                        className="inline-flex items-center gap-2 rounded bg-cyan-500 px-4 py-2 text-sm font-semibold text-black hover:bg-cyan-400 transition-colors"
+                                        href={`https://discord.com/oauth2/authorize?client_id=${snapshot.bot_status.application_id}&scope=bot%20applications.commands&permissions=0`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        Invitar el bot a Discord
+                                    </a>
+                                )}
+                                <button
+                                    type="button"
+                                    disabled={!running || busy}
+                                    onClick={() => void action('command', { command: 'test' })}
+                                    className="rounded border border-cyan-500 bg-cyan-900/30 px-4 py-2 text-sm text-cyan-300 hover:bg-cyan-900/50 transition-colors disabled:opacity-40"
+                                >
+                                    Ejecutar prueba local
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDiscordConfig(true)}
+                                    className="rounded border border-neutral-700 bg-neutral-900/80 px-3 py-2 text-xs text-neutral-400 hover:text-cyan-300 hover:border-cyan-600 transition-colors"
+                                >
+                                    Cambiar token o servidor
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                <p className="text-sm text-cyan-200/80">
+                                    Crea una aplicación en el{' '}
+                                    <a href="https://discord.com/developers/applications" target="_blank" rel="noreferrer" className="text-cyan-400 underline">
+                                        portal de Discord
+                                    </a>{' '}
+                                    y copia su token desde la sección Bot. No lo pegues en el chat ni en la consola.
+                                </p>
+                                <form
+                                    className="grid gap-4 md:grid-cols-2"
+                                    onSubmit={async (event) => {
+                                        event.preventDefault();
+                                        if (await action('discord', { password: discordToken, guild_id: guildId || null })) {
+                                            setDiscordToken('');
+                                            setShowDiscordConfig(false);
+                                            setNotice('Configuración privada guardada. El bot se está reiniciando.');
+                                        }
+                                    }}
+                                >
+                                    <label className="space-y-2 text-sm text-cyan-300">
+                                        <span>Token del bot</span>
+                                        <input
+                                            type="password"
+                                            value={discordToken}
+                                            onChange={(event) => setDiscordToken(event.target.value)}
+                                            autoComplete="new-password"
+                                            minLength={30}
+                                            maxLength={256}
+                                            required
+                                            className="block w-full rounded border border-cyan-700 bg-black p-3 text-cyan-200 outline-none focus:border-cyan-400"
+                                            placeholder={snapshot?.bot_status?.configured ? 'Introduce un nuevo token para reemplazar el guardado' : 'Token privado de Discord'}
+                                        />
+                                    </label>
+                                    <label className="space-y-2 text-sm text-cyan-300">
+                                        <span>ID del servidor de Discord (opcional)</span>
+                                        <input
+                                            value={guildId}
+                                            onChange={(event) => setGuildId(event.target.value)}
+                                            inputMode="numeric"
+                                            pattern="[0-9]{17,22}"
+                                            className="block w-full rounded border border-cyan-700 bg-black p-3 text-cyan-200 outline-none focus:border-cyan-400"
+                                            placeholder="Para registrar los comandos en tu servidor de prueba"
+                                        />
+                                    </label>
+                                    <div className="flex flex-wrap items-center gap-3 md:col-span-2">
+                                        <button
+                                            type="submit"
+                                            disabled={!ready || discordToken.length < 30}
+                                            className="rounded bg-cyan-500 px-4 py-2 text-sm font-semibold text-black disabled:opacity-40"
+                                        >
+                                            Guardar token y conectar
+                                        </button>
+                                        {snapshot?.bot_status?.connected && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowDiscordConfig(false)}
+                                                className="rounded border border-neutral-700 px-4 py-2 text-sm text-neutral-400 hover:text-white"
+                                            >
+                                                Cancelar
+                                            </button>
+                                        )}
+                                        <button
+                                            type="button"
+                                            disabled={!running || busy}
+                                            onClick={() => void action('command', { command: 'test' })}
+                                            className="rounded border border-cyan-500 bg-cyan-900/30 px-4 py-2 text-sm text-cyan-300 disabled:opacity-40"
+                                        >
+                                            Ejecutar prueba local
+                                        </button>
+                                        {snapshot?.bot_status?.application_id && (
+                                            <a
+                                                className="text-sm text-cyan-300 underline"
+                                                href={`https://discord.com/oauth2/authorize?client_id=${snapshot.bot_status.application_id}&scope=bot%20applications.commands&permissions=0`}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                            >
+                                                Invitar el bot a Discord
+                                            </a>
+                                        )}
+                                    </div>
+                                </form>
+                                <p className="text-xs text-cyan-500">
+                                    La prueba local comprueba /ping, /ayuda y /estado sin conectar con Discord. La prueba real consiste en invitar el bot y ejecutar /ping en Discord.
+                                </p>
+                            </>
+                        )}
+                    </section>
+                )}
                 {error && <p role="alert" className="rounded border border-red-500 bg-red-900/30 p-3 text-sm text-red-300">{error}</p>}
                 {notice && <p role="status" className="text-sm text-cyan-300">{notice}</p>}
                 {needsEula && <section className="space-y-3 rounded-lg border border-amber-700 bg-amber-950/30 p-4 text-sm">
