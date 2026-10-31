@@ -3,7 +3,7 @@ import { colorizeLogs } from '@/lib/terminal-colors';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import { CategoryScale, Chart as ChartJS, Filler, Legend, LinearScale, LineElement, PointElement, Title, Tooltip } from 'chart.js';
-import { Activity, ArrowDownUp, Copy, Cpu, Play, RotateCw, Send, Square, Terminal } from 'lucide-react';
+import { Activity, ArrowDownUp, Check, Copy, Cpu, Maximize2, Minimize2, Play, RotateCw, Send, Square, Terminal, Trash2 } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 
@@ -56,6 +56,11 @@ export default function Console({ server }: { server: Server }) {
     const [discordToken, setDiscordToken] = useState('');
     const [guildId, setGuildId] = useState('');
     const [showDiscordConfig, setShowDiscordConfig] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [copied, setCopied] = useState(false);
+    const [clearedAt, setClearedAt] = useState<number | null>(null);
+    const [cmdHistory, setCmdHistory] = useState<string[]>([]);
+    const [historyIndex, setHistoryIndex] = useState<number>(-1);
     const logRef = useRef<HTMLPreElement>(null);
     const prevNetRef = useRef<{ rx: number; tx: number; ts: number } | null>(null);
     const base = `/servers/${server.id}`;
@@ -159,9 +164,73 @@ export default function Console({ server }: { server: Server }) {
         catch (error) { setError(axios.isAxiosError(error) ? error.response?.data?.message || 'No se pudo ejecutar la acción.' : 'No se pudo ejecutar la acción.'); return false; }
         finally { setBusy(false); }
     };
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isFullscreen) {
+                setIsFullscreen(false);
+            }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [isFullscreen]);
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (cmdHistory.length === 0) return;
+            const nextIdx = historyIndex + 1 < cmdHistory.length ? historyIndex + 1 : historyIndex;
+            setHistoryIndex(nextIdx);
+            setCommand(cmdHistory[cmdHistory.length - 1 - nextIdx] || '');
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (historyIndex > 0) {
+                const nextIdx = historyIndex - 1;
+                setHistoryIndex(nextIdx);
+                setCommand(cmdHistory[cmdHistory.length - 1 - nextIdx] || '');
+            } else if (historyIndex === 0) {
+                setHistoryIndex(-1);
+                setCommand('');
+            }
+        } else if (e.key === 'Escape') {
+            setCommand('');
+            setHistoryIndex(-1);
+        }
+    };
+
+    const copyLogs = () => {
+        if (!snapshot?.logs) return;
+        navigator.clipboard.writeText(snapshot.logs);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    const quickCommands = server.discord_bot
+        ? ['status', 'test', 'ping', 'ayuda', 'stop']
+        : server.minecraft
+        ? ['list', 'tps', 'say Hola', 'help', 'stop']
+        : ['status', 'help', 'info', 'stop'];
+
+    const executeQuick = (cmd: string) => {
+        setCommand(cmd);
+        void action('command', { command: cmd });
+    };
+
     const sendCommand = async (event: FormEvent) => {
         event.preventDefault();
-        if (command.trim() && await action('command', { command: command.trim() })) { setCommand(''); setNotice('Comando enviado.'); }
+        const trimmed = command.trim();
+        if (!trimmed) return;
+        if (trimmed.toLowerCase() === 'clear') {
+            setClearedAt(Date.now());
+            setCommand('');
+            setNotice('Consola despejada.');
+            return;
+        }
+        setCmdHistory(prev => [...prev.filter(c => c !== trimmed), trimmed]);
+        setHistoryIndex(-1);
+        if (await action('command', { command: trimmed })) {
+            setCommand('');
+            setNotice('Comando enviado.');
+        }
     };
     const ready = snapshot?.installed && !busy;
     const needsEula = server.minecraft && snapshot?.installed && !snapshot.eula_accepted;
@@ -171,6 +240,8 @@ export default function Console({ server }: { server: Server }) {
         if (!snapshot?.logs) return null;
         return colorizeLogs(snapshot.logs);
     }, [snapshot?.logs]);
+
+    const lineCount = useMemo(() => snapshot?.logs ? snapshot.logs.split('\n').length : 0, [snapshot?.logs]);
 
     const currentCpu = snapshot?.utilization?.cpu_absolute ?? 0;
     const currentMemMib = (snapshot?.utilization?.memory_bytes ?? 0) / 1048576;
@@ -385,52 +456,203 @@ export default function Console({ server }: { server: Server }) {
                     <label className="flex items-center gap-2"><input type="checkbox" checked={accepted} onChange={event => setAccepted(event.target.checked)} />He leído y acepto la EULA de Minecraft para este servidor.</label>
                     <button disabled={!accepted || busy} className="rounded bg-amber-400 px-4 py-2 font-semibold text-black disabled:opacity-40" onClick={() => void action('eula', { accepted: true })}>Guardar aceptación</button>
                 </section>}
-                <section className="overflow-hidden rounded-lg border border-cyan-800/80 bg-[#070b13] shadow-2xl">
-                    <div className="flex items-center justify-between border-b border-cyan-900/80 bg-[#0b101b] px-4 py-2.5">
-                        <h2 className="flex items-center gap-2 text-xs font-semibold tracking-wider uppercase text-cyan-400">
-                            <Terminal size={15} className="text-cyan-400" /> Consola
-                        </h2>
-                        <label className="flex items-center gap-2 text-xs text-neutral-400 hover:text-cyan-300 cursor-pointer">
-                            <input type="checkbox" checked={follow} onChange={event => setFollow(event.target.checked)} className="accent-cyan-400" />
-                            Seguir logs
-                        </label>
+                <section className={`overflow-hidden rounded-xl border transition-all duration-300 ${
+                    isFullscreen
+                        ? 'fixed inset-2 md:inset-6 z-50 flex flex-col bg-[#050811] border-cyan-400 shadow-[0_0_80px_rgba(34,211,238,0.35)]'
+                        : 'border-cyan-800/80 bg-[#070b13] shadow-[0_0_35px_rgba(34,211,238,0.12)]'
+                }`}>
+                    {/* Barra Superior Estilo Terminal macOS / Cyberpunk */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cyan-900/80 bg-[#0a0f1d] px-4 py-2.5 select-none">
+                        <div className="flex items-center gap-3">
+                            {/* Botones de Ventana Interactivos */}
+                            <div className="flex items-center gap-1.5">
+                                <button
+                                    type="button"
+                                    onClick={() => setClearedAt(Date.now())}
+                                    title="Limpiar pantalla (clear)"
+                                    className="group relative flex h-3 w-3 items-center justify-center rounded-full bg-[#ff5f56] transition hover:opacity-80"
+                                >
+                                    <span className="opacity-0 group-hover:opacity-100 text-[8px] font-bold text-black leading-none">×</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFollow(!follow)}
+                                    title="Alternar auto-scroll"
+                                    className="group relative flex h-3 w-3 items-center justify-center rounded-full bg-[#ffbd2e] transition hover:opacity-80"
+                                >
+                                    <span className="opacity-0 group-hover:opacity-100 text-[8px] font-bold text-black leading-none">-</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsFullscreen(!isFullscreen)}
+                                    title="Pantalla completa"
+                                    className="group relative flex h-3 w-3 items-center justify-center rounded-full bg-[#27c93f] transition hover:opacity-80"
+                                >
+                                    <span className="opacity-0 group-hover:opacity-100 text-[8px] font-bold text-black leading-none">+</span>
+                                </button>
+                            </div>
+
+                            {/* Prompt de la terminal */}
+                            <div className="flex items-center gap-2 border-l border-cyan-900/60 pl-3">
+                                <Terminal size={14} className="text-cyan-400" />
+                                <span className="font-mono text-xs font-semibold text-cyan-200">
+                                    cinammon@{server.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}:~$
+                                </span>
+                            </div>
+
+                            {/* Badge de Estado del Servidor */}
+                            <div className={`hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono tracking-wider font-semibold border ${
+                                running
+                                    ? 'bg-emerald-950/70 text-emerald-400 border-emerald-500/40'
+                                    : snapshot?.state === 'starting'
+                                    ? 'bg-amber-950/70 text-amber-400 border-amber-500/40'
+                                    : 'bg-red-950/70 text-red-400 border-red-500/40'
+                            }`}>
+                                <span className={`h-1.5 w-1.5 rounded-full ${running ? 'bg-emerald-400 animate-pulse' : snapshot?.state === 'starting' ? 'bg-amber-400 animate-ping' : 'bg-red-400'}`}></span>
+                                {states[snapshot?.state ?? 'offline']?.toUpperCase() ?? 'OFFLINE'}
+                            </div>
+
+                            {lineCount > 0 && (
+                                <span className="hidden md:inline-block text-[11px] font-mono text-neutral-500">
+                                    {lineCount} líneas
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Controles y Herramientas Rápidas */}
+                        <div className="flex items-center gap-2">
+                            {/* Botón Copiar Logs */}
+                            <button
+                                type="button"
+                                onClick={copyLogs}
+                                disabled={!snapshot?.logs}
+                                title="Copiar logs al portapapeles"
+                                className="flex items-center gap-1.5 rounded border border-cyan-800/60 bg-cyan-950/40 px-2.5 py-1 text-xs text-cyan-300 hover:bg-cyan-900/60 hover:text-white transition disabled:opacity-40"
+                            >
+                                {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                                <span className="hidden sm:inline">{copied ? 'Copiado' : 'Copiar'}</span>
+                            </button>
+
+                            {/* Botón Limpiar Consola */}
+                            <button
+                                type="button"
+                                onClick={() => setClearedAt(clearedAt ? null : Date.now())}
+                                title={clearedAt ? 'Restaurar salida completa' : 'Despejar vista de consola'}
+                                className="flex items-center gap-1.5 rounded border border-cyan-800/60 bg-cyan-950/40 px-2.5 py-1 text-xs text-cyan-300 hover:bg-cyan-900/60 hover:text-white transition"
+                            >
+                                <Trash2 size={12} />
+                                <span className="hidden sm:inline">{clearedAt ? 'Restaurar' : 'Limpiar'}</span>
+                            </button>
+
+                            {/* Botón Pantalla Completa / Reducir */}
+                            <button
+                                type="button"
+                                onClick={() => setIsFullscreen(!isFullscreen)}
+                                title={isFullscreen ? 'Salir de pantalla completa (Esc)' : 'Expandir pantalla completa'}
+                                className="flex items-center gap-1.5 rounded border border-cyan-800/60 bg-cyan-950/40 px-2.5 py-1 text-xs text-cyan-300 hover:bg-cyan-900/60 hover:text-white transition"
+                            >
+                                {isFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+                                <span className="hidden sm:inline">{isFullscreen ? 'Reducir' : 'Expandir'}</span>
+                            </button>
+
+                            {/* Toggle Auto-scroll */}
+                            <button
+                                type="button"
+                                onClick={() => setFollow(!follow)}
+                                className={`flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium transition cursor-pointer border ${
+                                    follow
+                                        ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50'
+                                        : 'bg-neutral-900 text-neutral-400 border-neutral-700'
+                                }`}
+                                title="Seguir automáticamente las líneas nuevas de log"
+                            >
+                                <span className={`h-2 w-2 rounded-full ${follow ? 'bg-cyan-400' : 'bg-neutral-600'}`}></span>
+                                Auto-scroll
+                            </button>
+                        </div>
                     </div>
+
+                    {/* Cuerpo de la Consola Terminal - Grande y Responsive */}
                     <pre
                         ref={logRef}
                         aria-label="Logs del servidor"
-                        className="server-console-terminal h-[440px] overflow-auto bg-[#05080f] p-4 text-xs whitespace-pre text-neutral-200 selection:bg-cyan-500/30 selection:text-cyan-200"
+                        className={`server-console-terminal overflow-auto bg-[#04060d] p-4 md:p-6 text-xs md:text-[13px] whitespace-pre text-neutral-200 selection:bg-cyan-500/30 selection:text-cyan-200 transition-all ${
+                            isFullscreen
+                                ? 'flex-1 h-full'
+                                : 'h-[520px] md:h-[600px] min-h-[460px] max-h-[75vh]'
+                        }`}
                         style={{
                             fontFamily: "ui-monospace, Menlo, Monaco, 'Courier New', monospace",
-                            lineHeight: '1.15',
+                            lineHeight: '1.2',
                             letterSpacing: '0px',
                         }}
                     >
-                        {htmlLogs ? (
-                            <span dangerouslySetInnerHTML={{ __html: htmlLogs }} />
+                        {clearedAt ? (
+                            <div className="text-neutral-500 italic py-2">
+                                [Vista despejada localmente. Los nuevos logs aparecerán a continuación. Pulsa "Restaurar" para ver los anteriores]
+                            </div>
+                        ) : htmlLogs ? (
+                            <>
+                                <span dangerouslySetInnerHTML={{ __html: htmlLogs }} />
+                                {running && (
+                                    <span className="inline-block w-2 h-3.5 bg-cyan-400 animate-pulse ml-1 align-middle"></span>
+                                )}
+                            </>
                         ) : (
                             <span className="text-neutral-500">
                                 {snapshot?.installed ? 'Esperando salida del servidor…' : 'Instalando el servidor…'}
                             </span>
                         )}
                     </pre>
-                    <form onSubmit={sendCommand} className="flex items-center gap-3 border-t border-cyan-900/80 bg-[#090e18] px-4 py-3">
-                        <span className="self-center text-sm font-bold text-cyan-400 select-none">&gt;_</span>
+
+                    {/* Barra de Comandos Rápidos Clickables */}
+                    {running && (
+                        <div className="flex items-center gap-2 border-t border-cyan-900/60 bg-[#070b15] px-4 py-2 overflow-x-auto text-[11px] font-mono select-none">
+                            <span className="text-neutral-500 text-[10px] uppercase tracking-wider font-sans mr-1 whitespace-nowrap">Rápidos:</span>
+                            {quickCommands.map((cmd) => (
+                                <button
+                                    key={cmd}
+                                    type="button"
+                                    onClick={() => executeQuick(cmd)}
+                                    disabled={busy}
+                                    className="px-2.5 py-1 rounded bg-cyan-950/60 hover:bg-cyan-900/90 text-cyan-300 hover:text-white border border-cyan-800/40 hover:border-cyan-500/60 transition whitespace-nowrap shadow-sm"
+                                >
+                                    {cmd}
+                                </button>
+                            ))}
+                            <span className="text-neutral-600 text-[10px] ml-auto hidden md:inline whitespace-nowrap">
+                                Tip: Navega con ↑ / ↓ en el input
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Barra Inferior de Entrada de Comandos */}
+                    <form onSubmit={sendCommand} className="flex items-center gap-3 border-t border-cyan-900/80 bg-[#080d19] px-4 py-3">
+                        <span className="self-center font-mono text-xs font-bold text-cyan-400 select-none flex items-center gap-1">
+                            <span>$</span>
+                            <span className="text-cyan-500">&gt;</span>
+                        </span>
                         <input
                             aria-label="Comando de consola"
                             value={command}
                             onChange={event => setCommand(event.target.value)}
-                            placeholder={server.discord_bot ? 'Escribe un comando, por ejemplo: status, test, stop' : 'Escribe un comando, por ejemplo: list'}
+                            onKeyDown={handleKeyDown}
+                            placeholder={
+                                server.discord_bot
+                                    ? 'Escribe un comando (/ping, test, status, stop...) o navega con ↑ / ↓'
+                                    : 'Escribe un comando (list, tps, say, stop...) o navega con ↑ / ↓'
+                            }
                             disabled={!running || busy}
-                            className="min-w-0 flex-1 bg-transparent py-1 text-xs text-cyan-100 outline-none placeholder:text-neutral-500 disabled:opacity-50"
-                            style={{ fontFamily: "'Orbitron', sans-serif, monospace", letterSpacing: '0.035em' }}
+                            className="min-w-0 flex-1 bg-transparent py-1 text-xs md:text-sm text-cyan-100 outline-none placeholder:text-neutral-500 disabled:opacity-50 font-mono tracking-wide"
                             autoComplete="off"
                         />
                         <button
                             type="submit"
                             disabled={!running || busy || !command.trim()}
-                            className="flex items-center gap-2 rounded border border-cyan-700/60 bg-cyan-950/50 px-4 py-1.5 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-900/60 disabled:opacity-40"
+                            className="flex items-center gap-2 rounded-lg border border-cyan-500/50 bg-cyan-950/80 px-4 py-2 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-900 hover:text-white hover:border-cyan-400 hover:shadow-[0_0_15px_rgba(34,211,238,0.3)] disabled:opacity-30 disabled:hover:shadow-none cursor-pointer"
                         >
-                            <Send size={13} /> Enviar
+                            <Send size={13} />
+                            <span className="hidden sm:inline">Ejecutar</span>
                         </button>
                     </form>
                 </section>

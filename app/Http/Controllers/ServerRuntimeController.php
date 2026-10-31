@@ -98,15 +98,15 @@ class ServerRuntimeController extends Controller
             $eggName = $server->egg?->name;
 
             $banner = "\x1b[1;36m" .
-                      "  ╔═╗╦╔╗╔╔═╗╔╦╗╔╦╗╔═╗╔╗╔    ╔╗╔╔═╗╔╦╗\n" .
-                      "  ║  ║║║║╠═╣║║║║║║║ ║║║║    ║║║║╣  ║ \n" .
-                      "  ╚═╝╩╝╚╝╩ ╩╩ ╩╩ ╩╚═╝╝╚╝  o ╝╚╝╚═╝ ╩ \x1b[0m\n" .
-                      "\x1b[1;30m ─────────────────────────────────────\x1b[0m\n" .
-                      "\x1b[1;37m        C I N A M M O N . N E T\x1b[0m\n" .
-                      "\x1b[1;30m─────────────────────────────────────────────────────────────────\x1b[0m\n" .
+                      "                      ╔═╗╦╔╗╔╔═╗╔╦╗╔╦╗╔═╗╔╗╔    ╔╗╔╔═╗╔╦╗\n" .
+                      "                      ║  ║║║║╠═╣║║║║║║║ ║║║║    ║║║║╣  ║ \n" .
+                      "                      ╚═╝╩╝╚╝╩ ╩╩ ╩╩ ╩╚═╝╝╚╝  o ╝╚╝╚═╝ ╩ \x1b[0m\n" .
+                      "\x1b[1;30m                     ─────────────────────────────────────\x1b[0m\n" .
+                      "\x1b[1;37m                            C I N A M M O N . N E T\x1b[0m\n" .
+                      "\x1b[1;30m─────────────────────────────────────────────────────────────────────────────────\x1b[0m\n" .
                       "\x1b[1;32m  ● ONLINE\x1b[0m  \x1b[1;36mWeb:\x1b[0m \x1b[1;37mhttps://cinammon.net\x1b[0m  \x1b[1;30m|\x1b[0m  \x1b[1;36mNodo:\x1b[0m \x1b[1;37m{$nodeName}\x1b[0m\n" .
                       "\x1b[1;33m  ✓ Servidor:\x1b[0m \x1b[1;37m{$serverName}\x1b[0m" . ($eggName ? "  \x1b[1;30m|\x1b[0m  \x1b[1;35mEgg:\x1b[0m \x1b[1;37m{$eggName}\x1b[0m\n" : "\n") .
-                      "\x1b[1;30m─────────────────────────────────────────────────────────────────\x1b[0m\n" .
+                      "\x1b[1;30m─────────────────────────────────────────────────────────────────────────────────\x1b[0m\n" .
                       "\x1b[1;32m➜\x1b[0m \x1b[1;37mServidor iniciado correctamente en cinammon.net\x1b[0m\n\n";
 
             $prefix = 'cinammon@'.\Illuminate\Support\Str::slug($server->name).' ~ Server marked as starting...';
