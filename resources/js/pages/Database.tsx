@@ -1300,12 +1300,11 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                             <button
                                 type="button"
                                 onClick={() => {
-                                    navigator.clipboard.writeText('cinammon_secret');
-                                    toast.success('Abriendo phpMyAdmin en puerto 8081. Contraseña de "cinammon" copiada.');
-                                    window.open('http://localhost:8081', '_blank', 'noopener,noreferrer');
+                                    toast.success('Abriendo phpMyAdmin directamente en cinammon_web...');
+                                    window.open('http://localhost:8081/index.php?route=/database/structure&db=cinammon_web', '_blank', 'noopener,noreferrer');
                                 }}
                                 className="inline-flex items-center gap-2 rounded-xl border border-amber-400 bg-amber-500 px-4 py-2 text-xs font-bold text-black hover:bg-amber-400 transition shadow-[0_0_15px_rgba(245,158,11,0.3)]"
-                                title="Abrir phpMyAdmin oficial en localhost:8081"
+                                title="Abrir phpMyAdmin oficial en cinammon_web"
                             >
                                 <ExternalLink size={14} />
                                 <span>Abrir en phpMyAdmin</span>

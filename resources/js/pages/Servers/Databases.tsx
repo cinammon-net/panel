@@ -210,13 +210,9 @@ export default function Databases({ server, databases = [] }: PageProps) {
     };
 
     const handleLaunchPhpMyAdmin = (db: DatabaseItem) => {
-        if (db.password) {
-            navigator.clipboard.writeText(db.password);
-            toast.success(`Abriendo phpMyAdmin en puerto 8081. Contraseña de "${db.user}" copiada.`);
-        } else {
-            toast.info('Abriendo phpMyAdmin en puerto 8081...');
-        }
-        window.open('http://localhost:8081', '_blank', 'noopener,noreferrer');
+        toast.success(`Abriendo phpMyAdmin directamente en ${db.name}...`);
+        const url = `http://localhost:8081/index.php?route=/database/structure&db=${encodeURIComponent(db.name)}`;
+        window.open(url, '_blank', 'noopener,noreferrer');
     };
 
     const handleExecuteSql = (e: React.FormEvent) => {
