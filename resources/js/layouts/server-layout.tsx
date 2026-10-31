@@ -6,19 +6,38 @@ import { type BreadcrumbItem } from '@/types';
 import { ReactNode } from 'react';
 import { Toaster } from 'sonner';
 
+export type ServerSection =
+    | 'console'
+    | 'files'
+    | 'databases'
+    | 'network'
+    | 'backups'
+    | 'mounts'
+    | 'webhooks'
+    | 'subdomains'
+    | 'activity'
+    | 'users'
+    | 'edit';
+
 export default function ServerLayout({
     server,
     section,
     children,
 }: {
     server: { id: number; name: string; owner_id?: number };
-    section: 'console' | 'files' | 'databases' | 'users' | 'edit';
+    section: ServerSection;
     children: ReactNode;
 }) {
     const sectionTitles: Record<string, string> = {
         console: 'Consola',
         files: 'Archivos',
         databases: 'Bases de Datos',
+        network: 'Red y Puertos',
+        backups: 'Copias de Seguridad',
+        mounts: 'Puntos de Montaje',
+        webhooks: 'Webhooks',
+        subdomains: 'Subdominios',
+        activity: 'Actividad',
         users: 'Usuarios',
         edit: 'Configuración',
     };
