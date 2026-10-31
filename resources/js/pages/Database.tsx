@@ -1255,6 +1255,44 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                 <p className="text-xs text-neutral-400 mt-1">
                                     Base de datos relacional de la web (usuarios, servidores, roles, tickets, nodos y logs). Acceso directo por phpMyAdmin o visor integrado.
                                 </p>
+                                <div className="mt-3 flex flex-wrap items-center gap-2.5 font-mono text-xs text-neutral-300">
+                                    <div className="flex items-center gap-1.5 rounded-lg border border-neutral-800 bg-black/70 px-2.5 py-1">
+                                        <span className="text-neutral-500">Usuario:</span>
+                                        <span className="font-bold text-cyan-300">cinammon</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                navigator.clipboard.writeText('cinammon');
+                                                toast.success('Usuario "cinammon" copiado.');
+                                            }}
+                                            className="text-neutral-400 hover:text-white transition ml-1"
+                                            title="Copiar usuario"
+                                        >
+                                            <Copy size={12} />
+                                        </button>
+                                    </div>
+
+                                    <div className="flex items-center gap-1.5 rounded-lg border border-neutral-800 bg-black/70 px-2.5 py-1">
+                                        <span className="text-neutral-500">Contraseña:</span>
+                                        <span className="font-bold text-amber-300">cinammon_secret</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                navigator.clipboard.writeText('cinammon_secret');
+                                                toast.success('Contraseña copiada.');
+                                            }}
+                                            className="text-neutral-400 hover:text-white transition ml-1"
+                                            title="Copiar contraseña"
+                                        >
+                                            <Copy size={12} />
+                                        </button>
+                                    </div>
+
+                                    <div className="flex items-center gap-1.5 rounded-lg border border-neutral-800/80 bg-black/50 px-2.5 py-1 text-[11px] text-neutral-400">
+                                        <span className="text-neutral-500">Admin global:</span>
+                                        <span className="text-neutral-300">root</span> / <span className="text-neutral-300">password</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
