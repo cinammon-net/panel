@@ -384,6 +384,35 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/servers', [ServerController::class, 'store'])->name('servers.store');
     Route::put('/servers/{server}', [ServerController::class, 'update'])->name('servers.update');
     Route::delete('/servers/{uuid}', [ServerController::class, 'destroy'])->name('servers.destroy');
+    Route::post('/servers/{server}/transfer-owner', [App\Http\Controllers\ServerSubusersController::class, 'transferOwner'])->name('servers.transfer_owner');
+
+    // 🔄 Cambio Rápido de Cuenta / Switch User
+    Route::get('/api/switchable-users', function () {
+        return User::select('id', 'name', 'email', 'avatar')
+            ->with('roles:id,name')
+            ->get()
+            ->map(function ($u) {
+                return [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'email' => $u->email,
+                    'avatar' => $u->avatar,
+                    'roles' => $u->roles->pluck('name')->toArray(),
+                ];
+            });
+    });
+
+    Route::post('/api/switch-user', function (Request $request) {
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $targetUser = User::findOrFail($validated['user_id']);
+        Auth::login($targetUser);
+        $request->session()->regenerate();
+
+        return back()->with('success', "Has cambiado a la cuenta de {$targetUser->name}.");
+    })->name('user.switch');
 
 
     // Network

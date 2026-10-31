@@ -1,9 +1,11 @@
 import { DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { UserInfo } from '@/components/user-info';
+import { UserSwitcherModal } from '@/components/user-switcher-modal';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
 import { type User } from '@/types';
 import { Link, router } from '@inertiajs/react';
-import { LogOut, Settings, Shield } from 'lucide-react';
+import { ArrowLeftRight, LogOut, Settings, Shield } from 'lucide-react';
+import { useState } from 'react';
 
 interface UserMenuContentProps {
     user: User;
@@ -11,6 +13,7 @@ interface UserMenuContentProps {
 
 export function UserMenuContent({ user }: UserMenuContentProps) {
     const cleanup = useMobileNavigation();
+    const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
 
     const handleLogout = () => {
         cleanup();
@@ -35,6 +38,16 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                         Perfil y Ajustes
                     </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                    onSelect={(e) => {
+                        e.preventDefault();
+                        setIsSwitcherOpen(true);
+                    }}
+                    className="cursor-pointer text-cyan-300 hover:text-cyan-200"
+                >
+                    <ArrowLeftRight className="mr-2 h-4 w-4 text-cyan-400" />
+                    Cambiar de usuario
+                </DropdownMenuItem>
                 {isAdmin && (
                     <DropdownMenuItem asChild>
                         <Link className="block w-full cursor-pointer text-purple-300 hover:text-purple-200" href="/dashboard" as="button" onClick={cleanup}>
@@ -51,6 +64,10 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                     Cerrar sesión
                 </Link>
             </DropdownMenuItem>
+
+            {isSwitcherOpen && (
+                <UserSwitcherModal open={isSwitcherOpen} onClose={() => setIsSwitcherOpen(false)} />
+            )}
         </>
     );
 }
