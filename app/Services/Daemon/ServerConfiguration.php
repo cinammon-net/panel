@@ -34,8 +34,21 @@ class ServerConfiguration
         foreach ($allocations as $allocation) $mappings[$allocation->ip][] = (int) $allocation->port;
         $mappings[$server->allocation->ip][] = (int) $server->allocation->port;
         $mappings = array_map(fn ($ports) => array_values(array_unique($ports)), $mappings);
-        $replace = ['{{server.allocations.default.ip}}' => '0.0.0.0', '{{server.allocations.default.port}}' => (string) $server->allocation->port];
-        foreach ($environment as $key => $value) $replace['{{env.'.$key.'}}'] = (string) $value;
+        $port = (string) $server->allocation->port;
+        $ip = '0.0.0.0';
+        $replace = [
+            '{{server.allocations.default.ip}}' => $ip,
+            '{{server.allocations.default.port}}' => $port,
+            '{{server.build.default.ip}}' => $ip,
+            '{{server.build.default.port}}' => $port,
+            '{{config.docker.interface}}' => $ip,
+        ];
+        foreach ($environment as $key => $value) {
+            $val = (string) $value;
+            $replace['{{env.'.$key.'}}'] = $val;
+            $replace['{{server.build.env.'.$key.'}}'] = $val;
+            $replace['{{server.environment.'.$key.'}}'] = $val;
+        }
         $files = [];
         foreach ($this->decode($egg->config_files) as $filename => $file) {
             $replacements = [];

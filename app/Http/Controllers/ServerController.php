@@ -530,8 +530,16 @@ class ServerController extends Controller
     public function reinstall($uuid)
     {
         $server = Server::where('uuid', $uuid)->orWhere('id', $uuid)->firstOrFail();
-        $server->status = 1;
+        $server->installed_at = null;
+        $server->status = 0;
         $server->save();
+
+        try {
+            app(\App\Services\Daemon\WingsClient::class)->reinstall($server);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('No se pudo reinstalar en Wings: ' . $e->getMessage());
+            return back()->with('error', 'Error al solicitar reinstalación a Wings: ' . $e->getMessage());
+        }
 
         return back()->with('success', 'Reinstalación del servidor iniciada.');
     }
