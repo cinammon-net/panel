@@ -42,7 +42,7 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
 
     return (
         <>
-            <header className="border-b border-neutral-200 bg-white font-[Orbitron] transition-colors dark:border-cyan-950 dark:bg-black">
+            <header className="w-full max-w-full overflow-x-hidden border-b border-neutral-200 bg-white font-[Orbitron] transition-colors dark:border-cyan-950 dark:bg-black">
                 <div className="mx-auto flex h-16 items-center justify-between px-4 sm:px-6 w-full max-w-7xl">
                     <div className="flex items-center gap-4">
                         {/* Brand Logo */}
@@ -52,18 +52,6 @@ export function AppHeader({ breadcrumbs = [] }: AppHeaderProps) {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        {/* Botón Acceso a Zona Admin (Solo para Administradores) */}
-                        {isAdmin && (
-                            <Link
-                                href="/dashboard"
-                                className="inline-flex items-center gap-2 rounded-lg border border-purple-500/50 bg-purple-950/30 px-3 py-1.5 text-xs font-semibold text-purple-300 hover:border-purple-400 hover:bg-purple-900/50 shadow-[0_0_12px_rgba(168,85,247,0.2)] transition-all"
-                                title="Ir a la Zona de Administración"
-                            >
-                                <Shield className="h-3.5 w-3.5 text-purple-400" />
-                                <span>Zona Admin</span>
-                            </Link>
-                        )}
-
                         {/* Toggle Descanso Visual */}
                         <button
                             type="button"

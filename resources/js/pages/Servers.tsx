@@ -644,7 +644,7 @@ export default function Servers() {
             <Head title="Servers">
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet" />
             </Head>
-            <div className="min-h-screen bg-white p-3 sm:p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
+            <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-white p-3 sm:p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
                 {/* Header Superior con Filtros Rápidos Pelican */}
                 <div className="mb-5 flex flex-wrap items-center justify-between gap-4 border-b border-cyan-900/50 pb-4">
                     <div className="flex items-center gap-3">
@@ -926,7 +926,7 @@ export default function Servers() {
                                             })}
                                         </div>
                                     ) : (
-                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
+                                        <div className={`grid gap-6 w-full max-w-full ${filteredServers.length === 1 ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'}`}>
                                             {filteredServers.map((item) => (
                                                 <ServerCard key={item.id} item={item} />
                                             ))}
@@ -934,250 +934,240 @@ export default function Servers() {
                                     )}
                                 </div>
                             ) : (
-                                <>
-                                    {/* Indicador de desplazamiento horizontal en móvil */}
-                            <div className="flex items-center justify-between border-b border-cyan-900/30 bg-cyan-950/30 px-4 py-1.5 text-[11px] text-cyan-400 lg:hidden">
-                                <span className="flex items-center gap-1.5">
-                                    <span className="inline-block animate-pulse">👈👉</span>
-                                    <span>Desplaza horizontalmente para ver todas las columnas</span>
-                                </span>
-                            </div>
+                                <div className="w-full max-w-full overflow-hidden">
+                                    <table className="w-full table-auto border-collapse text-left text-sm">
+                                        <thead>
+                                            <tr className="border-b border-cyan-800/50 bg-cyan-100/60 dark:bg-cyan-950/70">
+                                                <th className="px-3 py-3 text-xs font-semibold text-cyan-800 dark:text-cyan-400 whitespace-nowrap">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Activity className="h-3.5 w-3.5 shrink-0" />
+                                                        <span>Status</span>
+                                                    </div>
+                                                </th>
 
-                            {/* Contenedor de la Tabla con Scroll Horizontal Fluido */}
-                            <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-cyan-700 scrollbar-track-neutral-900" style={{ WebkitOverflowScrolling: 'touch' }}>
-                                <table className="w-full min-w-[950px] table-auto border-collapse text-left text-sm">
-                                    <thead>
-                                        <tr className="border-b border-cyan-800/50 bg-cyan-100/60 dark:bg-cyan-950/70">
-                                            <th className="w-32 min-w-[120px] px-3.5 py-3 text-xs font-semibold text-cyan-800 dark:text-cyan-400 whitespace-nowrap">
-                                                <div className="flex items-center gap-1.5">
-                                                    <Activity className="h-3.5 w-3.5 shrink-0" />
-                                                    <span>Status</span>
-                                                </div>
-                                            </th>
+                                                <th className="px-3 py-3 text-xs font-semibold text-cyan-800 dark:text-cyan-400">
+                                                    <button onClick={() => handleSort('name')} className="flex items-center gap-1.5 hover:text-cyan-300">
+                                                        <Server className="h-3.5 w-3.5 shrink-0" />
+                                                        <span>Name</span>
+                                                        {filters.sort === 'name' &&
+                                                            (filters.direction === 'asc' ? (
+                                                                <ChevronUp className="h-3 w-3" />
+                                                            ) : (
+                                                                <ChevronDown className="h-3 w-3" />
+                                                            ))}
+                                                    </button>
+                                                </th>
 
-                                            <th className="w-64 min-w-[220px] px-3.5 py-3 text-xs font-semibold text-cyan-800 dark:text-cyan-400 whitespace-nowrap">
-                                                <button onClick={() => handleSort('name')} className="flex items-center gap-1.5 hover:text-cyan-300">
-                                                    <Server className="h-3.5 w-3.5 shrink-0" />
-                                                    <span>Name</span>
-                                                    {filters.sort === 'name' &&
-                                                        (filters.direction === 'asc' ? (
-                                                            <ChevronUp className="h-3 w-3" />
-                                                        ) : (
-                                                            <ChevronDown className="h-3 w-3" />
-                                                        ))}
-                                                </button>
-                                            </th>
+                                                <th className="hidden sm:table-cell px-3 py-3 text-xs font-semibold text-cyan-800 dark:text-cyan-400">
+                                                    <button onClick={() => handleSort('egg')} className="flex items-center gap-1.5 hover:text-cyan-300">
+                                                        <Egg className="h-3.5 w-3.5 shrink-0" />
+                                                        <span>Egg</span>
+                                                        {filters.sort === 'egg' &&
+                                                            (filters.direction === 'asc' ? (
+                                                                <ChevronUp className="h-3 w-3" />
+                                                            ) : (
+                                                                <ChevronDown className="h-3 w-3" />
+                                                            ))}
+                                                    </button>
+                                                </th>
 
-                                            <th className="w-48 min-w-[160px] px-3.5 py-3 text-xs font-semibold text-cyan-800 dark:text-cyan-400 whitespace-nowrap">
-                                                <button onClick={() => handleSort('egg')} className="flex items-center gap-1.5 hover:text-cyan-300">
-                                                    <Egg className="h-3.5 w-3.5 shrink-0" />
-                                                    <span>Egg</span>
-                                                    {filters.sort === 'egg' &&
-                                                        (filters.direction === 'asc' ? (
-                                                            <ChevronUp className="h-3 w-3" />
-                                                        ) : (
-                                                            <ChevronDown className="h-3 w-3" />
-                                                        ))}
-                                                </button>
-                                            </th>
+                                                <th className="hidden md:table-cell px-3 py-3 text-xs font-semibold text-cyan-800 dark:text-cyan-400">
+                                                    <button onClick={() => handleSort('username')} className="flex items-center gap-1.5 hover:text-cyan-300">
+                                                        <User className="h-3.5 w-3.5 shrink-0" />
+                                                        <span>User</span>
+                                                        {filters.sort === 'username' &&
+                                                            (filters.direction === 'asc' ? (
+                                                                <ChevronUp className="h-3 w-3" />
+                                                            ) : (
+                                                                <ChevronDown className="h-3 w-3" />
+                                                            ))}
+                                                    </button>
+                                                </th>
 
-                                            <th className="w-28 min-w-[110px] px-3.5 py-3 text-xs font-semibold text-cyan-800 dark:text-cyan-400 whitespace-nowrap">
-                                                <button onClick={() => handleSort('username')} className="flex items-center gap-1.5 hover:text-cyan-300">
-                                                    <User className="h-3.5 w-3.5 shrink-0" />
-                                                    <span>User</span>
-                                                    {filters.sort === 'username' &&
-                                                        (filters.direction === 'asc' ? (
-                                                            <ChevronUp className="h-3 w-3" />
-                                                        ) : (
-                                                            <ChevronDown className="h-3 w-3" />
-                                                        ))}
-                                                </button>
-                                            </th>
+                                                <th className="hidden lg:table-cell px-3 py-3 text-xs font-semibold text-cyan-800 dark:text-cyan-400">
+                                                    <button onClick={() => handleSort('allocation')} className="flex items-center gap-1.5 hover:text-cyan-300">
+                                                        <MapPin className="h-3.5 w-3.5 shrink-0" />
+                                                        <span>Port / IP</span>
+                                                        {filters.sort === 'allocation' &&
+                                                            (filters.direction === 'asc' ? (
+                                                                <ChevronUp className="h-3 w-3" />
+                                                            ) : (
+                                                                <ChevronDown className="h-3 w-3" />
+                                                            ))}
+                                                    </button>
+                                                </th>
 
-                                            <th className="w-44 min-w-[160px] px-3.5 py-3 text-xs font-semibold text-cyan-800 dark:text-cyan-400 whitespace-nowrap">
-                                                <button onClick={() => handleSort('allocation')} className="flex items-center gap-1.5 hover:text-cyan-300">
-                                                    <MapPin className="h-3.5 w-3.5 shrink-0" />
-                                                    <span>Port / IP</span>
-                                                    {filters.sort === 'allocation' &&
-                                                        (filters.direction === 'asc' ? (
-                                                            <ChevronUp className="h-3 w-3" />
-                                                        ) : (
-                                                            <ChevronDown className="h-3 w-3" />
-                                                        ))}
-                                                </button>
-                                            </th>
+                                                <th className="hidden xl:table-cell px-3 py-3 text-xs font-semibold text-cyan-800 dark:text-cyan-400">
+                                                    <button onClick={() => handleSort('backups')} className="flex items-center gap-1.5 hover:text-cyan-300">
+                                                        <Database className="h-3.5 w-3.5 shrink-0" />
+                                                        <span>Backups</span>
+                                                        {filters.sort === 'backups' &&
+                                                            (filters.direction === 'asc' ? (
+                                                                <ChevronUp className="h-3 w-3" />
+                                                            ) : (
+                                                                <ChevronDown className="h-3 w-3" />
+                                                            ))}
+                                                    </button>
+                                                </th>
 
-                                            <th className="w-24 min-w-[85px] px-3.5 py-3 text-xs font-semibold text-cyan-800 dark:text-cyan-400 whitespace-nowrap">
-                                                <button onClick={() => handleSort('backups')} className="flex items-center gap-1.5 hover:text-cyan-300">
-                                                    <Database className="h-3.5 w-3.5 shrink-0" />
-                                                    <span>Backups</span>
-                                                    {filters.sort === 'backups' &&
-                                                        (filters.direction === 'asc' ? (
-                                                            <ChevronUp className="h-3 w-3" />
-                                                        ) : (
-                                                            <ChevronDown className="h-3 w-3" />
-                                                        ))}
-                                                </button>
-                                            </th>
+                                                <th className="px-3 py-3 text-right text-xs font-semibold text-cyan-500 whitespace-nowrap">
+                                                    Acciones
+                                                </th>
+                                            </tr>
+                                        </thead>
 
-                                            <th className="w-36 min-w-[130px] px-3.5 py-3 text-right text-xs font-semibold text-cyan-500 whitespace-nowrap">
-                                                Acciones
-                                            </th>
-                                        </tr>
-                                    </thead>
-
-                                    <tbody className="divide-y divide-cyan-900/30">
-                                        {groupBy === 'none' ? (
-                                            filteredServers.length > 0 ? (
-                                                filteredServers.map((item) => (
-                                                    <tr
-                                                        key={item.id}
-                                                        className="cursor-pointer hover:bg-cyan-500/5 transition"
-                                                        onClick={() => router.visit(`/servers/${item.id}/files`)}
-                                                    >
-                                                        <td className="px-3.5 py-3 whitespace-nowrap">
-                                                            <span
-                                                                className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
-                                                                    item.status === 'offline'
-                                                                        ? 'border border-red-500/60 bg-red-950/40 text-red-400'
-                                                                        : 'border border-green-500/60 bg-green-950/40 text-green-400'
-                                                                }`}
-                                                            >
+                                        <tbody className="divide-y divide-cyan-900/30">
+                                            {groupBy === 'none' ? (
+                                                filteredServers.length > 0 ? (
+                                                    filteredServers.map((item) => (
+                                                        <tr
+                                                            key={item.id}
+                                                            className="cursor-pointer hover:bg-cyan-500/5 transition"
+                                                            onClick={() => router.visit(`/servers/${item.id}/files`)}
+                                                        >
+                                                            <td className="px-3 py-3 whitespace-nowrap">
                                                                 <span
-                                                                    className={`h-1.5 w-1.5 rounded-full ${
-                                                                        item.status === 'offline' ? 'bg-red-400' : 'bg-green-400'
+                                                                    className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                                                                        item.status === 'offline'
+                                                                            ? 'border border-red-500/60 bg-red-950/40 text-red-400'
+                                                                            : 'border border-green-500/60 bg-green-950/40 text-green-400'
                                                                     }`}
-                                                                ></span>
-                                                                {item.status}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-3.5 py-3 min-w-[220px]">
-                                                            <div className="font-semibold text-neutral-900 dark:text-neutral-100 truncate max-w-[260px]" title={item.name}>
-                                                                {item.name}
-                                                            </div>
-                                                            <div className="text-[10px] text-neutral-400 dark:text-neutral-500 truncate font-mono">
-                                                                {item.node}
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-3.5 py-3 min-w-[160px]">
-                                                            <span className="text-xs text-neutral-700 dark:text-cyan-300 truncate max-w-[170px] block" title={item.egg}>
-                                                                {item.egg}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-3.5 py-3 text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
-                                                            {item.username}
-                                                        </td>
-                                                        <td className="px-3.5 py-3 font-mono text-xs text-neutral-700 dark:text-cyan-400 whitespace-nowrap tracking-wide">
-                                                            {item.allocation || <span className="italic text-neutral-500">–</span>}
-                                                        </td>
-                                                        <td className="px-3.5 py-3 text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap font-mono">
-                                                            {item.backups ?? item.database ?? 0}
-                                                        </td>
-                                                        <td className="px-3.5 py-3 text-right whitespace-nowrap">
-                                                            <div className="flex justify-end items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                                                                <button
-                                                                    title="Consola"
-                                                                    onClick={() => router.visit(`/servers/${item.id}/console`)}
-                                                                    className="rounded border border-cyan-600/60 bg-cyan-950/30 px-2 py-0.5 text-xs text-cyan-300 hover:border-cyan-400 hover:text-cyan-100"
                                                                 >
-                                                                    Console
-                                                                </button>
-                                                                <button
-                                                                    title="Edit"
-                                                                    onClick={() => router.visit(`/servers/${item.id}/edit`)}
-                                                                    className="text-cyan-400 hover:text-cyan-200 p-1"
-                                                                >
-                                                                    <Pencil className="h-3.5 w-3.5" />
-                                                                </button>
-                                                                <button
-                                                                    title="Delete"
-                                                                    onClick={() => {
-                                                                        if (confirm(`¿Eliminar el servidor "${item.name}"?`)) {
-                                                                            router.delete(`/servers/${item.uuid}`);
-                                                                        }
-                                                                    }}
-                                                                    className="text-pink-400 hover:text-pink-200 p-1"
-                                                                >
-                                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                                </button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ))
-                                            ) : (
-                                                <tr>
-                                                    <td colSpan={7} className="px-4 py-8 text-center text-xs text-neutral-500 dark:text-cyan-600">
-                                                        No se encontraron servidores con estos filtros de estado o categoría.
-                                                    </td>
-                                                </tr>
-                                            )
-                                        ) : (
-                                            sortedGroups.map((groupName) => (
-                                                <React.Fragment key={groupName}>
-                                                    <tr className="bg-cyan-950/40 border-y border-cyan-800/40">
-                                                        <td colSpan={7} className="px-3.5 py-2 text-xs font-semibold tracking-wider text-cyan-300">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="h-2 w-2 rounded-full bg-cyan-400"></span>
-                                                                <span>
-                                                                    {groupBy === 'category' && `Categoría: ${groupName}`}
-                                                                    {groupBy === 'status' && `${groupName}`}
-                                                                    {groupBy === 'node' && `Node: ${groupName}`}
-                                                                    {groupBy === 'egg' && `Egg: ${groupName}`}
-                                                                    {groupBy === 'username' && `User: ${groupName}`}
-                                                                </span>
-                                                                <span className="ml-2 rounded-full border border-cyan-500/40 bg-cyan-900/40 px-2 py-0.2 text-[10px] text-cyan-200 font-mono">
-                                                                    {(groupedServers[groupName] ?? []).length} servidores
-                                                                </span>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-
-                                                    {(groupedServers[groupName] ?? []).length > 0 ? (
-                                                        groupedServers[groupName].map((item) => (
-                                                            <tr
-                                                                key={item.id}
-                                                                className="cursor-pointer hover:bg-cyan-500/5 transition"
-                                                                onClick={() => router.visit(`/servers/${item.id}/files`)}
-                                                            >
-                                                                <td className="px-3.5 py-3 whitespace-nowrap">
                                                                     <span
-                                                                        className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${
-                                                                            item.status === 'offline'
-                                                                                ? 'border border-red-500/60 bg-red-950/40 text-red-400'
-                                                                                : 'border border-green-500/60 bg-green-950/40 text-green-400'
+                                                                        className={`h-1.5 w-1.5 rounded-full ${
+                                                                            item.status === 'offline' ? 'bg-red-400' : 'bg-green-400'
                                                                         }`}
+                                                                    ></span>
+                                                                    {item.status}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-3 py-3">
+                                                                <div className="font-semibold text-neutral-900 dark:text-neutral-100 truncate max-w-[200px] sm:max-w-[260px]" title={item.name}>
+                                                                    {item.name}
+                                                                </div>
+                                                                <div className="text-[10px] text-neutral-400 dark:text-neutral-500 truncate font-mono">
+                                                                    {item.node}
+                                                                </div>
+                                                            </td>
+                                                            <td className="hidden sm:table-cell px-3 py-3">
+                                                                <span className="text-xs text-neutral-700 dark:text-cyan-300 truncate max-w-[150px] block" title={item.egg}>
+                                                                    {item.egg}
+                                                                </span>
+                                                            </td>
+                                                            <td className="hidden md:table-cell px-3 py-3 text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
+                                                                {item.username}
+                                                            </td>
+                                                            <td className="hidden lg:table-cell px-3 py-3 font-mono text-xs text-neutral-700 dark:text-cyan-400 whitespace-nowrap tracking-wide">
+                                                                {item.allocation || <span className="italic text-neutral-500">–</span>}
+                                                            </td>
+                                                            <td className="hidden xl:table-cell px-3 py-3 text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap font-mono">
+                                                                {item.backups ?? item.database ?? 0}
+                                                            </td>
+                                                            <td className="px-3 py-3 text-right whitespace-nowrap">
+                                                                <div className="flex justify-end items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                                                    <button
+                                                                        title="Consola"
+                                                                        onClick={() => router.visit(`/servers/${item.id}/console`)}
+                                                                        className="rounded border border-cyan-600/60 bg-cyan-950/30 px-2 py-0.5 text-xs text-cyan-300 hover:border-cyan-400 hover:text-cyan-100"
                                                                     >
+                                                                        Console
+                                                                    </button>
+                                                                    <button
+                                                                        title="Edit"
+                                                                        onClick={() => router.visit(`/servers/${item.id}/edit`)}
+                                                                        className="text-cyan-400 hover:text-cyan-200 p-1"
+                                                                    >
+                                                                        <Pencil className="h-3.5 w-3.5" />
+                                                                    </button>
+                                                                    <button
+                                                                        title="Delete"
+                                                                        onClick={() => {
+                                                                            if (confirm(`¿Eliminar el servidor "${item.name}"?`)) {
+                                                                                router.delete(`/servers/${item.uuid}`);
+                                                                            }
+                                                                        }}
+                                                                        className="text-pink-400 hover:text-pink-200 p-1"
+                                                                    >
+                                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                ) : (
+                                                    <tr>
+                                                        <td colSpan={7} className="px-4 py-8 text-center text-xs text-neutral-500 dark:text-cyan-600">
+                                                            No se encontraron servidores con estos filtros de estado o categoría.
+                                                        </td>
+                                                    </tr>
+                                                )
+                                            ) : (
+                                                sortedGroups.map((groupName) => (
+                                                    <React.Fragment key={groupName}>
+                                                        <tr className="bg-cyan-950/40 border-y border-cyan-800/40">
+                                                            <td colSpan={7} className="px-3.5 py-2 text-xs font-semibold tracking-wider text-cyan-300">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="h-2 w-2 rounded-full bg-cyan-400"></span>
+                                                                    <span>
+                                                                        {groupBy === 'category' && `Categoría: ${groupName}`}
+                                                                        {groupBy === 'status' && `${groupName}`}
+                                                                        {groupBy === 'node' && `Node: ${groupName}`}
+                                                                        {groupBy === 'egg' && `Egg: ${groupName}`}
+                                                                        {groupBy === 'username' && `User: ${groupName}`}
+                                                                    </span>
+                                                                    <span className="ml-2 rounded-full border border-cyan-500/40 bg-cyan-900/40 px-2 py-0.2 text-[10px] text-cyan-200 font-mono">
+                                                                        {(groupedServers[groupName] ?? []).length} servidores
+                                                                    </span>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+
+                                                        {(groupedServers[groupName] ?? []).length > 0 ? (
+                                                            groupedServers[groupName].map((item) => (
+                                                                <tr
+                                                                    key={item.id}
+                                                                    className="cursor-pointer hover:bg-cyan-500/5 transition"
+                                                                    onClick={() => router.visit(`/servers/${item.id}/files`)}
+                                                                >
+                                                                    <td className="px-3 py-3 whitespace-nowrap">
                                                                         <span
-                                                                            className={`h-1.5 w-1.5 rounded-full ${
-                                                                                item.status === 'offline' ? 'bg-red-400' : 'bg-green-400'
+                                                                            className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                                                                                item.status === 'offline'
+                                                                                    ? 'border border-red-500/60 bg-red-950/40 text-red-400'
+                                                                                    : 'border border-green-500/60 bg-green-950/40 text-green-400'
                                                                             }`}
-                                                                        ></span>
-                                                                        {item.status}
-                                                                    </span>
-                                                                </td>
-                                                                <td className="px-3.5 py-3 min-w-[220px]">
-                                                                    <div className="font-semibold text-neutral-900 dark:text-neutral-100 truncate max-w-[260px]" title={item.name}>
-                                                                        {item.name}
-                                                                    </div>
-                                                                    <div className="text-[10px] text-neutral-400 dark:text-neutral-500 truncate font-mono">
-                                                                        {item.node}
-                                                                    </div>
-                                                                </td>
-                                                                <td className="px-3.5 py-3 min-w-[160px]">
-                                                                    <span className="text-xs text-neutral-700 dark:text-cyan-300 truncate max-w-[170px] block" title={item.egg}>
-                                                                        {item.egg}
-                                                                    </span>
-                                                                </td>
-                                                                <td className="px-3.5 py-3 text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
-                                                                    {item.username}
-                                                                </td>
-                                                                <td className="px-3.5 py-3 font-mono text-xs text-neutral-700 dark:text-cyan-400 whitespace-nowrap tracking-wide">
-                                                                    {item.allocation || <span className="italic text-neutral-500">–</span>}
-                                                                </td>
-                                                                <td className="px-3.5 py-3 text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap font-mono">
-                                                                    {item.backups ?? item.database ?? 0}
-                                                                </td>
-                                                                <td className="px-3.5 py-3 text-right whitespace-nowrap">
+                                                                        >
+                                                                            <span
+                                                                                className={`h-1.5 w-1.5 rounded-full ${
+                                                                                    item.status === 'offline' ? 'bg-red-400' : 'bg-green-400'
+                                                                                }`}
+                                                                            ></span>
+                                                                            {item.status}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="px-3 py-3">
+                                                                        <div className="font-semibold text-neutral-900 dark:text-neutral-100 truncate max-w-[200px] sm:max-w-[260px]" title={item.name}>
+                                                                            {item.name}
+                                                                        </div>
+                                                                        <div className="text-[10px] text-neutral-400 dark:text-neutral-500 truncate font-mono">
+                                                                            {item.node}
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="hidden sm:table-cell px-3 py-3">
+                                                                        <span className="text-xs text-neutral-700 dark:text-cyan-300 truncate max-w-[150px] block" title={item.egg}>
+                                                                            {item.egg}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="hidden md:table-cell px-3 py-3 text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
+                                                                        {item.username}
+                                                                    </td>
+                                                                    <td className="hidden lg:table-cell px-3 py-3 font-mono text-xs text-neutral-700 dark:text-cyan-400 whitespace-nowrap tracking-wide">
+                                                                        {item.allocation || <span className="italic text-neutral-500">–</span>}
+                                                                    </td>
+                                                                    <td className="hidden xl:table-cell px-3 py-3 text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap font-mono">
+                                                                        {item.backups ?? item.database ?? 0}
+                                                                    </td>
+                                                                    <td className="px-3 py-3 text-right whitespace-nowrap">
                                                                     <div className="flex justify-end items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                                                                         <button
                                                                             title="Consola"
@@ -1221,7 +1211,6 @@ export default function Servers() {
                                     </tbody>
                                 </table>
                             </div>
-                                </>
                             )}
 
                             <div className="bg-cyan-100/40 dark:bg-cyan-950/30">
