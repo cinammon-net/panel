@@ -4,7 +4,7 @@ import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import { CategoryScale, Chart as ChartJS, Filler, Legend, LinearScale, LineElement, PointElement, Title, Tooltip } from 'chart.js';
 import { Activity, ArrowDownUp, Check, Copy, Cpu, Maximize2, Minimize2, Play, RotateCw, Send, Square, Terminal, Trash2 } from 'lucide-react';
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { CSSProperties, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
@@ -38,6 +38,14 @@ type TelemetryHistory = {
 
 const states: Record<string, string> = { offline: 'Detenido', starting: 'Iniciando', running: 'En línea', stopping: 'Deteniendo' };
 
+// Paletas de la terminal: [principal, secundario, terciario]
+const TERMINAL_THEMES: Record<string, [string, string, string]> = {
+    cyan: ['#22d3ee', '#a78bfa', '#f472b6'],
+    matrix: ['#4ade80', '#22d3ee', '#a3e635'],
+    sunset: ['#fb923c', '#f472b6', '#facc15'],
+    hielo: ['#93c5fd', '#e0f2fe', '#a5b4fc'],
+};
+
 export default function Console({ server }: { server: Server }) {
     const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
     const [history, setHistory] = useState<TelemetryHistory>({
@@ -58,6 +66,12 @@ export default function Console({ server }: { server: Server }) {
     const [showDiscordConfig, setShowDiscordConfig] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [theme, setTheme] = useState<string>(() => (typeof window !== 'undefined' && window.localStorage.getItem('cinammon.console.theme')) || 'cyan');
+    const themeColors = TERMINAL_THEMES[theme] ?? TERMINAL_THEMES.cyan;
+    const themeVars = { '--t1': themeColors[0], '--t2': themeColors[1], '--t3': themeColors[2] } as CSSProperties;
+    useEffect(() => {
+        window.localStorage.setItem('cinammon.console.theme', theme);
+    }, [theme]);
     const [clearedAt, setClearedAt] = useState<number | null>(null);
     const [cmdHistory, setCmdHistory] = useState<string[]>([]);
     const [historyIndex, setHistoryIndex] = useState<number>(-1);
@@ -460,7 +474,7 @@ export default function Console({ server }: { server: Server }) {
                     isFullscreen
                         ? 'fixed inset-2 md:inset-6 z-50 flex flex-col bg-[#050811] border-cyan-400 shadow-[0_0_80px_rgba(34,211,238,0.35)]'
                         : 'border-cyan-800/80 bg-[#070b13] shadow-[0_0_35px_rgba(34,211,238,0.12)]'
-                }`}>
+                }`} style={themeVars}>
                     {/* Barra Superior Estilo Terminal macOS / Cyberpunk */}
                     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cyan-900/80 bg-[#0a0f1d] px-4 py-2.5 select-none">
                         <div className="flex items-center gap-3">
@@ -521,6 +535,21 @@ export default function Console({ server }: { server: Server }) {
 
                         {/* Controles y Herramientas Rápidas */}
                         <div className="flex items-center gap-2">
+                            {/* Selector de tema */}
+                            <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-cyan-900/60 bg-cyan-950/30 px-2 py-1" title="Tema de la terminal">
+                                {Object.entries(TERMINAL_THEMES).map(([name, colors]) => (
+                                    <button
+                                        key={name}
+                                        type="button"
+                                        onClick={() => setTheme(name)}
+                                        title={`Tema ${name}`}
+                                        aria-label={`Tema ${name}`}
+                                        className={`h-3.5 w-3.5 rounded-full transition hover:scale-125 ${theme === name ? 'ring-2 ring-white/80 ring-offset-1 ring-offset-[#0a0f1d]' : 'opacity-70'}`}
+                                        style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[2]})` }}
+                                    />
+                                ))}
+                            </div>
+
                             {/* Botón Copiar Logs */}
                             <button
                                 type="button"
@@ -576,7 +605,7 @@ export default function Console({ server }: { server: Server }) {
                     <pre
                         ref={logRef}
                         aria-label="Logs del servidor"
-                        className={`server-console-terminal overflow-auto bg-[#04060d] p-4 md:p-6 text-xs md:text-[13px] whitespace-pre text-neutral-200 selection:bg-cyan-500/30 selection:text-cyan-200 transition-all ${
+                        className={`server-console-terminal term-crt overflow-auto bg-[#04060d] p-4 md:p-6 text-xs md:text-[13px] whitespace-pre text-neutral-200 selection:bg-cyan-500/30 selection:text-cyan-200 transition-all ${
                             isFullscreen
                                 ? 'flex-1 h-full'
                                 : 'h-[520px] md:h-[600px] min-h-[460px] max-h-[75vh]'
@@ -590,7 +619,7 @@ export default function Console({ server }: { server: Server }) {
                         {/* Logo ASCII propio: centrado, grande y con fuente que sí tiene los caracteres de caja */}
                         <div
                             aria-label="Cinammon"
-                            className="select-none mx-auto mb-4 w-full overflow-hidden text-center font-bold text-cyan-300 text-[9px] min-[420px]:text-[11px] sm:text-sm md:text-lg lg:text-xl xl:text-2xl"
+                            className="select-none mx-auto mb-4 w-full overflow-hidden text-center font-bold text-[9px] min-[420px]:text-[11px] sm:text-sm md:text-lg lg:text-xl xl:text-2xl"
                             style={{
                                 fontFamily: "Menlo, Monaco, Consolas, 'DejaVu Sans Mono', 'Courier New', monospace",
                                 lineHeight: 1.05,
@@ -599,7 +628,7 @@ export default function Console({ server }: { server: Server }) {
                             }}
                         >
                             <pre
-                                className="inline-block m-0 text-left"
+                                className="term-logo-gradient inline-block m-0 text-left"
                                 style={{ fontFamily: 'inherit', lineHeight: 'inherit', letterSpacing: 0, fontSize: 'inherit' }}
                             >{`╔═╗╦╔╗╔╔═╗╔╦╗╔╦╗╔═╗╔╗╔    ╔╗╔╔═╗╔╦╗
 ║  ║║║║╠═╣║║║║║║║ ║║║║    ║║║║╣  ║
@@ -638,7 +667,7 @@ export default function Console({ server }: { server: Server }) {
                             <>
                                 <span dangerouslySetInnerHTML={{ __html: htmlLogs }} />
                                 {running && (
-                                    <span className="inline-block w-2 h-3.5 bg-cyan-400 animate-pulse ml-1 align-middle"></span>
+                                    <span className="inline-block w-2 h-3.5 animate-pulse ml-1 align-middle" style={{ backgroundColor: 'var(--t1, #22d3ee)', boxShadow: '0 0 8px var(--t1, #22d3ee)' }}></span>
                                 )}
                             </>
                         ) : (

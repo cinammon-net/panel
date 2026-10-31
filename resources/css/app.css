@@ -264,3 +264,31 @@
     font-display: swap;
     src: url('/fonts/orbitron/Orbitron.ttf') format('truetype');
 }
+
+/* ===== Terminal de servidor: ambiente y animaciones ===== */
+@keyframes term-gradient-flow {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+}
+
+.term-logo-gradient {
+    background-image: linear-gradient(90deg, var(--t1, #22d3ee), var(--t2, #a78bfa), var(--t3, #f472b6), var(--t1, #22d3ee));
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: term-gradient-flow 6s linear infinite;
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--t1, #22d3ee) 55%, transparent));
+}
+
+/* Líneas de escaneo + viñeta muy sutiles sobre el fondo de la consola */
+.term-crt {
+    background-image:
+        repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.022) 0, rgba(255, 255, 255, 0.022) 1px, transparent 1px, transparent 3px),
+        radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--t1, #22d3ee) 9%, transparent), transparent 65%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .term-logo-gradient { animation: none; }
+}
