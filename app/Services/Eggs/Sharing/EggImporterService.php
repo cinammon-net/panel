@@ -11,12 +11,14 @@ class EggImporterService
     {
         $data = json_decode(file_get_contents($file->getRealPath()), true, 512, JSON_THROW_ON_ERROR);
 
+        $startup = $data['startup'] ?? (is_array($data['startup_commands'] ?? null) ? (reset($data['startup_commands']) ?: null) : null);
+
         $fields = [
             'uuid' => $data['uuid'],
             'author' => $data['author'],
             'name' => $data['name'],
             'description' => $data['description'] ?? '',
-            'startup' => $data['startup'] ?? null,
+            'startup' => $startup,
             'config_from' => $data['config_from'] ?? null,
             'config_stop' => $data['config']['stop'] ?? null,
             'config_logs' => $data['config']['logs'] ?? null,

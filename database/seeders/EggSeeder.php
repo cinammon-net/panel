@@ -20,19 +20,20 @@ class EggSeeder extends Seeder
 
     public function run(): void
     {
-        $path = database_path('seeders/eggs');
+        $path = is_dir(base_path('../eggs')) ? base_path('../eggs') : database_path('seeders/eggs');
         $directories = array_filter(glob("$path/*"), 'is_dir');
 
         foreach ($directories as $dir) {
             $category = basename($dir);
-            $this->parseEggFiles($category);
+            $this->parseEggFiles($category, $path);
         }
     }
 
-    protected function parseEggFiles(string $category): void
+    protected function parseEggFiles(string $category, string $basePath = ''): void
     {
         $folder = Str::kebab($category);
-        $path = database_path("seeders/eggs/{$folder}");
+        $base = $basePath ?: (is_dir(base_path('../eggs')) ? base_path('../eggs') : database_path('seeders/eggs'));
+        $path = "{$base}/{$folder}";
 
         if (!is_dir($path)) {
             $this->command->warn("❗ No se encontró la carpeta: {$folder}");

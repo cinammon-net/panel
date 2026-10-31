@@ -1,7 +1,7 @@
 import EggFormModal from '@/components/EggFormModal';
 import AppLayout from '@/layouts/app-layout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { ChevronDown, ChevronUp, Copy, Egg, Pencil, Server, Trash2, Upload } from 'lucide-react';
+import { ChevronDown, ChevronUp, Copy, Egg, Pencil, RefreshCw, Server, Trash2, Upload } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -44,6 +44,22 @@ export default function Eggs() {
     const [showDropdown, setShowDropdown] = useState(false);
     const [showBulkMenu, setShowBulkMenu] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    const handleSyncRepo = () => {
+        setIsSyncing(true);
+        router.post('/eggs/sync-repo', {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setIsSyncing(false);
+                toast.success('Eggs sincronizados con éxito desde cinammon-net/eggs');
+            },
+            onError: () => {
+                setIsSyncing(false);
+                toast.error('Error al sincronizar eggs desde el repositorio');
+            },
+        });
+    };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -91,10 +107,23 @@ export default function Eggs() {
             <div className="min-h-screen bg-white p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
                 {/* Header */}
                 <div className="mb-6 flex items-center justify-between border-cyan-600">
-                    <h1 className="text-3xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400 dark:drop-shadow-[0_0_5px_#0ff]">
-                        EGGS
-                    </h1>
+                    <div className="flex items-center gap-3">
+                        <Egg className="h-8 w-8 text-cyan-400" />
+                        <h1 className="text-3xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400">
+                            EGGS
+                        </h1>
+                    </div>
                     <div className="flex gap-2">
+                        <button
+                            type="button"
+                            disabled={isSyncing}
+                            className="flex items-center gap-1.5 rounded border border-cyan-500 bg-cyan-100/50 px-4 py-1.5 text-sm text-cyan-800 transition hover:bg-cyan-200/70 disabled:opacity-50 dark:border-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-300 dark:hover:bg-cyan-700/50"
+                            onClick={handleSyncRepo}
+                            title="Sincronizar colección oficial desde cinammon-net/eggs"
+                        >
+                            <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                            {isSyncing ? 'Syncing...' : 'Sync Repo'}
+                        </button>
                         <button
                             type="button"
                             className="rounded border border-cyan-500 bg-cyan-100/50 px-4 py-1.5 text-sm text-cyan-800 transition hover:bg-cyan-200/70 dark:border-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-300 dark:hover:bg-cyan-700/50"
@@ -104,7 +133,7 @@ export default function Eggs() {
                         </button>
                         <EggFormModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} onSubmit={handleImportEgg} />
                         <Link
-                            href={route('eggs.create')}
+                            href="/eggs/create"
                             className="rounded border border-cyan-500 bg-cyan-100/50 px-4 py-1.5 text-sm text-cyan-800 transition hover:bg-cyan-200/70 dark:border-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-300 dark:hover:bg-cyan-700/50"
                         >
                             Create Egg
@@ -438,34 +467,34 @@ export default function Eggs() {
                         </table>
 
                         {/* Pagination */}
-                        {eggs.links.length > 5 && (
+                        {eggs.links.length > 3 && (
                             <div className="mt-6 flex justify-center p-4">
-                                <ul className="max-h-60 overflow-y-auto">
-                                    {availableTags
-                                        .filter((tag) => tag.toLowerCase().includes(tagSearch.toLowerCase()))
-                                        .map((tag) => (
-                                            <li
-                                                key={tag}
+                                <ul className="flex flex-wrap gap-2 text-sm font-medium">
+                                    {eggs.links.map((link, i) => (
+                                        <li key={i}>
+                                            <button
+                                                disabled={!link.url}
                                                 onClick={() => {
-                                                    setSelectedTag(tag);
-                                                    setShowDropdown(false);
+                                                    if (!link.url) return;
+                                                    const url = new URL(link.url);
+                                                    const page = url.searchParams.get('page');
                                                     router.get(
                                                         '/eggs',
                                                         {
-                                                            ...filters,
-                                                            tag,
+                                                            page,
+                                                            search,
+                                                            sort: filters.sort,
+                                                            direction: filters.direction,
+                                                            per_page: filters.per_page,
                                                         },
-                                                        {
-                                                            preserveScroll: true,
-                                                            preserveState: true,
-                                                        },
+                                                        { preserveScroll: true, preserveState: true },
                                                     );
                                                 }}
-                                                className="cursor-pointer px-3 py-2 text-sm text-cyan-600 dark:text-cyan-400"
-                                            >
-                                                {tag}
-                                            </li>
-                                        ))}
+                                                dangerouslySetInnerHTML={{ __html: link.label }}
+                                                className={`rounded border px-3 py-1.5 text-xs transition ${link.active ? 'border-cyan-500 bg-cyan-500 text-white' : 'border-cyan-700 bg-black text-cyan-400 hover:bg-cyan-800/30 hover:text-white'} ${!link.url ? 'cursor-not-allowed opacity-40' : ''}`}
+                                            />
+                                        </li>
+                                    ))}
                                 </ul>
                             </div>
                         )}

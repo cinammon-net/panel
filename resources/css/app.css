@@ -9,7 +9,9 @@
 
 @theme {
     --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', 'Orbitron';
+        var(--app-font, 'Orbitron'), 'Orbitron', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-mono:
+        var(--app-font, 'Orbitron'), 'Orbitron', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -78,6 +80,7 @@
 }
 
 :root {
+    --app-font: 'Orbitron', sans-serif;
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
@@ -153,9 +156,62 @@
         @apply border-border;
     }
 
+    html,
     body {
-        font-family: var(--app-font);
+        overflow-x: hidden;
+        max-width: 100vw;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    html,
+    body,
+    pre,
+    code,
+    kbd,
+    samp,
+    button,
+    input,
+    select,
+    textarea,
+    .terminal-font {
+        font-family: var(--app-font, 'Orbitron'), 'Orbitron', monospace, sans-serif !important;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        letter-spacing: 0.025em;
+    }
+
+    body {
         @apply bg-background text-foreground;
+        line-height: 1.55;
+        letter-spacing: 0.015em;
+    }
+
+    /* Calibración de confort visual para evitar fatiga ocular en modo oscuro */
+    .dark body,
+    .dark .bg-black,
+    .dark .dark\:bg-black {
+        background-color: #090d16 !important;
+    }
+
+    .dark .bg-neutral-950,
+    .dark .dark\:bg-neutral-950 {
+        background-color: #0f1523 !important;
+    }
+
+    .dark .text-white,
+    .dark .dark\:text-white {
+        color: #e2e8f0 !important;
+    }
+
+    /* Suavizado de brillos neón intensos para que la vista descanse */
+    .dark [class*='drop-shadow-'] {
+        filter: none !important;
+    }
+
+    /* Modo Descanso Visual opcional activable desde la cabecera */
+    html.eye-comfort {
+        filter: sepia(0.07) saturate(0.84) brightness(0.95);
     }
 }
 @layer utilities {
@@ -194,4 +250,11 @@
     }
 
     
+}
+@font-face {
+    font-family: 'Orbitron';
+    font-style: normal;
+    font-weight: 400 900;
+    font-display: swap;
+    src: url('/fonts/orbitron/Orbitron.ttf') format('truetype');
 }

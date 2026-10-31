@@ -16,7 +16,8 @@ export type Message = {
     sender_avatar: string | null;
     message: string;
     created_at: string;
-    sender_id: number;
+    sender_id?: number;
+    user_id?: number;
     reply_to?: Message;
     audio_url?: string;
 };
@@ -211,7 +212,7 @@ export default function TicketChat() {
                     <div className="mt-4 flex-1 space-y-3 overflow-y-auto">
                         {ticket.messages.length > 0 ? (
                             ticket.messages.map((msg) => {
-                                const isCurrentUser = msg.sender_id === auth.user.id;
+                                const isCurrentUser = (msg.user_id ?? msg.sender_id) === auth.user.id;
                                 const nameToUse = isCurrentUser ? auth.user.name : msg.sender_name;
                                 const avatarToUse = isCurrentUser ? auth.user.avatar : msg.sender_avatar;
 

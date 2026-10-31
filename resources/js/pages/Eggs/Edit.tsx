@@ -2,17 +2,17 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, router, usePage } from '@inertiajs/react';
 import Editor from '@monaco-editor/react';
-import { Trash2 } from 'lucide-react';
+import { Cpu, Egg as EggIcon, Settings, Sliders, Terminal, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
 
 import EggFormModal from '@/components/EggFormModal';
 const tabs = [
-    { id: 'config', title: 'Configuration' },
-    { id: 'process', title: 'Process Management' },
-    { id: 'variables', title: 'Egg Variables' },
-    { id: 'install', title: 'Install Script' },
+    { id: 'config', title: 'Configuration', icon: Settings },
+    { id: 'process', title: 'Process Management', icon: Cpu },
+    { id: 'variables', title: 'Egg Variables', icon: Sliders },
+    { id: 'install', title: 'Install Script', icon: Terminal },
 ];
 
 
@@ -314,14 +314,16 @@ export default function EditEgg() {
             <Head title={`Edit Egg: ${generalData.name}`}>
                 <meta name="description" content={`Edit the configuration for the Egg: ${generalData.name}`} />
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                <link rel="stylesheet" href="/css/app.css" />
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet" />
             </Head>
             <div className="min-h-screen bg-white p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
                 <div className="mb-6 flex flex-col items-center justify-between gap-4 sm:flex-row sm:gap-2">
-                    <h1 className="w-full text-center text-3xl font-semibold tracking-widest text-cyan-400 drop-shadow-[0_0_8px_#0ff] sm:w-auto sm:text-left">
-                        Edit {generalData.name}
-                    </h1>
+                    <div className="flex w-full items-center justify-center gap-3 sm:w-auto sm:justify-start">
+                        <EggIcon className="h-7 w-7 text-cyan-400" />
+                        <h1 className="text-3xl font-semibold tracking-widest text-cyan-400">
+                            Edit {generalData.name}
+                        </h1>
+                    </div>
                     <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                         <button
                             type="button"
@@ -371,18 +373,22 @@ export default function EditEgg() {
                 </div>
 
                 {/* Tabs */}
-                <div className="mb-6 flex flex-wrap gap-4 border-b border-cyan-700">
-                    {tabs.map((tab) => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`w-full border-b-2 px-4 pb-2 sm:w-auto ${
-                                activeTab === tab.id ? 'border-cyan-500 text-cyan-500' : 'border-transparent hover:text-cyan-400'
-                            } text-center transition`}
-                        >
-                            {tab.title}
-                        </button>
-                    ))}
+                <div className="mb-6 flex flex-wrap gap-4 border-b border-cyan-700/50">
+                    {tabs.map((tab) => {
+                        const TabIcon = tab.icon;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`flex w-full items-center justify-center gap-2 border-b-2 px-4 pb-2.5 sm:w-auto ${
+                                    activeTab === tab.id ? 'border-cyan-400 text-cyan-400' : 'border-transparent text-slate-400 hover:text-cyan-300'
+                                } text-center transition`}
+                            >
+                                <TabIcon className="h-4 w-4 shrink-0" />
+                                <span>{tab.title}</span>
+                            </button>
+                        );
+                    })}
                 </div>
 
                 {/* Content */}
@@ -479,10 +485,8 @@ export default function EditEgg() {
                                     rows={3}
                                     className="w-full rounded border border-cyan-700 bg-[#1a1a1a] p-2 font-mono text-cyan-400 placeholder-cyan-600"
                                     placeholder="java -Xms128M -Xmx{{SERVER_MEMORY}} -jar server.jar"
-                                    value={generalData.startup}
+                                    value={generalData.startup || ''}
                                     onChange={(e) => handleGeneralChange('startup', e.target.value)}
-                                    readOnly={true}
-                                    onCopy={(e) => e.preventDefault()}
                                 />
                                 <p className="mt-1 text-xs text-cyan-500">
                                     The default startup command that should be used for new servers using this Egg.
@@ -506,7 +510,7 @@ export default function EditEgg() {
                                 </div>
                                 <div>
                                     <label className="mb-1 block text-sm font-semibold">Features</label>
-                                    <TagInput tags={generalData.tags} onChange={(newTags) => handleGeneralChange('tags', newTags)} />
+                                    <TagInput tags={generalData.features || []} onChange={(newFeatures) => handleGeneralChange('features', newFeatures)} />
                                 </div>
                                 <div>
                                     <label className="mb-1 block text-sm font-semibold">Force Outgoing IP</label>

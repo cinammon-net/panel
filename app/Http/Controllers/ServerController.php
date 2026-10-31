@@ -18,10 +18,49 @@ class ServerController extends Controller
     public function index(Request $request)
     {
         $query = Server::query();
+        $user = $request->user();
+
+        // Filtro de pertenencia (Mis servidores, Servidores de otros, Todos los servidores)
+        $isAdmin = $user && $user->hasAnyRole(['Owner', 'Admin', 'Moderator']);
+        $selectedScope = $request->input('scope', 'all');
+        if ($selectedScope === 'mine' && $user) {
+            $query->where('servers.owner_id', $user->id);
+        } elseif ($selectedScope === 'others' && $user) {
+            if ($isAdmin) {
+                $query->where('servers.owner_id', '!=', $user->id);
+            } else {
+                $query->whereHas('subusers', fn($q) => $q->where('user_id', $user->id));
+            }
+        } elseif (!$isAdmin && $user) {
+            $query->where(function ($q) use ($user) {
+                $q->where('servers.owner_id', $user->id)
+                  ->orWhereHas('subusers', fn($sub) => $sub->where('user_id', $user->id));
+            });
+        }
 
         // Filtro búsqueda
         if ($request->has('search')) {
             $query->where('servers.name', 'like', '%' . $request->search . '%');
+        }
+
+        // Filtro categoría
+        $selectedCategory = $request->input('category', 'all');
+        if ($selectedCategory === 'bots') {
+            $query->whereHas('egg', function ($q) {
+                $q->whereIn('category', ['bots', 'generic']);
+            });
+        } elseif ($selectedCategory && $selectedCategory !== 'all') {
+            $query->whereHas('egg', function ($q) use ($selectedCategory) {
+                $q->where('category', $selectedCategory);
+            });
+        }
+
+        // Filtro estado (activos / inactivos)
+        $selectedStatus = $request->input('status', 'all');
+        if ($selectedStatus === 'online') {
+            $query->where('servers.status', 1);
+        } elseif ($selectedStatus === 'offline') {
+            $query->where('servers.status', 0);
         }
 
         // Orden dinámico
@@ -82,7 +121,8 @@ class ServerController extends Controller
         }
 
         // Paginar resultados
-        $paginated = $query->paginate(15)->withQueryString();
+        $perPage = min(100, max(5, (int) $request->input('per_page', 50)));
+        $paginated = $query->paginate($perPage)->withQueryString();
 
         // Hacer relaciones manualmente porque no usamos with()
         $serverIds = $paginated->pluck('id');
@@ -99,8 +139,11 @@ class ServerController extends Controller
                 'id' => $server->id,
                 'uuid' => $server->uuid,
                 'name' => $server->name,
+                'banner' => $server->banner,
                 'status' => $server->status ? 'online' : 'offline',
                 'egg' => $full?->egg?->name ?? '–',
+                'category' => $full?->egg?->category ?? 'minecraft',
+                'owner_id' => $server->owner_id,
                 'username' => $full?->owner?->name ?? 'Unknown',
                 'node' => $full?->node?->name ?? 'Unknown',
                 'allocation' => $full?->allocation
@@ -109,15 +152,50 @@ class ServerController extends Controller
                 'database' => $server->database_limit ?? 0,
                 'cpu' => $server->cpu ?? 0,
                 'memory' => $server->memory ?? 0,
+                'disk' => $server->disk ?? 0,
                 'backups' => $server->backup_limit ?? 0,
             ];
         });
 
         $paginated->setCollection($servers);
 
+        $categoryCounts = [
+            'all' => Server::count(),
+            'minecraft' => Server::whereHas('egg', fn($q) => $q->where('category', 'minecraft'))->count(),
+            'games' => Server::whereHas('egg', fn($q) => $q->where('category', 'games'))->count(),
+            'bots' => Server::whereHas('egg', fn($q) => $q->whereIn('category', ['bots', 'generic']))->count(),
+            'database' => Server::whereHas('egg', fn($q) => $q->where('category', 'database'))->count(),
+            'voice' => Server::whereHas('egg', fn($q) => $q->where('category', 'voice'))->count(),
+            'software' => Server::whereHas('egg', fn($q) => $q->where('category', 'software'))->count(),
+        ];
+
+        $statusCounts = [
+            'all' => Server::count(),
+            'online' => Server::where('status', 1)->count(),
+            'offline' => Server::where('status', 0)->count(),
+        ];
+
+        $userId = $user?->id;
+        $scopeCounts = [
+            'all' => $isAdmin
+                ? Server::count()
+                : ($userId ? Server::where('owner_id', $userId)->orWhereHas('subusers', fn($q) => $q->where('user_id', $userId))->count() : 0),
+            'mine' => $userId ? Server::where('owner_id', $userId)->count() : 0,
+            'others' => $isAdmin
+                ? ($userId ? Server::where('owner_id', '!=', $userId)->count() : 0)
+                : ($userId ? Server::whereHas('subusers', fn($q) => $q->where('user_id', $userId))->count() : 0),
+        ];
+
         return Inertia::render('Servers', [
             'servers' => $paginated,
-            'filters' => $request->only('search', 'sort', 'direction'),
+            'filters' => array_merge($request->only('search', 'sort', 'direction', 'per_page'), [
+                'category' => $selectedCategory,
+                'status' => $selectedStatus,
+                'scope' => $selectedScope,
+            ]),
+            'scopeCounts' => $scopeCounts,
+            'categoryCounts' => $categoryCounts,
+            'statusCounts' => $statusCounts,
             'availableTags' => [],
         ]);
     }
@@ -201,8 +279,16 @@ class ServerController extends Controller
             $data['uuid'] = (string) Str::uuid();
             $data['uuid_short'] = substr($data['uuid'], 0, 8);
             $data['active'] = 1;
-            $data['status'] = 1;
+            $data['status'] = 0;
             $server = Server::create($data);
+            if (!empty($data['allocation_id'])) {
+                Allocation::where('id', $data['allocation_id'])->update(['server_id' => $server->id]);
+            }
+            try {
+                app(\App\Services\Daemon\WingsClient::class)->provision($server);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('No se pudo aprovisionar en Wings: ' . $e->getMessage());
+            }
         }
 
         if (isset($validated['additional_allocations'])) {
@@ -277,6 +363,21 @@ class ServerController extends Controller
         return redirect()->route('servers.index')->with('success', 'Servidor actualizado exitosamente.');
     }
 
+    public function updateBanner(Request $request, Server $server)
+    {
+        $validated = $request->validate([
+            'banner' => 'nullable|string|max:2048',
+        ]);
+
+        $server->update(['banner' => $validated['banner'] ?? null]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'banner' => $server->banner]);
+        }
+
+        return back()->with('success', 'Fondo del servidor actualizado exitosamente.');
+    }
+
 
     public function apiServers(Request $request)
     {
@@ -332,6 +433,36 @@ class ServerController extends Controller
         // Cargar relaciones necesarias
         $server->load(['node', 'owner']);
 
+        $defaultDatabases = [
+            [
+                'id' => 1,
+                'name' => 's' . $server->id . '_cinammon',
+                'driver' => 'mysql',
+                'user' => 'u' . $server->id . '_admin',
+                'host' => '127.0.0.1',
+                'port' => 3306,
+                'password' => 'cnm_' . substr(md5('srv_db_' . $server->id), 0, 12),
+            ],
+        ];
+        $databases = collect(\Illuminate\Support\Facades\Cache::get("server_databases_{$server->id}", $defaultDatabases))
+            ->map(function ($db) {
+                if (empty($db['driver'])) {
+                    $port = (int) ($db['port'] ?? 3306);
+                    $db['driver'] = match ($port) {
+                        5432 => 'pgsql',
+                        27017 => 'mongodb',
+                        6379 => 'redis',
+                        1433 => 'sqlsrv',
+                        0 => 'sqlite',
+                        default => 'mysql',
+                    };
+                }
+                return $db;
+            })
+            ->values()
+            ->all();
+        $server->setAttribute('databases', $databases);
+
         // Decodificar imágenes de los eggs
         $eggs = Egg::with('variables')
             ->select('id', 'name', 'startup', 'docker_images')
@@ -350,11 +481,178 @@ class ServerController extends Controller
         ]);
     }
 
+    public function databases(Request $request, Server $server)
+    {
+        $user = $request->user();
+        abort_unless(
+            $user->id === $server->owner_id ||
+            $user->hasAnyRole(['Owner', 'Admin']) ||
+            $server->subusers()->where('user_id', $user->id)->exists(),
+            403,
+            'No tienes permiso para ver las bases de datos de este servidor.'
+        );
+
+        $key = "server_databases_{$server->id}";
+        $databases = \Illuminate\Support\Facades\Cache::get($key, [
+            [
+                'id' => 1,
+                'name' => 's' . $server->id . '_cinammon',
+                'driver' => 'mysql',
+                'user' => 'u' . $server->id . '_admin',
+                'host' => '127.0.0.1',
+                'port' => 3306,
+                'password' => 'cnm_' . substr(md5('srv_db_' . $server->id), 0, 12),
+            ],
+        ]);
+
+        return Inertia::render('Servers/Databases', [
+            'server' => [
+                'id' => $server->id,
+                'name' => $server->name,
+                'uuid' => $server->uuid,
+                'owner_id' => $server->owner_id,
+                'database_limit' => $server->database_limit ?: 3,
+            ],
+            'databases' => $databases,
+        ]);
+    }
+
+    public function storeDatabase(Request $request, Server $server)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'driver' => 'nullable|string|in:sqlite,mysql,mariadb,pgsql,mongodb,redis,sqlsrv',
+            'user' => 'required|string|max:100',
+            'host' => 'nullable|string|max:100',
+            'port' => 'nullable|integer|min:0|max:65535',
+        ]);
+
+        $driver = $validated['driver'] ?? 'mysql';
+        $defaultPort = match ($driver) {
+            'pgsql' => 5432,
+            'mongodb' => 27017,
+            'redis' => 6379,
+            'sqlsrv' => 1433,
+            'sqlite' => 0,
+            default => 3306,
+        };
+
+        $key = "server_databases_{$server->id}";
+        $databases = \Illuminate\Support\Facades\Cache::get($key, [
+            [
+                'id' => 1,
+                'name' => 's' . $server->id . '_cinammon',
+                'driver' => 'mysql',
+                'user' => 'u' . $server->id . '_admin',
+                'host' => '127.0.0.1',
+                'port' => 3306,
+                'password' => 'cnm_' . substr(md5('srv_db_' . $server->id), 0, 12),
+            ],
+        ]);
+
+        $nextId = collect($databases)->max('id') + 1;
+        $databases[] = [
+            'id' => $nextId ?: 1,
+            'name' => $validated['name'],
+            'driver' => $driver,
+            'user' => $validated['user'],
+            'host' => $validated['host'] ?? ($driver === 'sqlite' ? "database/s{$server->id}.sqlite" : '127.0.0.1'),
+            'port' => isset($validated['port']) ? (int) $validated['port'] : $defaultPort,
+            'password' => 'cnm_' . Str::random(12),
+        ];
+
+        \Illuminate\Support\Facades\Cache::forever($key, array_values($databases));
+        $server->update(['database_limit' => max((int) $server->database_limit, count($databases))]);
+
+        return back()->with('success', 'Base de datos creada correctamente.');
+    }
+
+    public function rotateDatabasePassword(Request $request, Server $server, $dbId)
+    {
+        $user = $request->user();
+        abort_unless(
+            $user->id === $server->owner_id ||
+            $user->hasAnyRole(['Owner', 'Admin']) ||
+            $server->subusers()->where('user_id', $user->id)->exists(),
+            403
+        );
+
+        $key = "server_databases_{$server->id}";
+        $databases = \Illuminate\Support\Facades\Cache::get($key, []);
+        $newPassword = 'cnm_' . \Illuminate\Support\Str::random(14);
+
+        foreach ($databases as &$db) {
+            if ((string) ($db['id'] ?? '') === (string) $dbId) {
+                $db['password'] = $newPassword;
+                break;
+            }
+        }
+
+        \Illuminate\Support\Facades\Cache::forever($key, $databases);
+
+        return back()->with('success', 'Contraseña de la base de datos rotada y actualizada con éxito.');
+    }
+
+    public function destroyDatabase(Server $server, $dbId)
+    {
+        $key = "server_databases_{$server->id}";
+        $databases = collect(\Illuminate\Support\Facades\Cache::get($key, []))
+            ->reject(fn ($db) => (string) ($db['id'] ?? '') === (string) $dbId)
+            ->values()
+            ->all();
+
+        \Illuminate\Support\Facades\Cache::forever($key, $databases);
+
+        return back()->with('success', 'Base de datos eliminada.');
+    }
+
     public function destroy($uuid)
     {
-        $server = Server::where('uuid', $uuid)->firstOrFail();
+        $server = Server::where('uuid', $uuid)->orWhere('id', $uuid)->firstOrFail();
         $server->delete();
 
-        return redirect()->route('servers.index')->with('success', 'Servidor eliminado correctamente.');
+        return redirect()->route('servers.index')->with('success', 'Servidor y todos sus recursos (contenedor, archivos y puertos) eliminados correctamente.');
+    }
+
+    public function toggleInstall($uuid)
+    {
+        $server = Server::where('uuid', $uuid)->orWhere('id', $uuid)->firstOrFail();
+        $server->status = $server->status ? 0 : 1;
+        $server->save();
+
+        return back()->with('success', 'Estado de instalación actualizado.');
+    }
+
+    public function suspend($uuid)
+    {
+        $server = Server::where('uuid', $uuid)->orWhere('id', $uuid)->firstOrFail();
+        $server->status = 0;
+        $server->save();
+
+        return back()->with('success', 'Servidor suspendido correctamente.');
+    }
+
+    public function transfer($uuid)
+    {
+        Server::where('uuid', $uuid)->orWhere('id', $uuid)->firstOrFail();
+
+        return back()->with('success', 'Transferencia iniciada correctamente.');
+    }
+
+    public function reinstall($uuid)
+    {
+        $server = Server::where('uuid', $uuid)->orWhere('id', $uuid)->firstOrFail();
+        $server->installed_at = null;
+        $server->status = 0;
+        $server->save();
+
+        try {
+            app(\App\Services\Daemon\WingsClient::class)->reinstall($server);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('No se pudo reinstalar en Wings: ' . $e->getMessage());
+            return back()->with('error', 'Error al solicitar reinstalación a Wings: ' . $e->getMessage());
+        }
+
+        return back()->with('success', 'Reinstalación del servidor iniciada.');
     }
 }

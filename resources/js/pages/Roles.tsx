@@ -1,6 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, Link, usePage } from '@inertiajs/react';
-import { ChevronDown, ChevronUp, Pencil, ShieldCheck, Users } from 'lucide-react';
+import { BadgeInfo, ChevronDown, ChevronUp, Pencil, ShieldCheck, Users } from 'lucide-react';
 
 interface Role {
     id: number;
@@ -46,9 +46,12 @@ export default function Roles() {
             </Head>
             <div className="min-h-screen bg-white p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
                 <div className="mb-6 flex items-center justify-between border-pink-600">
-                    <h1 className="text-3xl font-semibold tracking-widest text-pink-800 drop-shadow-none dark:text-pink-400 dark:drop-shadow-[0_0_6px_#f0f]">
-                        ROLES
-                    </h1>
+                    <div className="flex items-center gap-3">
+                        <BadgeInfo className="h-8 w-8 text-pink-400" />
+                        <h1 className="text-3xl font-semibold tracking-widest text-pink-800 drop-shadow-none dark:text-pink-400">
+                            ROLES
+                        </h1>
+                    </div>
                     <div className="flex items-center gap-3">
                         <Link
                             href="/roles/create"

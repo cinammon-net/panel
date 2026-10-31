@@ -1,4 +1,7 @@
-#!/bin/sh
-set -eu
-cd /home/container
-exec /bin/sh -c "exec ${STARTUP}"
+#!/bin/bash
+set -e
+
+cd /home/container || exit 1
+
+# Execute startup command
+eval "$STARTUP"

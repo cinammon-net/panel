@@ -6,28 +6,32 @@ import { Pie } from 'react-chartjs-2';
 ChartJS.register(ArcElement, Title, Tooltip, Legend);
 
 interface StorageProps {
-    setStorageData: (data: number[]) => void;
+    id?: number | string;
+    setStorageData?: (data: number[]) => void;
+    [key: string]: unknown;
 }
 
-const Storage: React.FC<StorageProps> = ({ setStorageData }) => {
+const Storage: React.FC<StorageProps> = ({ id, setStorageData }) => {
     const [storageData, setStorageDataState] = React.useState<number[]>([]);
 
     useEffect(() => {
         const fetchStorageData = async () => {
             try {
-                const response = await axios.get('/storage-data');
-                setStorageDataState(response.data);
-                setStorageData(response.data);
+                const response = await axios.get('/nodes/storage-data', {
+                    params: id ? { node_id: id } : {},
+                });
+                setStorageDataState(response.data || []);
+                setStorageData?.(response.data || []);
             } catch (error) {
                 console.error('Error fetching storage data:', error);
             }
         };
 
         fetchStorageData();
-    }, [setStorageData]);
+    }, [id, setStorageData]);
 
     const data = {
-        labels: ['Used', 'Free'],
+        labels: ['Used (MB)', 'Free (MB)'],
         datasets: [
             {
                 data: storageData,

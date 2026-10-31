@@ -3,14 +3,15 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, router, usePage } from '@inertiajs/react';
 import Editor from '@monaco-editor/react';
+import { Cpu, Egg as EggIcon, Settings, Sliders, Terminal } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 const tabs = [
-    { id: 'config', title: 'Configuration' },
-    { id: 'process', title: 'Process Management' },
-    { id: 'variables', title: 'Egg Variables' },
-    { id: 'install', title: 'Install Script' },
+    { id: 'config', title: 'Configuration', icon: Settings },
+    { id: 'process', title: 'Process Management', icon: Cpu },
+    { id: 'variables', title: 'Egg Variables', icon: Sliders },
+    { id: 'install', title: 'Install Script', icon: Terminal },
 ];
 
 // Función para decodificar strings JSON con escapes y devolver formateado
@@ -142,9 +143,12 @@ export default function CreateEgg() {
 
             <div className="min-h-screen bg-white p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
                 <div className="mb-6 flex flex-col gap-4 border-cyan-600 sm:flex-row sm:items-center sm:justify-between">
-                    <h1 className="text-3xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400 dark:drop-shadow-[0_0_5px_#0ff]">
-                        CREATE EGG
-                    </h1>
+                    <div className="flex items-center gap-3">
+                        <EggIcon className="h-7 w-7 text-cyan-400" />
+                        <h1 className="text-3xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400">
+                            CREATE EGG
+                        </h1>
+                    </div>
                     <button
                         className="rounded border border-cyan-500 bg-cyan-200 px-4 py-2 text-cyan-900 hover:bg-pink-300 dark:bg-cyan-900/40 dark:text-cyan-300 dark:hover:bg-cyan-700/60"
                         onClick={handleCreateEgg}
@@ -153,20 +157,24 @@ export default function CreateEgg() {
                     </button>
                 </div>
 
-                <div className="rounded-lg border-2 border-cyan-600 bg-black/80 p-6">
+                <div className="rounded-lg border border-cyan-600/50 bg-black/80 p-6">
                     {/* Tabs */}
-                    <div className="mb-6 flex flex-wrap gap-2 border-b border-cyan-700">
-                        {tabs.map((tab) => (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`w-full border-b-2 px-4 pb-2 sm:w-auto ${
-                                    activeTab === tab.id ? 'border-cyan-500 text-cyan-500' : 'border-transparent hover:text-cyan-400'
-                                } text-center transition`}
-                            >
-                                {tab.title}
-                            </button>
-                        ))}
+                    <div className="mb-6 flex flex-wrap gap-3 border-b border-cyan-700/50">
+                        {tabs.map((tab) => {
+                            const TabIcon = tab.icon;
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`flex w-full items-center justify-center gap-2 border-b-2 px-4 pb-2.5 sm:w-auto ${
+                                        activeTab === tab.id ? 'border-cyan-400 text-cyan-400' : 'border-transparent text-slate-400 hover:text-cyan-300'
+                                    } text-center transition`}
+                                >
+                                    <TabIcon className="h-4 w-4 shrink-0" />
+                                    <span>{tab.title}</span>
+                                </button>
+                            );
+                        })}
                     </div>
 
                     {/* Tab content */}
