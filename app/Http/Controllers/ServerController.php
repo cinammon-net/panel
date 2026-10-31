@@ -21,11 +21,21 @@ class ServerController extends Controller
         $user = $request->user();
 
         // Filtro de pertenencia (Mis servidores, Servidores de otros, Todos los servidores)
+        $isAdmin = $user && $user->hasAnyRole(['Owner', 'Admin', 'Moderator']);
         $selectedScope = $request->input('scope', 'all');
         if ($selectedScope === 'mine' && $user) {
             $query->where('servers.owner_id', $user->id);
         } elseif ($selectedScope === 'others' && $user) {
-            $query->where('servers.owner_id', '!=', $user->id);
+            if ($isAdmin) {
+                $query->where('servers.owner_id', '!=', $user->id);
+            } else {
+                $query->whereHas('subusers', fn($q) => $q->where('user_id', $user->id));
+            }
+        } elseif (!$isAdmin && $user) {
+            $query->where(function ($q) use ($user) {
+                $q->where('servers.owner_id', $user->id)
+                  ->orWhereHas('subusers', fn($sub) => $sub->where('user_id', $user->id));
+            });
         }
 
         // Filtro búsqueda
@@ -167,9 +177,13 @@ class ServerController extends Controller
 
         $userId = $user?->id;
         $scopeCounts = [
-            'all' => Server::count(),
+            'all' => $isAdmin
+                ? Server::count()
+                : ($userId ? Server::where('owner_id', $userId)->orWhereHas('subusers', fn($q) => $q->where('user_id', $userId))->count() : 0),
             'mine' => $userId ? Server::where('owner_id', $userId)->count() : 0,
-            'others' => $userId ? Server::where('owner_id', '!=', $userId)->count() : 0,
+            'others' => $isAdmin
+                ? ($userId ? Server::where('owner_id', '!=', $userId)->count() : 0)
+                : ($userId ? Server::whereHas('subusers', fn($q) => $q->where('user_id', $userId))->count() : 0),
         ];
 
         return Inertia::render('Servers', [

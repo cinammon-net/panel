@@ -269,6 +269,10 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/servers/{server}/databases', [ServerController::class, 'storeDatabase']);
     Route::delete('/servers/{server}/databases/{dbId}', [ServerController::class, 'destroyDatabase']);
     Route::post('/servers/{server}/banner', [ServerController::class, 'updateBanner'])->name('servers.banner.update');
+    Route::get('/servers/{server}/subusers', [App\Http\Controllers\ServerSubusersController::class, 'index'])->name('servers.subusers');
+    Route::post('/servers/{server}/subusers', [App\Http\Controllers\ServerSubusersController::class, 'store'])->name('servers.subusers.store');
+    Route::put('/servers/{server}/subusers/{subuser}', [App\Http\Controllers\ServerSubusersController::class, 'update'])->name('servers.subusers.update');
+    Route::delete('/servers/{server}/subusers/{subuser}', [App\Http\Controllers\ServerSubusersController::class, 'destroy'])->name('servers.subusers.destroy');
     Route::get('/servers/edit', fn() => redirect('/servers'));
     Route::resource('servers', ServerController::class)->except(['show']);
     Route::get('/servers/{server}/edit', [ServerController::class, 'edit'])->name('servers.edit');
