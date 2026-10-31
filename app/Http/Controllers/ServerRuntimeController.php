@@ -219,6 +219,11 @@ class ServerRuntimeController extends Controller
         abort_unless($server->installed_at, 409, 'La instalación todavía no ha terminado.');
         try {
             $wings->forServer($server)->post('/servers/'.$server->uuid.'/power', $data)->throw();
+            if (in_array($data['action'], ['start', 'restart'], true)) {
+                $server->update(['status' => 1]);
+            } elseif (in_array($data['action'], ['stop', 'kill'], true)) {
+                $server->update(['status' => 0]);
+            }
             return response()->json(['message' => 'Acción enviada a Wings.'], 202);
         } catch (ConnectionException|RequestException $exception) {
             return response()->json(['message' => 'Wings no pudo ejecutar la acción. Consulta los logs.'], 502);
