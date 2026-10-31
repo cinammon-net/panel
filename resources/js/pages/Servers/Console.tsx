@@ -401,8 +401,8 @@ export default function Console({ server }: { server: Server }) {
                         className="h-[440px] overflow-auto bg-[#05080f] p-4 text-xs whitespace-pre text-neutral-200 selection:bg-cyan-500/30 selection:text-cyan-200"
                         style={{
                             fontFamily: "'JetBrains Mono', 'Fira Code', 'Courier New', Courier, monospace",
-                            lineHeight: '1.25',
-                            letterSpacing: '0px',
+                            lineHeight: '1.15',
+                            letterSpacing: '0.5px',
                         }}
                     >
                         {htmlLogs ? (
