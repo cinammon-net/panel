@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import AppLayout from '@/layouts/app-layout';
+import ServerLayout from '@/layouts/server-layout';
 import { Head } from '@inertiajs/react';
 import { ChevronDown, Cpu, Database as DatabaseIcon, Egg, MapPinned, MapPinPlus, PlusIcon, Server, Star, StarOff, Terminal, Trash, User, Zap } from 'lucide-react';
 import { ChangeEvent, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useState } from 'react';
@@ -147,14 +147,8 @@ export default function CreateServer() {
     const [showVariables, setShowVariables] = useState(false);
     const [newDbDriver, setNewDbDriver] = useState<'mysql' | 'mariadb' | 'pgsql' | 'sqlite' | 'mongodb' | 'redis' | 'sqlsrv'>('mysql');
     return (
-        <AppLayout
-            breadcrumbs={[
-                { title: 'Servers', href: '/servers' },
-                { title: 'Edit', href: '/servers/edit' },
-                { title: server.name, href: `/servers/${server.name}` },
-            ]}
-        >
-            <Head title="Create Server">
+        <ServerLayout server={{ id: initialServer?.id ?? server.id, name: server.name }} section="edit">
+            <Head title={`Configuración - ${server.name}`}>
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet" />
             </Head>
 
@@ -1132,6 +1126,6 @@ export default function CreateServer() {
                     </div>
                 </div>
             </div>
-        </AppLayout>
+        </ServerLayout>
     );
 }

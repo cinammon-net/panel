@@ -268,6 +268,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/servers/{uuid}/reinstall', [ServerController::class, 'reinstall']);
     Route::post('/servers/{server}/databases', [ServerController::class, 'storeDatabase']);
     Route::delete('/servers/{server}/databases/{dbId}', [ServerController::class, 'destroyDatabase']);
+    Route::get('/servers/edit', fn() => redirect('/servers'));
     Route::resource('servers', ServerController::class)->except(['show']);
     Route::get('/servers/{server}/edit', [ServerController::class, 'edit'])->name('servers.edit');
     Route::post('/servers', [ServerController::class, 'store'])->name('servers.store');
