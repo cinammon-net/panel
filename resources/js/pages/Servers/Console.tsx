@@ -587,6 +587,24 @@ export default function Console({ server }: { server: Server }) {
                             letterSpacing: '0px',
                         }}
                     >
+                        {/* Logo ASCII propio: centrado, grande y con fuente que sí tiene los caracteres de caja */}
+                        <div
+                            aria-label="Cinammon"
+                            className="select-none mx-auto mb-4 w-full overflow-hidden text-center font-bold text-cyan-300 text-[9px] min-[420px]:text-[11px] sm:text-sm md:text-lg lg:text-xl xl:text-2xl"
+                            style={{
+                                fontFamily: "Menlo, Monaco, Consolas, 'DejaVu Sans Mono', 'Courier New', monospace",
+                                lineHeight: 1.05,
+                                letterSpacing: 0,
+                                textShadow: '0 0 12px rgba(34,211,238,0.55)',
+                            }}
+                        >
+                            <pre
+                                className="inline-block m-0 text-left"
+                                style={{ fontFamily: 'inherit', lineHeight: 'inherit', letterSpacing: 0, fontSize: 'inherit' }}
+                            >{`╔═╗╦╔╗╔╔═╗╔╦╗╔╦╗╔═╗╔╗╔    ╔╗╔╔═╗╔╦╗
+║  ║║║║╠═╣║║║║║║║ ║║║║    ║║║║╣  ║
+╚═╝╩╝╚╝╩ ╩╩ ╩╩ ╩╚═╝╝╚╝  o ╝╚╝╚═╝ ╩`}</pre>
+                        </div>
                         {clearedAt ? (
                             <div className="text-neutral-500 italic py-2">
                                 [Vista despejada localmente. Los nuevos logs aparecerán a continuación. Pulsa "Restaurar" para ver los anteriores]
