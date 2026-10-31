@@ -238,6 +238,86 @@ class EggController extends Controller
     }
 
     /**
+     * Sincroniza todos los eggs desde el repositorio oficial cinammon-net/eggs.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function syncRepo(Request $request)
+    {
+        $repoPath = is_dir(base_path('../eggs')) ? base_path('../eggs') : storage_path('app/eggs');
+        $categories = ['minecraft', 'games', 'bots', 'database', 'generic', 'software', 'voice'];
+        $syncedCount = 0;
+
+        if (is_dir($repoPath)) {
+            foreach ($categories as $cat) {
+                $files = glob("{$repoPath}/{$cat}/*.json");
+                if (!$files) continue;
+
+                foreach ($files as $file) {
+                    $raw = file_get_contents($file);
+                    $data = json_decode($raw, true);
+                    if (!is_array($data) || empty($data['uuid'])) continue;
+
+                    $egg = Egg::updateOrCreate(
+                        ['uuid' => $data['uuid']],
+                        [
+                            'name' => $data['name'] ?? basename($file, '.json'),
+                            'author' => $data['author'] ?? 'support@cinammon.net',
+                            'description' => $data['description'] ?? '',
+                            'category' => $cat,
+                            'startup' => $data['startup'] ?? '',
+                            'config_stop' => $data['config']['stop'] ?? null,
+                            'config_startup' => isset($data['config']['startup']) ? (is_string($data['config']['startup']) ? $data['config']['startup'] : json_encode($data['config']['startup'])) : '{}',
+                            'config_files' => isset($data['config']['files']) ? (is_string($data['config']['files']) ? $data['config']['files'] : json_encode($data['config']['files'])) : '{}',
+                            'config_logs' => isset($data['config']['logs']) ? (is_string($data['config']['logs']) ? $data['config']['logs'] : json_encode($data['config']['logs'])) : '{}',
+                            'script_install' => $data['scripts']['installation']['script'] ?? null,
+                            'script_container' => $data['scripts']['installation']['container'] ?? 'ghcr.io/parkervcp/installers:debian',
+                            'script_entry' => $data['scripts']['installation']['entrypoint'] ?? 'bash',
+                            'script_is_privileged' => !empty($data['scripts']['installation']['is_privileged']) ? 1 : 0,
+                            'features' => json_encode($data['features'] ?? []),
+                            'docker_images' => json_encode($data['docker_images'] ?? []),
+                            'update_url' => $data['meta']['update_url'] ?? "https://raw.githubusercontent.com/cinammon-net/eggs/main/{$cat}/" . basename($file),
+                            'file_denylist' => json_encode($data['file_denylist'] ?? []),
+                            'force_outgoing_ip' => !empty($data['force_outgoing_ip']) ? 1 : 0,
+                            'tags' => is_array($data['tags'] ?? null) ? implode(',', $data['tags']) : ($data['tags'] ?? $cat),
+                        ]
+                    );
+
+                    $syncedCount++;
+
+                    if (!empty($data['variables']) && is_array($data['variables'])) {
+                        $sort = 1;
+                        foreach ($data['variables'] as $var) {
+                            if (empty($var['env_variable'])) continue;
+                            $rules = $var['rules'] ?? '';
+                            if (is_array($rules)) $rules = implode('|', $rules);
+
+                            DB::table('egg_variables')->updateOrInsert(
+                                [
+                                    'egg_id' => $egg->id,
+                                    'env_variable' => $var['env_variable'],
+                                ],
+                                [
+                                    'name' => $var['name'] ?? $var['env_variable'],
+                                    'description' => $var['description'] ?? '',
+                                    'default_value' => (string)($var['default_value'] ?? ''),
+                                    'user_viewable' => !empty($var['user_viewable']) ? 1 : 0,
+                                    'user_editable' => !empty($var['user_editable']) ? 1 : 0,
+                                    'rules' => (string)$rules,
+                                    'sort' => $sort++,
+                                ]
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        return redirect()->route('eggs.index')->with('success', "Se han sincronizado correctamente {$syncedCount} eggs desde el repositorio oficial cinammon-net/eggs.");
+    }
+
+    /**
      * Importa Eggs desde un archivo JSON.
      *
      * @param \Illuminate\Http\Request $request

@@ -53,91 +53,19 @@ class ServerFilesController extends Controller
         return Inertia::render('Servers/Files', ['server' => ['id' => $server->id, 'name' => $server->name]]);
     }
 
-    private function ensureLocalWorkspace(Server $server): string
-    {
-        $dir = storage_path('app/servers/' . $server->uuid);
-        if (!is_dir($dir)) {
-            @mkdir($dir, 0775, true);
-        }
-
-        if ($server->egg && $server->egg->category === 'discord') {
-            $srcDir = $dir . '/src';
-            if (!is_dir($srcDir)) {
-                @mkdir($srcDir, 0775, true);
-            }
-            $repoBotIndex = base_path('../bot/src/index.js');
-            $repoBotPkg = base_path('../bot/package.json');
-            if (is_file($repoBotIndex) && !is_file($srcDir . '/index.js')) {
-                @copy($repoBotIndex, $srcDir . '/index.js');
-            }
-            if (is_file($repoBotPkg) && !is_file($dir . '/package.json')) {
-                @copy($repoBotPkg, $dir . '/package.json');
-            }
-            if (!is_file($dir . '/README.md')) {
-                @file_put_contents($dir . '/README.md', "# {$server->name} (Node.js 24 · Discord Components V2)\n\nBot oficial de Cinammon.net con soporte para creación de servidores, monetización (`cinammon-es/billing`) y sistema de plugins.\n");
-            }
-        } else {
-            if (!is_file($dir . '/eula.txt')) {
-                @file_put_contents($dir . '/eula.txt', "eula=true\n");
-            }
-            if (!is_file($dir . '/server.properties')) {
-                $port = $server->allocation->port ?? 25565;
-                @file_put_contents($dir . '/server.properties', "motd=\\u00A7bCinammon.net \\u00A77- \\u00A7f{$server->name}\nserver-port={$port}\nmax-players=50\nonline-mode=true\nview-distance=10\n");
-            }
-            if (!is_dir($dir . '/plugins')) {
-                @mkdir($dir . '/plugins', 0775, true);
-            }
-        }
-
-        return $dir;
-    }
-
-    private function localEntries(Server $server, string $directory): array
-    {
-        $root = $this->ensureLocalWorkspace($server);
-        $target = $directory === '' ? $root : $root . '/' . $directory;
-        abort_unless(is_dir($target), 404, 'Carpeta no encontrada.');
-
-        $items = @scandir($target) ?: [];
-        $entries = [];
-        foreach ($items as $name) {
-            if ($name === '.' || $name === '..') {
-                continue;
-            }
-            $full = $target . '/' . $name;
-            $isDir = is_dir($full);
-            $entries[] = [
-                'name' => $name,
-                'mode' => $isDir ? 'drwxr-xr-x' : '-rw-r--r--',
-                'mode_bits' => substr(sprintf('%o', @fileperms($full) ?: ($isDir ? 0755 : 0644)), -3),
-                'size' => $isDir ? 0 : (int) (@filesize($full) ?: 0),
-                'directory' => $isDir,
-                'file' => !$isDir,
-                'symlink' => is_link($full),
-                'modified_at' => date('c', @filemtime($full) ?: time()),
-                'private' => $this->privateFile($name),
-            ];
-        }
-
-        return $entries;
-    }
-
     public function listing(Request $request, Server $server, WingsClient $wings)
     {
         $this->authorizeServer($request, $server);
         $request->validate(['directory' => 'nullable|string|max:1024']);
         $directory = $this->path($request->query('directory', '') ?? '');
         try {
-            $entries = $this->entries($wings->forServer($server)->timeout(4), $server, $directory);
+            $entries = $this->entries($wings->forServer($server)->timeout(10), $server, $directory);
             return response()->json(['directory' => $directory, 'data' => array_map(function ($entry) {
                 $entry['private'] = $this->privateFile($entry['name']);
                 return $entry;
             }, $entries)]);
         } catch (ConnectionException|RequestException $exception) {
-            return response()->json([
-                'directory' => $directory,
-                'data' => $this->localEntries($server, $directory),
-            ]);
+            return response()->json(['message' => 'No se pudo abrir la carpeta del nodo. Comprueba que Wings está encendido.'], 502);
         }
     }
 
@@ -147,7 +75,7 @@ class ServerFilesController extends Controller
         $request->validate(['file' => 'required|string|max:1024']);
         $file = $this->path($request->query('file'));
         try {
-            $client = $wings->forServer($server)->timeout(4);
+            $client = $wings->forServer($server)->timeout(10);
             $directory = dirname($file) === '.' ? '' : dirname($file);
             $entry = collect($this->entries($client, $server, $directory))->firstWhere('name', basename($file));
             abort_unless($entry && !($entry['directory'] ?? false), 404, 'Archivo no encontrado.');
@@ -158,11 +86,7 @@ class ServerFilesController extends Controller
             abort_if(strlen($body) > 1024 * 1024 || str_contains($body, "\0") || !mb_check_encoding($body, 'UTF-8'), 415, 'Este archivo binario no se puede previsualizar como texto.');
             return response()->json(['file' => $file, 'content' => $body]);
         } catch (ConnectionException|RequestException $exception) {
-            $root = $this->ensureLocalWorkspace($server);
-            $full = $root . '/' . $file;
-            abort_unless(is_file($full), 404, 'Archivo no encontrado.');
-            $body = (string) @file_get_contents($full);
-            return response()->json(['file' => $file, 'content' => $body]);
+            return response()->json(['message' => 'No se pudo leer el archivo del nodo.'], 502);
         }
     }
     private function fileEntry($client, Server $server, string $file): array
@@ -202,14 +126,7 @@ class ServerFilesController extends Controller
                 ->post('/servers/'.$server->uuid.'/files/write?'.http_build_query(['file' => '/'.$file]))->throw();
             return response()->noContent();
         } catch (ConnectionException|RequestException $exception) {
-            $root = $this->ensureLocalWorkspace($server);
-            $full = $root . '/' . $file;
-            $parent = dirname($full);
-            if (!is_dir($parent)) {
-                @mkdir($parent, 0775, true);
-            }
-            @file_put_contents($full, $body);
-            return response()->noContent();
+            return response()->json(['message' => 'No se pudo guardar el archivo en Wings.'], 502);
         }
     }
 

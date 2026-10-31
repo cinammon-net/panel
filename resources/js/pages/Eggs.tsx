@@ -1,7 +1,7 @@
 import EggFormModal from '@/components/EggFormModal';
 import AppLayout from '@/layouts/app-layout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { ChevronDown, ChevronUp, Copy, Egg, Pencil, Server, Trash2, Upload } from 'lucide-react';
+import { ChevronDown, ChevronUp, Copy, Egg, Pencil, RefreshCw, Server, Trash2, Upload } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -44,6 +44,22 @@ export default function Eggs() {
     const [showDropdown, setShowDropdown] = useState(false);
     const [showBulkMenu, setShowBulkMenu] = useState(false);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    const handleSyncRepo = () => {
+        setIsSyncing(true);
+        router.post('/eggs/sync-repo', {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                setIsSyncing(false);
+                toast.success('Eggs sincronizados con éxito desde cinammon-net/eggs');
+            },
+            onError: () => {
+                setIsSyncing(false);
+                toast.error('Error al sincronizar eggs desde el repositorio');
+            },
+        });
+    };
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -100,6 +116,16 @@ export default function Eggs() {
                     <div className="flex gap-2">
                         <button
                             type="button"
+                            disabled={isSyncing}
+                            className="flex items-center gap-1.5 rounded border border-cyan-500 bg-cyan-100/50 px-4 py-1.5 text-sm text-cyan-800 transition hover:bg-cyan-200/70 disabled:opacity-50 dark:border-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-300 dark:hover:bg-cyan-700/50"
+                            onClick={handleSyncRepo}
+                            title="Sincronizar colección oficial desde cinammon-net/eggs"
+                        >
+                            <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                            {isSyncing ? 'Syncing...' : 'Sync Repo'}
+                        </button>
+                        <button
+                            type="button"
                             className="rounded border border-cyan-500 bg-cyan-100/50 px-4 py-1.5 text-sm text-cyan-800 transition hover:bg-cyan-200/70 dark:border-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-300 dark:hover:bg-cyan-700/50"
                             onClick={() => setIsImportModalOpen(true)}
                         >
@@ -107,7 +133,7 @@ export default function Eggs() {
                         </button>
                         <EggFormModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} onSubmit={handleImportEgg} />
                         <Link
-                            href={route('eggs.create')}
+                            href="/eggs/create"
                             className="rounded border border-cyan-500 bg-cyan-100/50 px-4 py-1.5 text-sm text-cyan-800 transition hover:bg-cyan-200/70 dark:border-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-300 dark:hover:bg-cyan-700/50"
                         >
                             Create Egg
