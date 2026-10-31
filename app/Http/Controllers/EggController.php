@@ -245,11 +245,31 @@ class EggController extends Controller
      */
     public function syncRepo(Request $request)
     {
-        $repoPath = is_dir(base_path('../eggs')) ? base_path('../eggs') : storage_path('app/eggs');
+        $repoPath = is_dir(base_path('../eggs')) ? base_path('../eggs') : null;
+        $tempDir = null;
+
+        if (!$repoPath || !is_dir($repoPath)) {
+            $zipUrl = 'https://codeload.github.com/cinammon-net/eggs/zip/refs/heads/main';
+            $tempZip = sys_get_temp_dir() . '/cinammon-eggs-' . uniqid() . '.zip';
+            $tempDir = sys_get_temp_dir() . '/cinammon-eggs-' . uniqid();
+
+            $content = @file_get_contents($zipUrl);
+            if ($content !== false) {
+                file_put_contents($tempZip, $content);
+                $zip = new \ZipArchive();
+                if ($zip->open($tempZip) === true) {
+                    $zip->extractTo($tempDir);
+                    $zip->close();
+                    @unlink($tempZip);
+                    $repoPath = $tempDir . '/eggs-main';
+                }
+            }
+        }
+
         $categories = ['minecraft', 'games', 'bots', 'database', 'generic', 'software', 'voice'];
         $syncedCount = 0;
 
-        if (is_dir($repoPath)) {
+        if ($repoPath && is_dir($repoPath)) {
             foreach ($categories as $cat) {
                 $files = glob("{$repoPath}/{$cat}/*.json");
                 if (!$files) continue;
@@ -312,6 +332,10 @@ class EggController extends Controller
                     }
                 }
             }
+        }
+
+        if ($tempDir && is_dir($tempDir)) {
+            shell_exec('rm -rf ' . escapeshellarg($tempDir));
         }
 
         return redirect()->route('eggs.index')->with('success', "Se han sincronizado correctamente {$syncedCount} eggs desde el repositorio oficial cinammon-net/eggs.");

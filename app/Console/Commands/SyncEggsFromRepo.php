@@ -15,7 +15,33 @@ class SyncEggsFromRepo extends Command
 
     public function handle(): int
     {
-        $repoPath = $this->option('path') ?: (is_dir(base_path('../eggs')) ? base_path('../eggs') : storage_path('app/eggs'));
+        $repoPath = $this->option('path') ?: (is_dir(base_path('../eggs')) ? base_path('../eggs') : null);
+        $tempDir = null;
+
+        if (!$repoPath || !is_dir($repoPath)) {
+            $this->info("Descargando repositorio oficial desde GitHub (cinammon-net/eggs)...");
+            $zipUrl = 'https://codeload.github.com/cinammon-net/eggs/zip/refs/heads/main';
+            $tempZip = sys_get_temp_dir() . '/cinammon-eggs-' . uniqid() . '.zip';
+            $tempDir = sys_get_temp_dir() . '/cinammon-eggs-' . uniqid();
+
+            $content = @file_get_contents($zipUrl);
+            if ($content === false) {
+                $this->error("No se pudo descargar el repositorio desde GitHub ni se encontró carpeta local '../eggs'.");
+                return 1;
+            }
+
+            file_put_contents($tempZip, $content);
+            $zip = new \ZipArchive();
+            if ($zip->open($tempZip) === true) {
+                $zip->extractTo($tempDir);
+                $zip->close();
+                @unlink($tempZip);
+                $repoPath = $tempDir . '/eggs-main';
+            } else {
+                $this->error("Error al descomprimir el archivo de eggs descargado.");
+                return 1;
+            }
+        }
 
         if (!is_dir($repoPath)) {
             $this->error("No se encontró el repositorio de eggs en: {$repoPath}");
@@ -113,6 +139,10 @@ class SyncEggsFromRepo extends Command
         $this->info("✔️ Sincronización completada con éxito:");
         $this->info("   • {$syncedEggs} Eggs sincronizados.");
         $this->info("   • {$syncedVars} Variables registradas.");
+
+        if ($tempDir && is_dir($tempDir)) {
+            shell_exec('rm -rf ' . escapeshellarg($tempDir));
+        }
 
         return 0;
     }
