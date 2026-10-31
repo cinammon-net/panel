@@ -39,6 +39,16 @@ Route::get('nodes/{id}/config-yaml', [NodeController::class, 'configYaml'])->mid
 Route::get('api/application/nodes/{id}/configuration', [NodeController::class, 'configYaml'])->middleware('auth');
 Route::post('api/nodes/{node}/reset', [NodeController::class, 'reset']);
 
+// 🤖 API Universal del Bot de Discord (Node.js · Components V2 · Local & VPS)
+Route::prefix('api/bot')->group(function () {
+    Route::get('/overview', [AdvancedSectionController::class, 'botOverview']);
+    Route::post('/servers/create', [AdvancedSectionController::class, 'botCreateServer']);
+    Route::post('/servers/power', [AdvancedSectionController::class, 'botServerPower']);
+    Route::post('/billing/checkout', [AdvancedSectionController::class, 'botBillingCheckout']);
+    Route::post('/billing/split-pay', [AdvancedSectionController::class, 'botBillingSplitPay']);
+    Route::post('/plugins/toggle', [AdvancedSectionController::class, 'botPluginToggle']);
+});
+
 // 🔗 Socialtie
 Route::get('/auth/github/redirect', function () {
     return Socialite::driver('github')->redirect();
@@ -203,6 +213,18 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/webhooks/{id}', [AdvancedSectionController::class, 'updateWebhook'])->name('webhooks.update');
     Route::post('/webhooks/{id}/test', [AdvancedSectionController::class, 'testWebhook'])->name('webhooks.test');
     Route::delete('/webhooks/{id}', [AdvancedSectionController::class, 'destroyWebhook'])->name('webhooks.destroy');
+
+    // 💳 Monetización & Billing (cinammon-es/billing)
+    Route::get('/billing', [AdvancedSectionController::class, 'billing'])->name('billing.index');
+    Route::post('/billing/plans', [AdvancedSectionController::class, 'storeBillingPlan'])->name('billing.plans.store');
+    Route::post('/billing/checkout', [AdvancedSectionController::class, 'checkoutBillingPlan'])->name('billing.checkout');
+    Route::post('/billing/split-pay', [AdvancedSectionController::class, 'createSplitPayPool'])->name('billing.split-pay.store');
+    Route::post('/billing/split-pay/{id}/contribute', [AdvancedSectionController::class, 'contributeSplitPayPool'])->name('billing.split-pay.contribute');
+
+    // 🧩 Sistema de Plugins (Compatible con Pelican + Exclusivos Cinammon)
+    Route::get('/plugins', [AdvancedSectionController::class, 'plugins'])->name('plugins.index');
+    Route::post('/plugins/toggle', [AdvancedSectionController::class, 'togglePlugin'])->name('plugins.toggle');
+    Route::post('/plugins/install', [AdvancedSectionController::class, 'installPlugin'])->name('plugins.install');
     // Aceptación de términos
     Route::get('/terms/accept', [TermsController::class, 'show'])->name('terms.accept');
     Route::post('/terms/accept', [TermsController::class, 'accept'])->name('terms.accept.post');
