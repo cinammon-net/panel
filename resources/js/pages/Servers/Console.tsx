@@ -398,11 +398,11 @@ export default function Console({ server }: { server: Server }) {
                     <pre
                         ref={logRef}
                         aria-label="Logs del servidor"
-                        className="h-[440px] overflow-auto bg-[#05080f] p-4 text-xs whitespace-pre text-neutral-200 selection:bg-cyan-500/30 selection:text-cyan-200"
+                        className="server-console-terminal h-[440px] overflow-auto bg-[#05080f] p-4 text-xs whitespace-pre text-neutral-200 selection:bg-cyan-500/30 selection:text-cyan-200"
                         style={{
                             fontFamily: "'JetBrains Mono', 'Fira Code', 'Courier New', Courier, monospace",
                             lineHeight: '1.15',
-                            letterSpacing: '0.5px',
+                            letterSpacing: '0px',
                         }}
                     >
                         {htmlLogs ? (
