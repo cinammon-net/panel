@@ -34,6 +34,36 @@ function escapeHtml(text: string): string {
         .replace(/'/g, '&#039;');
 }
 
+const TAG_PALETTE = ['#22d3ee', '#f472b6', '#a78bfa', '#fb923c', '#4ade80', '#facc15'];
+
+function tagColor(tag: string): string {
+    let hash = 0;
+    for (let i = 0; i < tag.length; i++) hash = (hash * 31 + tag.charCodeAt(i)) >>> 0;
+    return TAG_PALETTE[hash % TAG_PALETTE.length];
+}
+
+/** Colorea el mensaje según su significado (éxito, error, aviso). `text` ya viene escapado. */
+function highlightMessage(text: string): string {
+    if (/\b(READY!?|listo|conectado|connected|sincronizad[oa]s?|cargad[oa]s?|iniciad[oa]|started|success|ok)\b/i.test(text)) {
+        return `<span style="color: #4ade80; font-weight: 600;">✔ ${text}</span>`;
+    }
+    if (/\b(error|failed|fallo|fallido|exception|fatal|crash)\b/i.test(text)) {
+        return `<span style="color: #f87171; font-weight: 600;">✖ ${text}</span>`;
+    }
+    if (/\b(warn(ing)?|deprecated|aviso)\b/i.test(text)) {
+        return `<span style="color: #facc15;">⚠ ${text}</span>`;
+    }
+    return `<span style="color: #e2e8f0;">${text}</span>`;
+}
+
+function renderStamped(ts: string, tag: string | undefined, rest: string): string {
+    const time = ts.split(/[ T]/)[1] ?? ts;
+    const parts = [`<span style="color: #64748b;">${time}</span>`];
+    if (tag) parts.push(`<span style="color: ${tagColor(tag)}; font-weight: 700;">${tag}</span>`);
+    if (rest) parts.push(highlightMessage(rest));
+    return parts.join(' ');
+}
+
 export function colorizeLogs(rawLogs: string): string {
     if (!rawLogs) return '';
 
@@ -90,6 +120,13 @@ export function colorizeLogs(rawLogs: string): string {
         }
         if (safe.includes('vulnerabilities')) {
             return `<span style="color: #fbbf24;">${safe}</span>`;
+        }
+
+        // Líneas con hora: "[2026-10-31 20:08:53] [Etiqueta] mensaje" -> hora tenue, etiqueta con color propio y mensaje resaltado
+        const stamped = safe.match(/^\[(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})\]\s*(\[[^\]]+\])?\s*(.*)$/);
+        if (stamped) {
+            const [, ts, tag, rest] = stamped;
+            return renderStamped(ts, tag, rest);
         }
 
         // Bot Ready / Success
