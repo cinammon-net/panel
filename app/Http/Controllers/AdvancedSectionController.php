@@ -1512,6 +1512,21 @@ class AdvancedSectionController extends Controller
     // 🤖 API UNIVERSAL PARA EL BOT DE NODE.JS (Components V2 · Local & VPS)
     // =========================================================================
 
+    /**
+     * Autentica las peticiones del bot. Si BOT_INTERNAL_SECRET está definido (obligatorio en VPS),
+     * exige la cabecera X-Cinammon-Bot-Secret. Si no está definido, sólo se aceptan peticiones
+     * desde loopback (bot y panel en la misma máquina).
+     */
+    private function authorizeBot(Request $request): void
+    {
+        $secret = (string) env('BOT_INTERNAL_SECRET', '');
+        if ($secret !== '') {
+            abort_unless(hash_equals($secret, (string) $request->header('X-Cinammon-Bot-Secret', '')), 401, 'Secreto del bot inválido.');
+            return;
+        }
+        abort_unless(in_array($request->ip(), ['127.0.0.1', '::1'], true), 401, 'Define BOT_INTERNAL_SECRET en el .env para permitir conexiones remotas del bot.');
+    }
+
     private function executePlanProvisioning(
         string $planCode,
         ?string $customName = null,
@@ -1543,26 +1558,31 @@ class AdvancedSectionController extends Controller
 
         $serverName = $customName ?: (($plan->name ?? 'Cinammon Server') . ' #' . rand(100, 999));
         $uuid = (string) Str::uuid();
+
+        $images = $egg && is_string($egg->docker_images) ? (json_decode($egg->docker_images, true) ?? []) : (array) ($egg->docker_images ?? []);
+        $image = !empty($images) ? (string) reset($images) : ($isDiscord ? 'ghcr.io/parkervcp/yolks:nodejs_24' : 'ghcr.io/parkervcp/yolks:java_25');
+
         $serverId = DB::table('servers')->insertGetId([
             'uuid' => $uuid,
             'uuid_short' => substr(str_replace('-', '', $uuid), 0, 8),
             'name' => $serverName,
             'description' => "Aprovisionado vía Cinammon Billing ({$gateway})",
+            'active' => 1,
             'status' => 1,
             'owner_id' => $ownerId,
             'node_id' => $node->id ?? 1,
-            'allocation_id' => $allocation->id ?? 1,
-            'egg_id' => $egg->id ?? 14,
-            'startup' => $egg->startup ?? ($isDiscord ? 'node src/index.js' : 'java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar {{SERVER_JARFILE}}'),
-            'image' => $egg->docker_images ?? ($isDiscord ? 'ghcr.io/parkervcp/yolks:nodejs_24' : 'ghcr.io/parkervcp/yolks:java_25'),
+            'allocation_id' => $allocation->id ?? null,
+            'egg_id' => $egg->id ?? null,
+            'startup' => $egg->startup ?? ($isDiscord ? 'node src/index.js' : 'java -Xms128M -Xmx{{SERVER_MEMORY}}M -jar server.jar --nogui'),
+            'image' => $image,
             'memory' => (int) ($plan->memory ?? 2048),
             'swap' => 0,
             'disk' => (int) ($plan->disk ?? 20480),
             'io' => 500,
             'cpu' => (int) ($plan->cpu ?? 200),
-            'oom_disabled' => 0,
-            'backups_limit' => (int) ($plan->backups_limit ?? 3),
-            'databases_limit' => (int) ($plan->databases_limit ?? 2),
+            'oom_killer' => 0,
+            'backup_limit' => (int) ($plan->backups_limit ?? 3),
+            'database_limit' => (int) ($plan->databases_limit ?? 2),
             'installed_at' => now()->toDateTimeString(),
             'created_at' => now()->toDateTimeString(),
             'updated_at' => now()->toDateTimeString(),
@@ -1601,8 +1621,9 @@ class AdvancedSectionController extends Controller
         ];
     }
 
-    public function botOverview()
+    public function botOverview(Request $request)
     {
+        $this->authorizeBot($request);
         $this->ensureBillingTables();
         $this->ensurePluginsTable();
 
@@ -1656,6 +1677,7 @@ class AdvancedSectionController extends Controller
 
     public function botCreateServer(Request $request)
     {
+        $this->authorizeBot($request);
         $planCode = $request->input('plan', 'starter-mc');
         $name = $request->input('name', 'Servidor Discord V2');
         $discordUser = $request->input('discord_user', 'discord_member');
@@ -1681,6 +1703,7 @@ class AdvancedSectionController extends Controller
 
     public function botServerPower(Request $request)
     {
+        $this->authorizeBot($request);
         $serverId = (int) $request->input('server_id', 1);
         $action = $request->input('action', 'restart');
         $server = Server::find($serverId) ?? Server::first();
@@ -1701,6 +1724,7 @@ class AdvancedSectionController extends Controller
 
     public function botBillingCheckout(Request $request)
     {
+        $this->authorizeBot($request);
         $planCode = $request->input('plan_id', 'pro-mc');
         $discordUser = $request->input('discord_user', 'discord_customer');
         $gateway = $request->input('gateway', 'stripe');
@@ -1716,6 +1740,7 @@ class AdvancedSectionController extends Controller
 
     public function botBillingSplitPay(Request $request)
     {
+        $this->authorizeBot($request);
         $this->ensureBillingTables();
         $clanName = $request->input('clan_name', 'Clan Discord V2');
         $planCode = $request->input('plan_id', 'pro-mc');
@@ -1752,6 +1777,7 @@ class AdvancedSectionController extends Controller
 
     public function botPluginToggle(Request $request)
     {
+        $this->authorizeBot($request);
         $this->ensurePluginsTable();
         $pluginId = $request->input('plugin_id', 'cinammon-ai-healer');
         $plugin = DB::table('cinammon_plugins')->where('slug', $pluginId)->first();
