@@ -611,7 +611,7 @@ export default function Console({ server }: { server: Server }) {
                             <div className="mt-2 text-[0.55em] font-semibold tracking-[0.5em] text-white" style={{ textShadow: 'none' }}>
                                 C I N A M M O N . N E T
                             </div>
-                            <div className="mx-auto mt-4 w-full max-w-[640px] border-y border-neutral-700/70 py-2 text-left text-[0.5em] font-normal leading-relaxed text-neutral-400" style={{ textShadow: 'none' }}>
+                            <div className="mt-4 w-full max-w-[640px] border-y border-neutral-700/70 py-2 text-left text-[0.5em] font-normal leading-relaxed text-neutral-400" style={{ textShadow: 'none' }}>
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
                                     <span className={`font-bold ${running ? 'text-emerald-400' : snapshot?.state === 'starting' ? 'text-amber-400' : 'text-red-400'}`}>
                                         ● {running ? 'ONLINE' : snapshot?.state === 'starting' ? 'INICIANDO' : 'OFFLINE'}
@@ -626,7 +626,7 @@ export default function Console({ server }: { server: Server }) {
                                     <span><span className="font-bold text-fuchsia-400">Egg:</span> <span className="text-white">{server.egg}</span></span>
                                 </div>
                             </div>
-                            <div className="mx-auto mt-2 w-full max-w-[640px] text-left text-[0.5em] font-normal text-white" style={{ textShadow: 'none' }}>
+                            <div className="mt-2 w-full max-w-[640px] text-left text-[0.5em] font-normal text-white" style={{ textShadow: 'none' }}>
                                 <span className="font-bold text-emerald-400">➜</span> {running ? 'Servidor iniciado correctamente en cinammon.net' : 'Servidor detenido. Pulsa Iniciar para arrancarlo'}
                             </div>
                         </div>
