@@ -23,6 +23,7 @@ import {
     Table as TableIcon,
     Terminal,
     Trash2,
+    ExternalLink,
 } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 import { toast } from 'sonner';
@@ -1234,7 +1235,62 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                         </div>
                     </div>
 
-                    {/* Formulario para nuevo Host con selector de Motor */}
+                    {/* Tarjeta de Acceso Directo: Base de Datos de la Web (Cinammon Panel) */}
+                    <div className="rounded-xl border border-amber-500/40 bg-gradient-to-r from-amber-950/40 via-neutral-950 to-neutral-950 p-5 shadow-[0_0_20px_rgba(245,158,11,0.12)] flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-amber-400/50 bg-amber-500/20 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.25)]">
+                                <DatabaseIcon className="h-6 w-6" />
+                            </div>
+                            <div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <h3 className="font-bold text-base text-white">Base de Datos de la Web (Panel Cinammon)</h3>
+                                    <span className="rounded border border-amber-500/50 bg-amber-500/20 px-2.5 py-0.5 font-mono text-xs font-bold text-amber-300">
+                                        cinammon_web
+                                    </span>
+                                    <span className="rounded border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 font-mono text-[11px] text-emerald-400 flex items-center gap-1">
+                                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                        MariaDB Online :3306
+                                    </span>
+                                </div>
+                                <p className="text-xs text-neutral-400 mt-1">
+                                    Base de datos relacional de la web (usuarios, servidores, roles, tickets, nodos y logs). Acceso directo por phpMyAdmin o visor integrado.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2.5">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    navigator.clipboard.writeText('cinammon_secret');
+                                    toast.success('Abriendo phpMyAdmin en puerto 8081. Contraseña de "cinammon" copiada.');
+                                    window.open('http://localhost:8081', '_blank', 'noopener,noreferrer');
+                                }}
+                                className="inline-flex items-center gap-2 rounded-xl border border-amber-400 bg-amber-500 px-4 py-2 text-xs font-bold text-black hover:bg-amber-400 transition shadow-[0_0_15px_rgba(245,158,11,0.3)]"
+                                title="Abrir phpMyAdmin oficial en localhost:8081"
+                            >
+                                <ExternalLink size={14} />
+                                <span>Abrir en phpMyAdmin</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    openDatabaseManager({
+                                        title: 'cinammon_web',
+                                        subtitle: 'Base de Datos de la Web (MariaDB 127.0.0.1:3306)',
+                                        driver: 'mysql',
+                                        endpoint: '127.0.0.1:3306',
+                                        username: 'cinammon',
+                                    });
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-700 bg-neutral-900 px-3.5 py-2 text-xs font-semibold text-neutral-300 hover:text-white hover:border-neutral-500 transition"
+                            >
+                                <Terminal size={13} />
+                                <span>Explorador Interno</span>
+                            </button>
+                        </div>
+                    </div>
                     <form
                         onSubmit={handleSubmit}
                         className="grid grid-cols-1 gap-4 rounded-xl border border-orange-500/30 bg-neutral-900/80 p-5 sm:grid-cols-2 lg:grid-cols-7"
@@ -1373,6 +1429,21 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                                 <td className="px-4 py-3 text-slate-300">{h.max_databases}</td>
                                                 <td className="px-4 py-3 text-right">
                                                     <div className="inline-flex items-center gap-2">
+                                                        {(drv === 'mysql' || drv === 'mariadb') && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    navigator.clipboard.writeText('cinammon_secret');
+                                                                    toast.success('Abriendo phpMyAdmin (puerto 8081). Contraseña copiada.');
+                                                                    window.open('http://localhost:8081', '_blank', 'noopener,noreferrer');
+                                                                }}
+                                                                className="inline-flex items-center gap-1 rounded border border-amber-400/80 bg-amber-500/20 px-2.5 py-1 text-xs font-semibold text-amber-300 hover:bg-amber-500 hover:text-black transition"
+                                                                title="Abrir phpMyAdmin oficial en localhost:8081"
+                                                            >
+                                                                <ExternalLink className="h-3.5 w-3.5" /> phpMyAdmin
+                                                            </button>
+                                                        )}
                                                         <button
                                                             type="button"
                                                             onClick={(e) => {
@@ -1465,16 +1536,33 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                                         </td>
                                                         <td className="px-4 py-3 text-slate-300">{s.node_name}</td>
                                                         <td className="px-4 py-3 text-right">
-                                                            <button
-                                                                type="button"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    router.visit(`/servers/${s.id}/edit?tab=databases`);
-                                                                }}
-                                                                className="inline-flex items-center gap-1 rounded border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-xs text-cyan-300 hover:bg-cyan-500 hover:text-black"
-                                                            >
-                                                                <Server className="h-3.5 w-3.5" /> Gestionar en Servidor
-                                                            </button>
+                                                            <div className="inline-flex items-center gap-2 justify-end">
+                                                                {(drv === 'mysql' || drv === 'mariadb') && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            navigator.clipboard.writeText('cnm_ffb44f998731');
+                                                                            toast.success(`Abriendo phpMyAdmin para ${db.name}. Contraseña copiada.`);
+                                                                            window.open('http://localhost:8081', '_blank', 'noopener,noreferrer');
+                                                                        }}
+                                                                        className="inline-flex items-center gap-1 rounded border border-amber-400/80 bg-amber-500/20 px-2.5 py-1 text-xs font-semibold text-amber-300 hover:bg-amber-500 hover:text-black transition"
+                                                                        title="Abrir en phpMyAdmin"
+                                                                    >
+                                                                        <ExternalLink className="h-3.5 w-3.5" /> phpMyAdmin
+                                                                    </button>
+                                                                )}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        router.visit(`/servers/${s.id}/edit?tab=databases`);
+                                                                    }}
+                                                                    className="inline-flex items-center gap-1 rounded border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-xs text-cyan-300 hover:bg-cyan-500 hover:text-black"
+                                                                >
+                                                                    <Server className="h-3.5 w-3.5" /> Servidor
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 );
