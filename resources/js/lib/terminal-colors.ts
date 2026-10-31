@@ -180,3 +180,4 @@ function wrapSpan(text: string, color: string, bold: boolean): string {
     if (bold) styles.push(`font-weight: 600`);
     return `<span style="${styles.join('; ')}">${text}</span>`;
 }
+
