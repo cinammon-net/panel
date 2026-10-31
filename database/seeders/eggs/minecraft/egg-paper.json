@@ -1,41 +1,39 @@
 {
-    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PANEL",
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY FOR CINAMMON.NET",
     "meta": {
-        "version": "PLCN_v1",
-        "update_url": "https:\/\/raw.githubusercontent.com\/cinammon-net\/panel\/main\/database\/seeders\/eggs\/minecraft\/egg-paper.json"
+        "version": "PTDL_v2",
+        "update_url": "https://raw.githubusercontent.com/cinammon-net/eggs/main/minecraft/egg-paper.json"
     },
-    "exported_at": "2025-03-18T12:35:44+00:00",
+    "exported_at": "2024-02-13T17:26:13+0000",
     "name": "Paper",
-    "author": "parker@example.com",
-    "uuid": "5da37ef6-58da-4169-90a6-e683e1721247",
+    "author": "support@cinammon.net",
     "description": "High performance Spigot fork that aims to fix gameplay and mechanics inconsistencies.",
-    "tags": [
-        "minecraft"
-    ],
     "features": [
         "eula",
         "java_version",
         "pid_limit"
     ],
     "docker_images": {
-        "Java 21": "ghcr.io\/parkervcp\/yolks:java_21",
-        "Java 17": "ghcr.io\/parkervcp\/yolks:java_17",
-        "Java 16": "ghcr.io\/parkervcp\/yolks:java_16",
-        "Java 11": "ghcr.io\/parkervcp\/yolks:java_11",
-        "Java 8": "ghcr.io\/parkervcp\/yolks:java_8"
+        "Java 25": "cinammon-paper:java25",
+        "Java 8": "ghcr.io/parkervcp/yolks:java_8",
+        "Java 11": "ghcr.io/parkervcp/yolks:java_11",
+        "Java 16": "ghcr.io/parkervcp/yolks:java_16",
+        "Java 17": "ghcr.io/parkervcp/yolks:java_17",
+        "Java 18": "ghcr.io/parkervcp/yolks:java_18",
+        "Java 21": "ghcr.io/parkervcp/yolks:java_21"
     },
     "file_denylist": [],
-    "startup": "java -Xms128M -XX:MaxRAMPercentage=95.0 -Dterminal.jline=false -Dterminal.ansi=true -jar {{SERVER_JARFILE}}",
+    "startup": "java -Xms128M -Xmx{{SERVER_MEMORY}}M -Dterminal.jline=false -Dterminal.ansi=true -jar {{SERVER_JARFILE}}",
     "config": {
-        "files": "{\r\n    \"server.properties\": {\r\n        \"parser\": \"properties\",\r\n        \"find\": {\r\n            \"server-ip\": \"0.0.0.0\",\r\n            \"server-port\": \"{{server.allocations.default.port}}\",\r\n            \"query.port\": \"{{server.allocations.default.port}}\"\r\n        }\r\n    }\r\n}",
+        "files": "{\r\n    \"server.properties\": {\r\n        \"parser\": \"properties\",\r\n        \"find\": {\r\n            \"server-ip\": \"0.0.0.0\",\r\n            \"server-port\": \"{{server.build.default.port}}\",\r\n            \"query.port\": \"{{server.build.default.port}}\"\r\n        }\r\n    }\r\n}",
         "startup": "{\r\n    \"done\": \")! For help, type \"\r\n}",
         "logs": "{}",
         "stop": "stop"
     },
     "scripts": {
         "installation": {
-            "script": "#!\/bin\/ash\r\n# Paper Installation Script\r\n#\r\n# Server Files: \/mnt\/server\r\nPROJECT=paper\r\n\r\nif [ -n \"${DL_PATH}\" ]; then\r\n\techo -e \"Using supplied download url: ${DL_PATH}\"\r\n\tDOWNLOAD_URL=`eval echo $(echo ${DL_PATH} | sed -e 's\/{{\/${\/g' -e 's\/}}\/}\/g')`\r\nelse\r\n\tVER_EXISTS=`curl -s https:\/\/api.papermc.io\/v2\/projects\/${PROJECT} | jq -r --arg VERSION $MINECRAFT_VERSION '.versions[] | contains($VERSION)' | grep -m1 true`\r\n\tLATEST_VERSION=`curl -s https:\/\/api.papermc.io\/v2\/projects\/${PROJECT} | jq -r '.versions' | jq -r '.[-1]'`\r\n\r\n\tif [ \"${VER_EXISTS}\" == \"true\" ]; then\r\n\t\techo -e \"Version is valid. Using version ${MINECRAFT_VERSION}\"\r\n\telse\r\n\t\techo -e \"Specified version not found. Defaulting to the latest ${PROJECT} version\"\r\n\t\tMINECRAFT_VERSION=${LATEST_VERSION}\r\n\tfi\r\n\r\n\tBUILD_EXISTS=`curl -s https:\/\/api.papermc.io\/v2\/projects\/${PROJECT}\/versions\/${MINECRAFT_VERSION} | jq -r --arg BUILD ${BUILD_NUMBER} '.builds[] | tostring | contains($BUILD)' | grep -m1 true`\r\n\tLATEST_BUILD=`curl -s https:\/\/api.papermc.io\/v2\/projects\/${PROJECT}\/versions\/${MINECRAFT_VERSION} | jq -r '.builds' | jq -r '.[-1]'`\r\n\r\n\tif [ \"${BUILD_EXISTS}\" == \"true\" ]; then\r\n\t\techo -e \"Build is valid for version ${MINECRAFT_VERSION}. Using build ${BUILD_NUMBER}\"\r\n\telse\r\n\t\techo -e \"Using the latest ${PROJECT} build for version ${MINECRAFT_VERSION}\"\r\n\t\tBUILD_NUMBER=${LATEST_BUILD}\r\n\tfi\r\n\r\n\tJAR_NAME=${PROJECT}-${MINECRAFT_VERSION}-${BUILD_NUMBER}.jar\r\n\r\n\techo \"Version being downloaded\"\r\n\techo -e \"MC Version: ${MINECRAFT_VERSION}\"\r\n\techo -e \"Build: ${BUILD_NUMBER}\"\r\n\techo -e \"JAR Name of Build: ${JAR_NAME}\"\r\n\tDOWNLOAD_URL=https:\/\/api.papermc.io\/v2\/projects\/${PROJECT}\/versions\/${MINECRAFT_VERSION}\/builds\/${BUILD_NUMBER}\/downloads\/${JAR_NAME}\r\nfi\r\n\r\ncd \/mnt\/server\r\n\r\necho -e \"Running curl -o ${SERVER_JARFILE} ${DOWNLOAD_URL}\"\r\n\r\nif [ -f ${SERVER_JARFILE} ]; then\r\n\tmv ${SERVER_JARFILE} ${SERVER_JARFILE}.old\r\nfi\r\n\r\ncurl -o ${SERVER_JARFILE} ${DOWNLOAD_URL}\r\n\r\nif [ ! -f server.properties ]; then\r\n    echo -e \"Downloading MC server.properties\"\r\n    curl -o server.properties https:\/\/raw.githubusercontent.com\/parkervcp\/eggs\/master\/minecraft\/java\/server.properties\r\nfi",
-            "container": "ghcr.io\/parkervcp\/installers:alpine",
+            "script": "#!/bin/ash\n# Paper Installation Script for Cinammon.net\nPROJECT=paper\n\nif [ -n \"${DL_PATH}\" ]; then\n    echo -e \"Using supplied download url: ${DL_PATH}\"\n    DOWNLOAD_URL=$(eval echo $(echo ${DL_PATH} | sed -e 's/{{/${/g' -e 's/}}/}/g'))\nelse\n    API_PROJECT=$(curl -s -H \"User-Agent: curl/8.4.0\" \"https://fill.papermc.io/v3/projects/${PROJECT}\")\n\n    if [ \"${MINECRAFT_VERSION}\" = \"latest\" ] || [ -z \"${MINECRAFT_VERSION}\" ]; then\n        MINECRAFT_VERSION=$(echo \"$API_PROJECT\" | jq -r '.versions | to_entries | .[].value[]' | grep -v '-' | head -n1)\n    fi\n\n    echo -e \"Minecraft Version: ${MINECRAFT_VERSION}\"\n\n    API_BUILDS=$(curl -s -H \"User-Agent: curl/8.4.0\" \"https://fill.papermc.io/v3/projects/${PROJECT}/versions/${MINECRAFT_VERSION}\")\n\n    if [ \"${BUILD_NUMBER}\" = \"latest\" ] || [ -z \"${BUILD_NUMBER}\" ]; then\n        BUILD_NUMBER=$(echo \"$API_BUILDS\" | jq -r '.builds | max')\n    fi\n\n    echo -e \"Paper Build: ${BUILD_NUMBER}\"\n\n    API_BUILD_INFO=$(curl -s -H \"User-Agent: curl/8.4.0\" \"https://fill.papermc.io/v3/projects/${PROJECT}/versions/${MINECRAFT_VERSION}/builds/${BUILD_NUMBER}\")\n    DOWNLOAD_URL=$(echo \"$API_BUILD_INFO\" | jq -r '.downloads[\"server:default\"].url // empty')\n\n    if [ -z \"$DOWNLOAD_URL\" ]; then\n        JAR_NAME=$(echo \"$API_BUILD_INFO\" | jq -r '.downloads[\"server:default\"].name // \"'\"${PROJECT}-${MINECRAFT_VERSION}-${BUILD_NUMBER}.jar\"'\"')\n        DOWNLOAD_URL=\"https://fill.papermc.io/v3/projects/${PROJECT}/versions/${MINECRAFT_VERSION}/builds/${BUILD_NUMBER}/downloads/${JAR_NAME}\"\n    fi\nfi\n\ncd /mnt/server\n\necho -e \"Downloading Paper server from: ${DOWNLOAD_URL}\"\n\nif [ -f \"${SERVER_JARFILE}\" ]; then\n    mv \"${SERVER_JARFILE}\" \"${SERVER_JARFILE}.old\"\nfi\n\ncurl -sSL -H \"User-Agent: curl/8.4.0\" -o \"${SERVER_JARFILE}\" \"${DOWNLOAD_URL}\"\n\nif [ ! -f server.properties ]; then\n    echo -e \"Creating default server.properties\"\n    cat << 'EOF' > server.properties\nserver-ip=0.0.0.0\nserver-port=25565\nquery.port=25565\nmotd=A Cinammon.net Minecraft Server\nEOF\nfi\n\nif [ ! -d mods ]; then\n    mkdir -p mods\nfi\nif [ ! -d plugins ]; then\n    mkdir -p plugins\nfi\n\necho -e \"Paper installation complete!\"\n",
+            "container": "ghcr.io/parkervcp/installers:alpine",
             "entrypoint": "ash"
         }
     },
@@ -47,12 +45,7 @@
             "default_value": "latest",
             "user_viewable": true,
             "user_editable": true,
-            "rules": [
-                "nullable",
-                "string",
-                "max:20"
-            ],
-            "sort": 1
+            "rules": "nullable|string|max:20"
         },
         {
             "name": "Server Jar File",
@@ -61,11 +54,7 @@
             "default_value": "server.jar",
             "user_viewable": true,
             "user_editable": true,
-            "rules": [
-                "required",
-                "regex:\/^([\\w\\d._-]+)(\\.jar)$\/"
-            ],
-            "sort": 2
+            "rules": "required|regex:/^([\\w\\d._-]+)(\\.jar)$/"
         },
         {
             "name": "Download Path",
@@ -74,11 +63,7 @@
             "default_value": "",
             "user_viewable": false,
             "user_editable": false,
-            "rules": [
-                "nullable",
-                "string"
-            ],
-            "sort": 3
+            "rules": "nullable|string"
         },
         {
             "name": "Build Number",
@@ -87,12 +72,8 @@
             "default_value": "latest",
             "user_viewable": true,
             "user_editable": true,
-            "rules": [
-                "required",
-                "string",
-                "max:20"
-            ],
-            "sort": 4
+            "rules": "required|string|max:20"
         }
-    ]
+    ],
+    "uuid": "bea22443-441c-41c1-a837-7a8895c23792"
 }

@@ -45,12 +45,14 @@ class SyncEggsFromRepo extends Command
                     continue;
                 }
 
+                $startup = $data['startup'] ?? (is_array($data['startup_commands'] ?? null) ? (reset($data['startup_commands']) ?: '') : '');
+
                 $eggAttributes = [
                     'name' => $data['name'] ?? basename($file, '.json'),
                     'author' => $data['author'] ?? 'support@cinammon.net',
                     'description' => $data['description'] ?? '',
                     'category' => $cat,
-                    'startup' => $data['startup'] ?? '',
+                    'startup' => $startup,
                     'config_stop' => $data['config']['stop'] ?? null,
                     'config_startup' => isset($data['config']['startup']) ? (is_string($data['config']['startup']) ? $data['config']['startup'] : json_encode($data['config']['startup'])) : '{}',
                     'config_files' => isset($data['config']['files']) ? (is_string($data['config']['files']) ? $data['config']['files'] : json_encode($data['config']['files'])) : '{}',
