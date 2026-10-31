@@ -144,37 +144,142 @@ Route::get('/auth/apple/callback', function () {
 
 // 🔐 Rutas autenticadas y verificadas
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', function () {
-        $labels = [];
-        $installations = [];
-        $newUsers = [];
-        $errors = [];
+    Route::get('/dashboard', function (Request $request) {
+        $user = $request->user();
+        $userRoles = $user ? $user->getRoleNames()->toArray() : [];
+        $isOwner = in_array('Owner', $userRoles);
+        $isAdmin = $isOwner || in_array('Admin', $userRoles);
+        $isStaff = in_array('Moderator', $userRoles) || in_array('Helper', $userRoles);
 
-        $hasFailedJobs = Schema::hasTable('failed_jobs');
+        $labels = [];
         for ($i = 6; $i >= 0; $i--) {
-            $date = now()->subDays($i);
-            $dateStr = $date->toDateString();
-            $labels[] = $date->format('D');
-            $installations[] = Server::whereDate('created_at', $dateStr)->count();
-            $newUsers[] = User::whereDate('created_at', $dateStr)->count();
-            $errors[] = $hasFailedJobs
-                ? DB::table('failed_jobs')->whereDate('failed_at', $dateStr)->count()
-                : 0;
+            $labels[] = now()->subDays($i)->format('D');
         }
 
-        return Inertia::render('dashboard', [
-            'stats' => [
+        $hasFailedJobs = Schema::hasTable('failed_jobs');
+        $hasTickets = Schema::hasTable('tickets');
+
+        if ($isAdmin) {
+            $roleScope = 'admin';
+            $installations = [];
+            $newUsers = [];
+            $errors = [];
+
+            for ($i = 6; $i >= 0; $i--) {
+                $dateStr = now()->subDays($i)->toDateString();
+                $installations[] = Server::whereDate('created_at', $dateStr)->count();
+                $newUsers[] = User::whereDate('created_at', $dateStr)->count();
+                $errors[] = $hasFailedJobs
+                    ? DB::table('failed_jobs')->whereDate('failed_at', $dateStr)->count()
+                    : 0;
+            }
+
+            $stats = [
                 'users' => User::count(),
                 'servers' => Server::count(),
                 'installations' => Egg::count(),
                 'nodes' => Node::count(),
-            ],
-            'weeklyActivity' => [
+                'tickets' => $hasTickets ? \App\Models\Ticket::count() : 0,
+            ];
+
+            $weeklyActivity = [
                 'labels' => $labels,
-                'installations' => $installations,
-                'newUsers' => $newUsers,
-                'errors' => $errors,
-            ],
+                'datasets' => [
+                    [
+                        'label' => 'Instalaciones (Servidores)',
+                        'data' => $installations,
+                        'backgroundColor' => 'rgba(180, 118, 255, 0.7)',
+                    ],
+                    [
+                        'label' => 'Nuevos Usuarios',
+                        'data' => $newUsers,
+                        'backgroundColor' => 'rgba(90, 200, 250, 0.7)',
+                    ],
+                    [
+                        'label' => 'Errores del Sistema',
+                        'data' => $errors,
+                        'backgroundColor' => 'rgba(255, 100, 130, 0.7)',
+                    ],
+                ],
+            ];
+        } elseif ($isStaff) {
+            $roleScope = 'moderator';
+            $ticketsActivity = [];
+            $newUsers = [];
+
+            for ($i = 6; $i >= 0; $i--) {
+                $dateStr = now()->subDays($i)->toDateString();
+                $newUsers[] = User::whereDate('created_at', $dateStr)->count();
+                $ticketsActivity[] = $hasTickets
+                    ? \App\Models\Ticket::whereDate('created_at', $dateStr)->count()
+                    : 0;
+            }
+
+            $stats = [
+                'openTickets' => $hasTickets ? \App\Models\Ticket::where('status', 'open')->count() : 0,
+                'totalTickets' => $hasTickets ? \App\Models\Ticket::count() : 0,
+                'users' => User::count(),
+                'servers' => Server::count(),
+            ];
+
+            $weeklyActivity = [
+                'labels' => $labels,
+                'datasets' => [
+                    [
+                        'label' => 'Tickets Creados',
+                        'data' => $ticketsActivity,
+                        'backgroundColor' => 'rgba(245, 158, 11, 0.7)',
+                    ],
+                    [
+                        'label' => 'Nuevos Usuarios',
+                        'data' => $newUsers,
+                        'backgroundColor' => 'rgba(90, 200, 250, 0.7)',
+                    ],
+                ],
+            ];
+        } else {
+            $roleScope = 'client';
+            $userId = $user->id;
+            $myServersActivity = [];
+            $myTicketsActivity = [];
+
+            for ($i = 6; $i >= 0; $i--) {
+                $dateStr = now()->subDays($i)->toDateString();
+                $myServersActivity[] = Server::where('owner_id', $userId)->whereDate('created_at', $dateStr)->count();
+                $myTicketsActivity[] = $hasTickets
+                    ? \App\Models\Ticket::where('user_id', $userId)->whereDate('created_at', $dateStr)->count()
+                    : 0;
+            }
+
+            $stats = [
+                'myServers' => Server::where('owner_id', $userId)->count(),
+                'sharedServers' => \App\Models\Subuser::where('user_id', $userId)->count(),
+                'onlineServers' => Server::where('owner_id', $userId)->where('status', 'online')->count(),
+                'myTickets' => $hasTickets ? \App\Models\Ticket::where('user_id', $userId)->count() : 0,
+            ];
+
+            $weeklyActivity = [
+                'labels' => $labels,
+                'datasets' => [
+                    [
+                        'label' => 'Mis Servidores',
+                        'data' => $myServersActivity,
+                        'backgroundColor' => 'rgba(34, 211, 238, 0.7)',
+                    ],
+                    [
+                        'label' => 'Mis Tickets',
+                        'data' => $myTicketsActivity,
+                        'backgroundColor' => 'rgba(168, 85, 247, 0.7)',
+                    ],
+                ],
+            ];
+        }
+
+        return Inertia::render('dashboard', [
+            'roleScope' => $roleScope,
+            'stats' => $stats,
+            'weeklyActivity' => $weeklyActivity,
+            'userRole' => $userRoles[0] ?? 'Member',
         ]);
     })->name('dashboard');
     Route::get('/api/dashboard-version', fn() => response()->json(['version' => config('app.version', '1.0.0')]));
