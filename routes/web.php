@@ -524,3 +524,16 @@ Route::middleware(['auth'])->group(function () {
 // Configuración adicional
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';
+
+Route::get('/dev-autologin', function (Request $request) {
+    if (!app()->environment('local')) {
+        abort(403);
+    }
+    $user = User::where('email', 'nini@cinammon.net')->first() ?? User::first();
+    if ($user) {
+        Auth::login($user);
+        $request->session()->regenerate();
+    }
+    $to = $request->query('to', '/dashboard');
+    return redirect($to);
+});
