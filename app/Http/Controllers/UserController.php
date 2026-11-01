@@ -13,6 +13,8 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $users = User::withCount(['servers', 'subusers'])
+            // Las cuentas de demostración solo se listan en modo demo
+            ->when(! \App\Support\Panel::demoMode(), fn ($query) => $query->whereNotIn('email', config('panel.demo_emails', [])))
             ->when($request->filled('search'), function ($query) use ($request) {
                 $query->where(function ($q) use ($request) {
                     $q->where('name', 'like', "%{$request->search}%")
