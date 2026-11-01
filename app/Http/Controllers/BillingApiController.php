@@ -131,9 +131,29 @@ class BillingApiController extends Controller
         $this->authorizeToken($request);
 
         $server = Server::where('external_id', $externalId)->firstOrFail();
-        $server->forceFill(['active' => 0])->save();
+        
+        // 1. Marcar el servidor como inactivo y suspendido por cancelación
+        $server->forceFill([
+            'active' => 0,
+            'status' => 2, // Suspendido
+            'description' => trim(($server->description ?? '') . ' [⚠️ SERVICIO CANCELADO · Programado para eliminación en 7 días]'),
+        ])->save();
 
-        return response()->json(['ok' => true]);
+        // 2. Detener de inmediato el contenedor en Wings/Docker
+        try {
+            app(\App\Services\Daemon\WingsClient::class)->power($server, 'stop');
+            Log::info("Billing cancel: servidor {$server->name} ({$server->uuid}) detenido exitosamente en Wings.");
+        } catch (\Throwable $e) {
+            Log::warning("Billing cancel: no se pudo enviar stop a Wings para {$server->uuid}: {$e->getMessage()}");
+        }
+
+        return response()->json([
+            'ok' => true,
+            'server_id' => $server->id,
+            'status' => 'suspended_and_stopped',
+            'scheduled_deletion_days' => 7,
+            'message' => 'Servidor detenido de inmediato. Programado para eliminación en 7 días.',
+        ]);
     }
 
     private function payload(Server $server): array

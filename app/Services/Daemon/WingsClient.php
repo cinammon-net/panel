@@ -28,6 +28,11 @@ class WingsClient
         $this->forServer($server)->post("/servers/{$server->uuid}/reinstall")->throw();
     }
 
+    public function power(Server $server, string $action): void
+    {
+        $this->forServer($server)->post("/servers/{$server->uuid}/power", ['action' => $action]);
+    }
+
     public function delete(Server $server): void
     {
         $this->forServer($server)->delete("/servers/{$server->uuid}")->throw();
