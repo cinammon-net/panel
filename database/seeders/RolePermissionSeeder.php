@@ -148,7 +148,13 @@ class RolePermissionSeeder extends Seeder
             $this->command->line('');
         }
 
-        // Crear usuarios y asignar roles
+        // Crear usuarios de demostración solo en modo demo (las cuentas reales
+        // se crean por registro o desde billing; el primer usuario es Owner)
+        if (! config('panel.demo')) {
+            $this->command->line("\033[1;33m⌁ Modo demo desactivado (PANEL_DEMO_MODE=false): no se crean usuarios de prueba.\033[0m");
+            return;
+        }
+
         $users = [
             ['name' => 'Owner',     'email' => 'owner@cinammon.net',     'role' => 'Owner'],
             ['name' => 'Admin',     'email' => 'admin@cinammon.net',     'role' => 'Admin'],

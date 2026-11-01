@@ -46,6 +46,13 @@ class LoginRequest extends FormRequest
             $email = 'owner@cinammon.net';
         }
 
+        // Las cuentas de demostración solo pueden entrar con el modo demo activado
+        if (! \App\Support\Panel::demoMode() && in_array(strtolower($email), config('panel.demo_emails', []), true)) {
+            throw ValidationException::withMessages([
+                'email' => 'Esta cuenta de demostración está deshabilitada.',
+            ]);
+        }
+
         if (! Auth::attempt(['email' => $email, 'password' => $this->string('password')->toString()], $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 

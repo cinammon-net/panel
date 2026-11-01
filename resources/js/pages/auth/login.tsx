@@ -56,7 +56,7 @@ const roles = [
     { name: 'Members', email: 'members@cinammon.net', icon: User },
 ];
 
-export default function Login({ status, canResetPassword }: LoginProps) {
+export default function Login({ status, canResetPassword, demoMode }: LoginProps & { demoMode?: boolean }) {
     const { data, setData, post, processing, errors, reset } = useForm<LoginForm>({
         email: '',
         password: '',
@@ -86,7 +86,8 @@ export default function Login({ status, canResetPassword }: LoginProps) {
             </Head>
             <form className="flex flex-col gap-6 font-[Orbitron]" onSubmit={submit}>
                 <div className="grid gap-6">
-                    {/* ROLE SELECTOR */}
+                    {/* ROLE SELECTOR (solo en modo demo) */}
+                    {demoMode && (
                     <div className="grid gap-2">
                         <Label htmlFor="user-type" className="flex items-center gap-2 text-sm text-white">
                             <UsersRound className="h-4 w-4 text-pink-400" />
@@ -129,6 +130,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                             </div>
                         </Listbox>
                     </div>
+                    )}
 
                     {/* EMAIL */}
                     <div className="grid gap-2">
