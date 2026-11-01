@@ -30,6 +30,10 @@ use Illuminate\Support\Facades\Schema;
 
 // 🌐 Rutas públicas
 Route::get('/', [WelcomeController::class, 'index'])->name('home');
+Route::get('/demo', function (Request $request) {
+    $request->session()->put('demo_mode', true);
+    return redirect()->route('login', ['demo' => 1]);
+})->name('demo');
 Route::view('/terms', 'legal.terms')->name('terms');
 Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::view('/sponsors', 'legal.sponsors')->name('sponsors');
