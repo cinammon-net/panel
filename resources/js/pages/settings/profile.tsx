@@ -1,7 +1,8 @@
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Transition } from '@headlessui/react';
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
-import { FormEventHandler } from 'react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { Camera, Trash2 } from 'lucide-react';
+import { ChangeEvent, FormEventHandler, useRef, useState } from 'react';
 
 import DeleteUser from '@/components/delete-user';
 import HeadingSmall from '@/components/heading-small';
@@ -32,6 +33,39 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
         email: auth.user.email,
     });
 
+    // ── Foto de perfil ────────────────────────────────────────────────
+    const fileInput = useRef<HTMLInputElement>(null);
+    const [preview, setPreview] = useState<string | null>(null);
+    const [avatarError, setAvatarError] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
+
+    const uploadAvatar = (e: ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setPreview(URL.createObjectURL(file));
+        setAvatarError(null);
+        setUploading(true);
+
+        const formData = new FormData();
+        formData.append('avatar', file);
+
+        router.post(route('profile.avatar.update'), formData, {
+            preserveScroll: true,
+            forceFormData: true,
+            onError: (errs) => setAvatarError(errs.avatar ?? 'No se pudo subir la imagen.'),
+            onFinish: () => {
+                setUploading(false);
+                setPreview(null);
+                if (fileInput.current) fileInput.current.value = '';
+            },
+        });
+    };
+
+    const removeAvatar = () => {
+        router.delete(route('profile.avatar.destroy'), { preserveScroll: true });
+    };
+
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
@@ -47,6 +81,52 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
             <SettingsLayout>
                 <div className="space-y-6">
                     <HeadingSmall title="Profile information" description="Update your name and email address" />
+
+                    {/* FOTO DE PERFIL */}
+                    <div className="flex items-center gap-5 rounded-lg border border-pink-500/30 bg-black/40 p-4">
+                        <div className="relative">
+                            {preview || auth.user.avatar ? (
+                                <img
+                                    src={preview ?? auth.user.avatar ?? ''}
+                                    alt={auth.user.name}
+                                    className="h-20 w-20 rounded-full border-2 border-pink-500/50 object-cover"
+                                />
+                            ) : (
+                                <div className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-pink-500/50 bg-neutral-800 text-2xl font-bold text-pink-400">
+                                    {auth.user.name?.charAt(0).toUpperCase()}
+                                </div>
+                            )}
+                            {uploading && (
+                                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/60 text-xs text-white">
+                                    Subiendo…
+                                </div>
+                            )}
+                        </div>
+                        <div className="space-y-2">
+                            <p className="text-sm font-semibold text-white">Foto de perfil</p>
+                            <p className="text-xs text-neutral-400">JPG, PNG, WebP o GIF · máx. 2 MB</p>
+                            <div className="flex gap-2">
+                                <Button type="button" size="sm" onClick={() => fileInput.current?.click()} disabled={uploading}>
+                                    <Camera className="mr-1 h-4 w-4" />
+                                    Cambiar foto
+                                </Button>
+                                {auth.user.avatar && (
+                                    <Button type="button" size="sm" variant="destructive" onClick={removeAvatar}>
+                                        <Trash2 className="mr-1 h-4 w-4" />
+                                        Quitar
+                                    </Button>
+                                )}
+                            </div>
+                            {avatarError && <p className="text-xs text-red-400">{avatarError}</p>}
+                            <input
+                                ref={fileInput}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={uploadAvatar}
+                            />
+                        </div>
+                    </div>
 
                     <form onSubmit={submit} className="space-y-6">
                         <div className="grid gap-2">

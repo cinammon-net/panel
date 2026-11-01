@@ -3,12 +3,13 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { KeyRound, Palette, Settings, User } from 'lucide-react';
+import { KeyRound, Palette, Settings, ShieldCheck, User } from 'lucide-react';
 import { type PropsWithChildren } from 'react';
 
 const sidebarNavItems: NavItem[] = [
     { title: 'Profile', href: '/settings/profile', icon: User },
     { title: 'Password', href: '/settings/password', icon: KeyRound },
+    { title: 'Security', href: '/settings/security', icon: ShieldCheck },
     { title: 'Appearance', href: '/settings/appearance', icon: Palette },
 ];
 
