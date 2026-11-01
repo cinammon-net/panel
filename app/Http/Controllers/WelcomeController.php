@@ -10,6 +10,8 @@ use App\Models\Server;
 use App\Models\Node;
 use App\Models\Egg;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
 class WelcomeController extends Controller
@@ -39,12 +41,27 @@ class WelcomeController extends Controller
             ->values()
             ->all();
 
+        $billingUrl = rtrim((string) config('services.billing.url'), '/');
+
+        // Catálogo de planes de billing para la landing unificada (cacheado 60 s)
+        $billingCategories = Cache::remember('billing.plans', 60, function () use ($billingUrl) {
+            try {
+                $response = Http::acceptJson()->connectTimeout(2)->timeout(4)->get("{$billingUrl}/api/plans");
+
+                return $response->successful() ? ($response->json('categories') ?? []) : [];
+            } catch (\Throwable) {
+                return [];
+            }
+        });
+
         return Inertia::render('Welcome', [
             'reviews' => $reviews,
             'posts' => $posts,
             'galleryImages' => $galleryImages,
+            'billingUrl' => $billingUrl,
+            'billingCategories' => $billingCategories,
             'stats' => [
-                'users' => User::count(),
+                'users' => User::when(! \App\Support\Panel::demoMode(), fn ($q) => $q->whereNotIn('email', config('panel.demo_emails', [])))->count(),
                 'servers' => Server::count(),
                 'nodes' => Node::count(),
                 'eggs' => Egg::count(),
