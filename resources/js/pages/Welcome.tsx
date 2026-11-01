@@ -199,7 +199,7 @@ export default function WelcomePanel() {
                         </p>
                         <div className="mt-6 sm:mt-8" data-aos="zoom-in" data-aos-delay="300">
                             <Link
-                                href={route('register')}
+                                href="/demo"
                                 className="rounded-md bg-gradient-to-r from-pink-500 to-fuchsia-600 px-6 py-2 font-semibold text-white shadow hover:from-pink-600 hover:to-fuchsia-700"
                             >
                                 DEMO

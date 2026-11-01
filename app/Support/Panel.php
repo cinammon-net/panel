@@ -13,10 +13,17 @@ class Panel
             return true;
         }
 
-        $demoHost = (string) config('panel.demo_host');
+        if (! app()->runningInConsole()) {
+            if (request()->has('demo') || request()->session()->get('demo_mode')) {
+                return true;
+            }
 
-        return ! app()->runningInConsole()
-            && $demoHost !== ''
-            && strcasecmp(request()->getHost(), $demoHost) === 0;
+            $demoHost = (string) config('panel.demo_host');
+            if ($demoHost !== '' && strcasecmp(request()->getHost(), $demoHost) === 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
