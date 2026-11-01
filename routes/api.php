@@ -41,3 +41,7 @@ Route::get('/gallery/list', function () {
 Route::get('/bot/overview', [App\Http\Controllers\BotApiController::class, 'overview']);
 Route::post('/servers/{server}/power', [App\Http\Controllers\BotApiController::class, 'power']);
 
+
+// 💳 API de integración con Cinammon Billing (token compartido)
+Route::post('/billing/provision', [App\Http\Controllers\BillingApiController::class, 'provision']);
+Route::post('/billing/servers/{externalId}/cancel', [App\Http\Controllers\BillingApiController::class, 'cancel']);

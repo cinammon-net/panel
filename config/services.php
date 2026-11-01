@@ -43,4 +43,9 @@ return [
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
+
+    'billing' => [
+        'token' => env('BILLING_API_TOKEN'),
+        'url' => env('BILLING_URL', 'http://localhost:8001'),
+    ],
 ];

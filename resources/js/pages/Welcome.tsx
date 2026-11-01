@@ -47,13 +47,32 @@ const CookieBanner: React.FC = () => {
 
 
 
+type BillingPlan = {
+    id: number;
+    name: string;
+    ram_mb: number;
+    cpu_pct: number;
+    storage_gb: number;
+    price: number;
+    popular: boolean;
+};
+
+type BillingCategory = {
+    key: string;
+    title: string;
+    tagline: string;
+    plans: BillingPlan[];
+};
+
 export default function WelcomePanel() {
-    const { auth, reviews, posts, galleryImages, stats } = usePage<
+    const { auth, reviews, posts, galleryImages, stats, billingUrl, billingCategories } = usePage<
         SharedData & {
             reviews: { comment: string; rating: number; user: { name: string } }[];
             posts: { id: number; title: string; content: string; picture?: string; created_at: string }[];
             galleryImages?: string[];
             stats?: { users: number; servers: number; nodes: number; eggs: number };
+            billingUrl?: string;
+            billingCategories?: BillingCategory[];
         }
     >().props;
 
@@ -127,6 +146,12 @@ export default function WelcomePanel() {
                         <img src="/favicon.ico" alt="Cinammon.net Logo" className="h-10 transition hover:opacity-80 sm:h-12" draggable={false} />
                     </Link>
                     <nav className="flex gap-3" data-aos="fade-left">
+                        <a
+                            href="#planes"
+                            className="hidden items-center rounded-md border border-[#00f7ff]/60 px-4 py-2 font-semibold text-[#00f7ff] transition hover:bg-[#00f7ff] hover:text-black sm:flex"
+                        >
+                            Planes
+                        </a>
                         {auth?.user ? (
                             <Link
                                 href={route('dashboard')}
@@ -326,6 +351,78 @@ export default function WelcomePanel() {
                         </div>
                     </div>
                 </section>
+
+                {/* SECCIÓN PLANES Y PRECIOS (catálogo de Billing) */}
+                {billingCategories && billingCategories.length > 0 && (
+                    <section id="planes" className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
+                        <div className="space-y-3" data-aos="fade-up">
+                            <h2 className="text-3xl font-bold text-pink-400 sm:text-4xl">💳 Planes y precios</h2>
+                            <p className="mx-auto max-w-2xl text-sm text-neutral-400 sm:text-base">
+                                Contrata tu servidor y gestiona tus pagos desde nuestra área de clientes, totalmente integrada con el panel.
+                            </p>
+                        </div>
+
+                        <div className="grid w-full max-w-6xl grid-cols-1 gap-8 sm:grid-cols-2">
+                            {billingCategories.map((cat, index) => {
+                                const featured = cat.plans.find((p) => p.popular) ?? cat.plans[0];
+                                return (
+                                    <div
+                                        key={cat.key}
+                                        className="flex flex-col rounded-xl border border-pink-500/40 bg-black/60 p-6 text-left shadow-[0_0_15px_rgba(255,0,150,0.15)] backdrop-blur-sm transition hover:border-pink-500 hover:shadow-[0_0_25px_rgba(255,0,150,0.35)]"
+                                        data-aos="fade-up"
+                                        data-aos-delay={index * 100}
+                                    >
+                                        <h3 className="text-xl font-bold tracking-wide text-pink-400">{cat.title}</h3>
+                                        <p className="mt-1 text-sm text-neutral-400">{cat.tagline}</p>
+
+                                        {featured && (
+                                            <div className="mt-4 rounded-lg border border-[#00f7ff]/30 bg-black/60 p-4">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="font-semibold text-white">{featured.name}</span>
+                                                    {featured.popular && (
+                                                        <span className="rounded-full bg-[#00f7ff] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
+                                                            Popular
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="mt-1 text-2xl font-extrabold text-[#00f7ff]">
+                                                    {featured.price.toFixed(2)} €<span className="text-xs font-normal text-neutral-400">/mes</span>
+                                                </p>
+                                                <p className="mt-1 text-xs text-neutral-300">
+                                                    {featured.ram_mb >= 1024 ? `${featured.ram_mb / 1024} GB` : `${featured.ram_mb} MB`} RAM ·{' '}
+                                                    {featured.cpu_pct}% CPU · {featured.storage_gb} GB NVMe
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        <p className="mt-3 text-xs text-neutral-400">
+                                            {cat.plans.length} planes desde{' '}
+                                            <span className="font-semibold text-pink-300">
+                                                {Math.min(...cat.plans.map((p) => p.price)).toFixed(2)} €/mes
+                                            </span>
+                                        </p>
+
+                                        <div className="mt-4 flex-1" />
+                                        <a
+                                            href={`${billingUrl}/store/${cat.key}`}
+                                            className="rounded-md bg-gradient-to-r from-pink-500 to-fuchsia-600 px-4 py-2 text-center font-semibold text-white shadow transition hover:from-pink-600 hover:to-fuchsia-700"
+                                        >
+                                            Ver planes de {cat.title}
+                                        </a>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <a
+                            href={`${billingUrl}/store`}
+                            className="rounded-md border border-[#00f7ff]/60 px-6 py-2 font-semibold text-[#00f7ff] transition hover:bg-[#00f7ff] hover:text-black"
+                            data-aos="fade-up"
+                        >
+                            Ir a la tienda completa →
+                        </a>
+                    </section>
+                )}
 
                 {/* SECCIÓN GALERÍA */}
                 <section className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
