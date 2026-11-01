@@ -34,6 +34,29 @@ Route::get('/demo', function (Request $request) {
     $request->session()->put('demo_mode', true);
     return redirect()->route('login', ['demo' => 1]);
 })->name('demo');
+
+// 💳 Seamless SSO Handoff hacia Cinammon Billing
+Route::get('/billing/redirect', function (Request $request) {
+    $user = $request->user();
+    if (!$user) {
+        return redirect()->route('login');
+    }
+
+    $billingUrl = rtrim(config('services.billing.url') ?: env('BILLING_URL', 'http://localhost:8001'), '/');
+    $secret = (string) (config('services.billing.token') ?: env('BILLING_API_TOKEN'));
+
+    $payload = [
+        'id' => $user->id,
+        'email' => $user->email,
+        'name' => $user->name,
+        'exp' => time() + 120,
+    ];
+
+    $encoded = base64_encode(json_encode($payload));
+    $sig = hash_hmac('sha256', $encoded, $secret);
+
+    return redirect("{$billingUrl}/sso?data={$encoded}&sig={$sig}");
+})->middleware('auth')->name('billing.redirect');
 Route::view('/terms', 'legal.terms')->name('terms');
 Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::view('/sponsors', 'legal.sponsors')->name('sponsors');
