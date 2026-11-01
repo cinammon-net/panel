@@ -54,6 +54,18 @@
         <sub>Orquestación de clústeres Wings, vinculación de puertos SFTP y certificados TLS.</sub>
       </td>
     </tr>
+    <tr>
+      <td width="50%" align="center">
+        <br /><b>🗄️ MANAGED RELATIONAL DATABASES</b><br /><br />
+        <img src="./docs/assets/databases.png" alt="Server Databases" width="100%" style="border-radius: 8px; border: 1px solid rgba(244, 114, 182, 0.4);" /><br />
+        <sub>Gestión de bases de datos MySQL/MariaDB con phpMyAdmin integrado, rotación de claves y cadenas de conexión.</sub>
+      </td>
+      <td width="50%" align="center">
+        <br /><b>🩺 CLUSTER SYSTEM HEALTH & DAEMON LATENCY</b><br /><br />
+        <img src="./docs/assets/health.png" alt="Cluster Health" width="100%" style="border-radius: 8px; border: 1px solid rgba(0, 247, 255, 0.4);" /><br />
+        <sub>Telemetría en tiempo real del clúster Wings, sockets de base de datos, colas y latencia round-trip.</sub>
+      </td>
+    </tr>
   </table>
 </div>
 

@@ -22,11 +22,15 @@ class WelcomeController extends Controller
         $posts = Post::latest()->take(5)->get(['id', 'title', 'content', 'picture', 'created_at']); // toma últimos 5 posts
 
         $preferredOrder = [
+            'gallery/Console.png',
             'gallery/Dashboard.png',
             'gallery/Servers.png',
+            'gallery/Store.png',
+            'gallery/Billing.png',
             'gallery/Nodes.png',
-            'gallery/Create Node.png',
             'gallery/Database.png',
+            'gallery/Health.png',
+            'gallery/Eggs.png',
             'gallery/Users.png',
         ];
         $files = collect(Storage::disk('public')->files('gallery'))
@@ -36,7 +40,7 @@ class WelcomeController extends Controller
         $remaining = $files->diff($ordered);
 
         $galleryImages = $ordered->concat($remaining)
-            ->take(6)
+            ->take(10)
             ->map(fn ($file) => Storage::url($file) . '?v=' . Storage::disk('public')->lastModified($file))
             ->values()
             ->all();
