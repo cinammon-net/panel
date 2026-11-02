@@ -80,8 +80,18 @@ export default function Login({ status, canResetPassword, demoMode }: LoginProps
 
     return (
         <AuthLayout description="Enter your email and password to access the panel" title="">
-            <Head title="Login">
-                <meta name="description" content="Enter your credentials to access the cinammon.net panel" />
+            <Head title="Iniciar sesión">
+                <meta name="description" content="Accede a tu panel de control de Cinammon.net para administrar y monitorizar tus servidores de juego en tiempo real." />
+                <meta name="keywords" content="Cinammon, login, panel de control, iniciar sesion, servidores" />
+                <meta property="og:type" content="website" />
+                <meta property="og:site_name" content="Cinammon.net" />
+                <meta property="og:title" content="Iniciar sesión — Cinammon.net" />
+                <meta property="og:description" content="Accede a tu panel de control de Cinammon.net para administrar y monitorizar tus servidores de juego en tiempo real." />
+                <meta property="og:image" content="https://cinammon.net/favicon.ico" />
+                <meta name="twitter:card" content="summary" />
+                <meta name="twitter:title" content="Iniciar sesión — Cinammon.net" />
+                <meta name="twitter:description" content="Accede a tu panel de control de Cinammon.net para administrar tus servidores." />
+                <meta name="twitter:image" content="https://cinammon.net/favicon.ico" />
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet" />
             </Head>
             <form className="flex flex-col gap-6 font-[Orbitron]" onSubmit={submit}>

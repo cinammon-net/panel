@@ -57,7 +57,17 @@ export default function Register() {
     return (
         <AuthLayout title="Registro" description="Crea tu cuenta para acceder al panel de cinammon.net">
             <Head title="Registro">
-                <meta name="description" content="Crea tu cuenta para acceder al panel de cinammon.net" />
+                <meta name="description" content="Crea tu cuenta en Cinammon.net y comienza a desplegar tus servidores de juego de alto rendimiento en cuestión de segundos." />
+                <meta name="keywords" content="Cinammon, registro, crear cuenta, servidores de juego, cloud hosting" />
+                <meta property="og:type" content="website" />
+                <meta property="og:site_name" content="Cinammon.net" />
+                <meta property="og:title" content="Crear cuenta — Cinammon.net" />
+                <meta property="og:description" content="Crea tu cuenta en Cinammon.net y comienza a desplegar tus servidores de juego de alto rendimiento en cuestión de segundos." />
+                <meta property="og:image" content="https://cinammon.net/favicon.ico" />
+                <meta name="twitter:card" content="summary" />
+                <meta name="twitter:title" content="Crear cuenta — Cinammon.net" />
+                <meta name="twitter:description" content="Crea tu cuenta en Cinammon.net y despliega tus servidores cloud al instante." />
+                <meta name="twitter:image" content="https://cinammon.net/favicon.ico" />
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet" />
             </Head>
             <form className="flex flex-col gap-6 font-[Orbitron]" onSubmit={submit}>

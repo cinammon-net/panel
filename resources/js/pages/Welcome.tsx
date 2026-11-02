@@ -131,7 +131,19 @@ export default function WelcomePanel() {
     };
     return (
         <>
-            <Head title="Welcome">
+            <Head title="Tu red. Tu dominio. Tu juego.">
+                <meta name="description" content="Despliega y administra tus servidores de juego en Cinammon.net. Infraestructura de ultra baja latencia, procesadores de alta frecuencia, protección Anti-DDoS y panel intuitivo en tiempo real." />
+                <meta name="keywords" content="Cinammon, servidores de juegos, Minecraft hosting, cloud gaming, alta frecuencia, anti-ddos, panel de control, nodo Miami" />
+                <meta property="og:type" content="website" />
+                <meta property="og:site_name" content="Cinammon.net" />
+                <meta property="og:title" content="Cinammon.net — Tu red. Tu dominio. Tu juego." />
+                <meta property="og:description" content="Despliega y administra tus servidores de juego en Cinammon.net con la mejor latencia, protección Anti-DDoS y hardware de última generación." />
+                <meta property="og:image" content="https://cinammon.net/favicon.ico" />
+                <meta property="og:url" content="https://cinammon.net" />
+                <meta name="twitter:card" content="summary" />
+                <meta name="twitter:title" content="Cinammon.net — Tu red. Tu dominio. Tu juego." />
+                <meta name="twitter:description" content="Plataforma de alto rendimiento para el despliegue y control de servidores de juegos en la nube." />
+                <meta name="twitter:image" content="https://cinammon.net/favicon.ico" />
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link rel="preconnect" href="https://fonts.gstatic.com" />
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet" />

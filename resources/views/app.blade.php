@@ -7,41 +7,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     
-    <meta name="description" content="Cinammon es una moderna plataforma open-source y autoalojada diseñada para comunidades que buscan una alternativa sólida, privada y personalizable a Discord. Con herramientas avanzadas de comunicación, gestión de usuarios y control total sobre tus datos, Cinammon te ofrece todo lo que necesitas para construir tu propia comunidad sin depender de servicios centralizados.">
-    <meta name="keywords" content="Cinammon, autoalojado, open-source, alternativa a Discord, plataforma de comunidades, chat moderno, privacidad, servidor propio">
+    <meta name="description" content="Cinammon.net — Plataforma moderna de alto rendimiento para el despliegue, gestión y orquestación de servidores de juegos en la nube. Panel intuitivo, daemon Wings, protección Anti-DDoS y hardware de última generación.">
+    <meta name="keywords" content="Cinammon, hosting de servidores, servidores de juegos, panel de control, cloud gaming, Minecraft hosting, Wings daemon, nodos, bases de datos">
     <meta name="author" content="Cinammon Team">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#0a0a0a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Cinammon">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="msapplication-TileColor" content="#ffffff">
-    <meta name="msapplication-TileImage" content="/mstile-150x150.png">
+    <meta name="msapplication-TileColor" content="#ff44cc">
+    <meta name="msapplication-TileImage" content="/favicon.ico">
 
     <!-- 🌐 Open Graph (Discord, WhatsApp, Facebook, etc.) -->
     <meta property="og:type" content="website">
-    <meta property="og:site_name" content="Cinammon">
+    <meta property="og:site_name" content="Cinammon.net">
     <meta property="og:locale" content="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <meta property="og:title" content="Cinammon – Plataforma moderna y autoalojada para comunidades">
-    <meta property="og:description" content="Cinammon es una moderna plataforma open-source y autoalojada, diseñada para comunidades que buscan una alternativa sólida, privada y personalizable a Discord. Con herramientas avanzadas de comunicación, gestión de usuarios y control total de datos, Cinammon te ofrece libertad y autonomía.">
-    <meta property="og:image" content="https://cinammon.net/preview.png">
-    <meta property="og:image:alt" content="Vista previa de Cinammon">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
+    <meta property="og:title" content="Cinammon.net — Tu red. Tu dominio. Tu juego.">
+    <meta property="og:description" content="Despliega y administra tus servidores de juego con la mejor latencia, protección Anti-DDoS y panel de control en tiempo real.">
+    <meta property="og:image" content="https://cinammon.net/favicon.ico">
+    <meta property="og:image:alt" content="Logotipo de Cinammon">
     <meta property="og:url" content="https://cinammon.net">
 
     <!-- 🐦 Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Cinammon – Plataforma moderna y autoalojada para comunidades">
-    <meta name="twitter:description" content="Cinammon es una moderna plataforma open-source y autoalojada diseñada para comunidades que buscan libertad, privacidad y autonomía.">
-    <meta name="twitter:image" content="https://cinammon.net/preview.png">
-
-    <!-- 💬 Discord Tags (opcionales) -->
-    <meta name="discord:title" content="Cinammon – Plataforma moderna y autoalojada para comunidades">
-    <meta name="discord:description" content="Cinammon es una moderna plataforma open-source y autoalojada diseñada para comunidades que buscan una alternativa sólida, privada y personalizable a Discord.">
-    <meta name="discord:image" content="https://cinammon.net/preview.png">
-    <meta name="discord:site_name" content="Cinammon">
-    <meta name="discord:creator" content="@Cinammon">
-    <meta name="discord:locale" content="{{ str_replace('_', '-', app()->getLocale()) }}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Cinammon.net — Tu red. Tu dominio. Tu juego.">
+    <meta name="twitter:description" content="Plataforma de alto rendimiento para el despliegue y control de servidores de juegos en la nube.">
+    <meta name="twitter:image" content="https://cinammon.net/favicon.ico">
 
     <!-- 🌙 Modo oscuro automático -->
     <script>
