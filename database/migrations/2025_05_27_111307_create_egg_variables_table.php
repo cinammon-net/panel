@@ -17,7 +17,7 @@ class CreateEggVariablesTable extends Migration
             $table->string('default_value')->nullable();
             $table->boolean('user_viewable')->default(false);
             $table->boolean('user_editable')->default(false);
-            $table->string('rules')->nullable();
+            $table->text('rules')->nullable();
             $table->integer('sort')->default(0);
             $table->timestamps();
         });
