@@ -50,12 +50,52 @@ class WelcomeController extends Controller
         // Catálogo de planes de billing para la landing unificada (cacheado 60 s)
         $billingCategories = Cache::remember('billing.plans', 60, function () use ($billingUrl) {
             try {
-                $response = Http::acceptJson()->connectTimeout(2)->timeout(4)->get("{$billingUrl}/api/plans");
+                $response = Http::withoutVerifying()->acceptJson()->connectTimeout(2)->timeout(4)->get("{$billingUrl}/api/plans");
 
-                return $response->successful() ? ($response->json('categories') ?? []) : [];
+                if ($response->successful() && !empty($response->json('categories'))) {
+                    return $response->json('categories');
+                }
             } catch (\Throwable) {
-                return [];
+                // Si la llamada HTTP falla, consultar directamente la base de datos de billing como fallback
             }
+
+            try {
+                $categoriesMeta = [
+                    'minecraft' => ['title' => 'Minecraft Hosting', 'tagline' => 'Java y Bedrock. Paper, Fabric, Forge, Purpur y más.'],
+                    'games' => ['title' => 'Servidores de Juegos', 'tagline' => 'Palworld, Rust, CS2, ARK, Valheim y +50 juegos más.'],
+                    'bots' => ['title' => 'Hosting de Bots', 'tagline' => 'Bots de Discord, Twitch y TeamSpeak siempre online.'],
+                    'databases' => ['title' => 'Bases de Datos', 'tagline' => 'Redis, MariaDB, PostgreSQL y MongoDB gestionados.'],
+                ];
+
+                $plans = \Illuminate\Support\Facades\DB::table('cinammon_billing.plans')->orderBy('sort')->get();
+                if ($plans->isNotEmpty()) {
+                    return collect($categoriesMeta)->map(function ($meta, $key) use ($plans) {
+                        return [
+                            'key' => $key,
+                            ...$meta,
+                            'plans' => $plans->where('category', $key)->values()->map(function ($p) {
+                                return [
+                                    'id' => $p->id,
+                                    'category' => $p->category,
+                                    'name' => $p->name,
+                                    'slug' => $p->slug,
+                                    'ram_mb' => (int) $p->ram_mb,
+                                    'cpu_pct' => (int) $p->cpu_pct,
+                                    'storage_gb' => (int) $p->storage_gb,
+                                    'price' => (float) $p->price,
+                                    'popular' => (bool) $p->popular,
+                                    'features' => json_decode($p->features ?? '[]', true) ?: [],
+                                    'sort' => (int) $p->sort,
+                                ];
+                            })->all(),
+                        ];
+                    })->values()->all();
+                }
+            } catch (\Throwable) {
+                // Fallback silencioso
+            }
+
+            return [];
         });
 
         return Inertia::render('Welcome', [
