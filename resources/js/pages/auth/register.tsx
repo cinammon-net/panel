@@ -19,9 +19,9 @@ function AuthLayout({ description, children }: { title: string; description?: st
                 <div className="absolute inset-1 z-[-1] rounded-[0.625rem] bg-black/90" />
                 <div className="mb-6 text-center">
                     <div className="mb-4 flex justify-center">
-                        <Link href="/">
-                            <img src="favicon.ico" alt="Cinammon.net Logo" className="h-20 transition hover:opacity-80 sm:h-22" draggable={false} />
-                        </Link>
+                        <a href="https://cinammon.net" title="Volver a Cinammon.net" className="transition hover:opacity-80 hover:scale-105">
+                            <img src="/favicon.ico" alt="Cinammon.net Logo" className="h-20 sm:h-22" draggable={false} />
+                        </a>
                     </div>
                     <h1 className="font-[Orbitron] text-3xl tracking-wide text-pink-400">Regístrate</h1>
                     {description && <p className="mt-2 font-[Orbitron] text-sm text-pink-200">{description}</p>}
@@ -134,7 +134,7 @@ export default function Register() {
                 </div>
                 <div className="mt-6 text-center text-sm text-pink-300">
                     ¿Ya tienes una cuenta?{' '}
-                    <TextLink href={route('login')} tabIndex={6} className="text-pink-400 hover:underline">
+                    <TextLink href="https://panel.cinammon.net/login" tabIndex={6} className="text-pink-400 hover:underline">
                         Inicia sesión
                     </TextLink>
                 </div>

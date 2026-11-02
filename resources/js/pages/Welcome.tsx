@@ -153,26 +153,26 @@ export default function WelcomePanel() {
                             Planes
                         </a>
                         {auth?.user ? (
-                            <Link
-                                href={route('dashboard')}
+                            <a
+                                href="https://panel.cinammon.net/servers"
                                 className="rounded-md bg-pink-500 px-4 py-2 font-semibold text-white shadow transition hover:bg-pink-600"
                             >
                                 Panel
-                            </Link>
+                            </a>
                         ) : (
                             <>
-                                <Link
-                                    href={route('login')}
+                                <a
+                                    href="https://panel.cinammon.net/login"
                                     className="rounded-md bg-gradient-to-r from-pink-500 to-fuchsia-600 px-4 py-2 font-semibold text-white shadow hover:from-pink-600 hover:to-fuchsia-700"
                                 >
                                     Iniciar sesión
-                                </Link>
-                                <Link
-                                    href={route('register')}
+                                </a>
+                                <a
+                                    href="https://panel.cinammon.net/register"
                                     className="rounded-md border border-pink-400 px-4 py-2 font-semibold text-pink-300 transition hover:bg-pink-400 hover:text-black"
                                 >
                                     Registrarse
-                                </Link>
+                                </a>
                             </>
                         )}
                     </nav>
@@ -198,18 +198,18 @@ export default function WelcomePanel() {
                             ¡Únete a nosotros y forma parte de la comunidad desplegando tu panel!
                         </p>
                         <div className="mt-6 sm:mt-8" data-aos="zoom-in" data-aos-delay="300">
-                            <Link
-                                href="/demo"
-                                className="rounded-md bg-gradient-to-r from-pink-500 to-fuchsia-600 px-6 py-2 font-semibold text-white shadow hover:from-pink-600 hover:to-fuchsia-700"
+                            <a
+                                href="https://demo.cinammon.net"
+                                className="inline-block rounded-md bg-gradient-to-r from-pink-500 to-fuchsia-600 px-8 py-3 text-sm font-bold tracking-wider text-white shadow-[0_0_20px_rgba(255,0,128,0.4)] transition hover:from-pink-600 hover:to-fuchsia-700 hover:shadow-[0_0_30px_rgba(255,0,128,0.6)] active:scale-95"
                             >
-                                DEMO
-                            </Link>
+                                PROBAR DEMO →
+                            </a>
                         </div>
                     </div>
 
                     {/* FLECHA HACIA ABAJO */}
                     <div className="mt-10 flex justify-center" data-aos="zoom-in" data-aos-delay="400">
-                        <a href="#seccion-siguiente">
+                        <a href="#planes">
                             <img
                                 src="https://img.icons8.com/?size=100&id=44002&format=png&color=ff4da6"
                                 alt="Desplazar hacia abajo"
@@ -222,6 +222,87 @@ export default function WelcomePanel() {
 
                 {/* Banner de cookies */}
                 <CookieBanner />
+
+                {/* SECCIÓN PLANES Y PRECIOS (catálogo de Billing destacado) */}
+                {billingCategories && billingCategories.length > 0 && (
+                    <section id="planes" className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-24 text-center text-white sm:px-10">
+                        <div className="space-y-3" data-aos="fade-up">
+                            <div className="inline-flex items-center gap-2 rounded-full border border-pink-500/40 bg-pink-500/10 px-4 py-1.5 text-xs font-mono text-pink-300 shadow-[0_0_15px_rgba(255,0,150,0.25)]">
+                                ⚡ INFRAESTRUCTURA CLOUD & GAME SERVERS
+                            </div>
+                            <h2 className="text-3xl font-extrabold text-white sm:text-5xl tracking-wide">
+                                Planes y <span className="bg-gradient-to-r from-pink-400 via-fuchsia-400 to-[#00f7ff] bg-clip-text text-transparent">Precios</span>
+                            </h2>
+                            <p className="mx-auto max-w-2xl text-sm text-neutral-400 sm:text-base">
+                                Contrata tu servidor y gestiona tus pagos desde nuestra área de clientes, totalmente integrada con el panel.
+                            </p>
+                        </div>
+
+                        <div className="grid w-full max-w-7xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                            {billingCategories.map((cat, index) => {
+                                const featured = cat.plans.find((p) => p.popular) ?? cat.plans[0];
+                                const minPrice = cat.plans.length > 0 ? Math.min(...cat.plans.map((p) => p.price)).toFixed(2) : '1.49';
+                                return (
+                                    <div
+                                        key={cat.key}
+                                        className="flex flex-col justify-between rounded-2xl border border-pink-500/30 bg-black/75 p-6 text-left shadow-[0_0_20px_rgba(255,0,150,0.15)] backdrop-blur-md transition duration-300 hover:border-[#00f7ff] hover:shadow-[0_0_30px_rgba(0,247,255,0.25)] group"
+                                        data-aos="fade-up"
+                                        data-aos-delay={index * 100}
+                                    >
+                                        <div>
+                                            <div className="flex items-center justify-between">
+                                                <h3 className="text-lg font-bold tracking-wide text-pink-400 group-hover:text-[#00f7ff] transition">{cat.title}</h3>
+                                                <span className="font-mono text-[11px] rounded bg-neutral-900 px-2 py-0.5 border border-neutral-700 text-[#00f7ff]">{cat.plans.length} planes</span>
+                                            </div>
+                                            <p className="mt-1.5 text-xs text-neutral-400 line-clamp-2">{cat.tagline}</p>
+
+                                            {featured && (
+                                                <div className="mt-4 rounded-xl border border-[#00f7ff]/30 bg-black/60 p-3.5 shadow-inner">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-xs font-semibold text-white">{featured.name}</span>
+                                                        {featured.popular && (
+                                                            <span className="rounded-full bg-[#00f7ff] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-black">
+                                                                Popular
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="mt-1 text-2xl font-black text-[#00f7ff]">
+                                                        {featured.price.toFixed(2)} €<span className="text-xs font-normal text-neutral-400">/mes</span>
+                                                    </p>
+                                                    <p className="mt-1 text-[11px] text-neutral-300 font-mono">
+                                                        {featured.ram_mb >= 1024 ? `${featured.ram_mb / 1024} GB` : `${featured.ram_mb} MB`} RAM ·{' '}
+                                                        {featured.cpu_pct}% CPU · {featured.storage_gb} GB NVMe
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            <p className="mt-3 text-xs text-neutral-400 font-mono">
+                                                Desde <span className="font-bold text-pink-300">{minPrice} €/mes</span>
+                                            </p>
+                                        </div>
+
+                                        <div className="mt-5 pt-4 border-t border-neutral-800">
+                                            <a
+                                                href={`${billingUrl}/store/${cat.key}`}
+                                                className="block w-full rounded-xl bg-gradient-to-r from-pink-500 to-fuchsia-600 px-4 py-2.5 text-center text-xs font-bold text-white shadow transition hover:from-pink-600 hover:to-fuchsia-700 active:scale-95"
+                                            >
+                                                Ver planes de {cat.title} →
+                                            </a>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <a
+                            href={`${billingUrl}/store`}
+                            className="rounded-xl border border-[#00f7ff]/60 px-6 py-3 font-semibold text-[#00f7ff] transition hover:bg-[#00f7ff] hover:text-black shadow-[0_0_15px_rgba(0,247,255,0.2)]"
+                            data-aos="fade-up"
+                        >
+                            Ir a la tienda completa de Cinammon Billing →
+                        </a>
+                    </section>
+                )}
 
                 {/* SECCIÓN DESCRIPCIÓN */}
                 <section
@@ -351,78 +432,6 @@ export default function WelcomePanel() {
                         </div>
                     </div>
                 </section>
-
-                {/* SECCIÓN PLANES Y PRECIOS (catálogo de Billing) */}
-                {billingCategories && billingCategories.length > 0 && (
-                    <section id="planes" className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
-                        <div className="space-y-3" data-aos="fade-up">
-                            <h2 className="text-3xl font-bold text-pink-400 sm:text-4xl">💳 Planes y precios</h2>
-                            <p className="mx-auto max-w-2xl text-sm text-neutral-400 sm:text-base">
-                                Contrata tu servidor y gestiona tus pagos desde nuestra área de clientes, totalmente integrada con el panel.
-                            </p>
-                        </div>
-
-                        <div className="grid w-full max-w-6xl grid-cols-1 gap-8 sm:grid-cols-2">
-                            {billingCategories.map((cat, index) => {
-                                const featured = cat.plans.find((p) => p.popular) ?? cat.plans[0];
-                                return (
-                                    <div
-                                        key={cat.key}
-                                        className="flex flex-col rounded-xl border border-pink-500/40 bg-black/60 p-6 text-left shadow-[0_0_15px_rgba(255,0,150,0.15)] backdrop-blur-sm transition hover:border-pink-500 hover:shadow-[0_0_25px_rgba(255,0,150,0.35)]"
-                                        data-aos="fade-up"
-                                        data-aos-delay={index * 100}
-                                    >
-                                        <h3 className="text-xl font-bold tracking-wide text-pink-400">{cat.title}</h3>
-                                        <p className="mt-1 text-sm text-neutral-400">{cat.tagline}</p>
-
-                                        {featured && (
-                                            <div className="mt-4 rounded-lg border border-[#00f7ff]/30 bg-black/60 p-4">
-                                                <div className="flex items-center justify-between">
-                                                    <span className="font-semibold text-white">{featured.name}</span>
-                                                    {featured.popular && (
-                                                        <span className="rounded-full bg-[#00f7ff] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-black">
-                                                            Popular
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <p className="mt-1 text-2xl font-extrabold text-[#00f7ff]">
-                                                    {featured.price.toFixed(2)} €<span className="text-xs font-normal text-neutral-400">/mes</span>
-                                                </p>
-                                                <p className="mt-1 text-xs text-neutral-300">
-                                                    {featured.ram_mb >= 1024 ? `${featured.ram_mb / 1024} GB` : `${featured.ram_mb} MB`} RAM ·{' '}
-                                                    {featured.cpu_pct}% CPU · {featured.storage_gb} GB NVMe
-                                                </p>
-                                            </div>
-                                        )}
-
-                                        <p className="mt-3 text-xs text-neutral-400">
-                                            {cat.plans.length} planes desde{' '}
-                                            <span className="font-semibold text-pink-300">
-                                                {Math.min(...cat.plans.map((p) => p.price)).toFixed(2)} €/mes
-                                            </span>
-                                        </p>
-
-                                        <div className="mt-4 flex-1" />
-                                        <a
-                                            href={`${billingUrl}/store/${cat.key}`}
-                                            className="rounded-md bg-gradient-to-r from-pink-500 to-fuchsia-600 px-4 py-2 text-center font-semibold text-white shadow transition hover:from-pink-600 hover:to-fuchsia-700"
-                                        >
-                                            Ver planes de {cat.title}
-                                        </a>
-                                    </div>
-                                );
-                            })}
-                        </div>
-
-                        <a
-                            href={`${billingUrl}/store`}
-                            className="rounded-md border border-[#00f7ff]/60 px-6 py-2 font-semibold text-[#00f7ff] transition hover:bg-[#00f7ff] hover:text-black"
-                            data-aos="fade-up"
-                        >
-                            Ir a la tienda completa →
-                        </a>
-                    </section>
-                )}
 
                 {/* SECCIÓN GALERÍA */}
                 <section className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
@@ -609,15 +618,15 @@ export default function WelcomePanel() {
                         <Link href={route('home')} className="hover:text-white hover:underline">
                             Inicio
                         </Link>
-                        <Link href={route('dashboard')} className="hover:text-white hover:underline">
+                        <a href="https://panel.cinammon.net/servers" className="hover:text-white hover:underline">
                             Panel
-                        </Link>
-                        <Link href={route('register')} className="hover:text-white hover:underline">
+                        </a>
+                        <a href="https://panel.cinammon.net/register" className="hover:text-white hover:underline">
                             Registro
-                        </Link>
-                        <Link href={route('login')} className="hover:text-white hover:underline">
+                        </a>
+                        <a href="https://panel.cinammon.net/login" className="hover:text-white hover:underline">
                             Acceso
-                        </Link>
+                        </a>
                     </div>
                     <div className="flex flex-col gap-2">
                         <h3 className="mb-1 font-semibold text-white">Información</h3>

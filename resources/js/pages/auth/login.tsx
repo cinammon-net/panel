@@ -23,9 +23,9 @@ function AuthLayout({ description, children }: { title: string; description?: st
                 <div className="absolute inset-1 z-[-1] rounded-[0.625rem] bg-black/90" />
                 <div className="mb-6 text-center">
                     <div className="mb-4 flex justify-center">
-                        <Link href="/">
+                        <a href="https://cinammon.net" title="Volver a Cinammon.net" className="transition hover:opacity-80 hover:scale-105">
                             <img src="/favicon.ico" alt="Cinammon.net Logo" className="h-20 sm:h-22" draggable={false} />
-                        </Link>
+                        </a>
                     </div>
                     <h1 className="font-[Orbitron] text-3xl font-bold tracking-wide text-pink-400">Sign In</h1>
                     {description && <p className="font-[Orbitron] mt-2 text-sm text-pink-200">{description}</p>}
@@ -193,7 +193,7 @@ export default function Login({ status, canResetPassword, demoMode }: LoginProps
                 {/* REGISTER */}
                 <div className="text-center text-sm text-pink-300 mt-6">
                     Don’t have an account?{' '}
-                    <TextLink href={route('register')} className="text-pink-400 hover:underline">
+                    <TextLink href={demoMode ? 'https://panel.cinammon.net/register' : route('register')} className="text-pink-400 hover:underline">
                         Register
                     </TextLink>
                 </div>
