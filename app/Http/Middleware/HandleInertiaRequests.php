@@ -44,6 +44,7 @@ class HandleInertiaRequests extends Middleware
             ],
 
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'demoMode' => \App\Support\Panel::demoMode(),
 
             // ✅ Aquí se inyectan roles y permisos para TODAS las páginas Inertia
             'auth' => [

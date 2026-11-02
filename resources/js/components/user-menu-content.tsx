@@ -3,7 +3,7 @@ import { UserInfo } from '@/components/user-info';
 import { UserSwitcherModal } from '@/components/user-switcher-modal';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
 import { type User } from '@/types';
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { ArrowLeftRight, LogOut, Settings, Shield } from 'lucide-react';
 import { useState } from 'react';
 
@@ -20,8 +20,10 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
         router.flushAll();
     };
 
+    const { demoMode } = usePage().props as any;
     const roles: string[] = (user as any)?.roles ?? [];
     const isAdmin = roles.includes('Owner') || roles.includes('Admin') || roles.includes('Moderator');
+    const canSwitchUser = Boolean(demoMode || isAdmin);
 
     return (
         <>
@@ -38,16 +40,18 @@ export function UserMenuContent({ user }: UserMenuContentProps) {
                         Perfil y Ajustes
                     </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                    onSelect={(e) => {
-                        e.preventDefault();
-                        setIsSwitcherOpen(true);
-                    }}
-                    className="cursor-pointer text-cyan-300 hover:text-cyan-200"
-                >
-                    <ArrowLeftRight className="mr-2 h-4 w-4 text-cyan-400" />
-                    Cambiar de usuario
-                </DropdownMenuItem>
+                {canSwitchUser && (
+                    <DropdownMenuItem
+                        onSelect={(e) => {
+                            e.preventDefault();
+                            setIsSwitcherOpen(true);
+                        }}
+                        className="cursor-pointer text-cyan-300 hover:text-cyan-200"
+                    >
+                        <ArrowLeftRight className="mr-2 h-4 w-4 text-cyan-400" />
+                        Cambiar de usuario
+                    </DropdownMenuItem>
+                )}
                 {isAdmin && (
                     <DropdownMenuItem asChild>
                         <Link className="block w-full cursor-pointer text-purple-300 hover:text-purple-200" href="/dashboard" as="button" onClick={cleanup}>

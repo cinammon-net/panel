@@ -14,10 +14,10 @@ return [
      */
     'demo_host' => env('PANEL_DEMO_HOST', 'demo.localhost'),
 
-    // Cuentas de demostración que solo pueden iniciar sesión en modo demo
+    // Cuentas de demostración que solo pueden iniciar sesión y usarse en modo demo
     'demo_emails' => [
         'owner@cinammon.net',
-        'admin@cinammon.net',
+        'demo-admin@cinammon.net',
         'moderator@cinammon.net',
         'helper@cinammon.net',
         'sponsors@cinammon.net',

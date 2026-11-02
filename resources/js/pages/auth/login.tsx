@@ -49,7 +49,7 @@ interface LoginProps {
 
 const roles = [
     { name: 'Owner', email: 'owner@cinammon.net', icon: Crown },
-    { name: 'Admin', email: 'admin@cinammon.net', icon: Hammer },
+    { name: 'Admin', email: 'demo-admin@cinammon.net', icon: Hammer },
     { name: 'Moderator', email: 'moderator@cinammon.net', icon: ShieldCheck },
     { name: 'Helper', email: 'helper@cinammon.net', icon: Handshake },
     { name: 'Sponsors', email: 'sponsors@cinammon.net', icon: Gem },

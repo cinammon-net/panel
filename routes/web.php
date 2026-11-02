@@ -441,8 +441,11 @@ Route::middleware(['auth'])->group(function () {
 
     // 🔄 Cambio Rápido de Cuenta / Switch User
     Route::get('/api/switchable-users', function () {
+        $isDemo = \App\Support\Panel::demoMode();
+
         return User::select('id', 'name', 'email', 'avatar')
             ->with('roles:id,name')
+            ->when(! $isDemo, fn ($query) => $query->whereNotIn('email', config('panel.demo_emails', [])))
             ->get()
             ->map(function ($u) {
                 return [
@@ -461,6 +464,13 @@ Route::middleware(['auth'])->group(function () {
         ]);
 
         $targetUser = User::findOrFail($validated['user_id']);
+        $isDemo = \App\Support\Panel::demoMode();
+
+        // En la versión no-demo, no se permite cambiar a cuentas de demostración
+        if (! $isDemo && in_array(strtolower($targetUser->email), config('panel.demo_emails', []), true)) {
+            abort(403, 'No se puede cambiar a cuentas de demostración en producción.');
+        }
+
         Auth::login($targetUser);
         $request->session()->regenerate();
 
