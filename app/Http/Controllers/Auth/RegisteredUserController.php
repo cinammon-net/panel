@@ -18,8 +18,12 @@ class RegisteredUserController extends Controller
     /**
      * Show the registration page.
      */
-    public function create(): Response
+    public function create(Request $request): Response|RedirectResponse
     {
+        if (\App\Support\Panel::demoMode()) {
+            return redirect()->away('https://panel.cinammon.net/register');
+        }
+
         return Inertia::render('auth/register');
     }
 

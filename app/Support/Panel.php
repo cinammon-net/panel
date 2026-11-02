@@ -14,11 +14,7 @@ class Panel
         }
 
         if (! app()->runningInConsole()) {
-            if (request()->has('demo') || request()->session()->get('demo_mode')) {
-                return true;
-            }
-
-            $demoHost = (string) config('panel.demo_host');
+            $demoHost = (string) config('panel.demo_host', 'demo.cinammon.net');
             if ($demoHost !== '' && strcasecmp(request()->getHost(), $demoHost) === 0) {
                 return true;
             }

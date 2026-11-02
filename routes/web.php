@@ -31,8 +31,11 @@ use Illuminate\Support\Facades\Schema;
 // 🌐 Rutas públicas
 Route::get('/', [WelcomeController::class, 'index'])->name('home');
 Route::get('/demo', function (Request $request) {
-    $request->session()->put('demo_mode', true);
-    return redirect()->route('login', ['demo' => 1]);
+    $demoHost = (string) config('panel.demo_host', 'demo.cinammon.net');
+    if ($demoHost !== '' && strcasecmp($request->getHost(), $demoHost) !== 0) {
+        return redirect()->away("https://{$demoHost}");
+    }
+    return redirect()->route('login');
 })->name('demo');
 
 // 💳 Seamless SSO Handoff hacia Cinammon Billing
