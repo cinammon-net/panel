@@ -84,4 +84,68 @@ class DaemonController extends Controller
         }
         return response()->noContent();
     }
+
+    public function sftpAuth(Request $request)
+    {
+        $rawUsername = (string) $request->input('username', '');
+        $password = (string) $request->input('password', '');
+        $node = $request->attributes->get('node');
+
+        if (empty($rawUsername) || empty($password)) {
+            return response()->json(['error' => 'Missing username or password'], 400);
+        }
+
+        // 1. Probar coincidencia directa con el nombre o email
+        $user = \App\Models\User::where('email', $rawUsername)
+            ->orWhere('name', $rawUsername)
+            ->first();
+        $serverIdentifier = null;
+
+        // 2. Si no coincide directo, puede venir como "<user>.<server_id>"
+        if (!$user) {
+            $lastDotPos = strrpos($rawUsername, '.');
+            if ($lastDotPos !== false) {
+                $userIdentifier = substr($rawUsername, 0, $lastDotPos);
+                $serverIdentifier = substr($rawUsername, $lastDotPos + 1);
+
+                $user = \App\Models\User::where('email', $userIdentifier)
+                    ->orWhere('name', $userIdentifier)
+                    ->first();
+            }
+        }
+
+        if (!$user || !\Illuminate\Support\Facades\Hash::check($password, $user->password)) {
+            return response()->json(['error' => 'Invalid credentials'], 403);
+        }
+
+        $serverQuery = $node->servers();
+        if ($serverIdentifier) {
+            $serverQuery->where(function ($q) use ($serverIdentifier) {
+                $q->where('uuid', 'LIKE', "{$serverIdentifier}%")
+                  ->orWhere('uuid_short', $serverIdentifier);
+            });
+        }
+
+        $isAdmin = $user->hasRole('admin') || $user->hasRole('owner') || $user->hasRole('super-admin');
+
+        if (!$isAdmin) {
+            $serverQuery->where(function ($q) use ($user) {
+                $q->where('owner_id', $user->id)
+                  ->orWhereHas('subusers', function ($sq) use ($user) {
+                      $sq->where('user_id', $user->id);
+                  });
+            });
+        }
+
+        $server = $serverQuery->first();
+
+        if (!$server) {
+            return response()->json(['error' => 'Server not found or access denied'], 403);
+        }
+
+        return response()->json([
+            'server' => $server->uuid,
+            'permissions' => ['*'],
+        ]);
+    }
 }

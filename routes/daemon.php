@@ -12,4 +12,5 @@ Route::prefix('api/remote')->middleware(DaemonAuth::class)->group(function () {
     Route::post('/servers/{uuid}/install', [DaemonController::class, 'installed']);
     Route::post('/servers/{uuid}/container/status', [DaemonController::class, 'state']);
     Route::post('/activity', [DaemonController::class, 'activity']);
+    Route::post('/sftp/auth', [DaemonController::class, 'sftpAuth']);
 });
