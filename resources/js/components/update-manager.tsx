@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
 import ConfirmDialog from '@/components/confirm-dialog';
+import { renderAnsi } from '@/lib/ansi';
 import { ArrowUpCircle, CheckCircle2, ExternalLink, RefreshCw, Rocket, ShieldCheck, Terminal } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -193,9 +194,9 @@ export default function UpdateManager({ status }: { status: UpdateStatus }) {
                             ref={(el) => {
                                 if (el) el.scrollTop = el.scrollHeight;
                             }}
-                            className="mt-3 max-h-56 overflow-y-auto rounded-lg border border-neutral-800 bg-black p-3 font-mono text-[10px] leading-relaxed text-emerald-300/90"
+                            className="mt-3 max-h-56 overflow-y-auto rounded-lg border border-neutral-800 bg-black p-3 font-mono text-[10px] leading-relaxed text-neutral-300"
                         >
-                            {runner.output || runner.log?.join('\n')}
+                            {runner.output ? renderAnsi(runner.output) : runner.log?.join('\n')}
                         </pre>
                     )}
                 </div>

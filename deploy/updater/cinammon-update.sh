@@ -64,7 +64,7 @@ if [ "$TARGET" = "panel" ]; then
   URL="https://github.com/$PANEL_REPO/releases/download/v$VERSION/panel.tar.gz"
   status downloading 20 "Descargando $URL"
   echo "PHP del sistema: $($PHP -v | head -1)"
-  run curl -fsSL "$URL" -o "$TMP/panel.tar.gz" || fail "No se pudo descargar panel.tar.gz del release v$VERSION (¿subiste el asset?)"
+  run curl -fSL -# "$URL" -o "$TMP/panel.tar.gz" || fail "No se pudo descargar panel.tar.gz del release v$VERSION (¿subiste el asset?)"
   mkdir -p "$TMP/panel" && run tar -xzf "$TMP/panel.tar.gz" -C "$TMP/panel"
   SRC="$TMP/panel"; [ -d "$TMP/panel/panel" ] && SRC="$TMP/panel/panel"
 
@@ -85,8 +85,8 @@ if [ "$TARGET" = "panel" ]; then
     fi
     echo "PANEL_VERSION=$VERSION fijado en $DIR/.env"
     status migrating 75 "Migraciones y caches en $DIR"
-    run sudo -u "$OWNER" env HOME=/tmp XDG_CONFIG_HOME=/tmp $PHP "$DIR/artisan" migrate --force
-    run sudo -u "$OWNER" env HOME=/tmp XDG_CONFIG_HOME=/tmp $PHP "$DIR/artisan" optimize:clear
+    run sudo -u "$OWNER" env HOME=/tmp XDG_CONFIG_HOME=/tmp $PHP "$DIR/artisan" migrate --force --ansi
+    run sudo -u "$OWNER" env HOME=/tmp XDG_CONFIG_HOME=/tmp $PHP "$DIR/artisan" optimize:clear --ansi
   done
 
   status restarting 90 "Reiniciando queue worker"
@@ -98,7 +98,7 @@ elif [ "$TARGET" = "wings" ]; then
   URL="https://github.com/$WINGS_REPO/releases/download/v$VERSION/$ASSET"
   status downloading 25 "Descargando $URL"
   echo "Versión instalada actualmente: $("$WINGS_BIN" --version 2>/dev/null || echo 'desconocida')"
-  run curl -fsSL "$URL" -o "$TMP/wings" || fail "No se pudo descargar $ASSET del release v$VERSION (¿subiste el binario?)"
+  run curl -fSL -# "$URL" -o "$TMP/wings" || fail "No se pudo descargar $ASSET del release v$VERSION (¿subiste el binario?)"
   chmod +x "$TMP/wings"
   "$TMP/wings" version >/dev/null 2>&1 || "$TMP/wings" --help >/dev/null 2>&1 || fail "El binario descargado no se puede ejecutar"
   echo "Versión del binario descargado: $("$TMP/wings" --version 2>/dev/null || echo 'n/a')"
@@ -112,7 +112,7 @@ elif [ "$TARGET" = "wings" ]; then
 elif [ "$TARGET" = "billing" ]; then
   URL="https://github.com/$BILLING_REPO/releases/download/v$VERSION/billing.tar.gz"
   status downloading 20 "Descargando $URL"
-  run curl -fsSL "$URL" -o "$TMP/billing.tar.gz" || fail "No se pudo descargar billing.tar.gz del release v$VERSION (¿subiste el asset?)"
+  run curl -fSL -# "$URL" -o "$TMP/billing.tar.gz" || fail "No se pudo descargar billing.tar.gz del release v$VERSION (¿subiste el asset?)"
   mkdir -p "$TMP/billing" && run tar -xzf "$TMP/billing.tar.gz" -C "$TMP/billing"
   SRC="$TMP/billing"; [ -d "$TMP/billing/billing" ] && SRC="$TMP/billing/billing"
   [ -d "$BILLING_DIR" ] || fail "No existe $BILLING_DIR"
@@ -130,9 +130,9 @@ elif [ "$TARGET" = "billing" ]; then
   fi
   echo "BILLING_VERSION=$VERSION fijado en $BILLING_DIR/.env"
   status migrating 75 "Migraciones, seeder de planes y caches"
-  run sudo -u www-data env HOME=/tmp XDG_CONFIG_HOME=/tmp $PHP "$BILLING_DIR/artisan" migrate --force
-  run sudo -u www-data env HOME=/tmp XDG_CONFIG_HOME=/tmp $PHP "$BILLING_DIR/artisan" db:seed --class=PlanSeeder --force || true
-  run sudo -u www-data env HOME=/tmp XDG_CONFIG_HOME=/tmp $PHP "$BILLING_DIR/artisan" optimize:clear
+  run sudo -u www-data env HOME=/tmp XDG_CONFIG_HOME=/tmp $PHP "$BILLING_DIR/artisan" migrate --force --ansi
+  run sudo -u www-data env HOME=/tmp XDG_CONFIG_HOME=/tmp $PHP "$BILLING_DIR/artisan" db:seed --class=PlanSeeder --force --ansi || true
+  run sudo -u www-data env HOME=/tmp XDG_CONFIG_HOME=/tmp $PHP "$BILLING_DIR/artisan" optimize:clear --ansi
   status restarting 90 "Recargando PHP-FPM"
   run systemctl reload php8.4-fpm || true
 

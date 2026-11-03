@@ -179,8 +179,14 @@ class UpdateChecker
         // Salida real de los comandos del updater (consola en vivo).
         $outputPath = (string) config('panel.updates.output_path');
         if ($outputPath !== '' && is_readable($outputPath)) {
-            $lines = preg_split('/\r\n|\r|\n/', rtrim((string) file_get_contents($outputPath)));
-            $data['output'] = implode("\n", array_slice($lines ?: [], -400));
+            $lines = explode("\n", rtrim((string) file_get_contents($outputPath), "\n"));
+            // Un \r repinta la línea (barras de progreso): conservar solo el último estado.
+            $lines = array_map(function (string $line) {
+                $parts = explode("\r", rtrim($line, "\r"));
+
+                return end($parts) ?: '';
+            }, $lines);
+            $data['output'] = implode("\n", array_slice($lines, -400));
         }
 
         return $data;

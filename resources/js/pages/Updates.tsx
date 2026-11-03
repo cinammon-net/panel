@@ -1,5 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import ConfirmDialog from '@/components/confirm-dialog';
+import { renderAnsi } from '@/lib/ansi';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
 import {
@@ -291,9 +292,9 @@ export default function Updates() {
                                 ref={(el) => {
                                     if (el) el.scrollTop = el.scrollHeight;
                                 }}
-                                className="mt-3 max-h-80 overflow-y-auto rounded-lg border border-neutral-800 bg-black p-3 font-mono text-[11px] leading-relaxed text-emerald-300/90"
+                                className="mt-3 max-h-80 overflow-y-auto rounded-lg border border-neutral-800 bg-black p-3 font-mono text-[11px] leading-relaxed text-neutral-300"
                             >
-                                {runner.output || runner.log?.join('\n')}
+                                {runner.output ? renderAnsi(runner.output) : runner.log?.join('\n')}
                             </pre>
                         )}
                     </div>
