@@ -107,7 +107,7 @@ export default function WingsConsole({ endpoint, showServer = true }: { endpoint
                     const el = e.currentTarget;
                     stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
                 }}
-                className="h-[26rem] overflow-y-auto py-2"
+                className="h-56 overflow-y-auto py-2"
             >
                 {feed?.stale && <p className="px-3 py-6 text-center text-xs text-yellow-300">Sin datos recientes del recolector de Wings.</p>}
                 {feed && !feed.stale && events.length === 0 && <p className="px-3 py-6 text-center text-xs text-neutral-500">No hay eventos que coincidan.</p>}

@@ -155,11 +155,11 @@ export default function WingsPage({ mode, tier, node, telemetry, checks }: PageP
                             <div className="h-2 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
                                 <div className={`h-full ${fails > 0 ? 'bg-rose-500' : warns > 0 ? 'bg-yellow-400' : 'bg-emerald-400'}`} style={{ width: `${checks.length ? (passed / checks.length) * 100 : 0}%` }} />
                             </div>
-                            <ul className="divide-y divide-neutral-200 dark:divide-neutral-800">
+                            <ul className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
                                 {checks.map((c) => {
                                     const { icon: Icon, color } = STATUS_STYLE[c.status];
                                     return (
-                                        <li key={c.label} className="flex items-start gap-3 py-2.5">
+                                        <li key={c.label} className="flex items-start gap-3 rounded-lg border border-neutral-200 bg-white/60 px-3 py-2.5 dark:border-neutral-800 dark:bg-neutral-950/40">
                                             <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${color}`} />
                                             <div>
                                                 <p className="text-sm font-semibold text-neutral-900 dark:text-white">{c.label}</p>
