@@ -295,7 +295,13 @@ export default function CreateServer() {
                                                                     key={node.id}
                                                                     onClick={() => {
                                                                         setSelectedNode(node.name);
-                                                                        setServer((prev: any) => ({ ...prev, nodeId: node.id }));
+                                                                        setServer((prev: any) =>
+                                                                            prev.nodeId === node.id
+                                                                                ? prev
+                                                                                : { ...prev, nodeId: node.id, primaryAllocationId: '', additionalAllocationIds: [] },
+                                                                        );
+                                                                        setSelectedPrimaryAllocation(null);
+                                                                        setSelectedAdditionalAllocation(null);
                                                                         setShowNodeDropdown(false); // Close dropdown on selection
                                                                     }}
                                                                     className="cursor-pointer px-3 py-2 text-sm text-cyan-200 hover:bg-cyan-800"
@@ -392,8 +398,10 @@ export default function CreateServer() {
                                                     />
                                                     <ul className="max-h-60 overflow-y-auto">
                                                         {allocations
-                                                            .filter((alloc: any) =>
-                                                                alloc.ip.toLowerCase().includes(primaryAllocationSearch.toLowerCase()),
+                                                            .filter(
+                                                                (alloc: any) =>
+                                                                    (!server.nodeId || String(alloc.node_id) === String(server.nodeId)) &&
+                                                                    `${alloc.ip}:${alloc.port}`.includes(primaryAllocationSearch.trim()),
                                                             )
                                                             .map((alloc: any) => (
                                                                 <li
@@ -450,8 +458,12 @@ export default function CreateServer() {
                                                     />
                                                     <ul className="max-h-60 overflow-y-auto">
                                                         {allocations
-                                                            .filter((alloc: any) =>
-                                                                alloc.ip.toLowerCase().includes(additionalAllocationSearch.toLowerCase()),
+                                                            .filter(
+                                                                (alloc: any) =>
+                                                                    (!server.nodeId || String(alloc.node_id) === String(server.nodeId)) &&
+                                                                    alloc.id !== server.primaryAllocationId &&
+                                                                    !server.additionalAllocationIds.includes(alloc.id) &&
+                                                                    `${alloc.ip}:${alloc.port}`.includes(additionalAllocationSearch.trim()),
                                                             )
                                                             .map((alloc: any) => (
                                                                 <li
