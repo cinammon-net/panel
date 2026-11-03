@@ -1,4 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
+import ConfirmDialog from '@/components/confirm-dialog';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
 import {
@@ -46,6 +47,12 @@ interface Props {
 }
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Updates', href: '/updates' }];
+
+const TARGET_NAMES: Record<'panel' | 'wings' | 'billing', string> = {
+    panel: 'el panel',
+    wings: 'Wings',
+    billing: 'el billing',
+};
 
 const STATE_LABELS: Record<string, string> = {
     queued: 'En cola…',
@@ -152,6 +159,7 @@ export default function Updates() {
     const { status } = usePage<Props>().props;
     const [checking, setChecking] = useState(false);
     const [busy, setBusy] = useState(false);
+    const [pendingTarget, setPendingTarget] = useState<'panel' | 'wings' | 'billing' | null>(null);
     const [runner, setRunner] = useState<RunnerStatus | null>(status.runner);
 
     const runnerActive = runner?.state && !['done', 'error'].includes(runner.state);
@@ -184,10 +192,13 @@ export default function Updates() {
     };
 
     const handleUpdate = (target: 'panel' | 'wings' | 'billing') => {
-        const names = { panel: 'el panel', wings: 'Wings', billing: 'el billing' };
-        if (!confirm(`¿Actualizar ${names[target]} a la última versión? El servicio puede tardar unos segundos en responder durante el proceso.`)) {
-            return;
-        }
+        setPendingTarget(target);
+    };
+
+    const confirmUpdate = () => {
+        const target = pendingTarget;
+        if (!target) return;
+        setPendingTarget(null);
         setBusy(true);
         router.post(
             '/updates/run',
@@ -289,6 +300,14 @@ export default function Updates() {
                     tengas que tocar nada más. Instalación del updater: <span className="font-mono text-neutral-400">deploy/updater/README.md</span>.
                 </div>
             </div>
+            <ConfirmDialog
+                open={pendingTarget !== null}
+                title="CONFIRMAR ACTUALIZACIÓN"
+                description={`¿Actualizar ${pendingTarget ? TARGET_NAMES[pendingTarget] : ''} a la última versión? El servicio puede tardar unos segundos en responder durante el proceso.`}
+                confirmLabel="Actualizar ahora"
+                onConfirm={confirmUpdate}
+                onCancel={() => setPendingTarget(null)}
+            />
         </AppLayout>
     );
 }

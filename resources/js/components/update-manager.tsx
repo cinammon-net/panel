@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react';
+import ConfirmDialog from '@/components/confirm-dialog';
 import { ArrowUpCircle, CheckCircle2, ExternalLink, RefreshCw, Rocket, ShieldCheck, Terminal } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -100,6 +101,7 @@ function Row({ title, status, busy, onUpdate }: { title: string; status: Compone
 export default function UpdateManager({ status }: { status: UpdateStatus }) {
     const [checking, setChecking] = useState(false);
     const [busy, setBusy] = useState(false);
+    const [pendingTarget, setPendingTarget] = useState<'panel' | 'wings' | 'billing' | null>(null);
     const [runner, setRunner] = useState<RunnerStatus | null>(status.runner);
 
     const runnerActive = runner?.state && !['done', 'error'].includes(runner.state);
@@ -125,8 +127,13 @@ export default function UpdateManager({ status }: { status: UpdateStatus }) {
     }, [runnerActive]);
 
     const handleUpdate = (target: 'panel' | 'wings' | 'billing') => {
-        const names = { panel: 'el panel', wings: 'Wings', billing: 'el billing' };
-        if (!confirm(`¿Actualizar ${names[target]} a la última versión?`)) return;
+        setPendingTarget(target);
+    };
+
+    const confirmUpdate = () => {
+        const target = pendingTarget;
+        if (!target) return;
+        setPendingTarget(null);
         setBusy(true);
         router.post(
             '/updates/run',
@@ -187,6 +194,15 @@ export default function UpdateManager({ status }: { status: UpdateStatus }) {
                     )}
                 </div>
             )}
+
+            <ConfirmDialog
+                open={pendingTarget !== null}
+                title="CONFIRMAR ACTUALIZACIÓN"
+                description={`¿Actualizar ${pendingTarget === 'panel' ? 'el panel' : pendingTarget === 'wings' ? 'Wings' : 'el billing'} a la última versión? El servicio puede tardar unos segundos en responder durante el proceso.`}
+                confirmLabel="Actualizar ahora"
+                onConfirm={confirmUpdate}
+                onCancel={() => setPendingTarget(null)}
+            />
         </div>
     );
 }
