@@ -22,7 +22,6 @@ interface NodeHealth {
 interface SystemHealth {
     panel_version: string;
     php_version: string;
-    laravel_version: string;
     environment: string;
     debug: boolean;
     db_connected: boolean;
@@ -116,7 +115,7 @@ export default function Health({ system, updates, nodes = [] }: Props) {
                             </a>
                         ) : (
                             <p className="mt-1 text-xs text-neutral-400">
-                                PHP {system.php_version} · Laravel {system.laravel_version}
+                                PHP {system.php_version} · Cinammon Engine
                             </p>
                         )}
                     </div>

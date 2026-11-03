@@ -21,7 +21,19 @@ import { Bar } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
+interface LiveNode {
+    id: number;
+    name: string;
+    online: boolean;
+    latency_ms: number | null;
+    version: string | null;
+    servers_count: number;
+    running: number;
+    maintenance: boolean;
+}
+
 interface DashboardProps {
+    liveNodes?: LiveNode[] | null;
     updateStatus?: UpdateStatus | null;
     updates?: { pending: string[]; panel_latest: string | null; wings_latest: string | null } | null;
     roleScope?: 'admin' | 'moderator' | 'client';
@@ -40,6 +52,7 @@ interface DashboardProps {
 
 export default function Dashboard() {
     const {
+        liveNodes,
         updateStatus,
         updates,
         roleScope = 'client',
@@ -267,6 +280,50 @@ export default function Dashboard() {
                         </div>
                     ))}
                 </div>
+
+                {/* Infraestructura en vivo (nodos Wings) */}
+                {roleScope === 'admin' && !!liveNodes?.length && (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {liveNodes.map((node) => (
+                            <div
+                                key={node.id}
+                                className={`rounded-2xl border p-4 backdrop-blur transition ${
+                                    node.maintenance
+                                        ? 'border-amber-500/50 bg-amber-950/10'
+                                        : node.online
+                                        ? 'border-emerald-500/40 bg-emerald-950/10'
+                                        : 'border-red-500/50 bg-red-950/10'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-2.5">
+                                        <span
+                                            className={`h-2.5 w-2.5 rounded-full ${
+                                                node.maintenance ? 'bg-amber-400' : node.online ? 'bg-emerald-400 animate-pulse' : 'bg-red-500'
+                                            }`}
+                                        />
+                                        <span className="text-sm font-bold tracking-wider text-white">{node.name}</span>
+                                    </div>
+                                    <span className="font-mono text-[10px] text-neutral-400">
+                                        {node.maintenance ? 'MANTENIMIENTO' : node.online ? `${node.latency_ms} ms` : 'OFFLINE'}
+                                    </span>
+                                </div>
+                                <div className="mt-3 flex items-center justify-between text-xs text-neutral-300">
+                                    <span>
+                                        <span className="font-bold text-white">{node.running}</span>/{node.servers_count} servidores en marcha
+                                    </span>
+                                    {node.version && <span className="font-mono text-cyan-400">wings {node.version}</span>}
+                                </div>
+                                <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-neutral-800">
+                                    <div
+                                        className="h-full bg-emerald-400"
+                                        style={{ width: `${node.servers_count ? Math.round((node.running / node.servers_count) * 100) : 0}%` }}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
 
                 {/* Gráfico de Actividad Semanal (compacto) */}
                 {chartData.datasets.length > 0 && (

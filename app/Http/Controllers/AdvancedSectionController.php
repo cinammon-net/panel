@@ -82,7 +82,6 @@ class AdvancedSectionController extends Controller
             'system' => [
                 'panel_version' => config('panel.version', config('app.version', '1.0.0')),
                 'php_version' => PHP_VERSION,
-                'laravel_version' => app()->version(),
                 'environment' => config('app.env'),
                 'debug' => (bool) config('app.debug'),
                 'db_connected' => $dbConnected,

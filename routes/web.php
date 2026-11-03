@@ -332,6 +332,42 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'userRole' => $userRoles[0] ?? 'Member',
             // Gestor de actualizaciones embebido en el dashboard (solo admins)
             'updateStatus' => $roleScope === 'admin' ? \App\Support\UpdateChecker::status() : null,
+            // Infraestructura en vivo: estado de cada nodo Wings (cache 30 s)
+            'liveNodes' => $roleScope === 'admin'
+                ? \Illuminate\Support\Facades\Cache::remember('dashboard:live-nodes', now()->addSeconds(30), function () {
+                    return \App\Models\Node::withCount('servers')->get()->map(function ($node) {
+                        $scheme = $node->scheme ?: 'http';
+                        $port = $node->daemon_listen ?? 8080;
+                        $online = false;
+                        $latency = null;
+                        $version = null;
+                        $start = microtime(true);
+                        try {
+                            $resp = \Illuminate\Support\Facades\Http::withHeaders([
+                                'Authorization' => 'Bearer ' . $node->daemon_token,
+                                'Accept' => 'application/json',
+                            ])->timeout(2)->get("{$scheme}://{$node->fqdn}:{$port}/api/system");
+                            if ($resp->successful() || in_array($resp->status(), [401, 403])) {
+                                $online = true;
+                                $latency = round((microtime(true) - $start) * 1000, 1);
+                                $version = $resp->json('version');
+                            }
+                        } catch (\Throwable) {
+                        }
+
+                        return [
+                            'id' => $node->id,
+                            'name' => $node->name,
+                            'online' => $online,
+                            'latency_ms' => $latency,
+                            'version' => $version,
+                            'servers_count' => $node->servers_count,
+                            'running' => \App\Models\Server::where('node_id', $node->id)->where('status', 'online')->count(),
+                            'maintenance' => (bool) $node->maintenance_mode,
+                        ];
+                    })->values();
+                })
+                : null,
         ]);
     })->name('dashboard');
     Route::get('/api/dashboard-version', fn() => response()->json(['version' => config('panel.version', config('app.version', '1.0.0'))]));
