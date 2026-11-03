@@ -40,7 +40,7 @@ rm -f "$REQUEST"
 
 status queued 5 "Petición recibida: $TARGET v$VERSION"
 
-TMP=$(mktemp -d /tmp/cinammon-update.XXXXXX)
+TMP=$(mktemp -d /var/tmp/cinammon-update.XXXXXX)
 trap 'rm -rf "$TMP"' EXIT
 
 if [ "$TARGET" = "panel" ]; then
@@ -80,7 +80,7 @@ elif [ "$TARGET" = "wings" ]; then
   status downloading 25 "Descargando $URL"
   curl -fsSL "$URL" -o "$TMP/wings" || fail "No se pudo descargar $ASSET del release v$VERSION (¿subiste el binario?)"
   chmod +x "$TMP/wings"
-  "$TMP/wings" --version >/dev/null 2>&1 || fail "El binario descargado no se puede ejecutar"
+  "$TMP/wings" version >/dev/null 2>&1 || "$TMP/wings" --help >/dev/null 2>&1 || fail "El binario descargado no se puede ejecutar"
   status applying 60 "Instalando binario en $WINGS_BIN"
   cp "$WINGS_BIN" "$WINGS_BIN.bak" 2>/dev/null || true
   install -m 0755 "$TMP/wings" "$WINGS_BIN"

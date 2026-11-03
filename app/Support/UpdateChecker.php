@@ -29,6 +29,12 @@ class UpdateChecker
             'wings' => self::latestRelease(config('panel.updates.wings_repo')),
         ]);
 
+        // Si la API falló (rate limit, red), no fijar el fallo durante 30 min:
+        // se reintenta en la siguiente petición.
+        if ($latest['panel'] === null || $latest['wings'] === null) {
+            Cache::forget('updates:latest');
+        }
+
         $panelCurrent = (string) config('panel.version', '1.0.0');
         $wingsCurrent = self::wingsCurrentVersion();
 
