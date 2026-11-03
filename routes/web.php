@@ -429,6 +429,9 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/servers/{server}/subdomains/{subdomainId}', [App\Http\Controllers\ServerModulesController::class, 'destroySubdomain'])->name('servers.subdomains.destroy');
 
     Route::get('/servers/{server}/activity', [App\Http\Controllers\ServerModulesController::class, 'activity'])->name('servers.activity');
+    Route::get('/servers/{server}/startup', [App\Http\Controllers\ServerModulesController::class, 'startup'])->name('servers.startup');
+    Route::put('/servers/{server}/startup/variables', [App\Http\Controllers\ServerModulesController::class, 'updateStartupVariables'])->name('servers.startup.variables');
+    Route::put('/servers/{server}/startup/image', [App\Http\Controllers\ServerModulesController::class, 'updateStartupImage'])->name('servers.startup.image');
     Route::post('/servers/{server}/banner', [ServerController::class, 'updateBanner'])->name('servers.banner.update');
     Route::get('/servers/{server}/subusers', [App\Http\Controllers\ServerSubusersController::class, 'index'])->name('servers.subusers');
     Route::post('/servers/{server}/subusers', [App\Http\Controllers\ServerSubusersController::class, 'store'])->name('servers.subusers.store');

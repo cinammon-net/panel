@@ -8,6 +8,7 @@ import { Toaster } from 'sonner';
 
 export type ServerSection =
     | 'console'
+    | 'startup'
     | 'files'
     | 'databases'
     | 'network'
@@ -30,6 +31,7 @@ export default function ServerLayout({
 }) {
     const sectionTitles: Record<string, string> = {
         console: 'Consola',
+        startup: 'Inicio',
         files: 'Archivos',
         databases: 'Bases de Datos',
         network: 'Red y Puertos',

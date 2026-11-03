@@ -534,5 +534,119 @@ class ServerModulesController extends Controller
             'activity' => $activity,
         ]);
     }
+
+    private function startupVariables(Server $server)
+    {
+        $values = DB::table('server_variables')->where('server_id', $server->id)->pluck('variable_value', 'variable_id');
+
+        return $server->egg->variables()
+            ->where('user_viewable', true)
+            ->orderBy('sort')
+            ->orderBy('id')
+            ->get()
+            ->map(fn ($variable) => [
+                'id' => $variable->id,
+                'name' => $variable->name,
+                'description' => $variable->description,
+                'env_variable' => $variable->env_variable,
+                'default_value' => $variable->default_value,
+                'value' => $values[$variable->id] ?? $variable->default_value ?? '',
+                'rules' => $variable->rules,
+                'editable' => (bool) $variable->user_editable,
+            ]);
+    }
+
+    private function dockerImages(Server $server): array
+    {
+        $images = json_decode($server->egg->docker_images ?? '[]', true);
+
+        return is_array($images) ? $images : [];
+    }
+
+    public function startup(Request $request, Server $server)
+    {
+        $this->authorizeServer($request, $server);
+        $server->loadMissing(['egg', 'allocation']);
+        $variables = $this->startupVariables($server);
+
+        $environment = $variables->pluck('value', 'env_variable')->all();
+        $environment['SERVER_MEMORY'] = (string) $server->memory;
+        $environment['SERVER_PORT'] = (string) ($server->allocation?->port ?? '');
+        $environment['SERVER_IP'] = (string) ($server->allocation?->ip ?? '');
+        $rendered = preg_replace_callback(
+            '/\{\{\s*([A-Z0-9_]+)\s*\}\}|\$\{([A-Z0-9_]+)\}/',
+            fn ($match) => $environment[$match[1] ?: $match[2]] ?? $match[0],
+            (string) $server->startup
+        );
+
+        return Inertia::render('Servers/Startup', [
+            'server' => [
+                'id' => $server->id,
+                'name' => $server->name,
+                'uuid' => $server->uuid,
+                'owner_id' => $server->owner_id,
+                'egg' => $server->egg->name,
+            ],
+            'startup' => [
+                'raw' => $server->startup,
+                'rendered' => $rendered,
+                'image' => $server->image,
+                'images' => $this->dockerImages($server),
+            ],
+            'variables' => $variables,
+        ]);
+    }
+
+    public function updateStartupVariables(Request $request, Server $server)
+    {
+        $this->authorizeServer($request, $server);
+        $variables = $server->egg->variables()->where('user_viewable', true)->where('user_editable', true)->get();
+        $input = $request->input('variables', []);
+
+        $rules = [];
+        $attributes = [];
+        foreach ($variables as $variable) {
+            if (array_key_exists($variable->env_variable, $input)) {
+                $rules['variables.'.$variable->env_variable] = $variable->rules ?: 'nullable|string';
+                $attributes['variables.'.$variable->env_variable] = $variable->name;
+            }
+        }
+        $validated = validator($request->all(), $rules, [], $attributes)->validate();
+
+        $changed = [];
+        foreach ($variables as $variable) {
+            if (! array_key_exists($variable->env_variable, $validated['variables'] ?? [])) {
+                continue;
+            }
+            $value = (string) ($validated['variables'][$variable->env_variable] ?? '');
+            DB::table('server_variables')->updateOrInsert(
+                ['server_id' => $server->id, 'variable_id' => $variable->id],
+                ['variable_value' => $value, 'updated_at' => now(), 'created_at' => now()]
+            );
+            $changed[] = $variable->env_variable;
+        }
+
+        if ($changed) {
+            $this->logActivity($server, $request, 'server:startup.edit', 'Variables de inicio actualizadas: '.implode(', ', $changed));
+        }
+
+        return back()->with('success', 'Variables guardadas. Reinicia el servidor para aplicarlas.');
+    }
+
+    public function updateStartupImage(Request $request, Server $server)
+    {
+        $this->authorizeServer($request, $server);
+        $images = $this->dockerImages($server);
+        $data = $request->validate([
+            'image' => ['required', 'string', \Illuminate\Validation\Rule::in(array_values($images))],
+        ]);
+
+        if ($data['image'] !== $server->image) {
+            $server->update(['image' => $data['image']]);
+            $this->logActivity($server, $request, 'server:startup.image', 'Imagen de Docker cambiada a '.$data['image']);
+        }
+
+        return back()->with('success', 'Imagen actualizada. Reinicia el servidor para aplicarla.');
+    }
 }
 
