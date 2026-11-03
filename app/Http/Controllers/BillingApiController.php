@@ -21,13 +21,25 @@ class BillingApiController extends Controller
     private const CATEGORY_MAP = [
         'minecraft' => 'minecraft',
         'games' => 'games',
+        'survival' => 'games',
+        'shooters' => 'games',
+        'sandbox' => 'games',
+        'simulation' => 'games',
+        'voice' => 'voice',
         'bots' => 'bots',
         'databases' => 'database',
     ];
 
+    // Egg por defecto según la categoría de la tienda (clave de billing),
+    // con fallback a la categoría del panel.
     private const DEFAULT_EGGS = [
         'minecraft' => 'Paper',
         'games' => 'Palworld',
+        'survival' => 'Rust',
+        'shooters' => 'Counter-Strike 2',
+        'sandbox' => 'Garrys Mod',
+        'simulation' => 'Assetto Corsa',
+        'voice' => 'TeaSpeak',
         'bots' => 'JMusicBot',
         'database' => 'MariaDB 10.3',
     ];
@@ -63,7 +75,10 @@ class BillingApiController extends Controller
 
         $category = self::CATEGORY_MAP[$data['category']] ?? $data['category'];
 
-        $egg = Egg::where('category', $category)->where('name', self::DEFAULT_EGGS[$category] ?? '')->first()
+        $defaultEgg = self::DEFAULT_EGGS[$data['category']] ?? self::DEFAULT_EGGS[$category] ?? '';
+        // El egg por defecto se busca primero por nombre (algunos no tienen categoría asignada)
+        $egg = Egg::where('name', $defaultEgg)->first()
+            ?? Egg::where('category', $category)->where('name', $defaultEgg)->first()
             ?? Egg::where('category', $category)->orderBy('name')->firstOrFail();
 
         $user = User::firstOrCreate(
