@@ -80,24 +80,100 @@ class AdvancedSectionController extends Controller
 
         return Inertia::render('Health', [
             'system' => [
-                'panel_version' => config('app.version', '1.0.0'),
+                'panel_version' => config('panel.version', config('app.version', '1.0.0')),
                 'php_version' => PHP_VERSION,
                 'laravel_version' => app()->version(),
                 'environment' => config('app.env'),
+                'debug' => (bool) config('app.debug'),
                 'db_connected' => $dbConnected,
                 'db_driver' => $dbDriver,
                 'db_latency_ms' => $dbLatencyMs,
+                'db_version' => $this->databaseVersion(),
+                'db_size_mb' => $this->databaseSizeMb(),
                 'cache_working' => $cacheWorking,
+                'cache_driver' => config('cache.default'),
                 'queue_driver' => config('queue.default'),
+                'queue_pending' => $this->queuePending(),
+                'queue_failed' => $this->queueFailed(),
+                'redis_latency_ms' => $this->redisLatencyMs(),
+                'disk_total_gb' => round(@disk_total_space(base_path()) / 1073741824, 1) ?: null,
+                'disk_free_gb' => round(@disk_free_space(base_path()) / 1073741824, 1) ?: null,
+                'load_avg' => function_exists('sys_getloadavg') ? (sys_getloadavg() ?: null) : null,
+                'php_memory_mb' => round(memory_get_usage(true) / 1048576, 1),
+                'server_time' => now()->toDateTimeString(),
+                'timezone' => config('app.timezone'),
+                'ssl' => request()->isSecure(),
                 'counts' => [
                     'users' => User::count(),
                     'servers' => Server::count(),
                     'nodes' => Node::count(),
                     'eggs' => Egg::count(),
+                    'tickets_open' => (int) DB::table('tickets')->whereIn('status', ['open', 'pending'])->count(),
+                    'api_keys' => (int) DB::table('api_keys')->count(),
                 ],
             ],
+            'updates' => \App\Support\UpdateChecker::status(),
             'nodes' => $nodes,
         ]);
+    }
+
+    private function databaseVersion(): ?string
+    {
+        try {
+            return (string) DB::selectOne('select version() as v')->v;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function databaseSizeMb(): ?float
+    {
+        try {
+            $row = DB::selectOne(
+                'select round(sum(data_length + index_length) / 1048576, 1) as mb from information_schema.tables where table_schema = ?',
+                [DB::getDatabaseName()]
+            );
+
+            return $row?->mb !== null ? (float) $row->mb : null;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function queuePending(): ?int
+    {
+        try {
+            if (config('queue.default') === 'redis') {
+                return (int) \Illuminate\Support\Facades\Redis::connection()->llen('queues:default');
+            }
+            if (config('queue.default') === 'database') {
+                return (int) DB::table('jobs')->count();
+            }
+        } catch (\Throwable) {
+        }
+
+        return null;
+    }
+
+    private function queueFailed(): ?int
+    {
+        try {
+            return (int) DB::table('failed_jobs')->count();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function redisLatencyMs(): ?float
+    {
+        try {
+            $start = microtime(true);
+            \Illuminate\Support\Facades\Redis::connection()->ping();
+
+            return round((microtime(true) - $start) * 1000, 2);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     public function apiKeys()

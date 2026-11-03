@@ -1,6 +1,24 @@
 <?php
 
 return [
+    // Versión instalada del panel. El instalador/actualizador la fija en .env.
+    'version' => env('PANEL_VERSION', '1.0.0'),
+
+    /*
+     * Actualizaciones automáticas estilo Pelican: el panel consulta los releases
+     * de GitHub y, cuando el admin pulsa "Actualizar", deja una petición en
+     * update_request_path que ejecuta el updater privilegiado del host
+     * (deploy/updater/cinammon-update.sh vía systemd path unit).
+     */
+    'updates' => [
+        'panel_repo' => env('PANEL_UPDATE_REPO', 'cinammon-net/panel'),
+        'wings_repo' => env('PANEL_WINGS_UPDATE_REPO', 'cinammon-net/wings'),
+        'github_token' => env('PANEL_UPDATE_GITHUB_TOKEN'),
+        'request_path' => env('PANEL_UPDATE_REQUEST_PATH', '/run/cinammon-update/request.json'),
+        'status_path' => env('PANEL_UPDATE_STATUS_PATH', '/run/cinammon-telemetry/update-status.json'),
+        'cache_minutes' => (int) env('PANEL_UPDATE_CACHE_MINUTES', 30),
+    ],
+
     /*
      * Marca esta instalación como la DEMO (carpeta, base de datos y usuario propios):
      * muestra el selector de cuentas de demostración y simula el nodo. En el panel

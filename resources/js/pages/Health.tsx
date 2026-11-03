@@ -24,27 +24,50 @@ interface SystemHealth {
     php_version: string;
     laravel_version: string;
     environment: string;
+    debug: boolean;
     db_connected: boolean;
     db_driver: string;
     db_latency_ms: number;
+    db_version: string | null;
+    db_size_mb: number | null;
     cache_working: boolean;
+    cache_driver: string;
     queue_driver: string;
+    queue_pending: number | null;
+    queue_failed: number | null;
+    redis_latency_ms: number | null;
+    disk_total_gb: number | null;
+    disk_free_gb: number | null;
+    load_avg: number[] | null;
+    php_memory_mb: number;
+    server_time: string;
+    timezone: string;
+    ssl: boolean;
     counts: {
         users: number;
         servers: number;
         nodes: number;
         eggs: number;
+        tickets_open: number;
+        api_keys: number;
     };
+}
+
+interface UpdateComponent {
+    current: string;
+    latest: string | null;
+    update_available: boolean;
 }
 
 interface Props {
     system: SystemHealth;
+    updates?: { panel: UpdateComponent; wings: UpdateComponent } | null;
     nodes: NodeHealth[];
 }
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Health', href: '/health' }];
 
-export default function Health({ system, nodes = [] }: Props) {
+export default function Health({ system, updates, nodes = [] }: Props) {
     const [refreshing, setRefreshing] = useState(false);
 
     const handleRefresh = () => {
@@ -87,9 +110,15 @@ export default function Health({ system, nodes = [] }: Props) {
                             <Activity className="h-5 w-5 text-orange-400" />
                         </div>
                         <p className="mt-2 text-xl font-bold text-white">v{system.panel_version}</p>
-                        <p className="mt-1 text-xs text-neutral-400">
-                            PHP {system.php_version} · Laravel {system.laravel_version}
-                        </p>
+                        {updates?.panel?.update_available ? (
+                            <a href="/updates" className="mt-1 inline-block text-xs font-bold text-fuchsia-300 animate-pulse hover:text-fuchsia-200">
+                                ⬆ v{updates.panel.latest} disponible — actualizar
+                            </a>
+                        ) : (
+                            <p className="mt-1 text-xs text-neutral-400">
+                                PHP {system.php_version} · Laravel {system.laravel_version}
+                            </p>
+                        )}
                     </div>
 
                     <div className="rounded-xl border border-emerald-500/40 bg-neutral-900/80 p-4 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
@@ -101,7 +130,10 @@ export default function Health({ system, nodes = [] }: Props) {
                             <CheckCircle2 className={`h-5 w-5 ${system.db_connected ? 'text-emerald-400' : 'text-red-500'}`} />
                             <span className="text-xl font-bold text-white">{system.db_connected ? 'ONLINE' : 'OFFLINE'}</span>
                         </div>
-                        <p className="mt-1 text-xs text-neutral-400">Latencia: {system.db_latency_ms} ms</p>
+                        <p className="mt-1 text-xs text-neutral-400">
+                            {system.db_latency_ms} ms · {system.db_version?.split('-')[0] ?? '—'}
+                            {system.db_size_mb !== null && ` · ${system.db_size_mb} MB`}
+                        </p>
                     </div>
 
                     <div className="rounded-xl border border-cyan-500/40 bg-neutral-900/80 p-4 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
@@ -110,7 +142,12 @@ export default function Health({ system, nodes = [] }: Props) {
                             <Cpu className="h-5 w-5 text-cyan-400" />
                         </div>
                         <p className="mt-2 text-xl font-bold text-white">{system.cache_working ? 'HEALTHY' : 'DEGRADED'}</p>
-                        <p className="mt-1 text-xs text-neutral-400">Queue Driver: {system.queue_driver}</p>
+                        <p className="mt-1 text-xs text-neutral-400">
+                            {system.cache_driver}/{system.queue_driver}
+                            {system.redis_latency_ms !== null && ` · redis ${system.redis_latency_ms} ms`}
+                            {system.queue_pending !== null && ` · ${system.queue_pending} en cola`}
+                            {system.queue_failed !== null && system.queue_failed > 0 && ` · ${system.queue_failed} fallidos`}
+                        </p>
                     </div>
 
                     <div className="rounded-xl border border-pink-500/40 bg-neutral-900/80 p-4 shadow-[0_0_15px_rgba(236,72,153,0.1)]">
@@ -122,8 +159,63 @@ export default function Health({ system, nodes = [] }: Props) {
                             {system.counts.servers} Servers / {system.counts.nodes} Nodes
                         </p>
                         <p className="mt-1 text-xs text-neutral-400">
-                            {system.counts.users} Usuarios · {system.counts.eggs} Eggs
+                            {system.counts.users} Usuarios · {system.counts.eggs} Eggs · {system.counts.tickets_open} tickets abiertos
                         </p>
+                    </div>
+                </div>
+
+                {/* Detalle del host y runtime */}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="rounded-xl border border-neutral-700/60 bg-neutral-900/60 p-4">
+                        <span className="text-xs text-neutral-400">ENTORNO</span>
+                        <ul className="mt-2 space-y-1 text-xs text-neutral-300">
+                            <li>App: <span className="font-mono text-white">{system.environment}</span>{system.debug && <span className="ml-1 text-amber-400">(debug ON)</span>}</li>
+                            <li>HTTPS: <span className={system.ssl ? 'text-emerald-400' : 'text-red-400'}>{system.ssl ? 'activo' : 'inactivo'}</span></li>
+                            <li>Zona horaria: <span className="font-mono text-white">{system.timezone}</span></li>
+                            <li>Hora del servidor: <span className="font-mono text-white">{system.server_time}</span></li>
+                        </ul>
+                    </div>
+
+                    <div className="rounded-xl border border-neutral-700/60 bg-neutral-900/60 p-4">
+                        <span className="text-xs text-neutral-400">ALMACENAMIENTO DEL HOST</span>
+                        {system.disk_total_gb ? (
+                            <>
+                                <p className="mt-2 text-lg font-bold text-white">
+                                    {(system.disk_total_gb - (system.disk_free_gb ?? 0)).toFixed(1)} / {system.disk_total_gb} GB
+                                </p>
+                                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-neutral-800">
+                                    <div
+                                        className="h-full bg-orange-400"
+                                        style={{ width: `${Math.min(100, Math.round(((system.disk_total_gb - (system.disk_free_gb ?? 0)) / system.disk_total_gb) * 100))}%` }}
+                                    />
+                                </div>
+                                <p className="mt-1 text-xs text-neutral-400">{system.disk_free_gb} GB libres</p>
+                            </>
+                        ) : (
+                            <p className="mt-2 text-xs text-neutral-500">No disponible</p>
+                        )}
+                    </div>
+
+                    <div className="rounded-xl border border-neutral-700/60 bg-neutral-900/60 p-4">
+                        <span className="text-xs text-neutral-400">CARGA DEL SISTEMA</span>
+                        <p className="mt-2 text-lg font-bold text-white">
+                            {system.load_avg ? system.load_avg.map((l) => l.toFixed(2)).join(' · ') : '—'}
+                        </p>
+                        <p className="mt-1 text-xs text-neutral-400">load 1/5/15 min · PHP usa {system.php_memory_mb} MB</p>
+                    </div>
+
+                    <div className="rounded-xl border border-neutral-700/60 bg-neutral-900/60 p-4">
+                        <span className="text-xs text-neutral-400">WINGS</span>
+                        <p className="mt-2 text-lg font-bold text-white">
+                            {updates?.wings?.current ? `v${updates.wings.current}` : nodes[0]?.wings_version ?? '—'}
+                        </p>
+                        {updates?.wings?.update_available ? (
+                            <a href="/updates" className="mt-1 inline-block text-xs font-bold text-fuchsia-300 animate-pulse hover:text-fuchsia-200">
+                                ⬆ v{updates.wings.latest} disponible — actualizar
+                            </a>
+                        ) : (
+                            <p className="mt-1 text-xs text-neutral-400">{system.counts.api_keys} API keys activas</p>
+                        )}
                     </div>
                 </div>
 

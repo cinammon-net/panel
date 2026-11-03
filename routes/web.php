@@ -332,7 +332,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'userRole' => $userRoles[0] ?? 'Member',
         ]);
     })->name('dashboard');
-    Route::get('/api/dashboard-version', fn() => response()->json(['version' => config('app.version', '1.0.0')]));
+    Route::get('/api/dashboard-version', fn() => response()->json(['version' => config('panel.version', config('app.version', '1.0.0'))]));
     Route::get('/settings/appearance', [SettingsController::class, 'appearance'])->name('settings.appearance');
 });
 
@@ -342,6 +342,13 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
     // Secciones avanzadas (salud, API keys, bases de datos, montajes, webhooks): solo Owner/Admin
     Route::middleware('admin')->group(function () {
         Route::get('/health', [AdvancedSectionController::class, 'health'])->name('health.index');
+
+        // Actualizaciones del panel y de Wings (estilo Pelican)
+        Route::get('/updates', [\App\Http\Controllers\UpdateController::class, 'index'])->name('updates.index');
+        Route::post('/updates/check', [\App\Http\Controllers\UpdateController::class, 'check'])->name('updates.check');
+        Route::post('/updates/run', [\App\Http\Controllers\UpdateController::class, 'run'])->name('updates.run');
+        Route::get('/updates/runner-status', [\App\Http\Controllers\UpdateController::class, 'runnerStatus'])->name('updates.runner');
+
         Route::get('/api-keys', [AdvancedSectionController::class, 'apiKeys'])->name('api-keys.index');
         Route::post('/api-keys', [AdvancedSectionController::class, 'storeApiKey'])->name('api-keys.store');
         Route::delete('/api-keys/{id}', [AdvancedSectionController::class, 'destroyApiKey'])->name('api-keys.destroy');

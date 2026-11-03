@@ -1,0 +1,7 @@
+[Unit]
+Description=Updater privilegiado de Cinammon (panel + wings)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/cinammon-update.sh
+TimeoutStartSec=900

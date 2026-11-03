@@ -1,5 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
-import { Head, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Title, Tooltip } from 'chart.js';
 import {
     Activity,
@@ -21,6 +21,7 @@ import { Bar } from 'react-chartjs-2';
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 interface DashboardProps {
+    updates?: { pending: string[]; panel_latest: string | null; wings_latest: string | null } | null;
     roleScope?: 'admin' | 'moderator' | 'client';
     userRole?: string;
     stats?: Record<string, number>;
@@ -37,6 +38,7 @@ interface DashboardProps {
 
 export default function Dashboard() {
     const {
+        updates,
         roleScope = 'client',
         userRole = 'Member',
         stats: serverStats = {},
@@ -263,12 +265,12 @@ export default function Dashboard() {
                     ))}
                 </div>
 
-                {/* Gráfico de Actividad Semanal */}
+                {/* Gráfico de Actividad Semanal (compacto) */}
                 {chartData.datasets.length > 0 && (
-                    <div className="rounded-2xl border border-purple-500/30 bg-black/40 p-5 sm:p-6 shadow-[0_0_20px_rgba(117,26,255,0.15)] backdrop-blur">
-                        <div className="mb-4 flex items-center gap-2.5 text-purple-300">
-                            <TrendingUp className="h-5 w-5 text-purple-400" />
-                            <h2 className="text-lg font-bold tracking-wider">
+                    <div className="rounded-2xl border border-purple-500/30 bg-black/40 p-4 shadow-[0_0_20px_rgba(117,26,255,0.15)] backdrop-blur">
+                        <div className="mb-3 flex items-center gap-2.5 text-purple-300">
+                            <TrendingUp className="h-4 w-4 text-purple-400" />
+                            <h2 className="text-sm font-bold tracking-wider">
                                 {roleScope === 'admin'
                                     ? 'Actividad Semanal del Sistema'
                                     : roleScope === 'moderator'
@@ -276,7 +278,7 @@ export default function Dashboard() {
                                     : 'Tu Actividad Semanal'}
                             </h2>
                         </div>
-                        <div className="h-64 sm:h-80 w-full">
+                        <div className="h-36 sm:h-44 w-full">
                             <Bar
                                 data={chartData}
                                 options={{
@@ -286,19 +288,19 @@ export default function Dashboard() {
                                         legend: {
                                             labels: {
                                                 color: '#bbb',
-                                                font: { family: 'Orbitron', size: 11 },
-                                                boxWidth: 14,
+                                                font: { family: 'Orbitron', size: 10 },
+                                                boxWidth: 10,
                                             },
                                         },
                                     },
                                     scales: {
                                         x: {
-                                            ticks: { color: '#888', font: { family: 'Orbitron', size: 10 } },
-                                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                                            ticks: { color: '#888', font: { family: 'Orbitron', size: 9 } },
+                                            grid: { display: false },
                                         },
                                         y: {
                                             beginAtZero: true,
-                                            ticks: { color: '#888', stepSize: 1, font: { family: 'Orbitron', size: 10 } },
+                                            ticks: { color: '#888', stepSize: 1, font: { family: 'Orbitron', size: 9 } },
                                             grid: { color: 'rgba(255, 255, 255, 0.05)' },
                                         },
                                     },
@@ -311,7 +313,7 @@ export default function Dashboard() {
                 {/* Información exclusiva para Administradores */}
                 {roleScope === 'admin' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="rounded-2xl border border-purple-500/30 bg-black/40 p-5 shadow-md">
+                        <div className="rounded-2xl border border-purple-500/30 bg-black/40 p-5 shadow-md flex items-center justify-between gap-4 flex-wrap">
                             <p className="flex items-center gap-2.5 text-sm text-purple-300 font-medium">
                                 <Settings className="h-4 w-4 text-emerald-400" />
                                 <span>Versión del Sistema:</span>
@@ -319,6 +321,19 @@ export default function Dashboard() {
                                     v{version}
                                 </span>
                             </p>
+                            {updates?.pending?.length ? (
+                                <Link
+                                    href="/updates"
+                                    className="inline-flex items-center gap-1.5 rounded-xl border border-fuchsia-500/60 bg-fuchsia-950/50 px-3.5 py-1.5 text-xs font-bold text-fuchsia-200 animate-pulse hover:bg-fuchsia-900/60 transition"
+                                >
+                                    <TrendingUp className="h-3.5 w-3.5" />
+                                    v{updates.panel_latest ?? updates.wings_latest} disponible
+                                </Link>
+                            ) : (
+                                <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400">
+                                    <CheckCircle2 className="h-3.5 w-3.5" /> Al día
+                                </span>
+                            )}
                         </div>
 
                         <div className="rounded-2xl border border-purple-500/30 bg-black/40 p-5 shadow-md flex items-center justify-between gap-4 flex-wrap">

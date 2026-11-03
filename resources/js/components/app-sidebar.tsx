@@ -18,6 +18,7 @@ import {
     Bookmark,
     CreditCard,
     Database,
+    DownloadCloud,
     Egg,
     FolderGit2,
     HeartPulse,
@@ -126,6 +127,15 @@ const mainNavItems: NavItem[] = [
         groupColor: 'text-orange-400',
         roles: ['Admin', 'Moderator', 'Helper', 'Sponsors'],
         permissions: ['view_health'],
+    },
+    {
+        title: 'Updates',
+        href: '/updates',
+        icon: DownloadCloud,
+        group: 'advanced',
+        groupColor: 'text-orange-400',
+        roles: ['Admin'],
+        permissions: ['view_settings'],
     },
     {
         title: 'API Keys',

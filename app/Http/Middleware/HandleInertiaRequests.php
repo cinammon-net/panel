@@ -46,6 +46,12 @@ class HandleInertiaRequests extends Middleware
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'demoMode' => \App\Support\Panel::demoMode(),
 
+            // Aviso de actualizaciones pendientes (solo admins; se cachea en UpdateChecker)
+            'updates' => fn () => ($user = $request->user()) && $user->hasAnyRole(['Owner', 'Admin'])
+                ? \App\Support\UpdateChecker::available()
+                : null,
+
+
             'serverLock' => fn () => ($user = $request->user()) ? [
                 'has_code' => $user->hasSecurityCode(),
                 'active' => $user->securityLockActive(),

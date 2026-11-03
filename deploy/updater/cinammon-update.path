@@ -1,0 +1,9 @@
+[Unit]
+Description=Vigila las peticiones de actualización del panel Cinammon
+
+[Path]
+PathChanged=/run/cinammon-update/request.json
+MakeDirectory=no
+
+[Install]
+WantedBy=multi-user.target
