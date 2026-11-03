@@ -387,7 +387,9 @@ export default function Dashboard() {
                             {updates?.pending?.length ? (
                                 <span className="inline-flex items-center gap-1.5 rounded-xl border border-fuchsia-500/60 bg-fuchsia-950/50 px-3.5 py-1.5 text-xs font-bold text-fuchsia-200 animate-pulse">
                                     <TrendingUp className="h-3.5 w-3.5" />
-                                    v{updates.panel_latest ?? updates.wings_latest} disponible
+                                    {updates.pending.includes('panel')
+                                        ? `Panel v${updates.panel_latest} disponible`
+                                        : `Wings v${updates.wings_latest} disponible`}
                                 </span>
                             ) : (
                                 <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400">
