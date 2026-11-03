@@ -22,6 +22,7 @@ interface ComponentStatus {
     latest: string | null;
     update_available: boolean;
     notes: string | null;
+    title: string | null;
     url: string | null;
     published_at: string | null;
 }
@@ -142,6 +143,11 @@ function ComponentCard({
             {status.update_available && status.notes && (
                 <div className="mt-4 max-h-44 overflow-y-auto rounded-xl border border-neutral-800 bg-black/50 p-4">
                     <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-neutral-500">Notas de la versión</p>
+                    {status.title && (
+                        <p className="mb-2 text-xs font-bold tracking-wide text-fuchsia-200">
+                            {status.title.replace(/^v[\d.]+\s*[—-]\s*/, '')}
+                        </p>
+                    )}
                     <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed text-neutral-300">{status.notes}</pre>
                 </div>
             )}
@@ -356,6 +362,11 @@ export default function Updates() {
                                         <span className="rounded border border-neutral-700 bg-black/60 px-2 py-0.5 font-mono text-xs font-bold text-white">
                                             v{release.tag}
                                         </span>
+                                        {release.name && release.name !== `v${release.tag}` && (
+                                            <span className="text-xs font-bold tracking-wide text-white">
+                                                {release.name.replace(/^v[\d.]+\s*[—-]\s*/, '')}
+                                            </span>
+                                        )}
                                         {release.installed && (
                                             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
                                                 <ShieldCheck className="h-3 w-3" /> Instalada

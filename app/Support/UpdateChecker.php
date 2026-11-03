@@ -209,6 +209,7 @@ class UpdateChecker
             'update_available' => $latestTag !== null && $current !== ''
                 && version_compare($latestTag, ltrim($current, 'v'), '>'),
             'notes' => $latest['notes'] ?? null,
+            'title' => $latest['name'] ?? null,
             'url' => $latest['url'] ?? null,
             'published_at' => $latest['published_at'] ?? null,
         ];
