@@ -111,7 +111,7 @@ export default function Health({ system, updates, nodes = [] }: Props) {
                         </div>
                         <p className="mt-2 text-xl font-bold text-white">v{system.panel_version}</p>
                         {updates?.panel?.update_available ? (
-                            <a href="/updates" className="mt-1 inline-block text-xs font-bold text-fuchsia-300 animate-pulse hover:text-fuchsia-200">
+                            <a href="/dashboard" className="mt-1 inline-block text-xs font-bold text-fuchsia-300 animate-pulse hover:text-fuchsia-200">
                                 ⬆ v{updates.panel.latest} disponible — actualizar
                             </a>
                         ) : (
@@ -210,7 +210,7 @@ export default function Health({ system, updates, nodes = [] }: Props) {
                             {updates?.wings?.current ? `v${updates.wings.current}` : nodes[0]?.wings_version ?? '—'}
                         </p>
                         {updates?.wings?.update_available ? (
-                            <a href="/updates" className="mt-1 inline-block text-xs font-bold text-fuchsia-300 animate-pulse hover:text-fuchsia-200">
+                            <a href="/dashboard" className="mt-1 inline-block text-xs font-bold text-fuchsia-300 animate-pulse hover:text-fuchsia-200">
                                 ⬆ v{updates.wings.latest} disponible — actualizar
                             </a>
                         ) : (

@@ -1,3 +1,4 @@
+import UpdateManager, { type UpdateStatus } from '@/components/update-manager';
 import AppLayout from '@/layouts/app-layout';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Title, Tooltip } from 'chart.js';
@@ -21,6 +22,7 @@ import { Bar } from 'react-chartjs-2';
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 interface DashboardProps {
+    updateStatus?: UpdateStatus | null;
     updates?: { pending: string[]; panel_latest: string | null; wings_latest: string | null } | null;
     roleScope?: 'admin' | 'moderator' | 'client';
     userRole?: string;
@@ -38,6 +40,7 @@ interface DashboardProps {
 
 export default function Dashboard() {
     const {
+        updateStatus,
         updates,
         roleScope = 'client',
         userRole = 'Member',
@@ -310,6 +313,9 @@ export default function Dashboard() {
                     </div>
                 )}
 
+                {/* Actualizaciones (estilo Pelican, embebido en el dashboard) */}
+                {roleScope === 'admin' && updateStatus && <UpdateManager status={updateStatus} />}
+
                 {/* Información exclusiva para Administradores */}
                 {roleScope === 'admin' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -322,13 +328,10 @@ export default function Dashboard() {
                                 </span>
                             </p>
                             {updates?.pending?.length ? (
-                                <Link
-                                    href="/updates"
-                                    className="inline-flex items-center gap-1.5 rounded-xl border border-fuchsia-500/60 bg-fuchsia-950/50 px-3.5 py-1.5 text-xs font-bold text-fuchsia-200 animate-pulse hover:bg-fuchsia-900/60 transition"
-                                >
+                                <span className="inline-flex items-center gap-1.5 rounded-xl border border-fuchsia-500/60 bg-fuchsia-950/50 px-3.5 py-1.5 text-xs font-bold text-fuchsia-200 animate-pulse">
                                     <TrendingUp className="h-3.5 w-3.5" />
                                     v{updates.panel_latest ?? updates.wings_latest} disponible
-                                </Link>
+                                </span>
                             ) : (
                                 <span className="inline-flex items-center gap-1.5 text-xs text-emerald-400">
                                     <CheckCircle2 className="h-3.5 w-3.5" /> Al día

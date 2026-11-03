@@ -330,6 +330,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'stats' => $stats,
             'weeklyActivity' => $weeklyActivity,
             'userRole' => $userRoles[0] ?? 'Member',
+            // Gestor de actualizaciones embebido en el dashboard (solo admins)
+            'updateStatus' => $roleScope === 'admin' ? \App\Support\UpdateChecker::status() : null,
         ]);
     })->name('dashboard');
     Route::get('/api/dashboard-version', fn() => response()->json(['version' => config('panel.version', config('app.version', '1.0.0'))]));

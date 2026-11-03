@@ -18,7 +18,6 @@ import {
     Bookmark,
     CreditCard,
     Database,
-    DownloadCloud,
     Egg,
     FolderGit2,
     HeartPulse,
@@ -35,6 +34,7 @@ import {
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
+    // ——— Nivel raíz (como Pelican: Dashboard, Health y Settings al frente) ———
     {
         title: 'Dashboard',
         href: '/dashboard',
@@ -43,6 +43,15 @@ const mainNavItems: NavItem[] = [
         groupColor: 'text-purple-400',
         roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin', 'Owner'],
         permissions: ['view_server'],
+    },
+    {
+        title: 'Health',
+        href: '/health',
+        icon: HeartPulse,
+        group: 'main',
+        groupColor: 'text-orange-400',
+        roles: ['Admin', 'Moderator', 'Helper', 'Sponsors'],
+        permissions: ['view_health'],
     },
     {
         title: 'Facturación / Tienda',
@@ -63,14 +72,15 @@ const mainNavItems: NavItem[] = [
         permissions: [],
     },
 
+    // ——— Server (todo lo que toca infraestructura, como Pelican) ———
     {
-        title: 'Eggs',
-        href: '/eggs',
-        icon: Egg,
+        title: 'Servers',
+        href: '/servers',
+        icon: Server,
         group: 'servers',
         groupColor: 'text-blue-400',
-        roles: ['Admin'],
-        permissions: ['view_list_egg'],
+        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin'],
+        permissions: ['view_server'],
     },
     {
         title: 'Nodes',
@@ -91,15 +101,43 @@ const mainNavItems: NavItem[] = [
         permissions: ['view_list_node'],
     },
     {
-        title: 'Servers',
-        href: '/servers',
-        icon: Server,
+        title: 'Eggs',
+        href: '/eggs',
+        icon: Egg,
         group: 'servers',
         groupColor: 'text-blue-400',
-        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin'],
-        permissions: ['view_server'],
+        roles: ['Admin'],
+        permissions: ['view_list_egg'],
+    },
+    {
+        title: 'Database Host',
+        href: '/database',
+        icon: Database,
+        group: 'servers',
+        groupColor: 'text-blue-400',
+        roles: ['Admin'],
+        permissions: ['view_settings'],
+    },
+    {
+        title: 'Mounts',
+        href: '/mounts',
+        icon: Radio,
+        group: 'servers',
+        groupColor: 'text-blue-400',
+        roles: ['Admin'],
+        permissions: ['view_mount'],
     },
 
+    // ——— User (cuentas y acceso, como Pelican) ———
+    {
+        title: 'Users',
+        href: '/users',
+        icon: Users,
+        group: 'users',
+        groupColor: 'text-pink-400',
+        roles: ['Admin', 'Moderator', 'Helper'],
+        permissions: ['view_list_user'],
+    },
     {
         title: 'Roles',
         href: '/roles',
@@ -110,70 +148,25 @@ const mainNavItems: NavItem[] = [
         permissions: ['view_user'],
     },
     {
-        title: 'Users',
-        href: '/users',
-        icon: Users,
-        group: 'users',
-        groupColor: 'text-pink-400',
-        roles: ['Admin', 'Moderator', 'Helper'], 
-        permissions: ['view_list_user'],
-    },
-
-    {
-        title: 'Health',
-        href: '/health',
-        icon: HeartPulse,
-        group: 'advanced',
-        groupColor: 'text-orange-400',
-        roles: ['Admin', 'Moderator', 'Helper', 'Sponsors'],
-        permissions: ['view_health'],
-    },
-    {
-        title: 'Updates',
-        href: '/updates',
-        icon: DownloadCloud,
-        group: 'advanced',
-        groupColor: 'text-orange-400',
-        roles: ['Admin'],
-        permissions: ['view_settings'],
-    },
-    {
         title: 'API Keys',
         href: '/api-keys',
         icon: KeyRound,
-        group: 'advanced',
-        groupColor: 'text-orange-400',
+        group: 'users',
+        groupColor: 'text-pink-400',
         roles: ['Admin'],
         permissions: ['view_settings'],
-    },
-    {
-        title: 'Database Host',
-        href: '/database',
-        icon: Database,
-        group: 'advanced',
-        groupColor: 'text-orange-400',
-        roles: ['Admin'],
-        permissions: ['view_settings'],
-    },
-    {
-        title: 'Mounts',
-        href: '/mounts',
-        icon: Radio,
-        group: 'advanced',
-        groupColor: 'text-orange-400',
-        roles: ['Admin'],
-        permissions: ['view_mount'],
     },
     {
         title: 'Webhooks',
         href: '/webhooks',
         icon: Webhook,
-        group: 'advanced',
-        groupColor: 'text-orange-400',
+        group: 'users',
+        groupColor: 'text-pink-400',
         roles: ['Admin'],
         permissions: ['view_webhook'],
     },
 
+    // ——— Extra (comunidad) ———
     {
         title: 'Posts',
         href: '/posts',

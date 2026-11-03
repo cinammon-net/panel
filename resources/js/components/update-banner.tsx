@@ -30,7 +30,7 @@ export default function UpdateBanner() {
                     Nueva actualización disponible: <strong>{parts.join(' · ')}</strong>
                 </span>
                 <Link
-                    href="/updates"
+                    href="/dashboard"
                     className="ml-2 rounded-lg border border-fuchsia-400/60 bg-fuchsia-500/20 px-3 py-1 font-bold text-fuchsia-200 transition hover:bg-fuchsia-400 hover:text-black"
                 >
                     Ver y actualizar
