@@ -3,6 +3,7 @@
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\SecurityController;
+use App\Http\Controllers\Settings\ServerLockController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -20,6 +21,14 @@ Route::middleware('auth')->group(function () {
 
     Route::get('settings/security', [SecurityController::class, 'edit'])->name('security.edit');
     Route::post('settings/security/logout-others', [SecurityController::class, 'logoutOtherSessions'])->name('security.logout-others');
+
+    Route::post('settings/security/lock', [ServerLockController::class, 'store'])->name('server-lock.store');
+    Route::post('settings/security/lock/enable', [ServerLockController::class, 'enable'])->name('server-lock.enable');
+    Route::post('settings/security/lock/disable', [ServerLockController::class, 'disable'])->name('server-lock.disable');
+    Route::put('settings/security/lock/code', [ServerLockController::class, 'changeCode'])->name('server-lock.code');
+    Route::post('settings/security/lock/relock', [ServerLockController::class, 'relock'])->name('server-lock.relock');
+    Route::get('security/unlock', [ServerLockController::class, 'unlockPage'])->name('server-lock.unlock');
+    Route::post('security/unlock', [ServerLockController::class, 'unlock'])->name('server-lock.unlock.submit');
 
     Route::get('settings/appearance', function () {
         return Inertia::render('settings/appearance');

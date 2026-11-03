@@ -48,12 +48,12 @@ interface LoginProps {
 }
 
 const roles = [
-    { name: 'Owner', email: 'owner@cinammon.net', icon: Crown },
+    { name: 'Owner', email: 'demo-owner@cinammon.net', icon: Crown },
     { name: 'Admin', email: 'demo-admin@cinammon.net', icon: Hammer },
-    { name: 'Moderator', email: 'moderator@cinammon.net', icon: ShieldCheck },
-    { name: 'Helper', email: 'helper@cinammon.net', icon: Handshake },
-    { name: 'Sponsors', email: 'sponsors@cinammon.net', icon: Gem },
-    { name: 'Members', email: 'members@cinammon.net', icon: User },
+    { name: 'Moderator', email: 'demo-moderator@cinammon.net', icon: ShieldCheck },
+    { name: 'Helper', email: 'demo-helper@cinammon.net', icon: Handshake },
+    { name: 'Sponsors', email: 'demo-sponsors@cinammon.net', icon: Gem },
+    { name: 'Members', email: 'demo-members@cinammon.net', icon: User },
 ];
 
 export default function Login({ status, canResetPassword, demoMode }: LoginProps & { demoMode?: boolean }) {
@@ -140,6 +140,16 @@ export default function Login({ status, canResetPassword, demoMode }: LoginProps
                             </div>
                         </Listbox>
                     </div>
+                    )}
+
+                    {demoMode && (
+                        <Link
+                            href={route('demo.security')}
+                            className="flex items-center justify-center gap-2 rounded border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-center text-xs font-semibold text-cyan-300 hover:bg-cyan-500/20"
+                        >
+                            <ShieldCheck className="h-4 w-4" />
+                            Ver la seguridad con código y sin código →
+                        </Link>
                     )}
 
                     {/* EMAIL */}

@@ -16,8 +16,12 @@ class AuthenticatedSessionController extends Controller
     /**
      * Show the login page.
      */
-    public function create(Request $request): Response
+    public function create(Request $request): Response|RedirectResponse
     {
+        if ($this->onWingsHost($request)) {
+            return redirect('/');
+        }
+
         return Inertia::render('auth/login', [
             'canResetPassword' => Route::has('password.request'),
             'status' => $request->session()->get('status'),
@@ -34,7 +38,18 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        if ($this->onWingsHost($request)) {
+            return redirect('/');
+        }
+
         return redirect()->intended(route('servers.index', absolute: false));
+    }
+
+    private function onWingsHost(Request $request): bool
+    {
+        $host = (string) config('panel.wings_host');
+
+        return $host !== '' && strcasecmp($request->getHost(), $host) === 0;
     }
 
     /**

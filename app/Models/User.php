@@ -24,6 +24,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'lock_code',
     ];
 
     protected function casts(): array
@@ -31,7 +32,20 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'lock_code_set_at' => 'datetime',
+            'lock_enabled_until' => 'datetime',
         ];
+    }
+
+    public function hasSecurityCode(): bool
+    {
+        return $this->lock_code !== null;
+    }
+
+    /** El bloqueo está activo hasta `lock_enabled_until`; después se apaga solo. */
+    public function securityLockActive(): bool
+    {
+        return $this->hasSecurityCode() && $this->lock_enabled_until?->isFuture() === true;
     }
 
     public function tickets()
