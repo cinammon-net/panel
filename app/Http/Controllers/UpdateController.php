@@ -13,6 +13,8 @@ class UpdateController extends Controller
     {
         return Inertia::render('Updates', [
             'status' => UpdateChecker::status(),
+            'changelog' => UpdateChecker::changelog(),
+            'history' => UpdateChecker::history(),
         ]);
     }
 

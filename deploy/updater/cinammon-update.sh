@@ -6,6 +6,7 @@ set -euo pipefail
 REQUEST=/run/cinammon-update/request.json
 STATUS=/run/cinammon-telemetry/update-status.json
 OUTPUT=/run/cinammon-telemetry/update-output.log
+HISTORY=/var/lib/cinammon/update-history.jsonl
 PANEL_DIR=/var/www/cinammon-panel
 DEMO_DIR=/var/www/cinammon-demo
 BILLING_DIR=/var/www/cinammon-billing
@@ -27,12 +28,13 @@ status() { # state progress message
   local state="$1" progress="$2" message="$3"
   LOG+=("$(date '+%H:%M:%S') $message")
   mkdir -p "$(dirname "$STATUS")"
-  python3 - "$state" "$progress" "$message" "$TARGET" "$VERSION" "${LOG[@]}" <<'PY'
+  python3 - "$state" "$progress" "$message" "$TARGET" "$VERSION" "$REQUESTED_BY" "${LOG[@]}" <<'PY'
 import json, sys
-state, progress, message, target, version, *log = sys.argv[1:]
+state, progress, message, target, version, requested_by, *log = sys.argv[1:]
 json.dump({
   "target": target, "version": version, "state": state,
   "progress": int(progress), "message": message, "log": log[-30:],
+  "requested_by": requested_by,
   "updated_at": __import__("datetime").datetime.now().isoformat(),
 }, open("/run/cinammon-telemetry/update-status.json", "w"))
 PY
@@ -40,11 +42,29 @@ PY
   chmod 640 "$STATUS"
 }
 
-fail() { status error 100 "$1"; exit 1; }
+# Apunta el resultado al historial permanente (quién, qué y cuándo).
+history_append() { # state
+  mkdir -p "$(dirname "$HISTORY")"
+  python3 - "$1" "$TARGET" "$VERSION" "$REQUESTED_BY" <<'PY'
+import json, sys, datetime
+state, target, version, requested_by = sys.argv[1:]
+with open("/var/lib/cinammon/update-history.jsonl", "a") as f:
+    f.write(json.dumps({
+        "target": target, "version": version, "state": state,
+        "requested_by": requested_by,
+        "finished_at": datetime.datetime.now().astimezone().isoformat(),
+    }) + "\n")
+PY
+  chgrp www-data "$HISTORY" 2>/dev/null || true
+  chmod 640 "$HISTORY"
+}
+
+fail() { status error 100 "$1"; history_append error; exit 1; }
 
 [ -f "$REQUEST" ] || exit 0
 TARGET=$(python3 -c "import json;print(json.load(open('$REQUEST'))['target'])")
 VERSION=$(python3 -c "import json;print(json.load(open('$REQUEST'))['version'])")
+REQUESTED_BY=$(python3 -c "import json;print(json.load(open('$REQUEST')).get('requested_by',''))")
 rm -f "$REQUEST"
 
 status queued 5 "Petición recibida: $TARGET v$VERSION"
@@ -141,3 +161,4 @@ else
 fi
 
 status done 100 "$TARGET actualizado a v$VERSION"
+history_append done

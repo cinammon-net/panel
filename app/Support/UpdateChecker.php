@@ -73,6 +73,98 @@ class UpdateChecker
         ];
     }
 
+    /**
+     * Changelog completo: todos los releases publicados de cada componente,
+     * con autor y fecha, marcando cuál es la versión instalada.
+     */
+    public static function changelog(): array
+    {
+        if (Panel::demoMode()) {
+            return [];
+        }
+
+        $ttl = now()->addMinutes(max(1, (int) config('panel.updates.cache_minutes', 30)));
+
+        $releases = Cache::remember('updates:changelog', $ttl, fn () => [
+            'panel' => self::allReleases(config('panel.updates.panel_repo')),
+            'wings' => self::allReleases(config('panel.updates.wings_repo')),
+            'billing' => self::allReleases(config('panel.updates.billing_repo')),
+        ]);
+
+        $installed = [
+            'panel' => ltrim((string) config('panel.version', ''), 'v'),
+            'wings' => self::wingsCurrentVersion(),
+            'billing' => self::billingCurrentVersion(),
+        ];
+
+        foreach ($releases as $component => $items) {
+            foreach ($items as $i => $release) {
+                $releases[$component][$i]['installed'] = $release['tag'] === $installed[$component];
+            }
+        }
+
+        return $releases;
+    }
+
+    private static function allReleases(?string $repo): array
+    {
+        if (! $repo) {
+            return [];
+        }
+
+        try {
+            $request = Http::timeout(4)->withHeaders([
+                'Accept' => 'application/vnd.github+json',
+                'User-Agent' => 'cinammon-panel-updater',
+            ]);
+
+            if ($token = config('panel.updates.github_token')) {
+                $request = $request->withToken($token);
+            }
+
+            $response = $request->get("https://api.github.com/repos/{$repo}/releases", ['per_page' => 25]);
+
+            if (! $response->successful()) {
+                return [];
+            }
+
+            return collect($response->json())
+                ->filter(fn ($release) => empty($release['draft']))
+                ->map(fn ($release) => [
+                    'tag' => ltrim((string) ($release['tag_name'] ?? ''), 'v'),
+                    'name' => $release['name'] ?? $release['tag_name'] ?? '',
+                    'notes' => (string) ($release['body'] ?? ''),
+                    'url' => $release['html_url'] ?? null,
+                    'author' => $release['author']['login'] ?? null,
+                    'published_at' => $release['published_at'] ?? null,
+                ])
+                ->values()
+                ->all();
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    /** Historial de actualizaciones aplicadas en este servidor (quién y cuándo). */
+    public static function history(): array
+    {
+        $path = (string) config('panel.updates.history_path');
+
+        if ($path === '' || ! is_readable($path)) {
+            return [];
+        }
+
+        $entries = [];
+        foreach (array_filter(explode("\n", (string) file_get_contents($path))) as $line) {
+            $entry = json_decode($line, true);
+            if (is_array($entry)) {
+                $entries[] = $entry;
+            }
+        }
+
+        return array_slice(array_reverse($entries), 0, 50);
+    }
+
     private static function latestRelease(?string $repo): ?array
     {
         if (! $repo) {

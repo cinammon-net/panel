@@ -37,6 +37,24 @@ interface RunnerStatus {
     output?: string;
 }
 
+interface ReleaseEntry {
+    tag: string;
+    name: string;
+    notes: string;
+    url: string | null;
+    author: string | null;
+    published_at: string | null;
+    installed: boolean;
+}
+
+interface HistoryEntry {
+    target: string;
+    version: string;
+    state: string;
+    requested_by: string;
+    finished_at: string;
+}
+
 interface Props {
     status: {
         panel: ComponentStatus;
@@ -45,6 +63,8 @@ interface Props {
         runner: RunnerStatus | null;
         demo: boolean;
     };
+    changelog: Record<string, ReleaseEntry[]>;
+    history: HistoryEntry[];
     [key: string]: unknown;
 }
 
@@ -158,7 +178,8 @@ function ComponentCard({
 }
 
 export default function Updates() {
-    const { status } = usePage<Props>().props;
+    const { status, changelog = {}, history = [] } = usePage<Props>().props;
+    const [changelogTab, setChangelogTab] = useState<'panel' | 'wings' | 'billing'>('panel');
     const [checking, setChecking] = useState(false);
     const [busy, setBusy] = useState(false);
     const [pendingTarget, setPendingTarget] = useState<'panel' | 'wings' | 'billing' | null>(null);
@@ -297,6 +318,115 @@ export default function Updates() {
                                 {runner.output ? renderAnsi(runner.output) : runner.log?.join('\n')}
                             </pre>
                         )}
+                    </div>
+                )}
+
+                {/* CHANGELOG — todas las versiones publicadas */}
+                {Object.values(changelog).some((releases) => releases?.length > 0) && (
+                    <div className="rounded-2xl border border-purple-500/40 bg-neutral-950/80 p-5">
+                        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                            <h2 className="flex items-center gap-2 text-sm font-bold tracking-wider text-purple-300">
+                                <Clock className="h-4 w-4" /> CHANGELOG
+                            </h2>
+                            <div className="flex gap-1.5">
+                                {(['panel', 'wings', 'billing'] as const).map((component) => (
+                                    <button
+                                        key={component}
+                                        onClick={() => setChangelogTab(component)}
+                                        className={`rounded-lg border px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider transition ${
+                                            changelogTab === component
+                                                ? 'border-purple-400 bg-purple-500/20 text-purple-200'
+                                                : 'border-neutral-800 bg-black/40 text-neutral-400 hover:border-purple-500/50 hover:text-purple-300'
+                                        }`}
+                                    >
+                                        {component}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="space-y-3">
+                            {(changelog[changelogTab] ?? []).map((release) => (
+                                <div
+                                    key={release.tag}
+                                    className={`rounded-xl border p-4 ${
+                                        release.installed ? 'border-emerald-500/40 bg-emerald-950/10' : 'border-neutral-800 bg-black/40'
+                                    }`}
+                                >
+                                    <div className="flex flex-wrap items-center gap-2.5">
+                                        <span className="rounded border border-neutral-700 bg-black/60 px-2 py-0.5 font-mono text-xs font-bold text-white">
+                                            v{release.tag}
+                                        </span>
+                                        {release.installed && (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+                                                <ShieldCheck className="h-3 w-3" /> Instalada
+                                            </span>
+                                        )}
+                                        <span className="font-mono text-[11px] text-neutral-500">
+                                            {release.author && <>publicado por <span className="text-cyan-400">{release.author}</span> · </>}
+                                            {release.published_at &&
+                                                new Date(release.published_at).toLocaleString('es-ES', {
+                                                    dateStyle: 'medium',
+                                                    timeStyle: 'short',
+                                                })}
+                                        </span>
+                                        {release.url && (
+                                            <a
+                                                href={release.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="ml-auto text-cyan-400 hover:text-cyan-300"
+                                            >
+                                                <ExternalLink className="h-3.5 w-3.5" />
+                                            </a>
+                                        )}
+                                    </div>
+                                    {release.notes && (
+                                        <pre className="mt-3 max-h-56 overflow-y-auto whitespace-pre-wrap rounded-lg border border-neutral-800/70 bg-black/50 p-3 font-sans text-xs leading-relaxed text-neutral-300">
+                                            {release.notes}
+                                        </pre>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* HISTORIAL — quién aplicó cada actualización y cuándo */}
+                {history.length > 0 && (
+                    <div className="rounded-2xl border border-cyan-500/30 bg-neutral-950/80 p-5">
+                        <h2 className="mb-3 flex items-center gap-2 text-sm font-bold tracking-wider text-cyan-300">
+                            <RefreshCw className="h-4 w-4" /> HISTORIAL DE ACTUALIZACIONES APLICADAS
+                        </h2>
+                        <table className="w-full text-left font-mono text-[11px]">
+                            <thead className="text-neutral-500">
+                                <tr>
+                                    <th className="py-1.5 pr-4 font-semibold">Componente</th>
+                                    <th className="py-1.5 pr-4 font-semibold">Versión</th>
+                                    <th className="py-1.5 pr-4 font-semibold">Resultado</th>
+                                    <th className="py-1.5 pr-4 font-semibold">Solicitada por</th>
+                                    <th className="py-1.5 font-semibold">Fecha y hora</th>
+                                </tr>
+                            </thead>
+                            <tbody className="text-neutral-300">
+                                {history.map((entry, idx) => (
+                                    <tr key={idx} className="border-t border-neutral-800/70">
+                                        <td className="py-1.5 pr-4 uppercase text-white">{entry.target}</td>
+                                        <td className="py-1.5 pr-4">v{entry.version}</td>
+                                        <td className={`py-1.5 pr-4 ${entry.state === 'done' ? 'text-emerald-400' : 'text-red-400'}`}>
+                                            {entry.state === 'done' ? 'Completada' : 'Error'}
+                                        </td>
+                                        <td className="py-1.5 pr-4 text-cyan-400">{entry.requested_by || '—'}</td>
+                                        <td className="py-1.5">
+                                            {entry.finished_at &&
+                                                new Date(entry.finished_at).toLocaleString('es-ES', {
+                                                    dateStyle: 'medium',
+                                                    timeStyle: 'medium',
+                                                })}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 )}
 
