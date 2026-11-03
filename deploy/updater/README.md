@@ -1,4 +1,4 @@
-# Updater automático de Cinammon (estilo Pelican)
+# Updater automático de Cinammon
 
 El panel muestra un aviso cuando publicas un release en GitHub y, al pulsar
 **Actualizar ahora**, deja una petición que ejecuta este updater privilegiado.

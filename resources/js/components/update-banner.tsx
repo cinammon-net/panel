@@ -10,7 +10,7 @@ interface UpdatesShared {
 
 /**
  * Aviso global para admins cuando hay una versión nueva del panel o de Wings
- * (estilo Pelican: banner persistente hasta actualizar).
+ * (banner persistente hasta actualizar).
  */
 export default function UpdateBanner() {
     const { updates } = usePage<{ updates?: UpdatesShared | null }>().props;

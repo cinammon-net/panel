@@ -5,7 +5,7 @@ return [
     'version' => env('PANEL_VERSION', '1.0.0'),
 
     /*
-     * Actualizaciones automáticas estilo Pelican: el panel consulta los releases
+     * Actualizaciones automáticas: el panel consulta los releases
      * de GitHub y, cuando el admin pulsa "Actualizar", deja una petición en
      * update_request_path que ejecuta el updater privilegiado del host
      * (deploy/updater/cinammon-update.sh vía systemd path unit).

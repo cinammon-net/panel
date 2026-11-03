@@ -313,7 +313,7 @@ export default function Dashboard() {
                     </div>
                 )}
 
-                {/* Actualizaciones (estilo Pelican, embebido en el dashboard) */}
+                {/* Gestor de actualizaciones embebido en el dashboard */}
                 {roleScope === 'admin' && updateStatus && <UpdateManager status={updateStatus} />}
 
                 {/* Información exclusiva para Administradores */}

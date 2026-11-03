@@ -345,7 +345,7 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
     Route::middleware('admin')->group(function () {
         Route::get('/health', [AdvancedSectionController::class, 'health'])->name('health.index');
 
-        // Actualizaciones del panel y de Wings (estilo Pelican)
+        // Actualizaciones del panel y de Wings
         Route::get('/updates', [\App\Http\Controllers\UpdateController::class, 'index'])->name('updates.index');
         Route::post('/updates/check', [\App\Http\Controllers\UpdateController::class, 'check'])->name('updates.check');
         Route::post('/updates/run', [\App\Http\Controllers\UpdateController::class, 'run'])->name('updates.run');

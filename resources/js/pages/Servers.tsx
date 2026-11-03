@@ -627,7 +627,7 @@ export default function Servers() {
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet" />
             </Head>
             <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-white p-3 sm:p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
-                {/* Header Superior con Selector Pelican: Mis servidores, Servidores de otros, Todos los servidores */}
+                {/* Header superior con selector: Mis servidores, Servidores de otros, Todos los servidores */}
                 <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-cyan-900/50 pb-5">
                     <div className="flex items-center gap-3">
                         <Server className="h-7 w-7 text-cyan-400 shrink-0" />
@@ -641,7 +641,7 @@ export default function Servers() {
                         </div>
                     </div>
 
-                    {/* Selector de Pertenencia estilo Pelican */}
+                    {/* Selector de pertenencia */}
                     <div className="flex flex-wrap items-center justify-center gap-1 rounded-xl border border-cyan-900/60 bg-neutral-950/80 p-1 backdrop-blur-md">
                         <button
                             type="button"

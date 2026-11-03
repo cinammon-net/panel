@@ -95,7 +95,7 @@ function Row({ title, status, busy, onUpdate }: { title: string; status: Compone
     );
 }
 
-/** Gestor de actualizaciones embebido en el dashboard (estilo Pelican). */
+/** Gestor de actualizaciones embebido en el dashboard. */
 export default function UpdateManager({ status }: { status: UpdateStatus }) {
     const [checking, setChecking] = useState(false);
     const [busy, setBusy] = useState(false);

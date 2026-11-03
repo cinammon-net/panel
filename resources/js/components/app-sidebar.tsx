@@ -34,7 +34,7 @@ import {
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
-    // ——— Nivel raíz (como Pelican: Dashboard, Health y Settings al frente) ———
+    // ——— Nivel raíz: Dashboard, Health, Facturación y Settings ———
     {
         title: 'Dashboard',
         href: '/dashboard',
@@ -72,7 +72,7 @@ const mainNavItems: NavItem[] = [
         permissions: [],
     },
 
-    // ——— Server (todo lo que toca infraestructura, como Pelican) ———
+    // ——— Server: todo lo que toca infraestructura ———
     {
         title: 'Servers',
         href: '/servers',
@@ -128,7 +128,7 @@ const mainNavItems: NavItem[] = [
         permissions: ['view_mount'],
     },
 
-    // ——— User (cuentas y acceso, como Pelican) ———
+    // ——— User: cuentas y acceso ———
     {
         title: 'Users',
         href: '/users',
