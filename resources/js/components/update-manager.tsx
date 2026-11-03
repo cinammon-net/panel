@@ -20,6 +20,7 @@ interface RunnerStatus {
     message?: string;
     progress?: number;
     log?: string[];
+    output?: string;
 }
 
 export interface UpdateStatus {
@@ -187,9 +188,14 @@ export default function UpdateManager({ status }: { status: UpdateStatus }) {
                             style={{ width: `${runner.state === 'done' ? 100 : Math.min(95, runner.progress ?? 5)}%` }}
                         />
                     </div>
-                    {!!runner.log?.length && (
-                        <pre className="mt-3 max-h-36 overflow-y-auto rounded-lg border border-neutral-800 bg-black p-3 font-mono text-[10px] leading-relaxed text-neutral-400">
-                            {runner.log.join('\n')}
+                    {(runner.output || runner.log?.length) && (
+                        <pre
+                            ref={(el) => {
+                                if (el) el.scrollTop = el.scrollHeight;
+                            }}
+                            className="mt-3 max-h-56 overflow-y-auto rounded-lg border border-neutral-800 bg-black p-3 font-mono text-[10px] leading-relaxed text-emerald-300/90"
+                        >
+                            {runner.output || runner.log?.join('\n')}
                         </pre>
                     )}
                 </div>

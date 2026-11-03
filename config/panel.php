@@ -19,6 +19,7 @@ return [
         'github_token' => env('PANEL_UPDATE_GITHUB_TOKEN'),
         'request_path' => env('PANEL_UPDATE_REQUEST_PATH', '/run/cinammon-update/request.json'),
         'status_path' => env('PANEL_UPDATE_STATUS_PATH', '/run/cinammon-telemetry/update-status.json'),
+        'output_path' => env('PANEL_UPDATE_OUTPUT_PATH', '/run/cinammon-telemetry/update-output.log'),
         'cache_minutes' => (int) env('PANEL_UPDATE_CACHE_MINUTES', 30),
     ],
 

@@ -172,7 +172,18 @@ class UpdateChecker
 
         $data = json_decode((string) file_get_contents($path), true);
 
-        return is_array($data) ? $data : null;
+        if (! is_array($data)) {
+            return null;
+        }
+
+        // Salida real de los comandos del updater (consola en vivo).
+        $outputPath = (string) config('panel.updates.output_path');
+        if ($outputPath !== '' && is_readable($outputPath)) {
+            $lines = preg_split('/\r\n|\r|\n/', rtrim((string) file_get_contents($outputPath)));
+            $data['output'] = implode("\n", array_slice($lines ?: [], -400));
+        }
+
+        return $data;
     }
 
     /** Deja la petición de actualización para el updater privilegiado. */
