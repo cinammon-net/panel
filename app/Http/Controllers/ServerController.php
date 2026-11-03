@@ -10,7 +10,9 @@ use App\Models\Egg;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class ServerController extends Controller
 {
@@ -206,7 +208,7 @@ class ServerController extends Controller
     {
         $nodes = Node::all(); // Obteniendo los nodos
         $owners = User::all(); // Obteniendo los usuarios
-        $allocations = Allocation::all(); // Obteniendo las asignaciones
+        $allocations = Allocation::whereNull('server_id')->whereNull('assigned_to')->orderBy('node_id')->orderBy('port')->get();
         $eggs = Egg::with('variables')
             ->select('id', 'name', 'startup', 'docker_images')
             ->get();
@@ -237,6 +239,35 @@ class ServerController extends Controller
     }
 
     // Guardar un nuevo servidor
+    /**
+     * Locks the given allocations and marks them as owned by the server, refusing any that
+     * are taken by another server or belong to a different node.
+     *
+     * @param  array<int|string>  $allocationIds
+     * @throws ValidationException
+     */
+    private function claimAllocations(array $allocationIds, int $nodeId, Server $server, string $errorKey): void
+    {
+        $ids = collect($allocationIds)->filter()->map(fn ($id) => (int) $id)->unique()->values();
+        if ($ids->isEmpty()) {
+            return;
+        }
+
+        $claimable = Allocation::whereIn('id', $ids)
+            ->where('node_id', $nodeId)
+            ->where(fn ($q) => $q->whereNull('server_id')->whereNull('assigned_to')->orWhere('server_id', $server->id))
+            ->lockForUpdate()
+            ->pluck('id');
+
+        if ($claimable->count() !== $ids->count()) {
+            throw ValidationException::withMessages([
+                $errorKey => 'Uno de los puertos elegidos ya está en uso o no pertenece al nodo seleccionado.',
+            ]);
+        }
+
+        Allocation::whereIn('id', $ids)->update(['server_id' => $server->id]);
+    }
+
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -270,30 +301,34 @@ class ServerController extends Controller
             unset($data['primary_allocation_id']);
         }
 
+        $additionalAllocationIds = $data['additional_allocation_ids'] ?? [];
+        unset($data['additional_allocation_ids']);
+        $allocationIds = array_merge([$data['allocation_id'] ?? null], $additionalAllocationIds);
+
         if (!empty($data['uuid'])) {
             // 🔁 Editar
             $server = Server::where('uuid', $data['uuid'])->firstOrFail();
-            $server->update($data);
+            DB::transaction(function () use ($server, $data, $allocationIds) {
+                $this->claimAllocations($allocationIds, (int) $data['node_id'], $server, 'allocation_id');
+                $server->update($data);
+            });
         } else {
             // ➕ Crear
             $data['uuid'] = (string) Str::uuid();
             $data['uuid_short'] = substr($data['uuid'], 0, 8);
             $data['active'] = 1;
             $data['status'] = 0;
-            $server = Server::create($data);
-            if (!empty($data['allocation_id'])) {
-                Allocation::where('id', $data['allocation_id'])->update(['server_id' => $server->id]);
-            }
+            $server = DB::transaction(function () use ($data, $allocationIds) {
+                $server = Server::create($data);
+                $this->claimAllocations($allocationIds, (int) $data['node_id'], $server, 'allocation_id');
+
+                return $server;
+            });
             try {
                 app(\App\Services\Daemon\WingsClient::class)->provision($server);
             } catch (\Throwable $e) {
                 \Illuminate\Support\Facades\Log::warning('No se pudo aprovisionar en Wings: ' . $e->getMessage());
             }
-        }
-
-        if (isset($validated['additional_allocations'])) {
-            Allocation::whereIn('id', $validated['additional_allocations'])
-                ->update(['server_id' => $server->id]);
         }
 
         return redirect()->route('servers.index')->with('success', 'Servidor guardado correctamente.');
@@ -333,30 +368,35 @@ class ServerController extends Controller
 
         $data = $validator->validated();
 
-        // Mapeo y transformación de campos si hace falta
-        $server->update([
-            'name' => $data['name'],
-            'external_id' => $data['externalId'],
-            'node_id' => $data['nodeId'],
-            'owner_id' => $data['ownerId'],
-            'allocation_id' => $data['primaryAllocationId'],
-            'description' => $data['description'],
-            'egg_id' => $data['egg'],
-            'run_install_script' => $data['runInstallScript'],
-            'start_after_install' => $data['startAfterInstall'],
-            'startup' => $data['startupCommand'],
-            'cpu_limit' => $data['cpuLimit'] === 'unlimited' ? 0 : 1,
-            'memory_limit' => $data['memoryLimit'] === 'unlimited' ? 0 : 1,
-            'disk_limit' => $data['diskLimit'] === 'unlimited' ? 0 : 1,
-            'cpu_pinning' => $data['cpuPinning'],
-            'swap_memory' => $data['swapMemory'],
-            'oom_killer' => $data['oomKiller'],
-            'backup_limit' => $data['backups'],
-            'image' => $data['dockerImage'],
-            'install_script' => $data['installScript'],
-            'labels' => $data['labels'],
-            'variables' => $data['variables'],
-        ]);
+        $allocationIds = array_merge([$data['primaryAllocationId'] ?? null], $data['additionalAllocationIds'] ?? []);
+
+        DB::transaction(function () use ($server, $data, $allocationIds) {
+            $this->claimAllocations($allocationIds, (int) $data['nodeId'], $server, 'primaryAllocationId');
+
+            $server->update([
+                'name' => $data['name'],
+                'external_id' => $data['externalId'],
+                'node_id' => $data['nodeId'],
+                'owner_id' => $data['ownerId'],
+                'allocation_id' => $data['primaryAllocationId'],
+                'description' => $data['description'],
+                'egg_id' => $data['egg'],
+                'run_install_script' => $data['runInstallScript'],
+                'start_after_install' => $data['startAfterInstall'],
+                'startup' => $data['startupCommand'],
+                'cpu_limit' => $data['cpuLimit'] === 'unlimited' ? 0 : 1,
+                'memory_limit' => $data['memoryLimit'] === 'unlimited' ? 0 : 1,
+                'disk_limit' => $data['diskLimit'] === 'unlimited' ? 0 : 1,
+                'cpu_pinning' => $data['cpuPinning'],
+                'swap_memory' => $data['swapMemory'],
+                'oom_killer' => $data['oomKiller'],
+                'backup_limit' => $data['backups'],
+                'image' => $data['dockerImage'],
+                'install_script' => $data['installScript'],
+                'labels' => $data['labels'],
+                'variables' => $data['variables'],
+            ]);
+        });
 
         // También puedes actualizar relaciones si lo necesitas
 
@@ -476,7 +516,8 @@ class ServerController extends Controller
             'server' => $server,
             'nodes' => Node::all(),
             'owners' => User::all(),
-            'allocations' => Allocation::all(),
+            'allocations' => Allocation::where(fn ($q) => $q->whereNull('server_id')->whereNull('assigned_to')->orWhere('server_id', $server->id))
+                ->orderBy('node_id')->orderBy('port')->get(),
             'eggs' => $eggs,
         ]);
     }
