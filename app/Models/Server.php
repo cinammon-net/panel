@@ -45,6 +45,11 @@ class Server extends Model
         return $this->hasMany(Subuser::class, 'server_id');
     }
 
+    public function sftpCredentials()
+    {
+        return $this->hasMany(SftpCredential::class);
+    }
+
     protected static function booted()
     {
         static::deleting(function (Server $server) {

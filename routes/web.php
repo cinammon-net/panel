@@ -28,6 +28,11 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
+// 🛰️ Consola de Wings en su propio dominio (debe registrarse antes que la portada del panel)
+if (($wingsHost = (string) config('panel.wings_host')) !== '') {
+    Route::domain($wingsHost)->get('/api/wings/telemetry', [App\Http\Controllers\WingsPublicController::class, 'telemetry'])->middleware('throttle:120,1')->name('wings.telemetry');
+}
+
 // 🌐 Rutas públicas
 Route::get('/', [WelcomeController::class, 'index'])->name('home');
 Route::get('/demo', function (Request $request) {
@@ -38,11 +43,23 @@ Route::get('/demo', function (Request $request) {
     return redirect()->route('login');
 })->name('demo');
 
+// Comparativa interactiva con y sin código de seguridad (solo en el dominio demo, sin datos reales)
+Route::get('/demo/seguridad', function () {
+    abort_unless(\App\Support\Panel::demoMode(), 404);
+
+    return Inertia::render('demo/security');
+})->name('demo.security');
+
 // 💳 Seamless SSO Handoff hacia Cinammon Billing
 Route::get('/billing/redirect', function (Request $request) {
     $user = $request->user();
     if (!$user) {
         return redirect()->route('login');
+    }
+
+    // La demo no debe crear cuentas ni pedidos en el billing real.
+    if (\App\Support\Panel::demoMode()) {
+        return redirect('/servers')->with('error', 'La facturación no está disponible en la demo.');
     }
 
     $billingUrl = rtrim(config('services.billing.url') ?: env('BILLING_URL', 'http://localhost:8001'), '/');
@@ -64,10 +81,13 @@ Route::view('/terms', 'legal.terms')->name('terms');
 Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::view('/sponsors', 'legal.sponsors')->name('sponsors');
 
-Route::get('api/nodes/{id}/config-yaml', [NodeController::class, 'configYaml'])->middleware('auth');
-Route::get('nodes/{id}/config-yaml', [NodeController::class, 'configYaml'])->middleware('auth');
-Route::get('api/application/nodes/{id}/configuration', [NodeController::class, 'configYaml'])->middleware('auth');
-Route::post('api/nodes/{node}/reset', [NodeController::class, 'reset']);
+// El token de Wings solo lo ve (y rota) un administrador.
+Route::middleware(['auth', 'admin'])->group(function () {
+    Route::get('api/nodes/{id}/config-yaml', [NodeController::class, 'configYaml']);
+    Route::get('nodes/{id}/config-yaml', [NodeController::class, 'configYaml']);
+    Route::get('api/application/nodes/{id}/configuration', [NodeController::class, 'configYaml']);
+    Route::post('api/nodes/{node}/reset', [NodeController::class, 'reset']);
+});
 
 // 🔗 Socialtie
 Route::get('/auth/github/redirect', function () {
@@ -317,27 +337,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // 🔒 Rutas autenticadas (sin verificar email)
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'server.lock'])->group(function () {
     // Secciones avanzadas del Sidebar
-    Route::get('/health', [AdvancedSectionController::class, 'health'])->name('health.index');
-    Route::get('/api-keys', [AdvancedSectionController::class, 'apiKeys'])->name('api-keys.index');
-    Route::post('/api-keys', [AdvancedSectionController::class, 'storeApiKey'])->name('api-keys.store');
-    Route::delete('/api-keys/{id}', [AdvancedSectionController::class, 'destroyApiKey'])->name('api-keys.destroy');
+    // Secciones avanzadas (salud, API keys, bases de datos, montajes, webhooks): solo Owner/Admin
+    Route::middleware('admin')->group(function () {
+        Route::get('/health', [AdvancedSectionController::class, 'health'])->name('health.index');
+        Route::get('/api-keys', [AdvancedSectionController::class, 'apiKeys'])->name('api-keys.index');
+        Route::post('/api-keys', [AdvancedSectionController::class, 'storeApiKey'])->name('api-keys.store');
+        Route::delete('/api-keys/{id}', [AdvancedSectionController::class, 'destroyApiKey'])->name('api-keys.destroy');
 
-    Route::get('/database', [AdvancedSectionController::class, 'database'])->name('database.index');
-    Route::post('/database', [AdvancedSectionController::class, 'storeDatabaseHost'])->name('database.store');
-    Route::post('/database/query', [AdvancedSectionController::class, 'executeSqlQuery'])->name('database.query');
-    Route::delete('/database/{id}', [AdvancedSectionController::class, 'destroyDatabaseHost'])->name('database.destroy');
+        Route::get('/database', [AdvancedSectionController::class, 'database'])->name('database.index');
+        Route::post('/database', [AdvancedSectionController::class, 'storeDatabaseHost'])->name('database.store');
+        Route::post('/database/query', [AdvancedSectionController::class, 'executeSqlQuery'])->name('database.query');
+        Route::delete('/database/{id}', [AdvancedSectionController::class, 'destroyDatabaseHost'])->name('database.destroy');
 
-    Route::get('/mounts', [AdvancedSectionController::class, 'mounts'])->name('mounts.index');
-    Route::post('/mounts', [AdvancedSectionController::class, 'storeMount'])->name('mounts.store');
-    Route::delete('/mounts/{id}', [AdvancedSectionController::class, 'destroyMount'])->name('mounts.destroy');
+        Route::get('/mounts', [AdvancedSectionController::class, 'mounts'])->name('mounts.index');
+        Route::post('/mounts', [AdvancedSectionController::class, 'storeMount'])->name('mounts.store');
+        Route::delete('/mounts/{id}', [AdvancedSectionController::class, 'destroyMount'])->name('mounts.destroy');
 
-    Route::get('/webhooks', [AdvancedSectionController::class, 'webhooks'])->name('webhooks.index');
-    Route::post('/webhooks', [AdvancedSectionController::class, 'storeWebhook'])->name('webhooks.store');
-    Route::put('/webhooks/{id}', [AdvancedSectionController::class, 'updateWebhook'])->name('webhooks.update');
-    Route::post('/webhooks/{id}/test', [AdvancedSectionController::class, 'testWebhook'])->name('webhooks.test');
-    Route::delete('/webhooks/{id}', [AdvancedSectionController::class, 'destroyWebhook'])->name('webhooks.destroy');
+        Route::get('/webhooks', [AdvancedSectionController::class, 'webhooks'])->name('webhooks.index');
+        Route::post('/webhooks', [AdvancedSectionController::class, 'storeWebhook'])->name('webhooks.store');
+        Route::put('/webhooks/{id}', [AdvancedSectionController::class, 'updateWebhook'])->name('webhooks.update');
+        Route::post('/webhooks/{id}/test', [AdvancedSectionController::class, 'testWebhook'])->name('webhooks.test');
+        Route::delete('/webhooks/{id}', [AdvancedSectionController::class, 'destroyWebhook'])->name('webhooks.destroy');
+    });
     // Aceptación de términos
     Route::get('/terms/accept', [TermsController::class, 'show'])->name('terms.accept');
     Route::post('/terms/accept', [TermsController::class, 'accept'])->name('terms.accept.post');
@@ -352,8 +375,10 @@ Route::middleware(['auth'])->group(function () {
     // Reviews
     Route::resource('reviews', ReviewController::class)->except(['show']);
 
-    // Posts
-    Route::resource('posts', PostController::class);
+    // Posts: solo Owner/Admin
+    Route::middleware('admin')->group(function () {
+        Route::resource('posts', PostController::class);
+    });
 
     // Tickets
     Route::resource('tickets', TicketController::class)->except(['create']);
@@ -361,27 +386,41 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/tickets/{ticket}/messages/{message}', [TicketController::class, 'destroyMessage'])->name('tickets.messages.destroy');
 
     // Eggs
-    Route::get('/eggs', [EggController::class, 'index'])->name('eggs.index');
-    Route::get('/eggs/create', [EggController::class, 'create'])->name('eggs.create');
-    Route::post('/eggs', [EggController::class, 'store'])->name('eggs.store');
-    Route::get('/eggs/{egg}/edit', [EggController::class, 'edit'])->name('eggs.edit');
-    Route::put('/eggs/{egg}', [EggController::class, 'update'])->name('eggs.update');
-    Route::delete('/eggs/{egg}', [EggController::class, 'destroy'])->name('eggs.destroy');
-    Route::post('/eggs/import', [EggController::class, 'import'])->name('eggs.import');
-    Route::post('/eggs/sync-repo', [EggController::class, 'syncRepo'])->name('eggs.syncRepo');
-    Route::delete('/egg-variables/{id}', [EggVariableController::class, 'destroy'])->name('egg-variables.destroy');
+    // Eggs: solo Owner/Admin
+    Route::middleware('admin')->group(function () {
+        Route::get('/eggs', [EggController::class, 'index'])->name('eggs.index');
+        Route::get('/eggs/create', [EggController::class, 'create'])->name('eggs.create');
+        Route::post('/eggs', [EggController::class, 'store'])->name('eggs.store');
+        Route::get('/eggs/{egg}/edit', [EggController::class, 'edit'])->name('eggs.edit');
+        Route::put('/eggs/{egg}', [EggController::class, 'update'])->name('eggs.update');
+        Route::delete('/eggs/{egg}', [EggController::class, 'destroy'])->name('eggs.destroy');
+        Route::post('/eggs/import', [EggController::class, 'import'])->name('eggs.import');
+        Route::post('/eggs/sync-repo', [EggController::class, 'syncRepo'])->name('eggs.syncRepo');
+        Route::delete('/egg-variables/{id}', [EggVariableController::class, 'destroy'])->name('egg-variables.destroy');
+    });
 
     // Nodes
-    Route::resource('nodes', NodeController::class)->except(['show']);
-    Route::get('/nodes/cpu-data', [NodeController::class, 'getCpuData']);
-    Route::get('/api/cpu-data', [NodeController::class, 'getCpuData']);
-    Route::get('/nodes/memory-data', [NodeController::class, 'getMemoryData']);
-    Route::get('/memory-data', [NodeController::class, 'getMemoryData']);
-    Route::get('/nodes/storage-data', [NodeController::class, 'getStorageData']);
-    Route::get('/storage-data', [NodeController::class, 'getStorageData']);
-    Route::post('/nodes/{id}/heartbeat', [NodeController::class, 'heartbeat']);
-    Route::post('/nodes/{id}/allocations', [NodeController::class, 'storeAllocation']);
-    Route::delete('/nodes/{nodeId}/allocations/{allocationId}', [NodeController::class, 'destroyAllocation']);
+    // Consola y estado de Wings: Owner/Admin ven todo y Moderator/Helper lo operativo (WingsEvents filtra por rol)
+    Route::middleware(['admin:Moderator,Helper', 'throttle:120,1'])->group(function () {
+        Route::get('/wings', [App\Http\Controllers\WingsMonitorController::class, 'index'])->name('wings.index');
+    });
+
+    // Eventos de Wings: cualquier persona con sesión, pero WingsEvents devuelve solo lo que su rol permite
+    Route::get('/wings/log', [App\Http\Controllers\WingsLogController::class, 'adminEvents'])->middleware('throttle:120,1')->name('wings.log');
+
+    // Nodos: solo Owner/Admin
+    Route::middleware('admin')->group(function () {
+        Route::resource('nodes', NodeController::class)->except(['show']);
+        Route::get('/nodes/cpu-data', [NodeController::class, 'getCpuData']);
+        Route::get('/api/cpu-data', [NodeController::class, 'getCpuData']);
+        Route::get('/nodes/memory-data', [NodeController::class, 'getMemoryData']);
+        Route::get('/memory-data', [NodeController::class, 'getMemoryData']);
+        Route::get('/nodes/storage-data', [NodeController::class, 'getStorageData']);
+        Route::get('/storage-data', [NodeController::class, 'getStorageData']);
+        Route::post('/nodes/{id}/heartbeat', [NodeController::class, 'heartbeat']);
+        Route::post('/nodes/{id}/allocations', [NodeController::class, 'storeAllocation']);
+        Route::delete('/nodes/{nodeId}/allocations/{allocationId}', [NodeController::class, 'destroyAllocation']);
+    });
 
     // Servers
     Route::get('/servers/{server}/files', [App\Http\Controllers\ServerFilesController::class, 'page'])->name('servers.files');
@@ -397,9 +436,11 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/servers/{server}/command', [App\Http\Controllers\ServerRuntimeController::class, 'command']);
     Route::post('/servers/{server}/discord', [App\Http\Controllers\ServerRuntimeController::class, 'configureDiscord']);
     Route::post('/servers/{server}/eula', [App\Http\Controllers\ServerRuntimeController::class, 'acceptEula']);
-    Route::post('/servers/{uuid}/toggle-install', [ServerController::class, 'toggleInstall']);
-    Route::post('/servers/{uuid}/suspend', [ServerController::class, 'suspend']);
-    Route::post('/servers/{uuid}/transfer', [ServerController::class, 'transfer']);
+    Route::middleware('admin')->group(function () {
+        Route::post('/servers/{uuid}/toggle-install', [ServerController::class, 'toggleInstall']);
+        Route::post('/servers/{uuid}/suspend', [ServerController::class, 'suspend']);
+        Route::post('/servers/{uuid}/transfer', [ServerController::class, 'transfer']);
+    });
     Route::post('/servers/{uuid}/reinstall', [ServerController::class, 'reinstall']);
     Route::get('/servers/{server}/databases', [ServerController::class, 'databases'])->name('servers.databases');
     Route::post('/servers/{server}/databases', [ServerController::class, 'storeDatabase'])->name('servers.databases.store');
@@ -432,26 +473,40 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/servers/{server}/startup', [App\Http\Controllers\ServerModulesController::class, 'startup'])->name('servers.startup');
     Route::put('/servers/{server}/startup/variables', [App\Http\Controllers\ServerModulesController::class, 'updateStartupVariables'])->name('servers.startup.variables');
     Route::put('/servers/{server}/startup/image', [App\Http\Controllers\ServerModulesController::class, 'updateStartupImage'])->name('servers.startup.image');
+    Route::get('/servers/{server}/wings-log', [App\Http\Controllers\WingsLogController::class, 'serverPage'])->name('servers.wings-log');
+    Route::get('/servers/{server}/wings-log/events', [App\Http\Controllers\WingsLogController::class, 'serverEvents'])->middleware('throttle:120,1')->name('servers.wings-log.events');
+    Route::get('/servers/{server}/sftp', [App\Http\Controllers\ServerSftpController::class, 'show'])->name('servers.sftp');
+    Route::post('/servers/{server}/sftp/rotate', [App\Http\Controllers\ServerSftpController::class, 'rotate'])->name('servers.sftp.rotate');
+    Route::delete('/servers/{server}/sftp', [App\Http\Controllers\ServerSftpController::class, 'revoke'])->name('servers.sftp.revoke');
     Route::post('/servers/{server}/banner', [ServerController::class, 'updateBanner'])->name('servers.banner.update');
     Route::get('/servers/{server}/subusers', [App\Http\Controllers\ServerSubusersController::class, 'index'])->name('servers.subusers');
     Route::post('/servers/{server}/subusers', [App\Http\Controllers\ServerSubusersController::class, 'store'])->name('servers.subusers.store');
     Route::put('/servers/{server}/subusers/{subuser}', [App\Http\Controllers\ServerSubusersController::class, 'update'])->name('servers.subusers.update');
     Route::delete('/servers/{server}/subusers/{subuser}', [App\Http\Controllers\ServerSubusersController::class, 'destroy'])->name('servers.subusers.destroy');
     Route::get('/servers/edit', fn() => redirect('/servers'));
-    Route::resource('servers', ServerController::class)->except(['show']);
-    Route::get('/servers/{server}/edit', [ServerController::class, 'edit'])->name('servers.edit');
-    Route::post('/servers', [ServerController::class, 'store'])->name('servers.store');
-    Route::put('/servers/{server}', [ServerController::class, 'update'])->name('servers.update');
-    Route::delete('/servers/{uuid}', [ServerController::class, 'destroy'])->name('servers.destroy');
+    // Crear, configurar y borrar servidores (nodo, propietario, recursos): solo Owner/Admin.
+    Route::get('/servers', [ServerController::class, 'index'])->name('servers.index');
+    Route::middleware('admin')->group(function () {
+        Route::resource('servers', ServerController::class)->except(['show', 'index']);
+        Route::get('/servers/{server}/edit', [ServerController::class, 'edit'])->name('servers.edit');
+        Route::post('/servers', [ServerController::class, 'store'])->name('servers.store');
+        Route::put('/servers/{server}', [ServerController::class, 'update'])->name('servers.update');
+        Route::delete('/servers/{uuid}', [ServerController::class, 'destroy'])->name('servers.destroy');
+    });
     Route::post('/servers/{server}/transfer-owner', [App\Http\Controllers\ServerSubusersController::class, 'transferOwner'])->name('servers.transfer_owner');
 
     // 🔄 Cambio Rápido de Cuenta / Switch User
-    Route::get('/api/switchable-users', function () {
+    Route::get('/api/switchable-users', function (Request $request) {
         $isDemo = \App\Support\Panel::demoMode();
+        abort_unless($isDemo || $request->user()->hasAnyRole(['Owner', 'Admin']), 403);
 
         return User::select('id', 'name', 'email', 'avatar')
             ->with('roles:id,name')
-            ->when(! $isDemo, fn ($query) => $query->whereNotIn('email', config('panel.demo_emails', [])))
+            ->when(
+                $isDemo,
+                fn ($query) => $query->whereIn('email', config('panel.demo_emails', [])),
+                fn ($query) => $query->whereNotIn('email', config('panel.demo_emails', []))
+            )
             ->get()
             ->map(function ($u) {
                 return [
@@ -472,12 +527,19 @@ Route::middleware(['auth'])->group(function () {
         $targetUser = User::findOrFail($validated['user_id']);
         $isDemo = \App\Support\Panel::demoMode();
 
-        // En la versión no-demo, no se permite cambiar a cuentas de demostración
-        if (! $isDemo && in_array(strtolower($targetUser->email), config('panel.demo_emails', []), true)) {
-            abort(403, 'No se puede cambiar a cuentas de demostración en producción.');
+        // Fuera de la demo, solo los administradores pueden suplantar a otra cuenta.
+        abort_unless($isDemo || $request->user()->hasAnyRole(['Owner', 'Admin']), 403, 'No tienes permiso para cambiar de cuenta.');
+
+        // En la demo solo se puede saltar entre cuentas de demostración; fuera de ella, nunca a una de demostración.
+        $targetIsDemo = in_array(strtolower($targetUser->email), config('panel.demo_emails', []), true);
+        if ($isDemo !== $targetIsDemo) {
+            abort(403, $isDemo
+                ? 'En la demo solo puedes cambiar entre cuentas de demostración.'
+                : 'No se puede cambiar a cuentas de demostración en producción.');
         }
 
         Auth::login($targetUser);
+        $request->session()->forget(\App\Http\Middleware\EnsureServerUnlocked::SESSION_KEY);
         $request->session()->regenerate();
 
         return back()->with('success', "Has cambiado a la cuenta de {$targetUser->name}.");
@@ -485,27 +547,33 @@ Route::middleware(['auth'])->group(function () {
 
 
     // Network
-    Route::get('/api/ips', [NetworkController::class, 'getIps']);
-    Route::get('/api/network/ips', [NetworkController::class, 'getIps']);
+    // IPs del anfitrión: solo Owner/Admin
+    Route::middleware('admin')->group(function () {
+        Route::get('/api/ips', [NetworkController::class, 'getIps']);
+        Route::get('/api/network/ips', [NetworkController::class, 'getIps']);
+    });
 
     // Galería
     Route::get('/gallery', fn() => Inertia::render('Gallery'))->name('gallery.index');
-    Route::post('/gallery/upload', function (Request $request) {
-        $request->validate([
-            'image' => 'required|image|max:4096',
-        ]);
+    // Subir a la galería: solo Owner/Admin
+    Route::middleware('admin')->group(function () {
+        Route::post('/gallery/upload', function (Request $request) {
+            $request->validate([
+                'image' => 'required|image|max:4096',
+            ]);
 
-        $directory = storage_path('app/public/gallery');
-        if (!file_exists($directory)) {
-            mkdir($directory, 0775, true);
-        }
+            $directory = storage_path('app/public/gallery');
+            if (!file_exists($directory)) {
+                mkdir($directory, 0775, true);
+            }
 
-        $file = $request->file('image');
-        $name = $file->getClientOriginalName();
-        $path = $file->storeAs('gallery', $name, 'public');
+            $file = $request->file('image');
+            $name = $file->getClientOriginalName();
+            $path = $file->storeAs('gallery', $name, 'public');
 
-        return response()->json(['path' => Storage::url($path)]);
-    })->name('gallery.upload');
+            return response()->json(['path' => Storage::url($path)]);
+        })->name('gallery.upload');
+    });
 
     Route::get('/gallery/list', function () {
         $files = Storage::disk('public')->files('gallery');
@@ -518,23 +586,31 @@ Route::middleware(['auth'])->group(function () {
         return response()->json($images);
     })->name('gallery.list');
 
-    Route::delete('/gallery/delete/{filename}', function ($filename) {
-        $path = storage_path('app/public/gallery/' . $filename);
+    // Borrar de la galería: solo Owner/Admin
+    Route::middleware('admin')->group(function () {
+        Route::delete('/gallery/delete/{filename}', function ($filename) {
+            $path = storage_path('app/public/gallery/' . $filename);
 
-        if (file_exists($path)) {
-            unlink($path);
-            return response()->json(['success' => true]);
-        }
+            if (file_exists($path)) {
+                unlink($path);
+                return response()->json(['success' => true]);
+            }
 
-        return response()->json(['error' => 'Archivo no encontrado'], 404);
-    })->name('gallery.delete');
+            return response()->json(['error' => 'Archivo no encontrado'], 404);
+        })->name('gallery.delete');
+    });
 
 
     // Users
-    Route::resource('users', UserController::class)->except(['show']);
+    Route::get('/users', [UserController::class, 'index'])->middleware('admin:Moderator,Helper')->name('users.index');
+    Route::middleware('admin')->group(function () {
+        Route::resource('users', UserController::class)->except(['show', 'index']);
+    });
 
     // Roles
-    Route::resource('roles', RoleController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+    Route::middleware('admin')->group(function () {
+        Route::resource('roles', RoleController::class)->only(['index', 'create', 'store', 'edit', 'update', 'destroy']);
+    });
 });
 
 // Configuración adicional

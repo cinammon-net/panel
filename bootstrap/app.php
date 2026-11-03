@@ -20,7 +20,13 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'terms.accepted' => \App\Http\Middleware\EnsureTermsAccepted::class,
+            'server.lock' => \App\Http\Middleware\EnsureServerUnlocked::class,
+            'admin' => \App\Http\Middleware\EnsureAdmin::class,
+            'bot.secret' => \App\Http\Middleware\EnsureBotSecret::class,
         ]);
+
+        // El dominio de la consola de Wings solo expone cinco rutas.
+        $middleware->prepend(\App\Http\Middleware\RestrictWingsHost::class);
 
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 

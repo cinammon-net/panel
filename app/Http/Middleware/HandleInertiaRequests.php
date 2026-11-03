@@ -46,6 +46,13 @@ class HandleInertiaRequests extends Middleware
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'demoMode' => \App\Support\Panel::demoMode(),
 
+            'serverLock' => fn () => ($user = $request->user()) ? [
+                'has_code' => $user->hasSecurityCode(),
+                'active' => $user->securityLockActive(),
+                'until' => $user->lock_enabled_until?->toIso8601String(),
+                'unlocked' => \App\Http\Middleware\EnsureServerUnlocked::isUnlocked($request->session()),
+            ] : null,
+
             // ✅ Aquí se inyectan roles y permisos para TODAS las páginas Inertia
             'auth' => [
                 'user' => fn() => $request->user() ? [

@@ -24,7 +24,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Contraseñas sencillas (4+ caracteres, sin exigir mayúsculas ni símbolos); siempre se guardan cifradas con bcrypt.
+        \Illuminate\Validation\Rules\Password::defaults(fn () => \Illuminate\Validation\Rules\Password::min(4));
+
         Event::listen(Login::class, RecordLogin::class);
+
+        // Solo la instalación de demo (PANEL_DEMO_MODE=true) tiene un nodo simulado.
+        if (config('panel.demo')) {
+            \App\Support\DemoWings::register();
+        }
 
         Inertia::share([
             'auth' => function () {

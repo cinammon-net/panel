@@ -14,7 +14,7 @@ class CreateEggVariablesTable extends Migration
             $table->string('name');
             $table->text('description')->nullable();
             $table->string('env_variable')->nullable();
-            $table->string('default_value')->nullable();
+            $table->text('default_value')->nullable();
             $table->boolean('user_viewable')->default(false);
             $table->boolean('user_editable')->default(false);
             $table->text('rules')->nullable();

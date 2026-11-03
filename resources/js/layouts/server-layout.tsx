@@ -3,6 +3,8 @@ import { AppShell } from '@/components/app-shell';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import ServerSidebar from '@/components/server/server-sidebar';
 import { type BreadcrumbItem } from '@/types';
+import { Link, usePage } from '@inertiajs/react';
+import { LockOpen } from 'lucide-react';
 import { ReactNode } from 'react';
 import { Toaster } from 'sonner';
 
@@ -10,6 +12,8 @@ export type ServerSection =
     | 'console'
     | 'startup'
     | 'files'
+    | 'sftp'
+    | 'wingslog'
     | 'databases'
     | 'network'
     | 'backups'
@@ -29,10 +33,19 @@ export default function ServerLayout({
     section: ServerSection;
     children: ReactNode;
 }) {
+    const { auth, serverLock } = usePage<{
+        auth?: { user?: { id: number } | null };
+        serverLock?: { has_code: boolean; active: boolean } | null;
+    }>().props;
+    const showLockNotice =
+        auth?.user?.id !== undefined && server.owner_id === auth.user.id && serverLock?.has_code === true && !serverLock.active;
+
     const sectionTitles: Record<string, string> = {
         console: 'Consola',
         startup: 'Inicio',
         files: 'Archivos',
+        sftp: 'Acceso SFTP',
+        wingslog: 'Registro de Wings',
         databases: 'Bases de Datos',
         network: 'Red y Puertos',
         backups: 'Copias de Seguridad',
@@ -61,6 +74,15 @@ export default function ServerLayout({
             <ServerSidebar server={server} section={section} />
             <AppContent variant="sidebar">
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
+                {showLockNotice && (
+                    <Link
+                        href="/settings/security"
+                        className="flex items-center justify-center gap-2 border-b border-amber-500/40 bg-amber-500/10 px-4 py-2 text-center text-xs font-semibold text-amber-300 hover:bg-amber-500/20"
+                    >
+                        <LockOpen className="h-4 w-4" />
+                        El bloqueo de seguridad de tus servidores está desactivado. Pulsa aquí para reactivarlo.
+                    </Link>
+                )}
                 <div className="min-h-screen bg-white font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
                     <div className="min-w-0 flex-1">{children}</div>
                 </div>

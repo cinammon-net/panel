@@ -7,7 +7,7 @@ use App\Http\Controllers\ServerController;
 
 
 // Rutas protegidas con Sanctum (las tuyas)
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'admin'])->group(function () {
     Route::post('/servers', [App\Http\Controllers\ServerController::class, 'store']);
     Route::get('/tickets', [App\Http\Controllers\TicketController::class, 'index']);
     Route::post('/tickets', [App\Http\Controllers\TicketController::class, 'store']);
@@ -16,17 +16,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/nodes/storage-data', [App\Http\Controllers\NodeController::class, 'getStorageData']);
 });
 
-// 🔓 Rutas públicas para la galería
-Route::post('/gallery/upload', function (Request $request) {
-    $request->validate([
-        'image' => 'required|image|max:4096',
-    ]);
-
-    $path = $request->file('image')->store('public/gallery');
-
-    return response()->json(['path' => Storage::url($path)]);
-});
-
+// 🔓 Ruta pública de solo lectura para la galería (subir y borrar exige sesión de administrador en /gallery)
 Route::get('/gallery/list', function () {
     $files = Storage::files('public/gallery');
 
@@ -38,8 +28,10 @@ Route::get('/gallery/list', function () {
 });
 
 // 🤖 API para Cinammon Discord Bot
-Route::get('/bot/overview', [App\Http\Controllers\BotApiController::class, 'overview']);
-Route::post('/servers/{server}/power', [App\Http\Controllers\BotApiController::class, 'power']);
+Route::middleware('bot.secret')->group(function () {
+    Route::get('/bot/overview', [App\Http\Controllers\BotApiController::class, 'overview']);
+    Route::post('/servers/{server}/power', [App\Http\Controllers\BotApiController::class, 'power']);
+});
 
 
 // 💳 API de integración con Cinammon Billing (token compartido)
