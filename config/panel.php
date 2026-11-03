@@ -2,25 +2,29 @@
 
 return [
     /*
-     * Modo demo global: muestra el selector de cuentas de demostración en el
-     * login y permite entrar con ellas. En producción debe estar en false.
+     * Marca esta instalación como la DEMO (carpeta, base de datos y usuario propios):
+     * muestra el selector de cuentas de demostración y simula el nodo. En el panel
+     * real debe estar en false.
      */
     'demo' => env('PANEL_DEMO_MODE', false),
 
     /*
-     * Dominio que fuerza el modo demo aunque el flag global esté en false.
-     * Así demo y producción conviven: producción en el dominio principal y
-     * demo en este subdominio.
+     * Dominio de la demo. Déjalo vacío en el panel real para que ninguna petición
+     * pueda activar el modo demo allí.
      */
     'demo_host' => env('PANEL_DEMO_HOST', 'demo.localhost'),
 
+    // Dominio de la consola pública de Wings (vacío = desactivada). Comparte aplicación con el panel real.
+    'wings_host' => env('PANEL_WINGS_HOST', ''),
+    'wings_demo_url' => env('PANEL_WINGS_DEMO_URL', 'https://demo.cinammon.net/wings'),
+
     // Cuentas de demostración que solo pueden iniciar sesión y usarse en modo demo
     'demo_emails' => [
-        'owner@cinammon.net',
+        'demo-owner@cinammon.net',
         'demo-admin@cinammon.net',
-        'moderator@cinammon.net',
-        'helper@cinammon.net',
-        'sponsors@cinammon.net',
-        'members@cinammon.net',
+        'demo-moderator@cinammon.net',
+        'demo-helper@cinammon.net',
+        'demo-sponsors@cinammon.net',
+        'demo-members@cinammon.net',
     ],
 ];
