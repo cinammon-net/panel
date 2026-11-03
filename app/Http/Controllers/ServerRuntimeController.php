@@ -24,10 +24,39 @@ class ServerRuntimeController extends Controller
         );
     }
 
-    public function console(Request $request, Server $server)
+    private function isDiscordBot(Server $server, WingsClient $wings): bool
+    {
+        if (in_array($server->egg->category, ['discord', 'bots'], true)
+            || str_contains(strtolower($server->name), 'discord')
+            || str_contains(strtolower($server->egg->name), 'discord')) {
+            return true;
+        }
+        if (! $server->installed_at) {
+            return false;
+        }
+
+        // Generic eggs (e.g. node.js generic) can host a bot; it announces itself by writing bot-status.json.
+        $key = "servers:{$server->id}:has-bot-status";
+        $cached = Cache::get($key);
+        if ($cached !== null) {
+            return $cached;
+        }
+        try {
+            $found = $wings->forServer($server)->timeout(3)
+                ->get('/servers/'.$server->uuid.'/files/contents', ['file' => 'bot-status.json'])
+                ->successful();
+        } catch (ConnectionException) {
+            return false;
+        }
+        Cache::put($key, $found, $found ? now()->addDay() : now()->addMinute());
+
+        return $found;
+    }
+
+    public function console(Request $request, Server $server, WingsClient $wings)
     {
         $this->authorizeServer($request, $server);
-        $isDiscord = $server->egg->category === 'discord' || $server->egg->category === 'bots' || str_contains(strtolower($server->name), 'discord') || str_contains(strtolower($server->egg->name), 'discord');
+        $isDiscord = $this->isDiscordBot($server, $wings);
         return Inertia::render('Servers/Console', ['server' => [
             'id' => $server->id, 'name' => $server->name, 'uuid' => $server->uuid, 'owner_id' => $server->owner_id,
             'address' => $server->allocation ? (app()->environment('local') ? 'localhost:'.$server->allocation->port : $server->allocation->ip.':'.$server->allocation->port) : 'localhost',
@@ -185,8 +214,7 @@ class ServerRuntimeController extends Controller
             $lines = $logs->successful() ? $logs->json('data', []) : [];
             $eula = null;
             $botStatus = null;
-            $isDiscord = $server->egg->category === 'discord' || $server->egg->category === 'bots' || str_contains(strtolower($server->name), 'discord') || str_contains(strtolower($server->egg->name), 'discord');
-            if ($isDiscord) {
+            if ($this->isDiscordBot($server, $wings)) {
                 $result = $client->get('/servers/'.$server->uuid.'/files/contents', ['file' => 'bot-status.json']);
                 $data = $result->successful() ? $result->json() : null;
                 if (is_array($data)) {
@@ -251,7 +279,7 @@ class ServerRuntimeController extends Controller
     public function configureDiscord(Request $request, Server $server, WingsClient $wings)
     {
         $this->authorizeServer($request, $server);
-        abort_unless($server->egg->category === 'discord', 422);
+        abort_unless($this->isDiscordBot($server, $wings), 422);
         abort_unless($server->installed_at, 409);
         // The password key is automatically excluded from flashed validation input.
         $data = $request->validate([
