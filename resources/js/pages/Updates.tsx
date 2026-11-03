@@ -38,6 +38,7 @@ interface Props {
     status: {
         panel: ComponentStatus;
         wings: ComponentStatus;
+        billing: ComponentStatus;
         runner: RunnerStatus | null;
         demo: boolean;
     };
@@ -182,8 +183,9 @@ export default function Updates() {
         router.post('/updates/check', {}, { onFinish: () => setChecking(false) });
     };
 
-    const handleUpdate = (target: 'panel' | 'wings') => {
-        if (!confirm(`¿Actualizar ${target === 'panel' ? 'el panel' : 'Wings'} a la última versión? El servicio puede tardar unos segundos en responder durante el proceso.`)) {
+    const handleUpdate = (target: 'panel' | 'wings' | 'billing') => {
+        const names = { panel: 'el panel', wings: 'Wings', billing: 'el billing' };
+        if (!confirm(`¿Actualizar ${names[target]} a la última versión? El servicio puede tardar unos segundos en responder durante el proceso.`)) {
             return;
         }
         setBusy(true);
@@ -227,7 +229,7 @@ export default function Updates() {
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 xl:grid-cols-3">
                     <ComponentCard
                         title="PANEL CINAMMON"
                         subtitle="Aplicación web, API y base de datos"
@@ -241,6 +243,13 @@ export default function Updates() {
                         status={status.wings}
                         busy={busy || !!runnerActive}
                         onUpdate={() => handleUpdate('wings')}
+                    />
+                    <ComponentCard
+                        title="BILLING"
+                        subtitle="Tienda, planes y facturación"
+                        status={status.billing}
+                        busy={busy || !!runnerActive}
+                        onUpdate={() => handleUpdate('billing')}
                     />
                 </div>
 

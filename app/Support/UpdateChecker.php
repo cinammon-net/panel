@@ -22,25 +22,29 @@ class UpdateChecker
 
         if ($fresh) {
             Cache::forget('updates:latest');
+            Cache::forget('updates:wings-current');
         }
 
         $latest = Cache::remember('updates:latest', $ttl, fn () => [
             'panel' => self::latestRelease(config('panel.updates.panel_repo')),
             'wings' => self::latestRelease(config('panel.updates.wings_repo')),
+            'billing' => self::latestRelease(config('panel.updates.billing_repo')),
         ]);
 
         // Si la API falló (rate limit, red), no fijar el fallo durante 30 min:
         // se reintenta en la siguiente petición.
-        if ($latest['panel'] === null || $latest['wings'] === null) {
+        if ($latest['panel'] === null || $latest['wings'] === null || $latest['billing'] === null) {
             Cache::forget('updates:latest');
         }
 
         $panelCurrent = (string) config('panel.version', '1.0.0');
         $wingsCurrent = self::wingsCurrentVersion();
+        $billingCurrent = self::billingCurrentVersion();
 
         return [
             'panel' => self::compare($panelCurrent, $latest['panel']),
             'wings' => self::compare($wingsCurrent, $latest['wings']),
+            'billing' => self::compare($billingCurrent, $latest['billing']),
             'runner' => self::runnerStatus(),
             'demo' => false,
         ];
@@ -58,12 +62,14 @@ class UpdateChecker
         $pending = array_values(array_filter([
             $status['panel']['update_available'] ? 'panel' : null,
             $status['wings']['update_available'] ? 'wings' : null,
+            $status['billing']['update_available'] ? 'billing' : null,
         ]));
 
         return [
             'pending' => $pending,
             'panel_latest' => $status['panel']['latest'],
             'wings_latest' => $status['wings']['latest'],
+            'billing_latest' => $status['billing']['latest'],
         ];
     }
 
@@ -139,6 +145,22 @@ class UpdateChecker
         });
     }
 
+    /** Versión instalada del billing: BILLING_VERSION en su .env. */
+    private static function billingCurrentVersion(): string
+    {
+        $path = (string) config('panel.updates.billing_env_path');
+
+        if ($path === '' || ! is_readable($path)) {
+            return '';
+        }
+
+        if (preg_match('/^BILLING_VERSION=["\']?([^"\'\r\n]+)/m', (string) file_get_contents($path), $m)) {
+            return ltrim(trim($m[1]), 'v');
+        }
+
+        return '';
+    }
+
     /** Lee el JSON de progreso que escribe el updater del host. */
     public static function runnerStatus(): ?array
     {
@@ -186,6 +208,14 @@ class UpdateChecker
             ],
             'wings' => [
                 'current' => 'develop',
+                'latest' => null,
+                'update_available' => false,
+                'notes' => null,
+                'url' => null,
+                'published_at' => null,
+            ],
+            'billing' => [
+                'current' => '1.0.0',
                 'latest' => null,
                 'update_available' => false,
                 'notes' => null,

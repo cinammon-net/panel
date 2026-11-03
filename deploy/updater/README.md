@@ -21,6 +21,12 @@ El usuario no tiene que tocar nada: descarga, aplica, migra y reinicia solo.
 - **Wings** (`cinammon-net/wings`): release con tag `vX.Y.Z` y el binario
   `wings_linux_amd64` (y opcionalmente `wings_linux_arm64`).
 
+- **Billing** (`cinammon-net/billing`): release con tag `vX.Y.Z` y un asset
+  `billing.tar.gz` igual que el del panel (con `public/build` de Vite; sin
+  `node_modules`, `.env` ni `storage`). El updater aplica archivos en
+  `/var/www/cinammon-billing`, fija `BILLING_VERSION` en su `.env`, ejecuta
+  `migrate --force`, `db:seed --class=PlanSeeder` y `optimize:clear`.
+
 ## Instalación en el VPS (una sola vez, como root)
 
 ```bash

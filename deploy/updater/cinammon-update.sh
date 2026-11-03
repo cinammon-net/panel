@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Updater privilegiado de Cinammon (panel + wings), disparado por systemd path unit
+# Updater privilegiado de Cinammon (panel + wings + billing), disparado por systemd path unit
 # cuando el panel escribe /run/cinammon-update/request.json.
 set -euo pipefail
 
@@ -7,10 +7,12 @@ REQUEST=/run/cinammon-update/request.json
 STATUS=/run/cinammon-telemetry/update-status.json
 PANEL_DIR=/var/www/cinammon-panel
 DEMO_DIR=/var/www/cinammon-demo
+BILLING_DIR=/var/www/cinammon-billing
 WINGS_BIN=/usr/local/bin/wings
 PHP=php8.4
 PANEL_REPO=cinammon-net/panel
 WINGS_REPO=cinammon-net/wings
+BILLING_REPO=cinammon-net/billing
 
 LOG=()
 
@@ -86,6 +88,32 @@ elif [ "$TARGET" = "wings" ]; then
   install -m 0755 "$TMP/wings" "$WINGS_BIN"
   status restarting 85 "Reiniciando wings.service"
   systemctl restart wings.service || { install -m 0755 "$WINGS_BIN.bak" "$WINGS_BIN"; systemctl restart wings.service; fail "Wings no arrancó; se restauró el binario anterior"; }
+elif [ "$TARGET" = "billing" ]; then
+  URL="https://github.com/$BILLING_REPO/releases/download/v$VERSION/billing.tar.gz"
+  status downloading 20 "Descargando $URL"
+  curl -fsSL "$URL" -o "$TMP/billing.tar.gz" || fail "No se pudo descargar billing.tar.gz del release v$VERSION (¿subiste el asset?)"
+  mkdir -p "$TMP/billing" && tar -xzf "$TMP/billing.tar.gz" -C "$TMP/billing"
+  SRC="$TMP/billing"; [ -d "$TMP/billing/billing" ] && SRC="$TMP/billing/billing"
+  [ -d "$BILLING_DIR" ] || fail "No existe $BILLING_DIR"
+
+  status applying 50 "Aplicando archivos en $BILLING_DIR"
+  rsync -a --delete \
+    --exclude .env --exclude storage --exclude bootstrap/cache \
+    --exclude node_modules --exclude .git \
+    "$SRC/" "$BILLING_DIR/"
+  chown -R www-data:www-data "$BILLING_DIR"
+  if grep -q '^BILLING_VERSION=' "$BILLING_DIR/.env"; then
+    sed -i "s/^BILLING_VERSION=.*/BILLING_VERSION=$VERSION/" "$BILLING_DIR/.env"
+  else
+    echo "BILLING_VERSION=$VERSION" >> "$BILLING_DIR/.env"
+  fi
+  status migrating 75 "Migraciones, seeder de planes y caches"
+  sudo -u www-data env HOME=/tmp XDG_CONFIG_HOME=/tmp $PHP "$BILLING_DIR/artisan" migrate --force
+  sudo -u www-data env HOME=/tmp XDG_CONFIG_HOME=/tmp $PHP "$BILLING_DIR/artisan" db:seed --class=PlanSeeder --force || true
+  sudo -u www-data env HOME=/tmp XDG_CONFIG_HOME=/tmp $PHP "$BILLING_DIR/artisan" optimize:clear
+  status restarting 90 "Recargando PHP-FPM"
+  systemctl reload php8.4-fpm || true
+
 else
   fail "Target desconocido: $TARGET"
 fi

@@ -13,6 +13,9 @@ return [
     'updates' => [
         'panel_repo' => env('PANEL_UPDATE_REPO', 'cinammon-net/panel'),
         'wings_repo' => env('PANEL_WINGS_UPDATE_REPO', 'cinammon-net/wings'),
+        'billing_repo' => env('PANEL_BILLING_UPDATE_REPO', 'cinammon-net/billing'),
+        // .env del billing del que se lee BILLING_VERSION (vacío = sin billing en esta máquina).
+        'billing_env_path' => env('PANEL_BILLING_ENV_PATH', '/var/www/cinammon-billing/.env'),
         'github_token' => env('PANEL_UPDATE_GITHUB_TOKEN'),
         'request_path' => env('PANEL_UPDATE_REQUEST_PATH', '/run/cinammon-update/request.json'),
         'status_path' => env('PANEL_UPDATE_STATUS_PATH', '/run/cinammon-telemetry/update-status.json'),

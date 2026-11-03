@@ -36,7 +36,7 @@ class UpdateController extends Controller
     public function run(Request $request)
     {
         $validated = $request->validate([
-            'target' => 'required|in:panel,wings',
+            'target' => 'required|in:panel,wings,billing',
         ]);
 
         if (Panel::demoMode()) {

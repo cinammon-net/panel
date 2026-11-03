@@ -6,6 +6,7 @@ interface UpdatesShared {
     pending: string[];
     panel_latest: string | null;
     wings_latest: string | null;
+    billing_latest: string | null;
 }
 
 /**
@@ -19,7 +20,11 @@ export default function UpdateBanner() {
     if (dismissed || !updates || !updates.pending?.length) return null;
 
     const parts = updates.pending.map((target) =>
-        target === 'panel' ? `Panel v${updates.panel_latest}` : `Wings v${updates.wings_latest}`,
+        target === 'panel'
+            ? `Panel v${updates.panel_latest}`
+            : target === 'wings'
+              ? `Wings v${updates.wings_latest}`
+              : `Billing v${updates.billing_latest}`,
     );
 
     return (

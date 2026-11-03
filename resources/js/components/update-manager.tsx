@@ -24,6 +24,7 @@ interface RunnerStatus {
 export interface UpdateStatus {
     panel: ComponentStatus;
     wings: ComponentStatus;
+    billing: ComponentStatus;
     runner: RunnerStatus | null;
     demo: boolean;
 }
@@ -102,7 +103,7 @@ export default function UpdateManager({ status }: { status: UpdateStatus }) {
     const [runner, setRunner] = useState<RunnerStatus | null>(status.runner);
 
     const runnerActive = runner?.state && !['done', 'error'].includes(runner.state);
-    const anyUpdate = status.panel.update_available || status.wings.update_available;
+    const anyUpdate = status.panel.update_available || status.wings.update_available || status.billing?.update_available;
 
     useEffect(() => {
         if (!runnerActive) return;
@@ -123,8 +124,9 @@ export default function UpdateManager({ status }: { status: UpdateStatus }) {
         return () => clearInterval(id);
     }, [runnerActive]);
 
-    const handleUpdate = (target: 'panel' | 'wings') => {
-        if (!confirm(`¿Actualizar ${target === 'panel' ? 'el panel' : 'Wings'} a la última versión?`)) return;
+    const handleUpdate = (target: 'panel' | 'wings' | 'billing') => {
+        const names = { panel: 'el panel', wings: 'Wings', billing: 'el billing' };
+        if (!confirm(`¿Actualizar ${names[target]} a la última versión?`)) return;
         setBusy(true);
         router.post(
             '/updates/run',
@@ -160,6 +162,9 @@ export default function UpdateManager({ status }: { status: UpdateStatus }) {
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 <Row title="PANEL" status={status.panel} busy={busy || !!runnerActive} onUpdate={() => handleUpdate('panel')} />
                 <Row title="WINGS" status={status.wings} busy={busy || !!runnerActive} onUpdate={() => handleUpdate('wings')} />
+                {status.billing && (
+                    <Row title="BILLING" status={status.billing} busy={busy || !!runnerActive} onUpdate={() => handleUpdate('billing')} />
+                )}
             </div>
 
             {runner?.state && (
