@@ -44,6 +44,10 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    'bot' => [
+        'secret' => env('BOT_INTERNAL_SECRET'),
+    ],
+
     'billing' => [
         'token' => env('BILLING_API_TOKEN'),
         'url' => env('BILLING_URL', 'http://localhost:8001'),

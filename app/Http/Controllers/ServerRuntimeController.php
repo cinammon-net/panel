@@ -289,6 +289,8 @@ class ServerRuntimeController extends Controller
         try {
             $wings->forServer($server)->withBody(json_encode([
                 'token' => $data['password'], 'guild_id' => $data['guild_id'] ?? '',
+                // El bot consulta la API del panel con este secreto y esta dirección.
+                'bot_secret' => (string) config('services.bot.secret'), 'panel_url' => rtrim((string) config('app.url'), '/'),
             ], JSON_THROW_ON_ERROR), 'application/json')
                 ->post('/servers/'.$server->uuid.'/files/write?file=bot-config.json')->throw();
         } catch (ConnectionException|RequestException $exception) {

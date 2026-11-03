@@ -85,66 +85,71 @@ class DaemonController extends Controller
         return response()->noContent();
     }
 
+    /**
+     * Valida un inicio de sesión SFTP con las credenciales generadas por el panel
+     * (una por persona y servidor). La contraseña de la cuenta ya no abre el SFTP.
+     */
     public function sftpAuth(Request $request)
     {
-        $rawUsername = (string) $request->input('username', '');
+        $username = strtolower((string) $request->input('username', ''));
         $password = (string) $request->input('password', '');
+        $ip = (string) preg_replace('/^\[?(.*?)\]?:\d+$/', '$1', (string) $request->input('ip', ''));
         $node = $request->attributes->get('node');
 
-        if (empty($rawUsername) || empty($password)) {
-            return response()->json(['error' => 'Missing username or password'], 400);
-        }
-
-        // 1. Probar coincidencia directa con el nombre o email
-        $user = \App\Models\User::where('email', $rawUsername)
-            ->orWhere('name', $rawUsername)
-            ->first();
-        $serverIdentifier = null;
-
-        // 2. Si no coincide directo, puede venir como "<user>.<server_id>"
-        if (!$user) {
-            $lastDotPos = strrpos($rawUsername, '.');
-            if ($lastDotPos !== false) {
-                $userIdentifier = substr($rawUsername, 0, $lastDotPos);
-                $serverIdentifier = substr($rawUsername, $lastDotPos + 1);
-
-                $user = \App\Models\User::where('email', $userIdentifier)
-                    ->orWhere('name', $userIdentifier)
-                    ->first();
-            }
-        }
-
-        if (!$user || !\Illuminate\Support\Facades\Hash::check($password, $user->password)) {
+        if ($username === '' || $password === '' || $request->input('type', 'password') !== 'password') {
             return response()->json(['error' => 'Invalid credentials'], 403);
         }
 
-        $serverQuery = $node->servers();
-        if ($serverIdentifier) {
-            $serverQuery->where(function ($q) use ($serverIdentifier) {
-                $q->where('uuid', 'LIKE', "{$serverIdentifier}%")
-                  ->orWhere('uuid_short', $serverIdentifier);
-            });
+        // Límites por usuario+IP, por usuario (aunque cambien de IP) y por IP (aunque cambien de usuario).
+        $limits = [
+            ["sftp:{$username}|{$ip}", 5, 900],
+            ["sftp-user:{$username}", 10, 3600],
+            ["sftp-ip:{$ip}", 30, 3600],
+        ];
+        foreach ($limits as [$key, $max]) {
+            if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($key, $max)) {
+                return response()->json(['error' => 'Too many attempts'], 429);
+            }
         }
 
-        $isAdmin = $user->hasRole('admin') || $user->hasRole('owner') || $user->hasRole('super-admin');
+        $credential = \App\Models\SftpCredential::with(['server.owner', 'user'])->where('username', $username)->first();
 
-        if (!$isAdmin) {
-            $serverQuery->where(function ($q) use ($user) {
-                $q->where('owner_id', $user->id)
-                  ->orWhereHas('subusers', function ($sq) use ($user) {
-                      $sq->where('user_id', $user->id);
-                  });
-            });
+        // Se compara siempre contra un hash para que el tiempo de respuesta no revele si el usuario existe.
+        $hash = $credential?->password_hash
+            ?? \Illuminate\Support\Facades\Cache::rememberForever('sftp.dummy_hash', fn () => \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(32)));
+        $valid = \Illuminate\Support\Facades\Hash::check($password, $hash) && $credential !== null;
+
+        $server = $credential?->server;
+        $user = $credential?->user;
+
+        if ($valid) {
+            $isOwner = $server && $user->id === $server->owner_id;
+            $isSubuser = $server && $server->subusers()->where('user_id', $user->id)->exists();
+            $isAdmin = $user->hasAnyRole(['Owner', 'Admin']);
+            $lockedByOwner = $server && ! $isOwner && ! $isSubuser && $server->owner?->securityLockActive();
+
+            // El acceso se vuelve a comprobar en cada conexión: servidor de este nodo, activo y la persona sigue autorizada.
+            $valid = $server
+                && (int) $server->node_id === (int) $node->id
+                && $server->active
+                && ($isOwner || $isSubuser || $isAdmin)
+                && ! $lockedByOwner;
         }
 
-        $server = $serverQuery->first();
+        if (! $valid) {
+            foreach ($limits as [$key, , $decay]) {
+                \Illuminate\Support\Facades\RateLimiter::hit($key, $decay);
+            }
 
-        if (!$server) {
-            return response()->json(['error' => 'Server not found or access denied'], 403);
+            return response()->json(['error' => 'Invalid credentials'], 403);
         }
+
+        \Illuminate\Support\Facades\RateLimiter::clear($limits[0][0]);
+        $credential->forceFill(['last_used_at' => now(), 'last_used_ip' => $ip ?: null])->save();
 
         return response()->json([
             'server' => $server->uuid,
+            'user' => (string) $user->id,
             'permissions' => ['*'],
         ]);
     }
