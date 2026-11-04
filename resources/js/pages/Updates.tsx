@@ -142,14 +142,14 @@ function ComponentCard({
             </div>
 
             {status.update_available && status.notes && (
-                <div className="mt-4 max-h-44 overflow-y-auto rounded-xl border border-neutral-800 bg-black/50 p-4">
+                <div className="mt-4">
                     <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-neutral-500">Notas de la versión</p>
                     {status.title && (
                         <p className="mb-2 text-xs font-bold tracking-wide text-fuchsia-200">
                             {status.title.replace(/^v[\d.]+\s*[—-]\s*/, '')}
                         </p>
                     )}
-                    <Markdown source={status.notes} className="text-xs leading-relaxed text-neutral-300" />
+                    <Markdown source={status.notes} collapseAt={180} />
                 </div>
             )}
 
@@ -393,10 +393,7 @@ export default function Updates() {
                                         )}
                                     </div>
                                     {release.notes && (
-                                        <Markdown
-                                            source={release.notes}
-                                            className="mt-3 max-h-56 overflow-y-auto rounded-lg border border-neutral-800/70 bg-black/50 p-3 text-xs leading-relaxed text-neutral-300"
-                                        />
+                                        <Markdown source={release.notes} collapseAt={220} className="mt-3" />
                                     )}
                                 </div>
                             ))}

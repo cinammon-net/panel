@@ -92,10 +92,7 @@ function Row({ title, status, busy, onUpdate }: { title: string; status: Compone
                 </div>
             </div>
             {showNotes && status.notes && (
-                <Markdown
-                    source={status.notes}
-                    className="mt-3 max-h-36 overflow-y-auto rounded-lg border border-neutral-800 bg-black/50 p-3 text-xs leading-relaxed text-neutral-300"
-                />
+                <Markdown source={status.notes} collapseAt={160} className="mt-3" />
             )}
         </div>
     );
