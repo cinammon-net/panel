@@ -9,6 +9,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use ZipArchive;
@@ -289,6 +290,192 @@ class ServerAddonsController extends Controller
             return response()->noContent();
         } catch (ConnectionException|RequestException $exception) {
             return response()->json(['message' => 'Wings no pudo recibir el archivo.'], 502);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Catálogo de Modrinth: explorar e instalar
+    // ------------------------------------------------------------------
+
+    private const MODRINTH = 'https://api.modrinth.com/v2';
+
+    private const MODRINTH_UA = 'cinammon-net/panel (https://panel.cinammon.net)';
+
+    /** Loaders de Modrinth compatibles con el servidor (vacío = no se puede explorar). */
+    private function modrinthLoaders(Server $server): array
+    {
+        $name = strtolower((string) $server->egg?->name);
+
+        return match (true) {
+            str_contains($name, 'velocity') => ['velocity'],
+            str_contains($name, 'bungee') || str_contains($name, 'waterfall') || str_contains($name, 'travertine') => ['bungeecord', 'waterfall'],
+            str_contains($name, 'folia') => ['folia'],
+            str_contains($name, 'paper') || str_contains($name, 'purpur') || str_contains($name, 'spigot') || str_contains($name, 'bukkit') || str_contains($name, 'pufferfish') => ['paper', 'purpur', 'spigot', 'bukkit'],
+            str_contains($name, 'neoforge') => ['neoforge'],
+            str_contains($name, 'quilt') => ['quilt', 'fabric'],
+            str_contains($name, 'fabric') => ['fabric'],
+            str_contains($name, 'sponge') => ['sponge'],
+            str_contains($name, 'forge') => ['forge'],
+            default => [],
+        };
+    }
+
+    /** Versión de Minecraft del servidor: variable del huevo, carpeta versions/ (Paper) o version_history.json. */
+    private function minecraftVersion($client, Server $server): ?string
+    {
+        $isVersion = fn ($v) => is_string($v) && preg_match('/^\d+\.\d+(\.\d+)?$/', trim($v));
+
+        $variables = $server->egg->variables()->whereIn('env_variable', ['MINECRAFT_VERSION', 'MC_VERSION', 'VERSION', 'MINECRAFT_VER'])->get();
+        $values = \Illuminate\Support\Facades\DB::table('server_variables')->where('server_id', $server->id)->pluck('variable_value', 'variable_id');
+        foreach ($variables as $variable) {
+            $value = trim((string) ($values[$variable->id] ?? $variable->default_value ?? ''));
+            if ($isVersion($value)) {
+                return $value;
+            }
+        }
+
+        return Cache::remember('addons_mcver:'.$server->uuid, now()->addMinutes(10), function () use ($client, $server, $isVersion) {
+            try {
+                $root = collect($client->get('/servers/'.$server->uuid.'/files/list-directory', ['directory' => '/'])->throw()->json() ?? []);
+                $versions = $root->firstWhere('name', 'versions');
+                if ($versions && ($versions['directory'] ?? false) && ! ($versions['symlink'] ?? false)) {
+                    $dirs = collect($client->get('/servers/'.$server->uuid.'/files/list-directory', ['directory' => '/versions'])->throw()->json() ?? [])
+                        ->filter(fn ($e) => ($e['directory'] ?? false) && $isVersion($e['name'] ?? null))->pluck('name')
+                        ->sort(fn ($a, $b) => version_compare($b, $a))->values();
+                    if ($dirs->isNotEmpty()) {
+                        return $dirs->first();
+                    }
+                }
+                if ($root->contains('name', 'version_history.json')) {
+                    $history = $client->get('/servers/'.$server->uuid.'/files/contents', ['file' => '/version_history.json'])->body();
+                    if (preg_match('/MC:\s*(\d+\.\d+(?:\.\d+)?)/', $history, $m)) {
+                        return $m[1];
+                    }
+                }
+            } catch (ConnectionException|RequestException $exception) {
+            }
+
+            return null;
+        });
+    }
+
+    private function modrinth(): \Illuminate\Http\Client\PendingRequest
+    {
+        return Http::withHeaders(['User-Agent' => self::MODRINTH_UA])->acceptJson()->timeout(15);
+    }
+
+    public function browse(Request $request, Server $server, WingsClient $wings)
+    {
+        $this->authorizeServer($request, $server);
+        $data = $request->validate(['q' => 'nullable|string|max:100', 'offset' => 'nullable|integer|min:0|max:1000', 'folder' => 'required|string']);
+        $folder = $this->folder($server, $data['folder']);
+        $loaders = $this->modrinthLoaders($server);
+        if ($loaders === []) {
+            return response()->json(['supported' => false, 'hits' => [], 'total' => 0]);
+        }
+        $version = $this->minecraftVersion($wings->forServer($server)->timeout(10), $server);
+        $isPlugin = $folder === 'plugins';
+
+        $facets = [array_map(fn ($l) => 'categories:'.$l, $loaders), ['project_type:'.($isPlugin ? 'plugin' : 'mod')], ['server_side:required', 'server_side:optional']];
+        if ($version) {
+            $facets[] = ['versions:'.$version];
+        }
+        $query = trim((string) ($data['q'] ?? ''));
+        $params = [
+            'query' => $query,
+            'facets' => json_encode($facets),
+            'index' => $query === '' ? 'downloads' : 'relevance',
+            'limit' => 20,
+            'offset' => (int) ($data['offset'] ?? 0),
+        ];
+
+        try {
+            $result = Cache::remember('modrinth_search:'.md5(json_encode($params)), now()->addMinutes(10), function () use ($params) {
+                return $this->modrinth()->get(self::MODRINTH.'/search', $params)->throw()->json();
+            });
+        } catch (ConnectionException|RequestException $exception) {
+            return response()->json(['message' => 'No se pudo consultar Modrinth. Prueba de nuevo en un momento.'], 502);
+        }
+
+        return response()->json([
+            'supported' => true,
+            'loaders' => $loaders,
+            'version' => $version,
+            'total' => (int) ($result['total_hits'] ?? 0),
+            'hits' => collect($result['hits'] ?? [])->map(fn ($h) => [
+                'id' => $h['project_id'] ?? null,
+                'slug' => $h['slug'] ?? null,
+                'title' => Str::limit((string) ($h['title'] ?? ''), 80, '…'),
+                'description' => Str::limit((string) ($h['description'] ?? ''), 200, '…'),
+                'author' => $h['author'] ?? null,
+                'downloads' => (int) ($h['downloads'] ?? 0),
+                'icon' => isset($h['icon_url']) && preg_match('#^https://cdn\.modrinth\.com/#', (string) $h['icon_url']) ? $h['icon_url'] : null,
+                'categories' => array_values(array_diff($h['categories'] ?? [], ['paper', 'purpur', 'spigot', 'bukkit', 'folia', 'velocity', 'bungeecord', 'waterfall', 'fabric', 'forge', 'neoforge', 'quilt', 'sponge'])),
+            ])->filter(fn ($h) => $h['id'])->values(),
+        ]);
+    }
+
+    public function install(Request $request, Server $server, WingsClient $wings)
+    {
+        $this->authorizeServer($request, $server);
+        $data = $request->validate(['project' => ['required', 'string', 'max:64', 'regex:/^[A-Za-z0-9_-]+$/'], 'folder' => 'required|string']);
+        $folder = $this->folder($server, $data['folder']);
+        $loaders = $this->modrinthLoaders($server);
+        abort_if($loaders === [], 422, 'Este tipo de servidor no es compatible con Modrinth.');
+
+        $client = $wings->forServer($server)->timeout(120);
+        $version = $this->minecraftVersion($client, $server);
+        $params = ['loaders' => json_encode($loaders)];
+        if ($version) {
+            $params['game_versions'] = json_encode([$version]);
+        }
+
+        try {
+            $versions = $this->modrinth()->get(self::MODRINTH.'/project/'.$data['project'].'/version', $params)->throw()->json() ?? [];
+        } catch (ConnectionException|RequestException $exception) {
+            return response()->json(['message' => 'No se pudo consultar Modrinth.'], 502);
+        }
+        $release = collect($versions)->firstWhere('version_type', 'release') ?? ($versions[0] ?? null);
+        abort_unless($release, 404, 'No hay ninguna versión compatible'.($version ? ' con Minecraft '.$version : '').'.');
+        $file = collect($release['files'] ?? [])->firstWhere('primary', true) ?? ($release['files'][0] ?? null);
+        abort_unless($file && preg_match('#^https://cdn\.modrinth\.com/#', (string) ($file['url'] ?? '')), 422, 'Archivo de descarga no válido.');
+        $name = $this->jarName(basename(rawurldecode(parse_url($file['url'], PHP_URL_PATH))));
+        abort_unless(preg_match('/\.jar$/i', $name), 422, 'El archivo no es un .jar.');
+        abort_if((int) ($file['size'] ?? 0) > 100 * 1024 * 1024, 413, 'El archivo es demasiado grande.');
+
+        try {
+            $entries = $this->folderEntries($client, $server, $folder);
+            if ($entries === null) {
+                $client->post('/servers/'.$server->uuid.'/files/create-directory', ['path' => '/', 'name' => $folder])->throw();
+                $entries = [];
+            }
+            $taken = collect($entries)->pluck('name');
+            abort_if($taken->contains($name) || $taken->contains($name.'.disabled'), 409, 'Ya está instalado ('.$name.').');
+
+            $tmp = tempnam(sys_get_temp_dir(), 'cinmr');
+            try {
+                Http::withHeaders(['User-Agent' => self::MODRINTH_UA])->timeout(120)->withOptions(['sink' => $tmp])->get($file['url'])->throw();
+                $sha512 = $file['hashes']['sha512'] ?? null;
+                abort_unless($sha512 && hash_equals($sha512, hash_file('sha512', $tmp)), 422, 'La descarga no coincide con la firma de Modrinth.');
+                $stream = fopen($tmp, 'rb');
+                try {
+                    $client->withBody($stream, 'application/java-archive')->withHeaders(['Content-Length' => (string) filesize($tmp)])
+                        ->post('/servers/'.$server->uuid.'/files/write?'.http_build_query(['file' => '/'.$folder.'/'.$name]))->throw();
+                } finally {
+                    if (is_resource($stream)) {
+                        fclose($stream);
+                    }
+                }
+            } finally {
+                @unlink($tmp);
+            }
+            $this->logActivity($server, $request, 'addon:install', 'Instaló '.$folder.'/'.$name.' desde Modrinth');
+
+            $required = collect($release['dependencies'] ?? [])->where('dependency_type', 'required')->pluck('project_id')->filter()->values();
+
+            return response()->json(['file' => $name, 'version' => $release['version_number'] ?? null, 'requires' => $required]);
+        } catch (ConnectionException|RequestException $exception) {
+            return response()->json(['message' => 'No se pudo descargar o guardar el archivo.'], 502);
         }
     }
 

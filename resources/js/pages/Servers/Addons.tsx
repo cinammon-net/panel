@@ -1,7 +1,7 @@
 import ServerLayout from '@/layouts/server-layout';
 import { Head, Link } from '@inertiajs/react';
 import axios from 'axios';
-import { AlertTriangle, Download, ExternalLink, FolderOpen, Loader2, Power, Puzzle, RefreshCw, Search, Trash2, Upload } from 'lucide-react';
+import { AlertTriangle, Check, Compass, Download, ExternalLink, FolderOpen, Loader2, Package, Power, Puzzle, RefreshCw, Search, Trash2, Upload } from 'lucide-react';
 import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -34,6 +34,194 @@ const colorFor = (name: string) => AVATAR_COLORS[[...name].reduce((a, c) => a + 
 const errorMessage = (error: unknown, fallback: string) =>
     axios.isAxiosError(error) ? (error.response?.data?.message as string) || fallback : fallback;
 
+type Hit = { id: string; slug: string | null; title: string; description: string; author: string | null; downloads: number; icon: string | null; categories: string[] };
+
+const formatCount = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)} M` : n >= 1e3 ? `${Math.round(n / 1e3)} K` : String(n));
+
+/** Catálogo de Modrinth filtrado por el tipo y la versión del servidor. */
+function Explore({ base, folder, installedNames, onInstalled }: { base: string; folder: Folder; installedNames: string[]; onInstalled: () => void }) {
+    const [query, setQuery] = useState('');
+    const [debounced, setDebounced] = useState('');
+    const [hits, setHits] = useState<Hit[]>([]);
+    const [total, setTotal] = useState(0);
+    const [info, setInfo] = useState<{ supported: boolean; loaders?: string[]; version?: string | null } | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [installing, setInstalling] = useState<string | null>(null);
+    const [done, setDone] = useState<string[]>([]);
+    const noun = folder === 'mods' ? 'mod' : 'plugin';
+
+    useEffect(() => {
+        const t = window.setTimeout(() => setDebounced(query.trim()), 350);
+        return () => window.clearTimeout(t);
+    }, [query]);
+
+    const fetchPage = useCallback(
+        async (offset: number) => {
+            setLoading(true);
+            setError('');
+            try {
+                const { data } = await axios.get(`${base}/browse`, { params: { q: debounced, offset, folder } });
+                setInfo({ supported: data.supported, loaders: data.loaders, version: data.version });
+                setTotal(data.total ?? 0);
+                setHits((prev) => (offset === 0 ? data.hits : [...prev, ...data.hits]));
+            } catch (e) {
+                setError(errorMessage(e, 'No se pudo cargar el catálogo.'));
+            } finally {
+                setLoading(false);
+            }
+        },
+        [base, debounced, folder],
+    );
+
+    useEffect(() => {
+        void fetchPage(0);
+    }, [fetchPage]);
+
+    const install = async (hit: Hit) => {
+        setInstalling(hit.id);
+        try {
+            const { data } = await axios.post(`${base}/install`, { project: hit.id, folder });
+            setDone((d) => [...d, hit.id]);
+            toast.success(`${hit.title} ${data.version ? `v${data.version} ` : ''}instalado.`);
+            if (data.requires?.length) toast.info(`${hit.title} necesita otras dependencias; búscalas en Explorar.`);
+            onInstalled();
+        } catch (e) {
+            toast.error(errorMessage(e, `No se pudo instalar ${hit.title}.`));
+        } finally {
+            setInstalling(null);
+        }
+    };
+
+    const isInstalled = (hit: Hit) =>
+        done.includes(hit.id) || installedNames.some((n) => n === hit.title.toLowerCase() || (hit.slug && n.replace(/\s+/g, '-') === hit.slug));
+
+    if (info && !info.supported) {
+        return (
+            <div className="rounded-xl border border-dashed border-neutral-800 p-10 text-center text-sm text-neutral-400">
+                El catálogo no está disponible para este tipo de servidor. Puedes subir el <code className="text-cyan-400">.jar</code> a mano.
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <label className="relative sm:w-96">
+                    <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-neutral-500" />
+                    <input
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder={`Buscar ${noun}s en Modrinth…`}
+                        className="w-full rounded-lg border border-neutral-800 bg-neutral-900/80 py-2 pr-3 pl-9 text-sm text-white placeholder:text-neutral-500 focus:border-cyan-500 focus:outline-none"
+                    />
+                </label>
+                {info && (
+                    <p className="text-xs text-neutral-500">
+                        {debounced ? `${formatCount(total)} resultados` : 'Más descargados'} · compatibles con{' '}
+                        <span className="text-cyan-400">{info.loaders?.[0] ? info.loaders[0].charAt(0).toUpperCase() + info.loaders[0].slice(1) : ''}</span>
+                        {info.version && (
+                            <>
+                                {' '}
+                                <span className="text-cyan-400">{info.version}</span>
+                            </>
+                        )}
+                    </p>
+                )}
+            </div>
+
+            {error && <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
+
+            {loading && hits.length === 0 ? (
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {Array.from({ length: 9 }).map((_, i) => (
+                        <div key={i} className="h-32 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
+                    ))}
+                </div>
+            ) : hits.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-neutral-800 p-10 text-center text-sm text-neutral-400">No se ha encontrado ningún {noun}.</div>
+            ) : (
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {hits.map((h) => {
+                        const installed = isInstalled(h);
+                        return (
+                            <div key={h.id} className="flex flex-col rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 transition hover:border-cyan-500/40">
+                                <div className="flex gap-3">
+                                    {h.icon ? (
+                                        <img src={h.icon} alt="" loading="lazy" className="h-12 w-12 shrink-0 rounded-xl border border-neutral-800 bg-black object-cover" />
+                                    ) : (
+                                        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-lg font-black text-white ${colorFor(h.title)}`}>
+                                            {h.title.charAt(0).toUpperCase()}
+                                        </div>
+                                    )}
+                                    <div className="min-w-0">
+                                        <p className="truncate font-bold text-white">{h.title}</p>
+                                        <p className="truncate text-[11px] text-neutral-500">
+                                            {h.author && <>por {h.author} · </>}
+                                            <Download className="inline h-3 w-3" /> {formatCount(h.downloads)}
+                                        </p>
+                                    </div>
+                                </div>
+                                <p className="mt-3 line-clamp-2 flex-1 font-sans text-xs text-neutral-400">{h.description}</p>
+                                <div className="mt-3 flex items-center justify-between gap-2">
+                                    <div className="flex min-w-0 flex-wrap gap-1">
+                                        {h.categories.slice(0, 2).map((c) => (
+                                            <span key={c} className="rounded-md border border-neutral-800 px-1.5 py-0.5 text-[10px] text-neutral-500">
+                                                {c}
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <div className="flex shrink-0 items-center gap-1">
+                                        {h.slug && (
+                                            <a
+                                                href={`https://modrinth.com/${noun}/${h.slug}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                title="Ver en Modrinth"
+                                                className="rounded-md p-1.5 text-neutral-500 hover:bg-white/5 hover:text-cyan-300"
+                                            >
+                                                <ExternalLink className="h-3.5 w-3.5" />
+                                            </a>
+                                        )}
+                                        {installed ? (
+                                            <span className="flex items-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-bold text-emerald-300">
+                                                <Check className="h-3.5 w-3.5" /> Instalado
+                                            </span>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                disabled={installing !== null}
+                                                onClick={() => void install(h)}
+                                                className="flex items-center gap-1 rounded-lg bg-cyan-500 px-3 py-1.5 text-[11px] font-bold text-black transition hover:bg-cyan-400 disabled:opacity-50"
+                                            >
+                                                {installing === h.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />} Instalar
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
+            {hits.length > 0 && hits.length < total && (
+                <div className="flex justify-center">
+                    <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => void fetchPage(hits.length)}
+                        className="flex items-center gap-2 rounded-lg border border-neutral-700 px-4 py-2 text-xs font-bold text-neutral-300 hover:border-cyan-500 hover:text-cyan-300 disabled:opacity-50"
+                    >
+                        {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Cargar más
+                    </button>
+                </div>
+            )}
+            <p className="text-[11px] text-neutral-600">Catálogo de Modrinth. Se instala la última versión estable compatible con tu servidor.</p>
+        </div>
+    );
+}
+
 export default function Addons({ server, kind }: { server: { id: number; name: string; owner_id?: number; egg?: string | null }; kind: Kind }) {
     const title = kind === 'plugins' ? 'Plugins' : kind === 'mods' ? 'Mods' : 'Plugins y mods';
     const base = `/servers/${server.id}/addons`;
@@ -46,6 +234,8 @@ export default function Addons({ server, kind }: { server: { id: number; name: s
     const [busy, setBusy] = useState<string | null>(null);
     const [uploading, setUploading] = useState<string | null>(null);
     const [needsRestart, setNeedsRestart] = useState(false);
+    const [view, setView] = useState<'installed' | 'explore'>('installed');
+    const viewChosen = useRef(false);
     const uploadRef = useRef<HTMLInputElement>(null);
     const uploadFolder = useRef<Folder>('plugins');
 
@@ -84,6 +274,12 @@ export default function Addons({ server, kind }: { server: { id: number; name: s
         try {
             const { data } = await axios.get<{ folders: Folders }>(`${base}/list`);
             setFolders(data.folders);
+            // Sin nada instalado se abre directamente el catálogo.
+            if (!viewChosen.current) {
+                viewChosen.current = true;
+                const any = Object.values(data.folders).some((l) => (l?.length ?? 0) > 0);
+                if (!any) setView('explore');
+            }
             setTab((current) => {
                 const has = (f: Folder) => data.folders[f] !== null && data.folders[f] !== undefined;
                 if (has(current) && data.folders[current]?.length) return current;
@@ -249,7 +445,60 @@ export default function Addons({ server, kind }: { server: { id: number; name: s
                     </div>
                 )}
 
-                {kind === 'none' ? (
+                {kind !== 'none' && folders && available.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex gap-1 rounded-xl border border-neutral-800 bg-neutral-900/60 p-1">
+                            {(
+                                [
+                                    ['installed', `Instalados`, Package],
+                                    ['explore', 'Explorar', Compass],
+                                ] as const
+                            ).map(([key, label, Icon]) => (
+                                <button
+                                    key={key}
+                                    type="button"
+                                    onClick={() => {
+                                        viewChosen.current = true;
+                                        setView(key);
+                                    }}
+                                    className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold tracking-wider uppercase transition ${
+                                        view === key ? 'bg-cyan-500/15 text-cyan-300 ring-1 ring-cyan-500/40' : 'text-neutral-400 hover:text-white'
+                                    }`}
+                                >
+                                    <Icon className="h-4 w-4" /> {label}
+                                    {key === 'installed' && <span className="rounded-md bg-black/40 px-1.5 py-0.5 text-[10px]">{available.reduce((n, f) => n + (folders[f]?.length ?? 0), 0)}</span>}
+                                </button>
+                            ))}
+                        </div>
+                        {view === 'explore' && available.length > 1 && (
+                            <div className="flex gap-1 rounded-xl border border-neutral-800 bg-neutral-900/60 p-1">
+                                {available.map((f) => (
+                                    <button
+                                        key={f}
+                                        type="button"
+                                        onClick={() => setTab(f)}
+                                        className={`rounded-lg px-3 py-2 text-xs font-bold uppercase transition ${tab === f ? 'bg-white/10 text-white' : 'text-neutral-400 hover:text-white'}`}
+                                    >
+                                        {FOLDER_LABEL[f]}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {kind !== 'none' && view === 'explore' && folders && available.length > 0 ? (
+                    <Explore
+                        key={tab}
+                        base={base}
+                        folder={available.includes(tab) ? tab : available[0]}
+                        installedNames={(folders[tab] ?? []).map((a) => a.name.toLowerCase())}
+                        onInstalled={() => {
+                            setNeedsRestart(true);
+                            void load();
+                        }}
+                    />
+                ) : kind === 'none' ? (
                     <div className="rounded-2xl border border-dashed border-neutral-800 bg-neutral-900/40 p-10 text-center">
                         <Puzzle className="mx-auto h-10 w-10 text-neutral-600" />
                         <h2 className="mt-4 text-lg font-bold text-white">{server.egg ?? 'Este servidor'} no admite plugins ni mods</h2>

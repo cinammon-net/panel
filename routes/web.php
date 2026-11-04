@@ -530,6 +530,8 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
     Route::post('/servers/{server}/addons/toggle', [App\Http\Controllers\ServerAddonsController::class, 'toggle']);
     Route::post('/servers/{server}/addons/delete', [App\Http\Controllers\ServerAddonsController::class, 'destroy']);
     Route::post('/servers/{server}/addons/upload', [App\Http\Controllers\ServerAddonsController::class, 'upload']);
+    Route::get('/servers/{server}/addons/browse', [App\Http\Controllers\ServerAddonsController::class, 'browse'])->middleware('throttle:60,1');
+    Route::post('/servers/{server}/addons/install', [App\Http\Controllers\ServerAddonsController::class, 'install'])->middleware('throttle:30,1');
     Route::get('/servers/{server}/startup', [App\Http\Controllers\ServerModulesController::class, 'startup'])->name('servers.startup');
     Route::put('/servers/{server}/startup/variables', [App\Http\Controllers\ServerModulesController::class, 'updateStartupVariables'])->name('servers.startup.variables');
     Route::put('/servers/{server}/startup/image', [App\Http\Controllers\ServerModulesController::class, 'updateStartupImage'])->name('servers.startup.image');
