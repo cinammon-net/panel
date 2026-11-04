@@ -22,7 +22,8 @@ type Addon = {
     meta_loaded: boolean;
 };
 
-type Folders = Record<Folder, Addon[] | null>;
+type Folders = Partial<Record<Folder, Addon[] | null>>;
+type Kind = 'plugins' | 'mods' | 'both' | 'none' | 'auto';
 
 const FOLDER_LABEL: Record<Folder, string> = { plugins: 'Plugins', mods: 'Mods' };
 const AVATAR_COLORS = ['from-pink-500 to-fuchsia-600', 'from-cyan-500 to-blue-600', 'from-emerald-500 to-teal-600', 'from-amber-500 to-orange-600', 'from-violet-500 to-purple-600', 'from-rose-500 to-red-600'];
@@ -33,7 +34,8 @@ const colorFor = (name: string) => AVATAR_COLORS[[...name].reduce((a, c) => a + 
 const errorMessage = (error: unknown, fallback: string) =>
     axios.isAxiosError(error) ? (error.response?.data?.message as string) || fallback : fallback;
 
-export default function Addons({ server }: { server: { id: number; name: string; owner_id?: number; egg?: string | null } }) {
+export default function Addons({ server, kind }: { server: { id: number; name: string; owner_id?: number; egg?: string | null }; kind: Kind }) {
+    const title = kind === 'plugins' ? 'Plugins' : kind === 'mods' ? 'Mods' : 'Plugins y mods';
     const base = `/servers/${server.id}/addons`;
     const [folders, setFolders] = useState<Folders | null>(null);
     const [tab, setTab] = useState<Folder>('plugins');
@@ -83,10 +85,11 @@ export default function Addons({ server }: { server: { id: number; name: string;
             const { data } = await axios.get<{ folders: Folders }>(`${base}/list`);
             setFolders(data.folders);
             setTab((current) => {
-                if (data.folders[current]?.length) return current;
+                const has = (f: Folder) => data.folders[f] !== null && data.folders[f] !== undefined;
+                if (has(current) && data.folders[current]?.length) return current;
                 if (data.folders.mods?.length && !data.folders.plugins?.length) return 'mods';
-                if (data.folders.plugins) return 'plugins';
-                return data.folders.mods ? 'mods' : current;
+                if (has('plugins')) return 'plugins';
+                return has('mods') ? 'mods' : current;
             });
             void loadMeta(data.folders);
         } catch (e) {
@@ -110,6 +113,8 @@ export default function Addons({ server }: { server: { id: number; name: string;
                 (!q || [a.name, a.file, a.description ?? '', a.authors.join(' ')].some((v) => v.toLowerCase().includes(q))),
         );
     }, [list, query, filter]);
+
+    const noun = tab === 'mods' ? 'mod' : 'plugin';
 
     const toggle = async (addon: Addon) => {
         setBusy(addon.file);
@@ -177,7 +182,7 @@ export default function Addons({ server }: { server: { id: number; name: string;
 
     return (
         <ServerLayout server={server} section="addons">
-            <Head title={`${server.name} · Plugins y mods - Cinammon`} />
+            <Head title={`${server.name} · ${title} - Cinammon`} />
             <input ref={uploadRef} type="file" accept=".jar,application/java-archive" multiple hidden onChange={onUpload} />
 
             <div className="mx-auto max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
@@ -188,13 +193,19 @@ export default function Addons({ server }: { server: { id: number; name: string;
                             <Puzzle className="h-6 w-6" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-bold tracking-tight text-neutral-900 uppercase sm:text-2xl dark:text-white">Plugins y mods</h1>
+                            <h1 className="text-xl font-bold tracking-tight text-neutral-900 uppercase sm:text-2xl dark:text-white">{title}</h1>
                             <p className="text-xs text-neutral-500 sm:text-sm dark:text-neutral-400">
-                                Lo que tiene instalado {server.egg ? <span className="text-cyan-400">{server.egg}</span> : 'el servidor'} en las carpetas
-                                <code className="mx-1 text-cyan-400">plugins</code>y<code className="ml-1 text-cyan-400">mods</code>.
+                                {kind === 'none' ? (
+                                    <>Este tipo de servidor no carga plugins ni mods.</>
+                                ) : (
+                                    <>
+                                        {title} instalados en {server.egg ? <span className="text-cyan-400">{server.egg}</span> : 'el servidor'}.
+                                    </>
+                                )}
                             </p>
                         </div>
                     </div>
+                    {kind !== 'none' && (
                     <div className="flex w-full items-center gap-2 sm:w-auto">
                         <button
                             type="button"
@@ -212,9 +223,10 @@ export default function Addons({ server }: { server: { id: number; name: string;
                             className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 py-2 text-xs font-bold tracking-wider text-black uppercase shadow-[0_0_15px_rgba(34,211,238,0.35)] transition hover:bg-cyan-400 disabled:opacity-60 sm:flex-none"
                         >
                             {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                            <span>{uploading ?? `Subir ${available.includes(tab) ? (tab === 'mods' ? 'mod' : 'plugin') : '.jar'}`}</span>
+                            <span>{uploading ?? `Subir ${available.includes(tab) ? noun : '.jar'}`}</span>
                         </button>
                     </div>
+                    )}
                 </div>
 
                 {needsRestart && (
@@ -237,7 +249,15 @@ export default function Addons({ server }: { server: { id: number; name: string;
                     </div>
                 )}
 
-                {loading && !folders ? (
+                {kind === 'none' ? (
+                    <div className="rounded-2xl border border-dashed border-neutral-800 bg-neutral-900/40 p-10 text-center">
+                        <Puzzle className="mx-auto h-10 w-10 text-neutral-600" />
+                        <h2 className="mt-4 text-lg font-bold text-white">{server.egg ?? 'Este servidor'} no admite plugins ni mods</h2>
+                        <p className="mx-auto mt-2 max-w-md text-sm text-neutral-400">
+                            Para usar plugins cambia el servidor a <b>Paper</b> o <b>Purpur</b>; para mods, a <b>Fabric</b>, <b>Forge</b> o <b>NeoForge</b>.
+                        </p>
+                    </div>
+                ) : loading && !folders ? (
                     <div className="grid gap-3 md:grid-cols-2">
                         {Array.from({ length: 6 }).map((_, i) => (
                             <div key={i} className="h-28 animate-pulse rounded-xl border border-neutral-800 bg-neutral-900/60" />
@@ -264,6 +284,7 @@ export default function Addons({ server }: { server: { id: number; name: string;
                     <>
                         {/* Pestañas, búsqueda y filtro */}
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                            {available.length > 1 ? (
                             <div className="flex gap-1 rounded-xl border border-neutral-800 bg-neutral-900/60 p-1">
                                 {available.map((f) => (
                                     <button
@@ -279,13 +300,19 @@ export default function Addons({ server }: { server: { id: number; name: string;
                                     </button>
                                 ))}
                             </div>
+                            ) : (
+                                <p className="text-sm text-neutral-400">
+                                    <span className="font-bold text-white">{list.length}</span> {list.length === 1 ? noun : `${noun}s`} en{' '}
+                                    <code className="text-cyan-400">/{tab}</code>
+                                </p>
+                            )}
                             <div className="flex flex-col gap-2 sm:flex-row">
                                 <label className="relative flex-1 sm:w-72">
                                     <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-neutral-500" />
                                     <input
                                         value={query}
                                         onChange={(e) => setQuery(e.target.value)}
-                                        placeholder={`Buscar ${tab === 'mods' ? 'mod' : 'plugin'}…`}
+                                        placeholder={`Buscar ${noun}…`}
                                         className="w-full rounded-lg border border-neutral-800 bg-neutral-900/80 py-2 pr-3 pl-9 text-sm text-white placeholder:text-neutral-500 focus:border-cyan-500 focus:outline-none"
                                     />
                                 </label>
@@ -313,9 +340,19 @@ export default function Addons({ server }: { server: { id: number; name: string;
                         {visible.length === 0 ? (
                             <div className="rounded-xl border border-dashed border-neutral-800 p-10 text-center text-sm text-neutral-400">
                                 {list.length === 0 ? (
-                                    <>
-                                        La carpeta <code className="text-cyan-400">{tab}</code> está vacía.
-                                    </>
+                                    <div className="space-y-4">
+                                        <Puzzle className="mx-auto h-9 w-9 text-cyan-500/60" />
+                                        <p>
+                                            Todavía no hay ningún {noun} instalado en <code className="text-cyan-400">/{tab}</code>.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => pickUpload(tab)}
+                                            className="inline-flex items-center gap-2 rounded-lg border border-cyan-500/50 bg-cyan-500/10 px-4 py-2 text-xs font-bold text-cyan-300 hover:bg-cyan-500/20"
+                                        >
+                                            <Upload className="h-4 w-4" /> Subir {noun}
+                                        </button>
+                                    </div>
                                 ) : (
                                     'Nada coincide con la búsqueda.'
                                 )}

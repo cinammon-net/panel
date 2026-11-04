@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Server;
 use App\Services\Daemon\WingsClient;
+use App\Support\MinecraftAddons;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Request;
@@ -37,9 +38,11 @@ class ServerAddonsController extends Controller
         abort_unless($server->egg?->category === 'minecraft', 404, 'Esta sección solo existe en servidores de Minecraft.');
     }
 
-    private function folder(string $folder): string
+    /** Carpeta permitida para este tipo de servidor (Paper → plugins, Fabric → mods...). */
+    private function folder(Server $server, string $folder): string
     {
-        abort_unless(in_array($folder, self::FOLDERS, true), 422, 'Carpeta no válida.');
+        $allowed = MinecraftAddons::folders(MinecraftAddons::kind($server)) ?? self::FOLDERS;
+        abort_unless(in_array($folder, $allowed, true), 422, 'Este tipo de servidor no usa la carpeta '.$folder.'.');
 
         return $folder;
     }
@@ -137,17 +140,22 @@ class ServerAddonsController extends Controller
                 'owner_id' => $server->owner_id,
                 'egg' => $server->egg?->name,
             ],
+            'kind' => MinecraftAddons::kind($server),
         ]);
     }
 
     public function listing(Request $request, Server $server, WingsClient $wings)
     {
         $this->authorizeServer($request, $server);
+        $kind = MinecraftAddons::kind($server);
+        $wanted = MinecraftAddons::folders($kind);
         try {
             $client = $wings->forServer($server)->timeout(10);
             $folders = [];
-            foreach (self::FOLDERS as $folder) {
+            foreach ($wanted ?? self::FOLDERS as $folder) {
                 $entries = $this->folderEntries($client, $server, $folder);
+                // Tipo conocido: la carpeta se muestra aunque aún no exista (se crea al subir).
+                $entries ??= $wanted === null ? null : [];
                 $folders[$folder] = $entries === null ? null : collect($entries)
                     ->filter(fn ($e) => ($e['file'] ?? ! ($e['directory'] ?? false)) && ! ($e['symlink'] ?? false)
                         && preg_match('/\.jar(\.disabled)?$/i', (string) ($e['name'] ?? '')))
@@ -157,7 +165,7 @@ class ServerAddonsController extends Controller
                     ->all();
             }
 
-            return response()->json(['folders' => $folders]);
+            return response()->json(['kind' => $kind, 'folders' => (object) $folders]);
         } catch (ConnectionException|RequestException $exception) {
             return response()->json(['message' => 'No se pudo conectar con el nodo.'], 502);
         }
@@ -168,7 +176,7 @@ class ServerAddonsController extends Controller
     {
         $this->authorizeServer($request, $server);
         $data = $request->validate(['folder' => 'required|string', 'file' => 'required|string|max:255']);
-        $folder = $this->folder($data['folder']);
+        $folder = $this->folder($server, $data['folder']);
         $file = $this->jarName($data['file']);
 
         try {
@@ -202,7 +210,7 @@ class ServerAddonsController extends Controller
     {
         $this->authorizeServer($request, $server);
         $data = $request->validate(['folder' => 'required|string', 'file' => 'required|string|max:255']);
-        $folder = $this->folder($data['folder']);
+        $folder = $this->folder($server, $data['folder']);
         $file = $this->jarName($data['file']);
         $target = preg_match('/\.disabled$/i', $file) ? preg_replace('/\.disabled$/i', '', $file) : $file.'.disabled';
 
@@ -227,7 +235,7 @@ class ServerAddonsController extends Controller
     {
         $this->authorizeServer($request, $server);
         $data = $request->validate(['folder' => 'required|string', 'file' => 'required|string|max:255']);
-        $folder = $this->folder($data['folder']);
+        $folder = $this->folder($server, $data['folder']);
         $file = $this->jarName($data['file']);
 
         try {
@@ -248,7 +256,7 @@ class ServerAddonsController extends Controller
     {
         $this->authorizeServer($request, $server);
         $request->validate(['folder' => 'required|string', 'upload' => 'required|file|max:102400']);
-        $folder = $this->folder($request->input('folder'));
+        $folder = $this->folder($server, (string) $request->input('folder'));
         $upload = $request->file('upload');
         $name = $this->jarName((string) $upload->getClientOriginalName());
         abort_unless(preg_match('/\.jar$/i', $name), 422, 'Solo se pueden subir archivos .jar.');

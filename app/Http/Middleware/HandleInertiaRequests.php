@@ -66,7 +66,9 @@ class HandleInertiaRequests extends Middleware
                     $server = is_numeric($server) ? \App\Models\Server::find($server) : null;
                 }
 
-                return $server ? ['minecraft' => $server->egg?->category === 'minecraft'] : null;
+                $addons = \App\Support\MinecraftAddons::kind($server);
+
+                return $server ? ['minecraft' => $addons !== null, 'addons' => $addons] : null;
             },
 
             // Aviso de actualizaciones pendientes (solo admins; se cachea en UpdateChecker)

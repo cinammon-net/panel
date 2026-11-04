@@ -62,7 +62,10 @@ export default function ServerSidebar({
 }) {
     const page = usePage();
     const { auth, currentServer } = page.props as any;
-    const isMinecraft = Boolean(currentServer?.minecraft);
+    // Paper/Spigot → Plugins, Fabric/Forge → Mods, híbridos o desconocidos → Plugins y mods, Vanilla → nada.
+    const addonsKind: string | null = currentServer?.addons ?? null;
+    const addonsTitle = addonsKind === 'plugins' ? 'Plugins' : addonsKind === 'mods' ? 'Mods' : 'Plugins y mods';
+    const showAddons = addonsKind !== null && addonsKind !== 'none';
     const user = auth?.user;
     const userRoles: string[] = user?.roles ?? [];
     const isAdmin = userRoles.includes('Owner') || userRoles.includes('Admin');
@@ -99,11 +102,11 @@ export default function ServerSidebar({
                 },
                 {
                     key: 'addons',
-                    title: 'Plugins y mods',
+                    title: addonsTitle,
                     href: `/servers/${server.id}/addons`,
                     icon: Puzzle,
                     color: 'text-cyan-400',
-                    show: isMinecraft,
+                    show: showAddons,
                 },
                 {
                     key: 'sftp',
