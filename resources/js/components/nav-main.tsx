@@ -18,6 +18,8 @@ export type NavItem = {
     groupColor: string;
     roles?: string[];
     permissions?: string[];
+    /** Navegación completa (sin Inertia): rutas que redirigen a otro dominio, como el SSO de billing. */
+    external?: boolean;
 };
 
 export function NavMain({ items = [] }: { items: NavItem[] }) {
@@ -102,6 +104,18 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                     >
                                         {item.href.startsWith('http') ? (
                                             <a href={item.href} target="_blank" rel="noopener noreferrer">
+                                                {item.icon && (
+                                                    <item.icon
+                                                        className={`h-4 w-4 ${item.groupColor ?? 'text-white'}`}
+                                                        style={{
+                                                            filter: 'drop-shadow(0 0 6px currentColor)',
+                                                        }}
+                                                    />
+                                                )}
+                                                <span>{item.title}</span>
+                                            </a>
+                                        ) : item.external ? (
+                                            <a href={item.href}>
                                                 {item.icon && (
                                                     <item.icon
                                                         className={`h-4 w-4 ${item.groupColor ?? 'text-white'}`}

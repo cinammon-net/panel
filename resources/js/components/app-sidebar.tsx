@@ -56,6 +56,7 @@ const mainNavItems: NavItem[] = [
     {
         title: 'Facturación / Tienda',
         href: '/billing/redirect',
+        external: true,
         icon: CreditCard,
         group: 'main',
         groupColor: 'text-pink-400',
