@@ -18,6 +18,8 @@ type Addon = {
     description: string | null;
     authors: string[];
     website: string | null;
+    icon?: string | null;
+    modrinth_url?: string | null;
     loader: string | null;
     meta_loaded: boolean;
 };
@@ -668,13 +670,22 @@ export default function Addons({ server, kind }: { server: { id: number; name: s
                                                 : 'border-neutral-800/70 bg-neutral-950/60 opacity-70 hover:opacity-100'
                                         }`}
                                     >
-                                        <div
-                                            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-lg font-black text-white ${
-                                                a.enabled ? colorFor(a.name) : 'from-neutral-700 to-neutral-800'
-                                            }`}
-                                        >
-                                            {a.name.charAt(0).toUpperCase()}
-                                        </div>
+                                        {a.icon ? (
+                                            <img
+                                                src={a.icon}
+                                                alt=""
+                                                loading="lazy"
+                                                className={`h-11 w-11 shrink-0 rounded-xl border border-neutral-800 bg-black object-cover ${a.enabled ? '' : 'opacity-50 grayscale'}`}
+                                            />
+                                        ) : (
+                                            <div
+                                                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-lg font-black text-white ${
+                                                    a.enabled ? colorFor(a.name) : 'from-neutral-700 to-neutral-800'
+                                                }`}
+                                            >
+                                                {a.name.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
                                         <div className="min-w-0 flex-1">
                                             <div className="flex flex-wrap items-center gap-2">
                                                 <span className="truncate font-bold text-white">{a.name}</span>
@@ -727,6 +738,11 @@ export default function Addons({ server, kind }: { server: { id: number; name: s
                                                     >
                                                         {updating === a.file ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowUpCircle className="h-3.5 w-3.5" />} Actualizar
                                                     </button>
+                                                )}
+                                                {a.modrinth_url && (
+                                                    <a href={a.modrinth_url} target="_blank" rel="noopener noreferrer" title="Ver en Modrinth" className="rounded-md p-1.5 hover:bg-white/5 hover:text-emerald-300">
+                                                        <Compass className="h-3.5 w-3.5" />
+                                                    </a>
                                                 )}
                                                 {a.website && (
                                                     <a href={a.website} target="_blank" rel="noopener noreferrer" title="Web del autor" className="rounded-md p-1.5 hover:bg-white/5 hover:text-cyan-300">

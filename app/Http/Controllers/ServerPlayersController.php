@@ -76,6 +76,152 @@ class ServerPlayersController extends Controller
         }
     }
 
+    public function page(Request $request, Server $server)
+    {
+        $this->authorizeServer($request, $server);
+
+        return \Inertia\Inertia::render('Servers/People', [
+            'server' => ['id' => $server->id, 'name' => $server->name, 'owner_id' => $server->owner_id, 'egg' => $server->egg?->name],
+        ]);
+    }
+
+    /** Lista de un directorio del servidor ([] si no existe). */
+    private function dir($client, Server $server, string $path): array
+    {
+        $response = $client->get('/servers/'.$server->uuid.'/files/list-directory', ['directory' => '/'.$path]);
+
+        return $response->successful() ? (array) ($response->json() ?? []) : [];
+    }
+
+    /** Primer directorio que exista de los candidatos (formato 26.x world/players/... o antiguo world/...). */
+    private function firstDir($client, Server $server, array $candidates): array
+    {
+        foreach ($candidates as $path) {
+            $entries = $this->dir($client, $server, $path);
+            if ($entries !== []) {
+                return [$path, $entries];
+            }
+        }
+
+        return [null, []];
+    }
+
+    /**
+     * Todos los jugadores que han entrado alguna vez: nombre, última conexión, OP/whitelist/baneo,
+     * conectado ahora y estadísticas (tiempo jugado, muertes, kills, bloques minados, distancia, logros).
+     */
+    public function roster(Request $request, Server $server, WingsClient $wings)
+    {
+        $this->authorizeServer($request, $server);
+
+        try {
+            $data = Cache::remember('mc_roster:'.$server->id, now()->addSeconds(30), function () use ($wings, $server) {
+                $client = $wings->forServer($server)->timeout(15);
+                $props = $client->get('/servers/'.$server->uuid.'/files/contents', ['file' => '/server.properties']);
+                $level = $props->successful() && preg_match('/^level-name\s*=\s*(.+)$/m', $props->body(), $m) ? trim($m[1]) : 'world';
+                if (! preg_match('/^[A-Za-z0-9_. -]{1,64}$/', $level) || str_contains($level, '..')) {
+                    $level = 'world';
+                }
+
+                $names = [];
+                foreach ($this->json($client, $server, 'usercache.json') as $e) {
+                    if (isset($e['uuid'], $e['name'])) {
+                        $names[strtolower($e['uuid'])] = ['name' => (string) $e['name'], 'expires' => $e['expiresOn'] ?? null];
+                    }
+                }
+                $ops = collect($this->json($client, $server, 'ops.json'))->keyBy(fn ($e) => strtolower((string) ($e['uuid'] ?? '')));
+                $white = collect($this->json($client, $server, 'whitelist.json'))->keyBy(fn ($e) => strtolower((string) ($e['uuid'] ?? '')));
+                $banned = collect($this->json($client, $server, 'banned-players.json'))->keyBy(fn ($e) => strtolower((string) ($e['uuid'] ?? '')));
+
+                [, $dataFiles] = $this->firstDir($client, $server, ["{$level}/players/data", "{$level}/playerdata"]);
+                [$statsPath, $statsFiles] = $this->firstDir($client, $server, ["{$level}/players/stats", "{$level}/stats"]);
+                [$advPath, $advFiles] = $this->firstDir($client, $server, ["{$level}/players/advancements", "{$level}/advancements"]);
+
+                $uuidOf = fn ($name) => preg_match('/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.(dat|json)$/i', (string) $name, $m) ? strtolower($m[1]) : null;
+                $seen = [];
+                foreach ([$dataFiles, $statsFiles] as $list) {
+                    foreach ($list as $e) {
+                        if (($uuid = $uuidOf($e['name'] ?? '')) && ! empty($e['modified'])) {
+                            $seen[$uuid] = max($seen[$uuid] ?? '', (string) $e['modified']);
+                        }
+                    }
+                }
+                $statsSet = collect($statsFiles)->map(fn ($e) => $uuidOf($e['name'] ?? ''))->filter()->flip();
+                $advSet = collect($advFiles)->map(fn ($e) => $uuidOf($e['name'] ?? ''))->filter()->flip();
+
+                $uuids = collect(array_keys($names))->merge(array_keys($seen))->merge($ops->keys())->merge($banned->keys())->filter()->unique();
+                $players = $uuids->map(function ($uuid) use ($names, $seen, $ops, $white, $banned) {
+                    $lastSeen = $seen[$uuid] ?? null;
+                    if (! $lastSeen && isset($names[$uuid]['expires'])) {
+                        try {
+                            $lastSeen = \Illuminate\Support\Carbon::parse($names[$uuid]['expires'])->subMonth()->toIso8601String();
+                        } catch (\Throwable $e) {
+                        }
+                    }
+
+                    return [
+                        'uuid' => $uuid,
+                        'name' => $names[$uuid]['name'] ?? $ops[$uuid]['name'] ?? $white[$uuid]['name'] ?? $banned[$uuid]['name'] ?? substr($uuid, 0, 8),
+                        'last_seen' => $lastSeen,
+                        'op' => $ops->has($uuid),
+                        'op_level' => $ops->has($uuid) ? (int) ($ops[$uuid]['level'] ?? 4) : null,
+                        'whitelisted' => $white->has($uuid),
+                        'banned' => $banned->has($uuid),
+                        'ban_reason' => $banned->has($uuid) ? Str::limit((string) ($banned[$uuid]['reason'] ?? ''), 120, '…') : null,
+                        'stats' => null,
+                    ];
+                })->sortByDesc(fn ($p) => $p['last_seen'] ?? '')->values()->all();
+
+                // Estadísticas de los 150 más recientes (un archivo por jugador).
+                foreach (array_slice(array_keys($players), 0, 150) as $i) {
+                    $uuid = $players[$i]['uuid'];
+                    if ($statsPath && $statsSet->has($uuid)) {
+                        $st = $this->json($client, $server, "{$statsPath}/{$uuid}.json")['stats'] ?? [];
+                        $c = $st['minecraft:custom'] ?? [];
+                        $distance = 0;
+                        foreach ($c as $k => $v) {
+                            if (str_ends_with($k, '_one_cm')) {
+                                $distance += (int) $v;
+                            }
+                        }
+                        $players[$i]['stats'] = [
+                            'play_ticks' => (int) ($c['minecraft:play_time'] ?? $c['minecraft:play_one_minute'] ?? 0),
+                            'deaths' => (int) ($c['minecraft:deaths'] ?? 0),
+                            'mob_kills' => (int) ($c['minecraft:mob_kills'] ?? 0),
+                            'player_kills' => (int) ($c['minecraft:player_kills'] ?? 0),
+                            'sessions' => (int) ($c['minecraft:leave_game'] ?? 0),
+                            'jumps' => (int) ($c['minecraft:jump'] ?? 0),
+                            'distance_m' => (int) round($distance / 100),
+                            'mined' => (int) array_sum(array_map('intval', $st['minecraft:mined'] ?? [])),
+                            'placed' => (int) array_sum(array_map('intval', $st['minecraft:used'] ?? [])),
+                            'advancements' => null,
+                        ];
+                    }
+                    if ($advPath && $advSet->has($uuid)) {
+                        $adv = $this->json($client, $server, "{$advPath}/{$uuid}.json");
+                        $done = collect($adv)->filter(fn ($v, $k) => is_array($v) && ($v['done'] ?? false) && ! str_contains((string) $k, ':recipes/'))->count();
+                        $players[$i]['stats'] ??= [];
+                        $players[$i]['stats']['advancements'] = $done;
+                    }
+                }
+
+                return ['players' => $players, 'level' => $level, 'whitelist_enabled' => $props->successful() && preg_match('/^white-list\s*=\s*true\s*$/mi', $props->body()) === 1];
+            });
+        } catch (ConnectionException|RequestException $exception) {
+            return response()->json(['message' => 'No se pudo conectar con el nodo.'], 502);
+        }
+
+        $ping = \App\Support\MinecraftPing::forServer($server);
+        $online = collect($ping['players'] ?? [])->pluck('name')->map(fn ($n) => strtolower($n))->all();
+        $players = array_map(fn ($p) => $p + ['online' => in_array(strtolower($p['name']), $online, true)], $data['players']);
+
+        return response()->json([
+            'players' => $players,
+            'online' => $ping ? ['online' => $ping['online'], 'max' => $ping['max']] : null,
+            'whitelist_enabled' => (bool) ($data['whitelist_enabled'] ?? false),
+        ]);
+    }
+
     /** Jugadores conectados ahora mismo (Server List Ping). */
     public function online(Request $request, Server $server)
     {

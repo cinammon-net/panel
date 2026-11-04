@@ -27,6 +27,7 @@ import {
     Play,
     Puzzle,
     SlidersHorizontal,
+    UsersRound,
     ScrollText,
     Settings,
     ShieldCheck,
@@ -100,6 +101,14 @@ export default function ServerSidebar({
                     icon: Files,
                     color: 'text-cyan-400',
                     show: true,
+                },
+                {
+                    key: 'people',
+                    title: 'Jugadores',
+                    href: `/servers/${server.id}/people`,
+                    icon: UsersRound,
+                    color: 'text-cyan-400',
+                    show: Boolean(currentServer?.players),
                 },
                 {
                     key: 'game',

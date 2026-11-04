@@ -126,7 +126,9 @@ class ServerAddonsController extends Controller
             'authors' => $meta['authors'] ?? [],
             'website' => $meta['website'] ?? null,
             'loader' => $meta['loader'] ?? null,
-            'meta_loaded' => is_array($meta) && (isset($meta['sha1']) || (int) ($entry['size'] ?? 0) > self::META_MAX_BYTES),
+            'icon' => $meta['icon'] ?? null,
+            'modrinth_url' => $meta['modrinth_url'] ?? null,
+            'meta_loaded' => is_array($meta) && ((isset($meta['sha1']) && isset($meta['modrinth_checked'])) || (int) ($entry['size'] ?? 0) > self::META_MAX_BYTES),
         ];
     }
 
@@ -200,6 +202,12 @@ class ServerAddonsController extends Controller
                     }
                 }
                 Cache::put($key, array_filter($meta, fn ($v) => $v !== null && $v !== []), now()->addDays(30));
+            }
+            // Icono y página del proyecto en Modrinth (identificado por la huella sha1 del .jar).
+            $cached = Cache::get($key);
+            if (is_array($cached) && isset($cached['sha1']) && ! isset($cached['modrinth_checked'])) {
+                $cached = array_merge($cached, $this->modrinthProject((string) $cached['sha1']), ['modrinth_checked' => true]);
+                Cache::put($key, $cached, now()->addDays(30));
             }
 
             return response()->json($this->present($server, $folder, $entry));
@@ -357,6 +365,34 @@ class ServerAddonsController extends Controller
             }
 
             return null;
+        });
+    }
+
+    /** Proyecto de Modrinth al que pertenece un .jar (por su sha1): icono y enlace. [] si no está en Modrinth. */
+    private function modrinthProject(string $sha1): array
+    {
+        if (! preg_match('/^[0-9a-f]{40}$/', $sha1)) {
+            return [];
+        }
+
+        return Cache::remember('modrinth_hash:'.$sha1, now()->addDays(30), function () use ($sha1) {
+            try {
+                $version = $this->modrinth()->get(self::MODRINTH.'/version_file/'.$sha1, ['algorithm' => 'sha1']);
+                if (! $version->successful() || ! preg_match('/^[A-Za-z0-9]{8}$/', (string) $version->json('project_id'))) {
+                    return [];
+                }
+                $project = $this->modrinth()->get(self::MODRINTH.'/project/'.$version->json('project_id'))->throw()->json();
+                $icon = (string) ($project['icon_url'] ?? '');
+                $slug = (string) ($project['slug'] ?? '');
+                $type = in_array($project['project_type'] ?? '', ['mod', 'plugin', 'modpack', 'datapack'], true) ? $project['project_type'] : 'project';
+
+                return array_filter([
+                    'icon' => preg_match('#^https://cdn\.modrinth\.com/#', $icon) ? $icon : null,
+                    'modrinth_url' => preg_match('/^[A-Za-z0-9_-]{1,64}$/', $slug) ? "https://modrinth.com/{$type}/{$slug}" : null,
+                ]);
+            } catch (ConnectionException|RequestException $exception) {
+                return [];
+            }
         });
     }
 

@@ -15,6 +15,7 @@ export type ServerSection =
     | 'files'
     | 'addons'
     | 'game'
+    | 'people'
     | 'sftp'
     | 'wingslog'
     | 'databases'
@@ -49,6 +50,7 @@ export default function ServerLayout({
         startup: 'Inicio',
         files: 'Archivos',
         game: 'Ajustes del juego',
+        people: 'Jugadores',
         addons: currentServer?.addons === 'plugins' ? 'Plugins' : currentServer?.addons === 'mods' ? 'Mods' : 'Plugins y mods',
         sftp: 'Acceso SFTP',
         wingslog: 'Registro de Wings',
