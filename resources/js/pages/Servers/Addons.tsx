@@ -1,7 +1,7 @@
 import ServerLayout from '@/layouts/server-layout';
 import { Head, Link } from '@inertiajs/react';
 import axios from 'axios';
-import { AlertTriangle, Check, Compass, Download, ExternalLink, FolderOpen, Loader2, Package, Power, Puzzle, RefreshCw, Search, Trash2, Upload } from 'lucide-react';
+import { AlertTriangle, ArrowUpCircle, Check, Compass, Download, ExternalLink, FolderOpen, Loader2, Package, Power, Puzzle, RefreshCw, Search, Trash2, Upload } from 'lucide-react';
 import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -235,6 +235,8 @@ export default function Addons({ server, kind }: { server: { id: number; name: s
     const [uploading, setUploading] = useState<string | null>(null);
     const [needsRestart, setNeedsRestart] = useState(false);
     const [view, setView] = useState<'installed' | 'explore'>('installed');
+    const [updates, setUpdates] = useState<Record<string, string>>({});
+    const [updating, setUpdating] = useState<string | null>(null);
     const viewChosen = useRef(false);
     const uploadRef = useRef<HTMLInputElement>(null);
     const uploadFolder = useRef<Folder>('plugins');
@@ -264,6 +266,18 @@ export default function Addons({ server, kind }: { server: { id: number; name: s
                 }
             };
             await Promise.all([worker(), worker(), worker()]);
+            // Con las huellas ya leídas, se pregunta a Modrinth si hay versiones nuevas.
+            const found: Record<string, string> = {};
+            for (const f of Object.keys(data) as Folder[]) {
+                if (!data[f]?.length) continue;
+                try {
+                    const { data: res } = await axios.get<{ updates: Record<string, { version: string }> }>(`${base}/updates`, { params: { folder: f } });
+                    for (const [file, u] of Object.entries(res.updates ?? {})) found[`${f}/${file}`] = u.version;
+                } catch {
+                    /* sin conexión con Modrinth: no se muestran avisos */
+                }
+            }
+            setUpdates(found);
         },
         [base, patch],
     );
@@ -311,6 +325,32 @@ export default function Addons({ server, kind }: { server: { id: number; name: s
     }, [list, query, filter]);
 
     const noun = tab === 'mods' ? 'mod' : 'plugin';
+
+    const updateOne = async (addon: Addon) => {
+        setUpdating(addon.file);
+        try {
+            const { data } = await axios.post<{ file: string; version: string }>(`${base}/update`, { folder: addon.folder, file: addon.file });
+            setUpdates((u) => {
+                const next = { ...u };
+                delete next[`${addon.folder}/${addon.file}`];
+                return next;
+            });
+            setNeedsRestart(true);
+            toast.success(`${addon.name} actualizado a v${data.version}.`);
+            return true;
+        } catch (e) {
+            toast.error(errorMessage(e, `No se pudo actualizar ${addon.name}.`));
+            return false;
+        } finally {
+            setUpdating(null);
+        }
+    };
+
+    const updateAll = async () => {
+        const pending = list.filter((a) => updates[`${a.folder}/${a.file}`]);
+        for (const addon of pending) await updateOne(addon);
+        await load();
+    };
 
     const toggle = async (addon: Addon) => {
         setBusy(addon.file);
@@ -375,6 +415,7 @@ export default function Addons({ server, kind }: { server: { id: number; name: s
     };
 
     const enabledCount = list.filter((a) => a.enabled).length;
+    const updateCount = list.filter((a) => updates[`${a.folder}/${a.file}`]).length;
 
     return (
         <ServerLayout server={server} section="addons">
@@ -556,6 +597,16 @@ export default function Addons({ server, kind }: { server: { id: number; name: s
                                 </p>
                             )}
                             <div className="flex flex-col gap-2 sm:flex-row">
+                                {updateCount > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => void updateAll()}
+                                        disabled={updating !== null}
+                                        className="flex items-center justify-center gap-2 rounded-lg bg-emerald-500 px-3 py-2 text-xs font-bold whitespace-nowrap text-black hover:bg-emerald-400 disabled:opacity-60"
+                                    >
+                                        {updating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowUpCircle className="h-3.5 w-3.5" />} Actualizar todo ({updateCount})
+                                    </button>
+                                )}
                                 <label className="relative flex-1 sm:w-72">
                                     <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-neutral-500" />
                                     <input
@@ -632,6 +683,11 @@ export default function Addons({ server, kind }: { server: { id: number; name: s
                                                 )}
                                                 {a.loader && <span className="rounded-md border border-neutral-700 px-1.5 py-0.5 text-[10px] text-neutral-400">{a.loader}</span>}
                                                 {!a.enabled && <span className="rounded-md border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">DESACTIVADO</span>}
+                                                {updates[`${a.folder}/${a.file}`] && (
+                                                    <span className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300">
+                                                        NUEVA v{updates[`${a.folder}/${a.file}`].replace(/^v/i, '')}
+                                                    </span>
+                                                )}
                                                 {!a.meta_loaded && <Loader2 className="h-3 w-3 animate-spin text-neutral-500" aria-label="Leyendo datos" />}
                                             </div>
                                             {a.description && <p className="mt-1 line-clamp-2 font-sans text-xs text-neutral-400">{a.description}</p>}
@@ -659,6 +715,19 @@ export default function Addons({ server, kind }: { server: { id: number; name: s
                                                 </span>
                                             </button>
                                             <div className="flex items-center gap-1 text-neutral-500">
+                                                {updates[`${a.folder}/${a.file}`] && (
+                                                    <button
+                                                        type="button"
+                                                        title={`Actualizar a v${updates[`${a.folder}/${a.file}`]}`}
+                                                        disabled={updating !== null}
+                                                        onClick={() => void updateOne(a).then((ok) => {
+                                                            if (ok) void load();
+                                                        })}
+                                                        className="flex items-center gap-1 rounded-md border border-emerald-500/40 px-2 py-1 text-[11px] font-bold text-emerald-300 hover:bg-emerald-500/10 disabled:opacity-50"
+                                                    >
+                                                        {updating === a.file ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowUpCircle className="h-3.5 w-3.5" />} Actualizar
+                                                    </button>
+                                                )}
                                                 {a.website && (
                                                     <a href={a.website} target="_blank" rel="noopener noreferrer" title="Web del autor" className="rounded-md p-1.5 hover:bg-white/5 hover:text-cyan-300">
                                                         <ExternalLink className="h-3.5 w-3.5" />

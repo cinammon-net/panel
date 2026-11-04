@@ -1,3 +1,4 @@
+import LogDiagnostics from '@/components/server/log-diagnostics';
 import PlayersPanel from '@/components/server/players-panel';
 import ServerLayout from '@/layouts/server-layout';
 import { colorizeLogs } from '@/lib/terminal-colors';
@@ -495,6 +496,7 @@ export default function Console({ server }: { server: Server }) {
                 )}
                 {error && <p role="alert" className="rounded border border-red-500 bg-red-900/30 p-3 text-sm text-red-300">{error}</p>}
                 {notice && <p role="status" className="text-sm text-cyan-300">{notice}</p>}
+                {(server.minecraft || server.players) && snapshot?.logs && <LogDiagnostics logs={snapshot.logs} serverId={server.id} />}
                 {needsEula && <section className="space-y-3 rounded-lg border border-amber-700 bg-amber-950/30 p-4 text-sm">
                     <p>Minecraft exige aceptar su <a className="text-cyan-300 underline" href="https://www.minecraft.net/eula" target="_blank" rel="noreferrer">EULA</a> antes de arrancar.</p>
                     <label className="flex items-center gap-2"><input type="checkbox" checked={accepted} onChange={event => setAccepted(event.target.checked)} />He leído y acepto la EULA de Minecraft para este servidor.</label>

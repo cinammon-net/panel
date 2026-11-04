@@ -126,7 +126,7 @@ class ServerAddonsController extends Controller
             'authors' => $meta['authors'] ?? [],
             'website' => $meta['website'] ?? null,
             'loader' => $meta['loader'] ?? null,
-            'meta_loaded' => is_array($meta),
+            'meta_loaded' => is_array($meta) && (isset($meta['sha1']) || (int) ($entry['size'] ?? 0) > self::META_MAX_BYTES),
         ];
     }
 
@@ -194,6 +194,7 @@ class ServerAddonsController extends Controller
                         $client->withOptions(['sink' => $tmp])
                             ->get('/servers/'.$server->uuid.'/files/contents', ['file' => '/'.$folder.'/'.$file])->throw();
                         $meta = $this->readJar($tmp);
+                        $meta['sha1'] = sha1_file($tmp) ?: null;
                     } finally {
                         @unlink($tmp);
                     }
@@ -452,23 +453,7 @@ class ServerAddonsController extends Controller
             $taken = collect($entries)->pluck('name');
             abort_if($taken->contains($name) || $taken->contains($name.'.disabled'), 409, 'Ya está instalado ('.$name.').');
 
-            $tmp = tempnam(sys_get_temp_dir(), 'cinmr');
-            try {
-                Http::withHeaders(['User-Agent' => self::MODRINTH_UA])->timeout(120)->withOptions(['sink' => $tmp])->get($file['url'])->throw();
-                $sha512 = $file['hashes']['sha512'] ?? null;
-                abort_unless($sha512 && hash_equals($sha512, hash_file('sha512', $tmp)), 422, 'La descarga no coincide con la firma de Modrinth.');
-                $stream = fopen($tmp, 'rb');
-                try {
-                    $client->withBody($stream, 'application/java-archive')->withHeaders(['Content-Length' => (string) filesize($tmp)])
-                        ->post('/servers/'.$server->uuid.'/files/write?'.http_build_query(['file' => '/'.$folder.'/'.$name]))->throw();
-                } finally {
-                    if (is_resource($stream)) {
-                        fclose($stream);
-                    }
-                }
-            } finally {
-                @unlink($tmp);
-            }
+            $this->downloadToServer($client, $server, $folder, $name, $file);
             $this->logActivity($server, $request, 'addon:install', 'Instaló '.$folder.'/'.$name.' desde Modrinth');
 
             $required = collect($release['dependencies'] ?? [])->where('dependency_type', 'required')->pluck('project_id')->filter()->values();
@@ -477,6 +462,125 @@ class ServerAddonsController extends Controller
         } catch (ConnectionException|RequestException $exception) {
             return response()->json(['message' => 'No se pudo descargar o guardar el archivo.'], 502);
         }
+    }
+
+    /** Descarga un archivo de cdn.modrinth.com, comprueba su sha512 y lo escribe en /<folder>/<name> del servidor. */
+    private function downloadToServer($client, Server $server, string $folder, string $name, array $file): void
+    {
+        abort_unless(preg_match('#^https://cdn\.modrinth\.com/#', (string) ($file['url'] ?? '')), 422, 'Archivo de descarga no válido.');
+        abort_if((int) ($file['size'] ?? 0) > 100 * 1024 * 1024, 413, 'El archivo es demasiado grande.');
+        $tmp = tempnam(sys_get_temp_dir(), 'cinmr');
+        try {
+            Http::withHeaders(['User-Agent' => self::MODRINTH_UA])->timeout(120)->withOptions(['sink' => $tmp])->get($file['url'])->throw();
+            $sha512 = $file['hashes']['sha512'] ?? null;
+            abort_unless($sha512 && hash_equals($sha512, hash_file('sha512', $tmp)), 422, 'La descarga no coincide con la firma de Modrinth.');
+            $stream = fopen($tmp, 'rb');
+            try {
+                $client->withBody($stream, 'application/java-archive')->withHeaders(['Content-Length' => (string) filesize($tmp)])
+                    ->post('/servers/'.$server->uuid.'/files/write?'.http_build_query(['file' => '/'.$folder.'/'.$name]))->throw();
+            } finally {
+                if (is_resource($stream)) {
+                    fclose($stream);
+                }
+            }
+        } finally {
+            @unlink($tmp);
+        }
+    }
+
+    /**
+     * Versión más nueva en Modrinth para cada .jar activo cuya huella sha1 conocemos.
+     * @return array<string,array{version:string,version_id:string,project_id:string,file:array}> clave = nombre del .jar
+     */
+    private function availableUpdates($client, Server $server, string $folder, ?string $only = null): array
+    {
+        $loaders = $this->modrinthLoaders($server);
+        if ($loaders === []) {
+            return [];
+        }
+        $hashes = [];
+        foreach ($this->folderEntries($client, $server, $folder) ?? [] as $entry) {
+            $name = (string) ($entry['name'] ?? '');
+            if (! preg_match('/\.jar$/i', $name) || ($only !== null && $name !== $only)) {
+                continue;
+            }
+            $sha1 = Cache::get($this->metaKey($server, $folder, $entry))['sha1'] ?? null;
+            if (is_string($sha1) && preg_match('/^[0-9a-f]{40}$/', $sha1)) {
+                $hashes[$sha1] = $name;
+            }
+        }
+        if ($hashes === []) {
+            return [];
+        }
+        $version = $this->minecraftVersion($client, $server);
+        $body = ['hashes' => array_keys($hashes), 'algorithm' => 'sha1', 'loaders' => $loaders];
+        if ($version) {
+            $body['game_versions'] = [$version];
+        }
+        $result = Cache::remember('modrinth_updates:'.md5(json_encode($body)), now()->addMinutes(30), function () use ($body) {
+            return $this->modrinth()->post(self::MODRINTH.'/version_files/update', $body)->throw()->json() ?? [];
+        });
+
+        $updates = [];
+        foreach ($result as $hash => $release) {
+            if (! isset($hashes[$hash]) || ! is_array($release)) {
+                continue;
+            }
+            $file = collect($release['files'] ?? [])->firstWhere('primary', true) ?? ($release['files'][0] ?? null);
+            if (! $file || ($file['hashes']['sha1'] ?? null) === $hash || ! preg_match('/\.jar$/i', (string) ($file['filename'] ?? ''))) {
+                continue;
+            }
+            $updates[$hashes[$hash]] = [
+                'version' => (string) ($release['version_number'] ?? ''),
+                'version_id' => (string) ($release['id'] ?? ''),
+                'project_id' => (string) ($release['project_id'] ?? ''),
+                'file' => $file,
+            ];
+        }
+
+        return $updates;
+    }
+
+    public function updates(Request $request, Server $server, WingsClient $wings)
+    {
+        $this->authorizeServer($request, $server);
+        $folder = $this->folder($server, (string) $request->query('folder', ''));
+        try {
+            $updates = $this->availableUpdates($wings->forServer($server)->timeout(15), $server, $folder);
+        } catch (ConnectionException|RequestException $exception) {
+            return response()->json(['message' => 'No se pudo comprobar si hay actualizaciones.'], 502);
+        }
+
+        return response()->json(['updates' => collect($updates)->map(fn ($u) => ['version' => $u['version']])]);
+    }
+
+    public function update(Request $request, Server $server, WingsClient $wings)
+    {
+        $this->authorizeServer($request, $server);
+        $data = $request->validate(['folder' => 'required|string', 'file' => 'required|string|max:255']);
+        $folder = $this->folder($server, $data['folder']);
+        $old = $this->jarName($data['file']);
+        abort_unless(preg_match('/\.jar$/i', $old), 422, 'Activa el archivo antes de actualizarlo.');
+
+        $client = $wings->forServer($server)->timeout(120);
+        try {
+            $update = $this->availableUpdates($client, $server, $folder, $old)[$old] ?? null;
+            abort_unless($update, 404, 'No hay ninguna actualización para '.$old.'.');
+            $name = $this->jarName(basename(rawurldecode(parse_url((string) $update['file']['url'], PHP_URL_PATH))));
+            abort_unless(preg_match('/\.jar$/i', $name), 422, 'El archivo nuevo no es un .jar.');
+            $taken = collect($this->folderEntries($client, $server, $folder) ?? [])->pluck('name');
+            abort_if($name !== $old && ($taken->contains($name) || $taken->contains($name.'.disabled')), 409, 'Ya existe '.$name.'.');
+
+            $this->downloadToServer($client, $server, $folder, $name, $update['file']);
+            if ($name !== $old) {
+                $client->post('/servers/'.$server->uuid.'/files/delete', ['root' => '/'.$folder, 'files' => [$old]])->throw();
+            }
+        } catch (ConnectionException|RequestException $exception) {
+            return response()->json(['message' => 'No se pudo actualizar el archivo.'], 502);
+        }
+        $this->logActivity($server, $request, 'addon:update', 'Actualizó '.$folder.'/'.$old.' a '.$name.' (v'.$update['version'].')');
+
+        return response()->json(['file' => $name, 'version' => $update['version']]);
     }
 
     // ------------------------------------------------------------------
