@@ -1,5 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import ConfirmDialog from '@/components/confirm-dialog';
+import Markdown from '@/components/markdown';
 import { renderAnsi } from '@/lib/ansi';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
@@ -148,7 +149,7 @@ function ComponentCard({
                             {status.title.replace(/^v[\d.]+\s*[—-]\s*/, '')}
                         </p>
                     )}
-                    <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed text-neutral-300">{status.notes}</pre>
+                    <Markdown source={status.notes} className="text-xs leading-relaxed text-neutral-300" />
                 </div>
             )}
 
@@ -392,9 +393,10 @@ export default function Updates() {
                                         )}
                                     </div>
                                     {release.notes && (
-                                        <pre className="mt-3 max-h-56 overflow-y-auto whitespace-pre-wrap rounded-lg border border-neutral-800/70 bg-black/50 p-3 font-sans text-xs leading-relaxed text-neutral-300">
-                                            {release.notes}
-                                        </pre>
+                                        <Markdown
+                                            source={release.notes}
+                                            className="mt-3 max-h-56 overflow-y-auto rounded-lg border border-neutral-800/70 bg-black/50 p-3 text-xs leading-relaxed text-neutral-300"
+                                        />
                                     )}
                                 </div>
                             ))}

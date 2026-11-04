@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/react';
 import ConfirmDialog from '@/components/confirm-dialog';
+import Markdown from '@/components/markdown';
 import { renderAnsi } from '@/lib/ansi';
 import { ArrowUpCircle, CheckCircle2, ExternalLink, RefreshCw, Rocket, ShieldCheck, Terminal } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -91,9 +92,10 @@ function Row({ title, status, busy, onUpdate }: { title: string; status: Compone
                 </div>
             </div>
             {showNotes && status.notes && (
-                <pre className="mt-3 max-h-36 overflow-y-auto whitespace-pre-wrap rounded-lg border border-neutral-800 bg-black/50 p-3 font-sans text-xs leading-relaxed text-neutral-300">
-                    {status.notes}
-                </pre>
+                <Markdown
+                    source={status.notes}
+                    className="mt-3 max-h-36 overflow-y-auto rounded-lg border border-neutral-800 bg-black/50 p-3 text-xs leading-relaxed text-neutral-300"
+                />
             )}
         </div>
     );
