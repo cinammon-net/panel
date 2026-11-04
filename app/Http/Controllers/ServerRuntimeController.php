@@ -63,6 +63,10 @@ class ServerRuntimeController extends Controller
             'egg' => $server->egg->name, 'node' => $server->node?->name ?: 'Cinammon Nodo', 'memory' => $server->memory, 'disk' => $server->disk, 'cpu' => $server->cpu,
             'discord_bot' => $isDiscord,
             'minecraft' => str_contains(strtolower($server->egg->name), 'paper'),
+            // Hosting web: enlace directo a la web publicada en la IP:puerto del servidor
+            'web_url' => $server->egg?->category === 'web' && $server->allocation
+                ? 'http://' . $server->allocation->ip . ':' . $server->allocation->port
+                : null,
         ]]);
     }
 

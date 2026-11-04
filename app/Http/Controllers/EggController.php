@@ -295,7 +295,8 @@ class EggController extends Controller
 
         foreach (glob("{$repoPath}/*", GLOB_ONLYDIR) ?: [] as $dir) {
             $folder = basename($dir);
-            if ($folder === 'docs' || str_starts_with($folder, '.')) continue;
+            // docs/, tools/ e images/ son del repo, no eggs.
+            if (in_array($folder, ['docs', 'tools', 'images'], true) || str_starts_with($folder, '.')) continue;
 
             $category = Str::slug($folder);
 

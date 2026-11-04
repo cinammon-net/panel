@@ -32,6 +32,7 @@ import {
     Trash2,
     User,
     Zap,
+    ExternalLink,
 } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 
@@ -265,6 +266,18 @@ function ServerCard({ item }: { item: ServerItem }) {
                         <span className="tracking-wider">{item.allocation}</span>
                         <CopyAddress address={item.allocation} />
                     </div>
+
+                    {item.category === 'web' && item.allocation && item.allocation !== '–' && (
+                        <a
+                            href={`http://${item.allocation}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-fuchsia-500/70 bg-gradient-to-r from-pink-600/80 to-fuchsia-600/80 px-3 py-1.5 text-xs font-bold text-white shadow-[0_0_12px_rgba(217,70,239,0.3)] transition hover:brightness-110"
+                        >
+                            <ExternalLink size={12} /> Ir a la web
+                        </a>
+                    )}
 
                     <span
                         className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full border ${
@@ -1113,6 +1126,17 @@ export default function Servers() {
                                                             </td>
                                                             <td className="px-3 py-3 text-right whitespace-nowrap">
                                                                 <div className="flex justify-end items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                                                    {item.category === 'web' && item.allocation && item.allocation !== '–' && (
+                                                                        <a
+                                                                            href={`http://${item.allocation}`}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            title="Ir a la web"
+                                                                            className="inline-flex items-center gap-1 rounded border border-fuchsia-500/60 bg-fuchsia-950/30 px-2 py-0.5 text-xs text-fuchsia-300 hover:border-fuchsia-400 hover:text-fuchsia-100"
+                                                                        >
+                                                                            <ExternalLink size={11} /> Web
+                                                                        </a>
+                                                                    )}
                                                                     <button
                                                                         title="Consola"
                                                                         onClick={() => router.visit(`/servers/${item.id}/console`)}
@@ -1218,6 +1242,17 @@ export default function Servers() {
                                                                     </td>
                                                                     <td className="px-3 py-3 text-right whitespace-nowrap">
                                                                     <div className="flex justify-end items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                                                        {item.category === 'web' && item.allocation && item.allocation !== '–' && (
+                                                                            <a
+                                                                                href={`http://${item.allocation}`}
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                title="Ir a la web"
+                                                                                className="inline-flex items-center gap-1 rounded border border-fuchsia-500/60 bg-fuchsia-950/30 px-2 py-0.5 text-xs text-fuchsia-300 hover:border-fuchsia-400 hover:text-fuchsia-100"
+                                                                            >
+                                                                                <ExternalLink size={11} /> Web
+                                                                            </a>
+                                                                        )}
                                                                         <button
                                                                             title="Consola"
                                                                             onClick={() => router.visit(`/servers/${item.id}/console`)}

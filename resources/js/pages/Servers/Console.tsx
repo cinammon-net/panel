@@ -3,13 +3,14 @@ import { colorizeLogs } from '@/lib/terminal-colors';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import { CategoryScale, Chart as ChartJS, Filler, Legend, LinearScale, LineElement, PointElement, Title, Tooltip } from 'chart.js';
-import { Activity, ArrowDownUp, Check, Copy, Cpu, Maximize2, Minimize2, Play, RotateCw, Send, Square, Terminal, Trash2 } from 'lucide-react';
+import { Activity, ArrowDownUp, Check, Copy, Cpu, ExternalLink, Maximize2, Minimize2, Play, RotateCw, Send, Square, Terminal, Trash2 } from 'lucide-react';
 import { CSSProperties, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
-type Server = { id: number; name: string; address: string; egg: string; node?: string; memory: number; disk: number; cpu: number; minecraft: boolean; discord_bot?: boolean };
+type Server = { id: number; name: string; address: string; egg: string; node?: string; memory: number; disk: number; cpu: number; minecraft: boolean;
+        web_url?: string | null; discord_bot?: boolean };
 type Snapshot = {
     state: string;
     installed: boolean;
@@ -313,6 +314,21 @@ export default function Console({ server }: { server: Server }) {
                 <header className="flex flex-wrap items-center justify-between gap-5">
                     <h1 className="text-3xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400 dark:drop-shadow-[0_0_5px_#0ff] uppercase">CONSOLA</h1>
                     <div className="flex flex-wrap gap-2.5">
+                        {server.web_url && (
+                            <a
+                                href={server.web_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title={running ? `Abrir ${server.web_url}` : 'Arranca el servidor para que la web responda'}
+                                className={`flex items-center gap-2 rounded border px-4 py-2 text-sm font-semibold transition ${
+                                    running
+                                        ? 'border-fuchsia-500/80 bg-gradient-to-r from-pink-600 to-fuchsia-600 text-white shadow-[0_0_15px_rgba(217,70,239,0.35)] hover:brightness-110'
+                                        : 'border-neutral-700 bg-neutral-900/90 text-neutral-400 hover:text-white'
+                                }`}
+                            >
+                                <ExternalLink size={15} /> Ir a la web
+                            </a>
+                        )}
                         <button disabled={!ready || snapshot?.state !== 'offline' || needsEula} onClick={() => void action('power', { action: 'start' })} className="flex items-center gap-2 rounded border border-emerald-500/80 bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_0_15px_rgba(16,185,129,0.3)] transition hover:bg-emerald-500 disabled:opacity-40"><Play size={15} className="fill-current" /> Iniciar</button>
                         <button disabled={!ready || !running} onClick={() => void action('power', { action: 'restart' })} className="flex items-center gap-2 rounded border border-neutral-700 bg-neutral-900/90 px-4 py-2 text-sm font-medium text-neutral-200 transition hover:bg-neutral-800 hover:border-neutral-500 disabled:opacity-40"><RotateCw size={15} /> Reiniciar</button>
                         <button disabled={!ready || !['running', 'starting'].includes(snapshot?.state || '')} onClick={() => void action('power', { action: 'stop' })} className="flex items-center gap-2 rounded border border-rose-600/80 bg-rose-950/60 px-4 py-2 text-sm font-medium text-rose-300 shadow-[0_0_15px_rgba(244,63,94,0.25)] transition hover:bg-rose-900/70 disabled:opacity-40"><Square size={15} className="fill-current" /> Detener</button>
