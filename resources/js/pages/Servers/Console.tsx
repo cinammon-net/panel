@@ -78,6 +78,7 @@ export default function Console({ server }: { server: Server }) {
     const [cmdHistory, setCmdHistory] = useState<string[]>([]);
     const [historyIndex, setHistoryIndex] = useState<number>(-1);
     const logRef = useRef<HTMLPreElement>(null);
+    const commandRef = useRef<HTMLInputElement>(null);
     const prevNetRef = useRef<{ rx: number; tx: number; ts: number } | null>(null);
     const base = `/servers/${server.id}`;
 
@@ -222,11 +223,23 @@ export default function Console({ server }: { server: Server }) {
 
     const quickCommands = server.discord_bot
         ? ['status', 'test', 'ping', 'ayuda', 'stop']
-        : server.minecraft
-        ? ['list', 'tps', 'say Hola', 'help', 'stop']
+        : server.minecraft || server.players
+        ? ['list', 'op ', 'deop ', 'whitelist add ', 'whitelist remove ', 'ban ', 'pardon ', 'kick ', 'say ', 'tps', 'stop']
         : ['status', 'help', 'info', 'stop'];
 
+    // Los que terminan en espacio necesitan un nombre: se escriben en la línea de comandos para completarlos.
     const executeQuick = (cmd: string) => {
+        if (cmd.endsWith(' ')) {
+            setCommand(cmd);
+            window.requestAnimationFrame(() => {
+                const input = commandRef.current;
+                if (input) {
+                    input.focus();
+                    input.setSelectionRange(cmd.length, cmd.length);
+                }
+            });
+            return;
+        }
         setCommand(cmd);
         void action('command', { command: cmd });
     };
@@ -714,7 +727,8 @@ export default function Console({ server }: { server: Server }) {
                                         }}
                                     >
                                         <span className="opacity-60 group-hover:opacity-100">/</span>
-                                        {cmd}
+                                        {cmd.trim()}
+                                        {cmd.endsWith(' ') && <span className="opacity-50">…</span>}
                                     </button>
                                 ))}
                             </div>
@@ -742,6 +756,7 @@ export default function Console({ server }: { server: Server }) {
                                 <span className="sm:hidden font-mono text-sm font-bold" style={{ color: 'var(--t3, #f472b6)' }}>❯</span>
 
                                 <input
+                                    ref={commandRef}
                                     aria-label="Comando de consola"
                                     value={command}
                                     onChange={event => setCommand(event.target.value)}
