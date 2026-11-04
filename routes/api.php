@@ -37,6 +37,8 @@ Route::middleware('bot.secret')->group(function () {
 // 💳 API de integración con Cinammon Billing (token compartido)
 Route::post('/billing/provision', [App\Http\Controllers\BillingApiController::class, 'provision']);
 Route::post('/billing/servers/{externalId}/cancel', [App\Http\Controllers\BillingApiController::class, 'cancel']);
+Route::post('/billing/roles/grant', [App\Http\Controllers\BillingApiController::class, 'grantRole']);
+Route::post('/billing/roles/{externalId}/revoke', [App\Http\Controllers\BillingApiController::class, 'revokeRole']);
 
 // Iconos de eggs y catálogo público (los consume el panel y la tienda; sin sesión)
 Route::get('/egg-icons/{uuid}', [App\Http\Controllers\EggIconController::class, 'show'])

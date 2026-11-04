@@ -555,7 +555,7 @@ class ServerController extends Controller
                 'name' => $server->name,
                 'uuid' => $server->uuid,
                 'owner_id' => $server->owner_id,
-                'database_limit' => $server->database_limit ?: 3,
+                'database_limit' => ($server->database_limit ?: 3) + \App\Support\Ranks::bonus($server->owner, 'databases'),
             ],
             'databases' => $databases,
         ]);

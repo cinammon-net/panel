@@ -81,7 +81,7 @@ class ServerModulesController extends Controller
                 'name' => $server->name,
                 'uuid' => $server->uuid,
                 'owner_id' => $server->owner_id,
-                'allocation_limit' => $server->allocation_limit ?: 3,
+                'allocation_limit' => ($server->allocation_limit ?: 3) + \App\Support\Ranks::bonus($server->owner, 'allocations'),
             ],
             'allocations' => $serverAllocations,
             'availableAllocations' => $availableAllocations,
@@ -93,7 +93,7 @@ class ServerModulesController extends Controller
         $this->authorizeServer($request, $server);
 
         $currentCount = Allocation::where('server_id', $server->id)->count();
-        $limit = $server->allocation_limit ?: 3;
+        $limit = ($server->allocation_limit ?: 3) + \App\Support\Ranks::bonus($server->owner, 'allocations');
 
         if ($currentCount >= $limit) {
             return back()->withErrors(['network' => 'Has alcanzado el límite de puertos asignados para este servidor.']);
@@ -192,7 +192,7 @@ class ServerModulesController extends Controller
                 'name' => $server->name,
                 'uuid' => $server->uuid,
                 'owner_id' => $server->owner_id,
-                'backup_limit' => $server->backup_limit ?: 3,
+                'backup_limit' => ($server->backup_limit ?: 3) + \App\Support\Ranks::bonus($server->owner, 'backups'),
             ],
             'backups' => $backups,
         ]);
@@ -209,7 +209,7 @@ class ServerModulesController extends Controller
 
         $key = "server_backups_{$server->id}";
         $backups = Cache::get($key, []);
-        $limit = $server->backup_limit ?: 3;
+        $limit = ($server->backup_limit ?: 3) + \App\Support\Ranks::bonus($server->owner, 'backups');
 
         if (count($backups) >= $limit) {
             return back()->withErrors(['backup' => 'Has alcanzado el límite de copias de seguridad de este servidor.']);

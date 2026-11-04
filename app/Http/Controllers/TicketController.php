@@ -13,8 +13,15 @@ class TicketController extends Controller
 {
     public function index()
     {
+        // Los tickets de usuarios con rango de soporte prioritario salen primero.
+        $tickets = Ticket::with(['messages', 'user'])->get()
+            ->each(fn ($t) => $t->setAttribute('priority', \App\Support\Ranks::perks($t->user)['priority']))
+            ->sortByDesc('priority')
+            ->values();
+        $tickets->each->unsetRelation('user');
+
         return inertia('Tickets', [
-            'tickets' => Ticket::with('messages')->get(),
+            'tickets' => $tickets,
         ]);
     }
 

@@ -13,6 +13,7 @@ type Ticket = {
     subject: string;
     message: string;
     status: 'open' | 'pending' | 'closed';
+    priority?: boolean;
 };
 
 export default function Tickets() {
@@ -80,7 +81,14 @@ export default function Tickets() {
                                         className="border-t border-yellow-300 transition hover:bg-yellow-50 dark:border-yellow-700 dark:hover:bg-yellow-800/10"
                                     >
                                         <td className="px-4 py-3 text-yellow-800 dark:text-yellow-100">{ticket.id}</td>
-                                        <td className="px-4 py-3 text-yellow-800 dark:text-yellow-100">{ticket.subject}</td>
+                                        <td className="px-4 py-3 text-yellow-800 dark:text-yellow-100">
+                                            {ticket.priority && (
+                                                <span className="mr-2 rounded-full border border-fuchsia-500/60 bg-fuchsia-500/15 px-2 py-0.5 text-[10px] font-bold text-fuchsia-500 dark:text-fuchsia-300">
+                                                    PRIORITARIO
+                                                </span>
+                                            )}
+                                            {ticket.subject}
+                                        </td>
                                         <td className="line-clamp-2 hidden max-w-xs px-4 py-3 text-yellow-700 sm:table-cell dark:text-yellow-200">
                                             {ticket.message || '—'}
                                         </td>

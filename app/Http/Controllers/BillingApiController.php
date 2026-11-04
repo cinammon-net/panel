@@ -26,6 +26,8 @@ class BillingApiController extends Controller
         'sandbox' => 'games',
         'simulation' => 'games',
         'roleplay' => 'games',
+        'arcade' => 'games',
+        'software' => 'software',
         'voice' => 'voice',
         'bots' => 'bots',
         'databases' => 'database',
@@ -41,6 +43,8 @@ class BillingApiController extends Controller
         'sandbox' => 'Factorio',
         'simulation' => 'Assetto Corsa',
         'roleplay' => 'FiveM',
+        'arcade' => 'SuperTuxKart',
+        'software' => 'Uptime Kuma',
         'voice' => 'TeaSpeak',
         'bots' => 'JMusicBot',
         'database' => 'MariaDB 10.3',
@@ -143,7 +147,47 @@ class BillingApiController extends Controller
             Log::warning('Billing provision: no se pudo aprovisionar en Wings: ' . $e->getMessage());
         }
 
+        \App\Support\Ranks::sync($user);
+
         return response()->json($this->payload($server), 201);
+    }
+
+    /** Concede (o renueva) un rango comprado en la tienda. */
+    public function grantRole(Request $request): JsonResponse
+    {
+        $this->authorizeToken($request);
+
+        $data = $request->validate([
+            'external_id' => ['required', 'string', 'max:60'],
+            'email' => ['required', 'email'],
+            'user_name' => ['required', 'string', 'max:255'],
+            'role' => ['required', 'string', 'max:100'],
+            'perks' => ['nullable', 'array'],
+            'expires_at' => ['nullable', 'date'],
+        ]);
+        abort_unless(\App\Support\Ranks::isPurchasable($data['role']), 422, 'Rango desconocido.');
+
+        $user = User::firstOrCreate(
+            ['email' => $data['email']],
+            ['name' => $data['user_name'], 'password' => Hash::make(Str::random(32)), 'email_verified_at' => now()]
+        );
+        $grant = \App\Support\Ranks::grant(
+            $user,
+            $data['role'],
+            $data['external_id'],
+            $data['perks'] ?? [],
+            isset($data['expires_at']) ? \Illuminate\Support\Carbon::parse($data['expires_at']) : null
+        );
+
+        return response()->json(['role' => $grant->role, 'expires_at' => $grant->expires_at?->toIso8601String()], 201);
+    }
+
+    public function revokeRole(Request $request, string $externalId): JsonResponse
+    {
+        $this->authorizeToken($request);
+        $user = \App\Support\Ranks::revoke($externalId);
+
+        return response()->json(['revoked' => $user !== null]);
     }
 
     public function cancel(Request $request, string $externalId): JsonResponse
@@ -165,6 +209,10 @@ class BillingApiController extends Controller
             Log::info("Billing cancel: servidor {$server->name} ({$server->uuid}) detenido exitosamente en Wings.");
         } catch (\Throwable $e) {
             Log::warning("Billing cancel: no se pudo enviar stop a Wings para {$server->uuid}: {$e->getMessage()}");
+        }
+
+        if ($server->owner) {
+            \App\Support\Ranks::sync($server->owner);
         }
 
         return response()->json([
