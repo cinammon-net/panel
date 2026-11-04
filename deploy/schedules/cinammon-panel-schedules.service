@@ -1,0 +1,11 @@
+[Unit]
+Description=cinammon.net: reinicios programados de los servidores
+After=network-online.target mariadb.service redis-server.service
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+Environment=HOME=/tmp XDG_CONFIG_HOME=/tmp
+WorkingDirectory=/var/www/cinammon-panel
+ExecStart=/usr/bin/php8.4 artisan servers:run-schedules

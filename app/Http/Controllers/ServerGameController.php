@@ -269,6 +269,41 @@ class ServerGameController extends Controller
         return response()->json(['saved' => array_keys($changes)]);
     }
 
+    public function schedule(Request $request, Server $server)
+    {
+        $this->authorizeServer($request, $server);
+        $schedule = \App\Models\ServerSchedule::where('server_id', $server->id)->where('action', 'restart')->first();
+
+        return response()->json([
+            'enabled' => (bool) ($schedule?->enabled ?? false),
+            'time' => $schedule?->time ?? '05:00',
+            'days' => $schedule?->days ?? [],
+            'warn' => (bool) ($schedule?->warn ?? true),
+            'last_run_at' => $schedule?->last_run_at?->toIso8601String(),
+        ]);
+    }
+
+    public function saveSchedule(Request $request, Server $server)
+    {
+        $this->authorizeServer($request, $server);
+        $data = $request->validate([
+            'enabled' => 'required|boolean',
+            'time' => ['required', 'string', 'regex:/^([01]\d|2[0-3]):[0-5]\d$/'],
+            'days' => 'present|array|max:7',
+            'days.*' => 'integer|between:0,6|distinct',
+            'warn' => 'required|boolean',
+        ]);
+        $days = array_values(array_map('intval', $data['days']));
+        sort($days);
+        \App\Models\ServerSchedule::updateOrCreate(
+            ['server_id' => $server->id, 'action' => 'restart'],
+            ['enabled' => $data['enabled'], 'time' => $data['time'], 'days' => count($days) === 7 ? [] : $days, 'warn' => $data['warn']],
+        );
+        $this->logActivity($server, $request, 'schedule:restart', $data['enabled'] ? "Reinicio automático a las {$data['time']}" : 'Desactivó el reinicio automático');
+
+        return response()->json(['saved' => true]);
+    }
+
     public function uploadIcon(Request $request, Server $server, WingsClient $wings)
     {
         $this->authorizeServer($request, $server);

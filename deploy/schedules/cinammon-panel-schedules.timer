@@ -1,0 +1,10 @@
+[Unit]
+Description=cinammon.net: reinicios programados (cada minuto)
+
+[Timer]
+OnCalendar=*-*-* *:*:05
+AccuracySec=1s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

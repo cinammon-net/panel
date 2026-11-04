@@ -498,6 +498,8 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
     Route::put('/servers/{server}/game/settings', [App\Http\Controllers\ServerGameController::class, 'update'])->middleware('throttle:30,1');
     Route::post('/servers/{server}/game/icon', [App\Http\Controllers\ServerGameController::class, 'uploadIcon'])->middleware('throttle:20,1');
     Route::delete('/servers/{server}/game/icon', [App\Http\Controllers\ServerGameController::class, 'deleteIcon']);
+    Route::get('/servers/{server}/game/schedule', [App\Http\Controllers\ServerGameController::class, 'schedule']);
+    Route::put('/servers/{server}/game/schedule', [App\Http\Controllers\ServerGameController::class, 'saveSchedule'])->middleware('throttle:30,1');
     Route::middleware('admin')->group(function () {
         Route::post('/servers/{uuid}/toggle-install', [ServerController::class, 'toggleInstall']);
         Route::post('/servers/{uuid}/suspend', [ServerController::class, 'suspend']);

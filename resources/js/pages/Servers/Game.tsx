@@ -1,7 +1,7 @@
 import ServerLayout from '@/layouts/server-layout';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
-import { AlertTriangle, ImagePlus, Loader2, RotateCw, Save, SlidersHorizontal, Trash2, Users } from 'lucide-react';
+import { AlertTriangle, CalendarClock, ImagePlus, Loader2, RotateCw, Save, SlidersHorizontal, Trash2, Users } from 'lucide-react';
 import { ChangeEvent, CSSProperties, Fragment, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -59,6 +59,125 @@ function McText({ text }: { text: string }) {
     }
     flush(text.length);
     return <>{parts}</>;
+}
+
+const DAYS: [number, string][] = [
+    [1, 'L'],
+    [2, 'M'],
+    [3, 'X'],
+    [4, 'J'],
+    [5, 'V'],
+    [6, 'S'],
+    [0, 'D'],
+];
+
+/** Reinicio automático diario o en días concretos, con avisos en el chat (hora de Madrid). */
+function RestartSchedule({ serverId }: { serverId: number }) {
+    const url = `/servers/${serverId}/game/schedule`;
+    const [data, setData] = useState<{ enabled: boolean; time: string; days: number[]; warn: boolean; last_run_at: string | null } | null>(null);
+    const [saved, setSaved] = useState<string>('');
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        axios
+            .get(url)
+            .then(({ data }) => {
+                setData(data);
+                setSaved(JSON.stringify(data));
+            })
+            .catch(() => setData(null));
+    }, [url]);
+
+    if (!data) return null;
+    const dirty = JSON.stringify(data) !== saved;
+    const toggleDay = (d: number) => {
+        const all = data.days.length === 0 ? DAYS.map(([n]) => n) : data.days;
+        const next = all.includes(d) ? all.filter((x) => x !== d) : [...all, d];
+        setData({ ...data, days: next.length === 7 ? [] : next });
+    };
+    const active = (d: number) => data.days.length === 0 || data.days.includes(d);
+
+    const save = async () => {
+        if (data.enabled && data.days.length === 0 && !DAYS.some(([d]) => active(d))) return;
+        setSaving(true);
+        try {
+            await axios.put(url, { enabled: data.enabled, time: data.time, days: data.days, warn: data.warn });
+            setSaved(JSON.stringify(data));
+            toast.success(data.enabled ? `Reinicio automático a las ${data.time}.` : 'Reinicio automático desactivado.');
+        } catch (e) {
+            toast.error(errorMessage(e, 'No se pudo guardar.'));
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <section className="rounded-xl border border-neutral-800 bg-neutral-900/40">
+            <div className="flex items-center justify-between gap-3 border-b border-neutral-800 px-4 py-3 sm:px-5">
+                <h2 className="flex items-center gap-2 text-xs font-bold tracking-[0.2em] text-cyan-400 uppercase">
+                    <CalendarClock className="h-4 w-4" /> Reinicio automático
+                </h2>
+                <button
+                    type="button"
+                    role="switch"
+                    aria-checked={data.enabled}
+                    aria-label="Reinicio automático"
+                    onClick={() => setData({ ...data, enabled: !data.enabled })}
+                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition ${data.enabled ? 'border-emerald-400/60 bg-emerald-500/30' : 'border-neutral-700 bg-neutral-800'}`}
+                >
+                    <span className={`inline-block h-4 w-4 rounded-full transition ${data.enabled ? 'translate-x-6 bg-emerald-300' : 'translate-x-1 bg-neutral-500'}`} />
+                </button>
+            </div>
+            <div className={`space-y-4 px-4 py-4 sm:px-5 ${data.enabled ? '' : 'pointer-events-none opacity-50'}`}>
+                <p className="font-sans text-xs text-neutral-400">
+                    Reiniciar el servidor libera memoria y evita el lag acumulado. Se guarda el mundo antes de reiniciar.
+                </p>
+                <div className="flex flex-wrap items-center gap-4">
+                    <label className="flex items-center gap-2 text-sm text-white">
+                        Hora
+                        <input
+                            type="time"
+                            value={data.time}
+                            onChange={(e) => setData({ ...data, time: e.target.value })}
+                            className="rounded-lg border border-neutral-800 bg-neutral-900 px-3 py-1.5 font-mono text-sm text-white focus:border-cyan-500 focus:outline-none"
+                        />
+                        <span className="text-[11px] text-neutral-500">(hora de España)</span>
+                    </label>
+                    <div className="flex gap-1" role="group" aria-label="Días">
+                        {DAYS.map(([d, label]) => (
+                            <button
+                                key={d}
+                                type="button"
+                                onClick={() => toggleDay(d)}
+                                className={`h-8 w-8 rounded-lg border text-xs font-bold transition ${
+                                    active(d) ? 'border-cyan-500/60 bg-cyan-500/15 text-cyan-300' : 'border-neutral-800 text-neutral-500 hover:text-white'
+                                }`}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <label className="flex w-fit cursor-pointer items-center gap-2 text-sm text-neutral-300">
+                    <input type="checkbox" checked={data.warn} onChange={(e) => setData({ ...data, warn: e.target.checked })} className="rounded border-neutral-700 bg-neutral-900 text-cyan-500" />
+                    Avisar en el chat 5 y 1 minutos antes
+                </label>
+                {data.last_run_at && <p className="text-[11px] text-neutral-500">Último reinicio automático: {new Date(data.last_run_at).toLocaleString('es-ES')}</p>}
+            </div>
+            {dirty && (
+                <div className="flex justify-end border-t border-neutral-800 px-4 py-3 sm:px-5">
+                    <button
+                        type="button"
+                        onClick={() => void save()}
+                        disabled={saving}
+                        className="flex items-center gap-2 rounded-lg bg-cyan-500 px-4 py-1.5 text-xs font-bold text-black hover:bg-cyan-400 disabled:opacity-60"
+                    >
+                        {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} Guardar horario
+                    </button>
+                </div>
+            )}
+        </section>
+    );
 }
 
 export default function Game({ server }: { server: { id: number; name: string; owner_id?: number; egg?: string | null } }) {
@@ -367,6 +486,8 @@ export default function Game({ server }: { server: { id: number; name: string; o
                                 ))}
                             </div>
                         </section>
+
+                        <RestartSchedule serverId={server.id} />
 
                         {GROUPS.map((group) => {
                             const list = fields.filter((f) => f.group === group.key);
