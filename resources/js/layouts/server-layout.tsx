@@ -13,6 +13,7 @@ export type ServerSection =
     | 'console'
     | 'startup'
     | 'files'
+    | 'addons'
     | 'sftp'
     | 'wingslog'
     | 'databases'
@@ -45,6 +46,7 @@ export default function ServerLayout({
         console: 'Consola',
         startup: 'Inicio',
         files: 'Archivos',
+        addons: 'Plugins y mods',
         sftp: 'Acceso SFTP',
         wingslog: 'Registro de Wings',
         databases: 'Bases de Datos',

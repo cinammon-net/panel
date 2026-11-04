@@ -25,6 +25,7 @@ import {
     KeyRound,
     Network,
     Play,
+    Puzzle,
     ScrollText,
     Settings,
     ShieldCheck,
@@ -60,7 +61,8 @@ export default function ServerSidebar({
     section: ServerSection;
 }) {
     const page = usePage();
-    const { auth } = page.props as any;
+    const { auth, currentServer } = page.props as any;
+    const isMinecraft = Boolean(currentServer?.minecraft);
     const user = auth?.user;
     const userRoles: string[] = user?.roles ?? [];
     const isAdmin = userRoles.includes('Owner') || userRoles.includes('Admin');
@@ -94,6 +96,14 @@ export default function ServerSidebar({
                     icon: Files,
                     color: 'text-cyan-400',
                     show: true,
+                },
+                {
+                    key: 'addons',
+                    title: 'Plugins y mods',
+                    href: `/servers/${server.id}/addons`,
+                    icon: Puzzle,
+                    color: 'text-cyan-400',
+                    show: isMinecraft,
                 },
                 {
                     key: 'sftp',

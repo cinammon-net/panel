@@ -59,6 +59,15 @@ class HandleInertiaRequests extends Middleware
 
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'demoMode' => \App\Support\Panel::demoMode(),
+            // Datos del servidor de la ruta actual que necesita el menú lateral (p. ej. mostrar "Plugins y mods").
+            'currentServer' => function () use ($request) {
+                $server = $request->route('server');
+                if (! $server instanceof \App\Models\Server) {
+                    $server = is_numeric($server) ? \App\Models\Server::find($server) : null;
+                }
+
+                return $server ? ['minecraft' => $server->egg?->category === 'minecraft'] : null;
+            },
 
             // Aviso de actualizaciones pendientes (solo admins; se cachea en UpdateChecker)
             'updates' => fn () => ($user = $request->user()) && $user->hasAnyRole(['Owner', 'Admin'])

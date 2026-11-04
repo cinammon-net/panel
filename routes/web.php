@@ -524,6 +524,12 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
     Route::delete('/servers/{server}/subdomains/{subdomainId}', [App\Http\Controllers\ServerModulesController::class, 'destroySubdomain'])->name('servers.subdomains.destroy');
 
     Route::get('/servers/{server}/activity', [App\Http\Controllers\ServerModulesController::class, 'activity'])->name('servers.activity');
+    Route::get('/servers/{server}/addons', [App\Http\Controllers\ServerAddonsController::class, 'page'])->name('servers.addons');
+    Route::get('/servers/{server}/addons/list', [App\Http\Controllers\ServerAddonsController::class, 'listing']);
+    Route::get('/servers/{server}/addons/meta', [App\Http\Controllers\ServerAddonsController::class, 'meta'])->middleware('throttle:120,1');
+    Route::post('/servers/{server}/addons/toggle', [App\Http\Controllers\ServerAddonsController::class, 'toggle']);
+    Route::post('/servers/{server}/addons/delete', [App\Http\Controllers\ServerAddonsController::class, 'destroy']);
+    Route::post('/servers/{server}/addons/upload', [App\Http\Controllers\ServerAddonsController::class, 'upload']);
     Route::get('/servers/{server}/startup', [App\Http\Controllers\ServerModulesController::class, 'startup'])->name('servers.startup');
     Route::put('/servers/{server}/startup/variables', [App\Http\Controllers\ServerModulesController::class, 'updateStartupVariables'])->name('servers.startup.variables');
     Route::put('/servers/{server}/startup/image', [App\Http\Controllers\ServerModulesController::class, 'updateStartupImage'])->name('servers.startup.image');
