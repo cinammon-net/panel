@@ -34,6 +34,8 @@ class HandleInertiaRequests extends Middleware
             'flash' => fn(): array => ['success' => $request->session()->get('success')],
             // Mantenimiento activo o próximo: aviso global para todos (también sin sesión)
             'maintenance' => fn () => \App\Models\Maintenance::current(),
+            // Enlace a la tienda (no en la demo, que no tiene billing)
+            'billingUrl' => \App\Support\Panel::demoMode() ? null : rtrim((string) config('services.billing.url'), '/'),
             // Rangos comprados y roles automáticos del usuario (recalculados como mucho cada 10 min)
             'badges' => function () use ($request) {
                 if (!$user = $request->user()) {

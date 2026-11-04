@@ -55,6 +55,8 @@ type BillingPlan = {
     storage_gb: number;
     price: number;
     popular: boolean;
+    role?: string | null;
+    perks?: { discount?: number; backups?: number; databases?: number; allocations?: number; priority?: boolean; color?: string } | null;
 };
 
 type BillingCategory = {
@@ -281,10 +283,18 @@ export default function WelcomePanel() {
                                                     <p className="mt-1 text-2xl font-black text-[#00f7ff]">
                                                         {featured.price.toFixed(2)} €<span className="text-xs font-normal text-neutral-400">/mes</span>
                                                     </p>
-                                                    <p className="mt-1 text-[11px] text-neutral-300 font-mono">
-                                                        {featured.ram_mb >= 1024 ? `${featured.ram_mb / 1024} GB` : `${featured.ram_mb} MB`} RAM ·{' '}
-                                                        {featured.cpu_pct}% CPU · {featured.storage_gb} GB NVMe
-                                                    </p>
+                                                    {featured.role ? (
+                                                        <p className="mt-1 text-[11px] text-neutral-300 font-mono">
+                                                            {featured.perks?.discount ? `-${featured.perks.discount}% en servidores` : 'Insignia VIP'}
+                                                            {featured.perks?.backups ? ` · +${featured.perks.backups} backups` : ''}
+                                                            {featured.perks?.priority ? ' · soporte prioritario' : ''}
+                                                        </p>
+                                                    ) : (
+                                                        <p className="mt-1 text-[11px] text-neutral-300 font-mono">
+                                                            {featured.ram_mb >= 1024 ? `${featured.ram_mb / 1024} GB` : `${featured.ram_mb} MB`} RAM ·{' '}
+                                                            {featured.cpu_pct}% CPU · {featured.storage_gb} GB NVMe
+                                                        </p>
+                                                    )}
                                                 </div>
                                             )}
 
