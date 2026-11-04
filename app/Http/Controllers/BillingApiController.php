@@ -25,6 +25,7 @@ class BillingApiController extends Controller
         'shooters' => 'games',
         'sandbox' => 'games',
         'simulation' => 'games',
+        'roleplay' => 'games',
         'voice' => 'voice',
         'bots' => 'bots',
         'databases' => 'database',
@@ -37,8 +38,9 @@ class BillingApiController extends Controller
         'games' => 'Palworld',
         'survival' => 'Rust',
         'shooters' => 'Counter-Strike 2',
-        'sandbox' => 'Garrys Mod',
+        'sandbox' => 'Factorio',
         'simulation' => 'Assetto Corsa',
+        'roleplay' => 'FiveM',
         'voice' => 'TeaSpeak',
         'bots' => 'JMusicBot',
         'database' => 'MariaDB 10.3',
@@ -65,6 +67,8 @@ class BillingApiController extends Controller
             'memory_mb' => ['required', 'integer', 'min:128'],
             'disk_mb' => ['required', 'integer', 'min:512'],
             'cpu_pct' => ['required', 'integer', 'min:25'],
+            // Egg concreto del plan (planes por juego); si no existe se usa el de la categoría.
+            'egg' => ['nullable', 'string', 'max:255'],
         ]);
 
         // Idempotente: si el pedido ya se aprovisionó, devolverlo.
@@ -77,7 +81,8 @@ class BillingApiController extends Controller
 
         $defaultEgg = self::DEFAULT_EGGS[$data['category']] ?? self::DEFAULT_EGGS[$category] ?? '';
         // El egg por defecto se busca primero por nombre (algunos no tienen categoría asignada)
-        $egg = Egg::where('name', $defaultEgg)->first()
+        $egg = (!empty($data['egg']) ? Egg::where('name', $data['egg'])->first() : null)
+            ?? Egg::where('name', $defaultEgg)->first()
             ?? Egg::where('category', $category)->where('name', $defaultEgg)->first()
             ?? Egg::where('category', $category)->orderBy('name')->firstOrFail();
 

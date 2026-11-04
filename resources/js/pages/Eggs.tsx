@@ -3,7 +3,7 @@ import EggIcon from '@/components/EggIcon';
 import AppLayout from '@/layouts/app-layout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ChevronDown, ChevronUp, Copy, Egg, Pencil, RefreshCw, Server, Trash2, Upload } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 interface Egg {
@@ -65,10 +65,30 @@ export default function Eggs() {
         });
     };
 
+    const runSearch = (value: string) => {
+        // El texto nuevo va DESPUÉS de los filtros para que no lo pise el anterior; se vuelve a la página 1.
+        const params: Record<string, string | number> = { ...filters, search: value.trim() };
+        if (!params.search) delete params.search;
+        router.get('/eggs', params, { preserveScroll: true, preserveState: true, replace: true });
+    };
+
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        router.get('/eggs', { search, ...filters }, { preserveScroll: true, preserveState: true });
+        runSearch(search);
     };
+
+    // Búsqueda en vivo mientras se escribe (300 ms de espera)
+    const firstRender = useRef(true);
+    useEffect(() => {
+        if (firstRender.current) {
+            firstRender.current = false;
+            return;
+        }
+        if (search.trim() === (filters.search || '')) return;
+        const t = setTimeout(() => runSearch(search), 300);
+        return () => clearTimeout(t);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [search]);
 
     const handleSort = () => {
         const newDirection = filters.direction === 'asc' ? 'desc' : 'asc';

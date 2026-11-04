@@ -27,14 +27,18 @@ class EggController extends Controller
         }
 
         if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->input('search') . '%');
+            $term = '%' . addcslashes(trim((string) $request->input('search')), '%_\\') . '%';
+            $query->where(fn ($q) => $q->where('name', 'like', $term)
+                ->orWhere('description', 'like', $term)
+                ->orWhere('tags', 'like', $term)
+                ->orWhere('category', 'like', $term));
         }
 
-        if ($request->filled('sort') && $request->filled('direction')) {
-            $query->orderBy($request->input('sort'), $request->input('direction'));
-        }
+        $sort = in_array($request->input('sort'), ['name', 'author', 'category', 'created_at', 'servers_count'], true) ? $request->input('sort') : 'name';
+        $direction = $request->input('direction') === 'desc' ? 'desc' : 'asc';
+        $query->orderBy($sort, $direction);
 
-        $eggs = $query->paginate($request->input('per_page', 10))->withQueryString();
+        $eggs = $query->paginate(min(100, max(5, (int) $request->input('per_page', 10))))->withQueryString();
         $eggs->getCollection()->transform(function ($egg) {
             $egg->servers = $egg->servers_count ?? 0;
             return $egg;
