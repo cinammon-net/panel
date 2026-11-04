@@ -59,13 +59,13 @@ class ServerRuntimeController extends Controller
         $isDiscord = $this->isDiscordBot($server, $wings);
         return Inertia::render('Servers/Console', ['server' => [
             'id' => $server->id, 'name' => $server->name, 'uuid' => $server->uuid, 'owner_id' => $server->owner_id,
-            'address' => $server->allocation ? (app()->environment('local') ? 'localhost:'.$server->allocation->port : $server->allocation->ip.':'.$server->allocation->port) : 'localhost',
+            'address' => $server->allocation ? (app()->environment('local') ? 'localhost:'.$server->allocation->port : $server->publicAddress()) : 'localhost',
             'egg' => $server->egg->name, 'node' => $server->node?->name ?: 'Cinammon Nodo', 'memory' => $server->memory, 'disk' => $server->disk, 'cpu' => $server->cpu,
             'discord_bot' => $isDiscord,
             'minecraft' => str_contains(strtolower($server->egg->name), 'paper'),
-            // Hosting web: enlace directo a la web publicada en la IP:puerto del servidor
+            // Hosting web: enlace a la web publicada (subdominio por Cloudflare; IP:puerto solo si no hay dominio de webs)
             'web_url' => $server->egg?->category === 'web' && $server->allocation
-                ? 'http://' . $server->allocation->ip . ':' . $server->allocation->port
+                ? ($server->siteUrl() ?? 'http://' . $server->allocation->publicAddress())
                 : null,
         ]]);
     }
@@ -131,72 +131,35 @@ class ServerRuntimeController extends Controller
         return $logs;
     }
 
-    private function enrichUtilization(Server $server, string $stateName, ?array $utilization): array
+    /**
+     * Real resource usage as reported by Wings (never invented). Network rates are derived from the
+     * byte counters between two polls. Returns null when Wings could not be reached.
+     */
+    private function enrichUtilization(Server $server, ?array $utilization): ?array
     {
-        $isRunning = in_array($stateName, ['running', 'starting'], true);
-        $cacheKey = "server_net_metrics_{$server->id}";
-        $prev = Cache::get($cacheKey, [
-            'rx_bytes' => 148 * 1024,
-            'tx_bytes' => 92 * 1024,
-            'ts' => microtime(true) - 2.0,
-        ]);
-
-        $now = microtime(true);
-        $elapsed = max(0.5, $now - ($prev['ts'] ?? ($now - 2.0)));
-
-        $load = function_exists('sys_getloadavg') ? (sys_getloadavg()[0] ?? 0.4) : 0.4;
-        $defaultCpu = $isRunning ? round(max(1.8, min($server->cpu ?: 100, $load * 8.5 + (mt_rand(10, 95) / 100))), 2) : 0.0;
-        $defaultMemMb = $isRunning ? max(64, min($server->memory ?: 512, (int) round(($server->memory ?: 512) * 0.34))) : 0;
-        $defaultDiskMb = max(48, (int) round(($server->disk ?: 1024) * 0.12));
-
-        $cpuAbsolute = isset($utilization['cpu_absolute']) && (float) $utilization['cpu_absolute'] > 0
-            ? round((float) $utilization['cpu_absolute'], 2)
-            : $defaultCpu;
-
-        $memoryBytes = isset($utilization['memory_bytes']) && (int) $utilization['memory_bytes'] > 0
-            ? (int) $utilization['memory_bytes']
-            : ($defaultMemMb * 1048576 + ($isRunning ? mt_rand(-524288, 524288) : 0));
-
-        $diskBytes = isset($utilization['disk_bytes']) && (int) $utilization['disk_bytes'] > 0
-            ? (int) $utilization['disk_bytes']
-            : ($defaultDiskMb * 1048576);
-
-        $rawRx = (int) ($utilization['network']['rx_bytes'] ?? 0);
-        $rawTx = (int) ($utilization['network']['tx_bytes'] ?? 0);
-
-        if ($rawRx > 0 || $rawTx > 0) {
-            $rxBytes = $rawRx;
-            $txBytes = $rawTx;
-            $rxDelta = max(0, $rxBytes - (int) ($prev['rx_bytes'] ?? $rxBytes));
-            $txDelta = max(0, $txBytes - (int) ($prev['tx_bytes'] ?? $txBytes));
-            $rxRateKib = round(($rxDelta / 1024) / $elapsed, 2);
-            $txRateKib = round(($txDelta / 1024) / $elapsed, 2);
-            if ($isRunning && $rxRateKib === 0.0 && $txRateKib === 0.0) {
-                $rxRateKib = round(max(1.2, $cpuAbsolute * 0.65 + (mt_rand(20, 140) / 100)), 2);
-                $txRateKib = round(max(0.8, $cpuAbsolute * 0.42 + (mt_rand(15, 110) / 100)), 2);
-            }
-        } elseif ($isRunning) {
-            $rxRateKib = round(max(2.4, $cpuAbsolute * 0.85 + (mt_rand(40, 220) / 100)), 2);
-            $txRateKib = round(max(1.5, $cpuAbsolute * 0.55 + (mt_rand(25, 160) / 100)), 2);
-            $rxBytes = (int) ($prev['rx_bytes'] ?? 0) + (int) round($rxRateKib * 1024 * $elapsed);
-            $txBytes = (int) ($prev['tx_bytes'] ?? 0) + (int) round($txRateKib * 1024 * $elapsed);
-        } else {
-            $rxRateKib = 0.0;
-            $txRateKib = 0.0;
-            $rxBytes = (int) ($prev['rx_bytes'] ?? 0);
-            $txBytes = (int) ($prev['tx_bytes'] ?? 0);
+        if ($utilization === null) {
+            return null;
         }
 
-        Cache::put($cacheKey, [
-            'rx_bytes' => $rxBytes,
-            'tx_bytes' => $txBytes,
-            'ts' => $now,
-        ], now()->addHours(2));
+        $rxBytes = max(0, (int) ($utilization['network']['rx_bytes'] ?? 0));
+        $txBytes = max(0, (int) ($utilization['network']['tx_bytes'] ?? 0));
+        $now = microtime(true);
+        $cacheKey = "server_net_metrics_{$server->id}";
+        $prev = Cache::get($cacheKey);
+
+        $rxRateKib = 0.0;
+        $txRateKib = 0.0;
+        if (is_array($prev) && isset($prev['ts'], $prev['rx_bytes'], $prev['tx_bytes']) && $now > $prev['ts']) {
+            $elapsed = max(0.5, $now - (float) $prev['ts']);
+            $rxRateKib = round(max(0, $rxBytes - (int) $prev['rx_bytes']) / 1024 / $elapsed, 2);
+            $txRateKib = round(max(0, $txBytes - (int) $prev['tx_bytes']) / 1024 / $elapsed, 2);
+        }
+        Cache::put($cacheKey, ['rx_bytes' => $rxBytes, 'tx_bytes' => $txBytes, 'ts' => $now], now()->addHours(2));
 
         return [
-            'cpu_absolute' => $cpuAbsolute,
-            'memory_bytes' => max(0, $memoryBytes),
-            'disk_bytes' => max(0, $diskBytes),
+            'cpu_absolute' => round(max(0, (float) ($utilization['cpu_absolute'] ?? 0)), 2),
+            'memory_bytes' => max(0, (int) ($utilization['memory_bytes'] ?? 0)),
+            'disk_bytes' => max(0, (int) ($utilization['disk_bytes'] ?? 0)),
             'network' => [
                 'rx_bytes' => $rxBytes,
                 'tx_bytes' => $txBytes,
@@ -204,6 +167,27 @@ class ServerRuntimeController extends Controller
                 'tx_rate_kib' => $txRateKib,
             ],
         ];
+    }
+
+    /** Lightweight live usage for the server cards (state + real Wings utilization, no logs). */
+    public function usage(Request $request, Server $server, WingsClient $wings)
+    {
+        $this->authorizeServer($request, $server);
+        try {
+            $state = $wings->forServer($server)->timeout(4)->get('/servers/'.$server->uuid)->throw()->json();
+            $u = $state['utilization'] ?? null;
+
+            return response()->json([
+                'state' => $state['state'] ?? 'offline',
+                'utilization' => is_array($u) ? [
+                    'cpu_absolute' => round(max(0, (float) ($u['cpu_absolute'] ?? 0)), 2),
+                    'memory_bytes' => max(0, (int) ($u['memory_bytes'] ?? 0)),
+                    'disk_bytes' => max(0, (int) ($u['disk_bytes'] ?? 0)),
+                ] : null,
+            ]);
+        } catch (ConnectionException|RequestException $exception) {
+            return response()->json(['state' => $server->status ? 'running' : 'offline', 'utilization' => null]);
+        }
     }
 
     public function snapshot(Request $request, Server $server, WingsClient $wings)
@@ -235,7 +219,7 @@ class ServerRuntimeController extends Controller
                 'logs' => $this->cleanLogs(is_array($lines) ? implode("\n", $lines) : (string) $lines, $server),
                 'bot_status' => $botStatus,
                 'eula_accepted' => $eula && $eula->successful() && preg_match('/^eula=true\s*$/m', $eula->body()) === 1,
-                'utilization' => $this->enrichUtilization($server, $stateName, $state['utilization'] ?? null),
+                'utilization' => $this->enrichUtilization($server, $state['utilization'] ?? null),
             ]);
         } catch (ConnectionException|RequestException $exception) {
             $fallbackState = $server->status ? 'running' : 'offline';
@@ -245,7 +229,7 @@ class ServerRuntimeController extends Controller
                 'logs' => $this->cleanLogs("[Cinammon Daemon] Nodo local sincronizado para {$server->name} ({$server->uuid}).\nEstado actual: {$fallbackState}.", $server),
                 'bot_status' => null,
                 'eula_accepted' => true,
-                'utilization' => $this->enrichUtilization($server, $fallbackState, null),
+                'utilization' => null,
             ]);
         }
     }

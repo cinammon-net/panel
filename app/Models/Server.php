@@ -40,6 +40,42 @@ class Server extends Model
         return $this->belongsTo(Allocation::class, 'allocation_id');
     }
 
+    /** Web hosting servers (egg category "web") are published as <slug>-<uuid4>.<sites_domain> behind Cloudflare. */
+    public function isWebSite(): bool
+    {
+        return $this->egg?->category === 'web';
+    }
+
+    /**
+     * Public hostname of a web hosting server, e.g. "mi-tienda-45c5.cinammon.net", or null when
+     * this is not a web server or PANEL_SITES_DOMAIN is empty. The 4-char uuid suffix keeps it unique
+     * and avoids clashing with real subdomains (panel, billing...). Renaming the server changes it.
+     */
+    public function siteHost(): ?string
+    {
+        $domain = trim((string) config('panel.sites_domain', ''));
+        if ($domain === '' || ! $this->isWebSite() || ! $this->uuid) {
+            return null;
+        }
+
+        $slug = trim(substr(\Illuminate\Support\Str::slug((string) $this->name), 0, 40), '-');
+
+        return ($slug !== '' ? $slug : 'web') . '-' . substr($this->uuid, 0, 4) . '.' . $domain;
+    }
+
+    public function siteUrl(): ?string
+    {
+        $host = $this->siteHost();
+
+        return $host ? 'https://' . $host : null;
+    }
+
+    /** Address shown to customers: the site hostname for web servers, otherwise public host:port. */
+    public function publicAddress(): ?string
+    {
+        return $this->siteHost() ?? $this->allocation?->publicAddress();
+    }
+
     public function subusers()
     {
         return $this->hasMany(Subuser::class, 'server_id');

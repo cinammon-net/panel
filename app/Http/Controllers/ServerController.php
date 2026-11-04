@@ -150,7 +150,7 @@ class ServerController extends Controller
                 'username' => $full?->owner?->name ?? 'Unknown',
                 'node' => $full?->node?->name ?? 'Unknown',
                 'allocation' => $full?->allocation
-                    ? $full->allocation->ip . ':' . $full->allocation->port
+                    ? $full->publicAddress()
                     : '–',
                 'database' => $server->database_limit ?? 0,
                 'cpu' => $server->cpu ?? 0,
@@ -448,7 +448,7 @@ class ServerController extends Controller
                 'egg_icon' => $server->egg?->image_url,
                 'category' => $server->egg?->category,
                 'allocation' => optional($server->allocation)?->ip && optional($server->allocation)?->port
-                    ? $server->allocation->ip . ':' . $server->allocation->port
+                    ? $server->publicAddress()
                     : '–',
             ];
         });

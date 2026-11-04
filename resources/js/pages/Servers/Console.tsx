@@ -27,7 +27,7 @@ type Snapshot = {
             rx_rate_kib?: number;
             tx_rate_kib?: number;
         };
-    };
+    } | null;
 };
 type TelemetryHistory = {
     labels: string[];
@@ -124,12 +124,12 @@ export default function Console({ server }: { server: Server }) {
                         second: '2-digit',
                     });
                     labels.push(t);
+                    // Sin historial previo: se rellena con el valor real actual (nunca con datos inventados).
                     if (isRunning) {
-                        const wave = Math.sin(i * 0.7);
-                        cpuArr.push(Number(Math.max(0.4, cpuVal + wave * 1.4).toFixed(2)));
-                        memArr.push(Number(Math.max(16, memMib + Math.cos(i * 0.5) * 2.5).toFixed(1)));
-                        rxArr.push(Number(Math.max(0.5, (rxRate || 4.2) + Math.abs(wave) * 2.1).toFixed(2)));
-                        txArr.push(Number(Math.max(0.3, (txRate || 2.6) + Math.abs(Math.cos(i)) * 1.4).toFixed(2)));
+                        cpuArr.push(cpuVal);
+                        memArr.push(memMib);
+                        rxArr.push(rxRate);
+                        txArr.push(txRate);
                     } else {
                         cpuArr.push(0);
                         memArr.push(0);
@@ -348,9 +348,9 @@ export default function Console({ server }: { server: Server }) {
                             </button>
                         )}
                     </div>
-                    <Metric label="CPU" value={`${snapshot?.utilization?.cpu_absolute?.toFixed(2) ?? '0.00'} % / ${server.cpu || '∞'}${server.cpu ? ' %' : ''}`} />
-                    <Metric label="Memoria" value={`${snapshot?.utilization?.memory_bytes !== undefined ? (snapshot.utilization.memory_bytes / 1048576).toFixed(1) : '0.0'} MiB / ${server.memory || '∞'}${server.memory ? ' MiB' : ''}`} />
-                    <Metric label="Almacenamiento" value={`${snapshot?.utilization?.disk_bytes !== undefined ? (snapshot.utilization.disk_bytes / 1073741824).toFixed(2) : '0.00'} GiB / ${server.disk ? (server.disk / 1024).toFixed(1) + ' GiB' : '∞'}`} />
+                    <Metric label="CPU" value={`${snapshot?.utilization ? (snapshot.utilization.cpu_absolute ?? 0).toFixed(2) : '—'} % / ${server.cpu || '∞'}${server.cpu ? ' %' : ''}`} />
+                    <Metric label="Memoria" value={`${snapshot?.utilization ? ((snapshot.utilization.memory_bytes ?? 0) / 1048576).toFixed(1) : '—'} MiB / ${server.memory || '∞'}${server.memory ? ' MiB' : ''}`} />
+                    <Metric label="Almacenamiento" value={`${snapshot?.utilization ? ((snapshot.utilization.disk_bytes ?? 0) / 1073741824).toFixed(2) : '—'} GiB / ${server.disk ? (server.disk / 1024).toFixed(1) + ' GiB' : '∞'}`} />
                 </section>
                 {server.discord_bot && (
                     <section className="space-y-4 rounded-lg border border-cyan-700 bg-neutral-950 p-5">

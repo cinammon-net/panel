@@ -485,6 +485,7 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
     Route::get('/servers/{server}/files/contents', [App\Http\Controllers\ServerFilesController::class, 'contents']);
     Route::get('/servers/{server}/console', [App\Http\Controllers\ServerRuntimeController::class, 'console'])->name('servers.console');
     Route::get('/servers/{server}/runtime', [App\Http\Controllers\ServerRuntimeController::class, 'snapshot']);
+    Route::get('/servers/{server}/usage', [App\Http\Controllers\ServerRuntimeController::class, 'usage'])->middleware('throttle:240,1');
     Route::post('/servers/{server}/power', [App\Http\Controllers\ServerRuntimeController::class, 'power']);
     Route::post('/servers/{server}/command', [App\Http\Controllers\ServerRuntimeController::class, 'command']);
     Route::post('/servers/{server}/discord', [App\Http\Controllers\ServerRuntimeController::class, 'configureDiscord']);

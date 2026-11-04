@@ -232,7 +232,7 @@ class BillingApiController extends Controller
             'uuid_short' => $server->uuid_short,
             'name' => $server->name,
             'allocation' => $server->allocation
-                ? ['ip' => $server->allocation->ip, 'port' => $server->allocation->port]
+                ? ['ip' => $server->allocation->publicHost(), 'port' => $server->allocation->port]
                 : null,
         ];
     }

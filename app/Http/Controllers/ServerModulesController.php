@@ -62,7 +62,8 @@ class ServerModulesController extends Controller
             ->map(function ($alloc) use ($server) {
                 return [
                     'id' => $alloc->id,
-                    'ip' => $alloc->ip,
+                    // customers see the public host (alias), never the node's real IP
+                    'ip' => $alloc->publicHost(),
                     'port' => $alloc->port,
                     'alias' => $alloc->alias,
                     'is_primary' => (int) $alloc->id === (int) $server->allocation_id,
@@ -73,7 +74,13 @@ class ServerModulesController extends Controller
             ->whereNull('server_id')
             ->whereNull('assigned_to')
             ->orderBy('port')
-            ->get(['id', 'ip', 'port', 'alias']);
+            ->get(['id', 'ip', 'port', 'alias'])
+            ->map(fn ($alloc) => [
+                'id' => $alloc->id,
+                'ip' => $alloc->publicHost(),
+                'port' => $alloc->port,
+                'alias' => $alloc->alias,
+            ]);
 
         return Inertia::render('Servers/Network', [
             'server' => [

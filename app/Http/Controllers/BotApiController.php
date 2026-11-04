@@ -17,7 +17,7 @@ class BotApiController extends Controller
         $servers = Server::with(['egg', 'allocation'])->get()->map(function ($server) {
             $isOnline = (bool) $server->status;
             $addr = $server->allocation
-                ? (app()->environment('local') ? 'localhost:'.$server->allocation->port : $server->allocation->ip.':'.$server->allocation->port)
+                ? (app()->environment('local') ? 'localhost:'.$server->allocation->port : $server->publicAddress())
                 : '127.0.0.1:3000';
 
             return [

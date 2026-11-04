@@ -37,6 +37,20 @@ return [
      */
     'demo_host' => env('PANEL_DEMO_HOST', 'demo.localhost'),
 
+    /*
+     * Dominio que ven los clientes en lugar de la IP real del nodo (consola, red,
+     * bot de Discord, tienda). Debe ser un registro DNS "solo DNS" (nube gris) que
+     * apunte al nodo, p. ej. play.cinammon.net. Vacío = se muestra la IP.
+     */
+    'public_host' => env('PANEL_PUBLIC_HOST', ''),
+
+    /*
+     * Dominio para las webs de los servidores de hosting web (huevo de categoría "web"):
+     * cada una se publica como <nombre>-<uuid4>.<dominio> a través de Cloudflare (registro
+     * comodín * con proxy) y su puerto directo se bloquea en el nodo. Vacío = desactivado.
+     */
+    'sites_domain' => env('PANEL_SITES_DOMAIN', ''),
+
     // Dominio de la consola pública de Wings (vacío = desactivada). Comparte aplicación con el panel real.
     'wings_host' => env('PANEL_WINGS_HOST', ''),
     'wings_demo_url' => env('PANEL_WINGS_DEMO_URL', 'https://demo.cinammon.net/wings'),

@@ -34,7 +34,7 @@ import {
     Zap,
     ExternalLink,
 } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 interface ServerItem {
     id: number;
@@ -88,19 +88,67 @@ function CopyAddress({ address }: { address: string }) {
     );
 }
 
+type LiveUsage = { cpu: number; memMb: number; diskMb: number };
+
+const fmtMb = (mb: number) => (mb >= 1024 ? `${(mb / 1024).toFixed(1)} GiB` : `${Math.round(mb)} MiB`);
+const pct = (used: number, limit?: number) => (limit ? Math.min(100, Math.max(0, (used / limit) * 100)) : 0);
+
+/** Uso real del servidor según Wings (cada 10 s mientras la pestaña está visible). null = sin datos. */
+function useLiveUsage(id: number, enabled: boolean): LiveUsage | null {
+    const [usage, setUsage] = useState<LiveUsage | null>(null);
+    useEffect(() => {
+        if (!enabled) {
+            setUsage(null);
+            return;
+        }
+        let alive = true;
+        const ctrl = new AbortController();
+        const load = async () => {
+            if (document.hidden) return;
+            try {
+                const res = await fetch(`/servers/${id}/usage`, {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                    redirect: 'error',
+                    signal: ctrl.signal,
+                });
+                if (!res.ok) return;
+                const u = (await res.json())?.utilization;
+                if (alive && u) {
+                    setUsage({
+                        cpu: Number(u.cpu_absolute) || 0,
+                        memMb: (Number(u.memory_bytes) || 0) / 1048576,
+                        diskMb: (Number(u.disk_bytes) || 0) / 1048576,
+                    });
+                }
+            } catch {
+                /* sin datos: se muestra solo el límite */
+            }
+        };
+        load();
+        const timer = window.setInterval(load, 10000);
+        return () => {
+            alive = false;
+            ctrl.abort();
+            window.clearInterval(timer);
+        };
+    }, [id, enabled]);
+    return usage;
+}
+
 function ServerCard({ item }: { item: ServerItem }) {
     const isOnline = item.status === 'online';
-    const cpuVal = item.cpu ? `${item.cpu}%` : '∞';
-    const memVal = item.memory
-        ? item.memory >= 1024
-            ? `${(item.memory / 1024).toFixed(1)} GiB`
-            : `${item.memory} MiB`
-        : '∞';
-    const diskVal = item.disk
-        ? item.disk >= 1024
-            ? `${(item.disk / 1024).toFixed(1)} GiB`
-            : `${item.disk} MiB`
-        : '∞';
+    const usage = useLiveUsage(item.id, isOnline);
+    // "uso / límite"; sin datos de Wings se muestra "— / límite" y la barra vacía (nunca valores inventados)
+    const cpuLimit = item.cpu ? `${item.cpu}%` : '∞';
+    const memLimit = item.memory ? fmtMb(item.memory) : '∞';
+    const diskLimit = item.disk ? fmtMb(item.disk) : '∞';
+    const cpuVal = `${usage ? `${usage.cpu.toFixed(1)}%` : '—'} / ${cpuLimit}`;
+    const memVal = `${usage ? fmtMb(usage.memMb) : '—'} / ${memLimit}`;
+    const diskVal = `${usage ? fmtMb(usage.diskMb) : '—'} / ${diskLimit}`;
+    const cpuPct = usage ? pct(usage.cpu, item.cpu || 100) : 0;
+    const memPct = usage ? pct(usage.memMb, item.memory) : 0;
+    const diskPct = usage ? pct(usage.diskMb, item.disk) : 0;
 
     const [bannerUrl, setBannerUrl] = useState<string | null>(() => {
         if (item.banner) return item.banner;
@@ -301,14 +349,14 @@ function ServerCard({ item }: { item: ServerItem }) {
                             <span className="text-neutral-400 flex items-center gap-1.5">
                                 <Cpu size={12} className="text-cyan-400" /> CPU
                             </span>
-                            <span className="font-bold text-neutral-200">{cpuVal}</span>
+                            <span className="font-bold text-neutral-200 truncate">{cpuVal}</span>
                         </div>
                         <div className="h-2 w-full bg-neutral-900/90 rounded-full overflow-hidden border border-cyan-950">
                             <div
                                 className={`h-full rounded-full transition-all duration-500 ${
                                     isOnline ? 'bg-gradient-to-r from-cyan-500 to-emerald-400 shadow-[0_0_8px_#10b981]' : 'bg-neutral-700'
                                 }`}
-                                style={{ width: item.cpu ? `${Math.min(100, item.cpu)}%` : isOnline ? '25%' : '0%' }}
+                                style={{ width: `${cpuPct}%` }}
                             />
                         </div>
                     </div>
@@ -326,7 +374,7 @@ function ServerCard({ item }: { item: ServerItem }) {
                                 className={`h-full rounded-full transition-all duration-500 ${
                                     isOnline ? 'bg-gradient-to-r from-purple-500 to-pink-500 shadow-[0_0_8px_#ec4899]' : 'bg-neutral-700'
                                 }`}
-                                style={{ width: item.memory ? '50%' : isOnline ? '30%' : '0%' }}
+                                style={{ width: `${memPct}%` }}
                             />
                         </div>
                     </div>
@@ -344,7 +392,7 @@ function ServerCard({ item }: { item: ServerItem }) {
                                 className={`h-full rounded-full transition-all duration-500 ${
                                     isOnline ? 'bg-gradient-to-r from-blue-500 to-cyan-400 shadow-[0_0_8px_#06b6d4]' : 'bg-neutral-700'
                                 }`}
-                                style={{ width: item.disk ? '40%' : isOnline ? '20%' : '0%' }}
+                                style={{ width: `${diskPct}%` }}
                             />
                         </div>
                     </div>

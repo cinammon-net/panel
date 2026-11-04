@@ -1,0 +1,7 @@
+[Unit]
+Description=cinammon.net: publish web hosting servers via nginx and hide their IP:port
+After=network-online.target nginx.service docker.service mariadb.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/cinammon-sites-sync
