@@ -441,6 +441,14 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
         Route::delete('/eggs/{egg}', [EggController::class, 'destroy'])->name('eggs.destroy');
         Route::post('/eggs/import', [EggController::class, 'import'])->name('eggs.import');
         Route::post('/eggs/sync-repo', [EggController::class, 'syncRepo'])->name('eggs.syncRepo');
+
+        // Mantenimientos programados (aviso a usuarios y bloqueo opcional)
+        Route::get('/maintenance', [App\Http\Controllers\MaintenanceController::class, 'index'])->name('maintenance.index');
+        Route::post('/maintenance', [App\Http\Controllers\MaintenanceController::class, 'store'])->name('maintenance.store');
+        Route::put('/maintenance/{maintenance}', [App\Http\Controllers\MaintenanceController::class, 'update'])->name('maintenance.update');
+        Route::post('/maintenance/{maintenance}/start', [App\Http\Controllers\MaintenanceController::class, 'start'])->name('maintenance.start');
+        Route::post('/maintenance/{maintenance}/finish', [App\Http\Controllers\MaintenanceController::class, 'finish'])->name('maintenance.finish');
+        Route::delete('/maintenance/{maintenance}', [App\Http\Controllers\MaintenanceController::class, 'destroy'])->name('maintenance.destroy');
         Route::delete('/egg-variables/{id}', [EggVariableController::class, 'destroy'])->name('egg-variables.destroy');
     });
 

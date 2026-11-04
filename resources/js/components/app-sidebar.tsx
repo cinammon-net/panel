@@ -30,6 +30,7 @@ import {
     Ticket,
     Users,
     Webhook,
+    Wrench,
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -61,6 +62,15 @@ const mainNavItems: NavItem[] = [
         group: 'main',
         groupColor: 'text-pink-400',
         roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin', 'Owner'],
+        permissions: [],
+    },
+    {
+        title: 'Mantenimiento',
+        href: '/maintenance',
+        icon: Wrench,
+        group: 'main',
+        groupColor: 'text-amber-400',
+        roles: ['Admin'],
         permissions: [],
     },
     {

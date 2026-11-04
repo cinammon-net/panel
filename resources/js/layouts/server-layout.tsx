@@ -1,6 +1,7 @@
 import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
+import MaintenanceBanner from '@/components/maintenance-banner';
 import ServerSidebar from '@/components/server/server-sidebar';
 import { type BreadcrumbItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
@@ -74,6 +75,7 @@ export default function ServerLayout({
             <ServerSidebar server={server} section={section} />
             <AppContent variant="sidebar">
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
+                <MaintenanceBanner />
                 {showLockNotice && (
                     <Link
                         href="/settings/security"

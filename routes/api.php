@@ -42,3 +42,6 @@ Route::post('/billing/servers/{externalId}/cancel', [App\Http\Controllers\Billin
 Route::get('/egg-icons/{uuid}', [App\Http\Controllers\EggIconController::class, 'show'])
     ->where('uuid', '[0-9a-fA-F-]{36}')->middleware('throttle:600,1')->name('egg-icons.show');
 Route::get('/eggs/catalog', [App\Http\Controllers\EggIconController::class, 'catalog'])->middleware('throttle:60,1');
+
+// Estado de mantenimiento público (lo consume la tienda)
+Route::get('/maintenance', [App\Http\Controllers\MaintenanceController::class, 'status'])->middleware('throttle:120,1');

@@ -32,6 +32,8 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'flash' => fn(): array => ['success' => $request->session()->get('success')],
+            // Mantenimiento activo o próximo: aviso global para todos (también sin sesión)
+            'maintenance' => fn () => \App\Models\Maintenance::current(),
 
             'name' => config('app.name'),
             'quote' => [
