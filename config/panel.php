@@ -51,6 +51,18 @@ return [
      */
     'sites_domain' => env('PANEL_SITES_DOMAIN', ''),
 
+    /*
+     * Bases de datos de los clientes (MariaDB del propio VPS). host_for_servers es la IP con la que
+     * los contenedores llegan a MariaDB (la del puente de Docker de Wings); remote, desde dónde se
+     * permite conectar a esos usuarios. Sin DB_PROVISION_* configurado no se crean bases reales.
+     */
+    'server_databases' => [
+        'host_for_servers' => env('PANEL_SERVER_DB_HOST', '172.18.0.1'),
+        'port' => (int) env('PANEL_SERVER_DB_PORT', 3306),
+        'remote' => env('PANEL_SERVER_DB_REMOTE', '172.18.%'),
+        'phpmyadmin_url' => env('PANEL_PHPMYADMIN_URL', 'https://database.cinammon.net'),
+    ],
+
     // Dominio de la consola pública de Wings (vacío = desactivada). Comparte aplicación con el panel real.
     'wings_host' => env('PANEL_WINGS_HOST', ''),
     'wings_demo_url' => env('PANEL_WINGS_DEMO_URL', 'https://demo.cinammon.net/wings'),

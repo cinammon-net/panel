@@ -62,6 +62,21 @@ return [
             ]) : [],
         ],
 
+        // Usuario de MariaDB con permisos solo para crear las bases srv%_* de los clientes y sus usuarios.
+        'provisioner' => [
+            'driver' => 'mysql',
+            'host' => env('DB_PROVISION_HOST', '127.0.0.1'),
+            'port' => env('DB_PROVISION_PORT', '3306'),
+            'database' => null,
+            'username' => env('DB_PROVISION_USERNAME', ''),
+            'password' => env('DB_PROVISION_PASSWORD', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'strict' => true,
+            'engine' => null,
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),

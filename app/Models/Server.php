@@ -89,6 +89,15 @@ class Server extends Model
     protected static function booted()
     {
         static::deleting(function (Server $server) {
+            // 0. Borrar de MariaDB las bases de datos reales del servidor y sus usuarios
+            try {
+                foreach (\App\Models\ServerDatabase::where('server_id', $server->id)->get() as $database) {
+                    app(\App\Support\DatabaseProvisioner::class)->drop($database);
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("No se pudieron borrar las bases de datos del servidor {$server->id}: " . $e->getMessage());
+            }
+
             // 1. Eliminar contenedor Docker y archivos en disco a través de Wings
             try {
                 if ($server->node && $server->uuid) {

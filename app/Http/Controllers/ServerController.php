@@ -536,20 +536,28 @@ class ServerController extends Controller
             'No tienes permiso para ver las bases de datos de este servidor.'
         );
 
-        $key = "server_databases_{$server->id}";
-        $databases = \Illuminate\Support\Facades\Cache::get($key, [
-            [
-                'id' => 1,
-                'name' => 's' . $server->id . '_cinammon',
-                'driver' => 'mysql',
-                'user' => 'u' . $server->id . '_admin',
-                'host' => '127.0.0.1',
-                'port' => 3306,
-                'password' => 'cnm_' . substr(md5('srv_db_' . $server->id), 0, 12),
-            ],
-        ]);
+        $real = \App\Support\DatabaseProvisioner::enabled();
+        if ($real) {
+            $databases = \App\Models\ServerDatabase::where('server_id', $server->id)->orderBy('id')->get()
+                ->map(fn ($db) => \App\Support\DatabaseProvisioner::present($db))->values()->all();
+        } else {
+            $key = "server_databases_{$server->id}";
+            $databases = \Illuminate\Support\Facades\Cache::get($key, [
+                [
+                    'id' => 1,
+                    'name' => 's' . $server->id . '_cinammon',
+                    'driver' => 'mysql',
+                    'user' => 'u' . $server->id . '_admin',
+                    'host' => '127.0.0.1',
+                    'port' => 3306,
+                    'password' => 'cnm_' . substr(md5('srv_db_' . $server->id), 0, 12),
+                ],
+            ]);
+        }
 
         return Inertia::render('Servers/Databases', [
+            'realDatabases' => $real,
+            'phpMyAdminUrl' => $real ? (string) config('panel.server_databases.phpmyadmin_url') : null,
             'server' => [
                 'id' => $server->id,
                 'name' => $server->name,
@@ -561,8 +569,39 @@ class ServerController extends Controller
         ]);
     }
 
+    private function authorizeDatabases(Request $request, Server $server): void
+    {
+        $user = $request->user();
+        abort_unless(
+            $user->id === $server->owner_id ||
+            $user->hasAnyRole(['Owner', 'Admin']) ||
+            $server->subusers()->where('user_id', $user->id)->exists(),
+            403,
+            'No tienes permiso para gestionar las bases de datos de este servidor.'
+        );
+    }
+
     public function storeDatabase(Request $request, Server $server)
     {
+        $this->authorizeDatabases($request, $server);
+        if (\App\Support\DatabaseProvisioner::enabled()) {
+            $data = $request->validate(['name' => ['required', 'string', 'max:40', 'regex:/^[A-Za-z0-9_ -]+$/']]);
+            $limit = ($server->database_limit ?: 3) + \App\Support\Ranks::bonus($server->owner, 'databases');
+            if (\App\Models\ServerDatabase::where('server_id', $server->id)->count() >= $limit) {
+                return back()->withErrors(['name' => "Has llegado al límite de {$limit} bases de datos de este servidor."]);
+            }
+            try {
+                $db = app(\App\Support\DatabaseProvisioner::class)->create($server, $data['name']);
+            } catch (\RuntimeException $e) {
+                return back()->withErrors(['name' => $e->getMessage()]);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('No se pudo crear la base de datos: '.$e->getMessage());
+                return back()->withErrors(['name' => 'MariaDB no pudo crear la base de datos. Inténtalo de nuevo.']);
+            }
+
+            return back()->with('success', "Base de datos {$db->database} creada.");
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:100',
             'driver' => 'nullable|string|in:sqlite,mysql,mariadb,pgsql,mongodb,redis,sqlsrv',
@@ -613,6 +652,18 @@ class ServerController extends Controller
 
     public function rotateDatabasePassword(Request $request, Server $server, $dbId)
     {
+        $this->authorizeDatabases($request, $server);
+        if (\App\Support\DatabaseProvisioner::enabled()) {
+            $db = \App\Models\ServerDatabase::where('server_id', $server->id)->findOrFail((int) $dbId);
+            try {
+                app(\App\Support\DatabaseProvisioner::class)->rotate($db);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('No se pudo cambiar la contraseña: '.$e->getMessage());
+                return back()->with('error', 'MariaDB no pudo cambiar la contraseña.');
+            }
+
+            return back()->with('success', 'Contraseña de la base de datos rotada y actualizada con éxito.');
+        }
         $user = $request->user();
         abort_unless(
             $user->id === $server->owner_id ||
@@ -637,8 +688,20 @@ class ServerController extends Controller
         return back()->with('success', 'Contraseña de la base de datos rotada y actualizada con éxito.');
     }
 
-    public function destroyDatabase(Server $server, $dbId)
+    public function destroyDatabase(Request $request, Server $server, $dbId)
     {
+        $this->authorizeDatabases($request, $server);
+        if (\App\Support\DatabaseProvisioner::enabled()) {
+            $db = \App\Models\ServerDatabase::where('server_id', $server->id)->findOrFail((int) $dbId);
+            try {
+                app(\App\Support\DatabaseProvisioner::class)->drop($db);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('No se pudo borrar la base de datos: '.$e->getMessage());
+                return back()->with('error', 'MariaDB no pudo borrar la base de datos.');
+            }
+
+            return back()->with('success', 'Base de datos eliminada.');
+        }
         $key = "server_databases_{$server->id}";
         $databases = collect(\Illuminate\Support\Facades\Cache::get($key, []))
             ->reject(fn ($db) => (string) ($db['id'] ?? '') === (string) $dbId)

@@ -411,7 +411,45 @@ class AdvancedSectionController extends Controller
             // Ignore if not sqlite
         }
 
+        // Panel real: solo la MariaDB del VPS, con su estado y las bases reales de los clientes.
+        if (\App\Support\DatabaseProvisioner::enabled()) {
+            $version = null;
+            $online = false;
+            try {
+                $version = (string) DB::connection('provisioner')->selectOne('SELECT VERSION() AS v')->v;
+                $online = true;
+            } catch (\Throwable $e) {
+            }
+            $real = \App\Models\ServerDatabase::with('server.node')->get();
+            $hosts = [[
+                'id' => 1,
+                'name' => 'MariaDB del VPS'.($version ? ' '.preg_replace('/-.*$/', '', $version) : ''),
+                'driver' => 'mariadb',
+                'host' => (string) config('panel.server_databases.host_for_servers'),
+                'port' => (int) config('panel.server_databases.port', 3306),
+                'username' => (string) config('database.connections.provisioner.username'),
+                'max_databases' => (int) Server::sum('database_limit'),
+                'node_id' => $defaultNodeId,
+                'node_name' => $defaultNodeName,
+                'status' => $online ? 'online' : 'offline',
+                'databases_count' => $real->count(),
+                'phpmyadmin_url' => (string) config('panel.server_databases.phpmyadmin_url'),
+            ]];
+            $serversWithDb = Server::with('node:id,name')->select('id', 'name', 'uuid', 'node_id', 'database_limit')->get()
+                ->map(fn ($s) => [
+                    'id' => $s->id,
+                    'name' => $s->name,
+                    'uuid' => $s->uuid,
+                    'node_name' => $s->node?->name ?? 'N/A',
+                    'database_limit' => (int) ($s->database_limit ?: 3),
+                    'databases' => $real->where('server_id', $s->id)->map(fn ($db) => \App\Support\DatabaseProvisioner::present($db, false))->values()->all(),
+                ]);
+        }
+
         return Inertia::render('Database', [
+            'realDatabases' => \App\Support\DatabaseProvisioner::enabled(),
+            'panelDatabase' => (string) config('database.connections.'.config('database.default').'.database'),
+            'phpMyAdminUrl' => (string) config('panel.server_databases.phpmyadmin_url'),
             'hosts' => array_values($hosts),
             'servers' => $serversWithDb,
             'nodes' => Node::select('id', 'name')->get(),
@@ -422,6 +460,9 @@ class AdvancedSectionController extends Controller
 
     public function storeDatabaseHost(Request $request)
     {
+        if (\App\Support\DatabaseProvisioner::enabled()) {
+            return redirect()->route('database.index')->with('error', 'El host es la MariaDB del VPS y se detecta automáticamente.');
+        }
         $validated = $request->validate([
             'name' => 'required|string|max:191',
             'driver' => 'nullable|string|in:sqlite,mysql,mariadb,pgsql,mongodb,redis,sqlsrv',
@@ -466,6 +507,9 @@ class AdvancedSectionController extends Controller
 
     public function destroyDatabaseHost(int $id)
     {
+        if (\App\Support\DatabaseProvisioner::enabled()) {
+            return redirect()->route('database.index')->with('error', 'El host es la MariaDB del VPS y se detecta automáticamente.');
+        }
         $hosts = collect(Cache::get('cinammon_database_hosts', []))
             ->reject(fn ($h) => (int) $h['id'] === $id)
             ->values()

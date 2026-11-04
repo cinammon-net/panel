@@ -51,6 +51,9 @@ interface PageProps {
         database_limit: number;
     };
     databases: DatabaseItem[];
+    /** true en el panel real: las bases existen de verdad en la MariaDB del VPS. */
+    realDatabases?: boolean;
+    phpMyAdminUrl?: string | null;
 }
 
 const DRIVER_DEFAULTS: Record<string, { port: number; label: string; color: string }> = {
@@ -92,7 +95,7 @@ const MOCK_TABLES_DATA: Record<string, { columns: string[]; rows: any[] }> = {
     },
 };
 
-export default function Databases({ server, databases = [] }: PageProps) {
+export default function Databases({ server, databases = [], realDatabases = false, phpMyAdminUrl = null }: PageProps) {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [visiblePasswords, setVisiblePasswords] = useState<Record<string | number, boolean>>({});
     const [connectionStringDb, setConnectionStringDb] = useState<DatabaseItem | null>(null);
@@ -210,6 +213,13 @@ export default function Databases({ server, databases = [] }: PageProps) {
     };
 
     const handleLaunchPhpMyAdmin = (db: DatabaseItem) => {
+        if (realDatabases && phpMyAdminUrl) {
+            // phpMyAdmin pide usuario y contraseña: se rellena el usuario y se copia la contraseña.
+            if (db.password) navigator.clipboard.writeText(db.password).catch(() => undefined);
+            toast.success('Contraseña copiada. Pégala en phpMyAdmin para entrar.');
+            window.open(`${phpMyAdminUrl.replace(/\/$/, '')}/index.php?pma_username=${encodeURIComponent(db.user)}&db=${encodeURIComponent(db.name)}`, '_blank', 'noopener,noreferrer');
+            return;
+        }
         toast.success(`Abriendo phpMyAdmin directamente en ${db.name}...`);
         const url = `http://localhost:8081/index.php?route=/database/structure&db=${encodeURIComponent(db.name)}`;
         window.open(url, '_blank', 'noopener,noreferrer');
@@ -348,10 +358,19 @@ SET FOREIGN_KEY_CHECKS = 1;
                     <div className="rounded-xl border border-cyan-800/50 bg-neutral-900/60 p-4 space-y-1.5 shadow-sm">
                         <div className="flex items-center gap-2 text-xs font-bold text-cyan-400 uppercase tracking-wider">
                             <Layers size={14} />
-                            <span>1. Gestor Web Integrado</span>
+                            <span>{realDatabases ? '1. phpMyAdmin' : '1. Gestor Web Integrado'}</span>
                         </div>
                         <p className="text-xs text-neutral-400">
-                            Haz clic en <strong className="text-cyan-300">Gestor Web</strong> para examinar tablas, ver registros, ejecutar consultas SQL o exportar volcados sin instalar nada.
+                            {realDatabases ? (
+                                <>
+                                    Pulsa <strong className="text-amber-300">phpMyAdmin</strong> en una base: se abre{' '}
+                                    <code className="text-cyan-300">{(phpMyAdminUrl ?? '').replace(/^https?:\/\//, '')}</code> con tu usuario y la contraseña copiada.
+                                </>
+                            ) : (
+                                <>
+                                    Haz clic en <strong className="text-cyan-300">Gestor Web</strong> para examinar tablas, ver registros, ejecutar consultas SQL o exportar volcados sin instalar nada.
+                                </>
+                            )}
                         </p>
                     </div>
 
@@ -361,7 +380,8 @@ SET FOREIGN_KEY_CHECKS = 1;
                             <span>2. Desde tu Servidor / Bot</span>
                         </div>
                         <p className="text-xs text-neutral-400">
-                            Usa <code className="text-cyan-300 bg-black/60 px-1 py-0.5 rounded">127.0.0.1</code> y el puerto asignado. El contenedor se comunica en local a máxima velocidad sin latencia.
+                            Usa <code className="text-cyan-300 bg-black/60 px-1 py-0.5 rounded">{realDatabases ? (databases[0]?.host ?? '172.18.0.1') : '127.0.0.1'}</code> y el puerto{' '}
+                            {realDatabases ? <code className="text-cyan-300 bg-black/60 px-1 py-0.5 rounded">3306</code> : 'asignado'} en la config de tus plugins (LuckPerms, CoreProtect…). Es la red interna del nodo: rápida y sin pasar por Internet.
                         </p>
                     </div>
 
@@ -496,13 +516,13 @@ SET FOREIGN_KEY_CHECKS = 1;
                                             type="button"
                                             onClick={() => handleLaunchPhpMyAdmin(db)}
                                             className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/80 bg-amber-500/20 px-3 py-1.5 text-xs font-bold text-amber-300 hover:bg-amber-500/30 transition shadow-[0_0_12px_rgba(245,158,11,0.2)]"
-                                            title="Abrir phpMyAdmin oficial en nueva pestaña (puerto 8081)"
+                                            title={realDatabases ? 'Abrir phpMyAdmin (database.cinammon.net)' : 'Abrir phpMyAdmin oficial en nueva pestaña (puerto 8081)'}
                                         >
                                             <ExternalLink size={13} />
                                             <span>phpMyAdmin</span>
                                         </button>
 
-                                        <button
+                                        {!realDatabases && <button
                                             type="button"
                                             onClick={() => handleOpenWebManager(db)}
                                             className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-950/30 px-2.5 py-1.5 text-xs font-semibold text-purple-300 hover:border-purple-400 hover:bg-purple-900/50 transition"
@@ -510,7 +530,7 @@ SET FOREIGN_KEY_CHECKS = 1;
                                         >
                                             <Table size={13} />
                                             <span>Explorador</span>
-                                        </button>
+                                        </button>}
 
                                         <button
                                             type="button"
@@ -1075,6 +1095,13 @@ SET FOREIGN_KEY_CHECKS = 1;
                                     {errors.name && <p className="mt-1 text-xs text-red-400">{errors.name}</p>}
                                 </div>
 
+                                {realDatabases && (
+                                    <p className="rounded-xl border border-cyan-900/60 bg-black/40 px-3 py-2 text-[11px] text-neutral-400">
+                                        Se crea en MariaDB como <code className="text-cyan-300">srv{server.id}_{(data.name || 'nombre').toLowerCase().replace(/[^a-z0-9_]+/g, '_')}</code>, con un usuario y una contraseña propios generados automáticamente.
+                                    </p>
+                                )}
+
+                                {!realDatabases && <>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
                                         <label className="block text-xs font-bold text-cyan-400 uppercase tracking-wider mb-1.5">
@@ -1119,6 +1146,7 @@ SET FOREIGN_KEY_CHECKS = 1;
                                         className="w-full rounded-xl border border-cyan-800/80 bg-black/70 px-4 py-2.5 text-xs text-cyan-100 focus:border-cyan-400 focus:outline-none"
                                     />
                                 </div>
+                                </>}
 
                                 <div className="flex items-center justify-end gap-3 pt-3 border-t border-cyan-900/60">
                                     <button

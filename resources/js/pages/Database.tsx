@@ -214,6 +214,9 @@ interface Props {
     nodes: { id: number; name: string }[];
     dbFiles?: DbFileInfo[];
     dbTables?: DbTableInfo[];
+    realDatabases?: boolean;
+    panelDatabase?: string;
+    phpMyAdminUrl?: string;
 }
 
 interface SelectedDatabaseContext {
@@ -329,7 +332,8 @@ function formatDdlForDriver(table: DbTableInfo, driver: DbDriver): string {
     return table.ddl || `CREATE TABLE "${table.name}" (...);`;
 }
 
-export default function Database({ hosts = [], servers = [], nodes = [], dbFiles = [], dbTables = [] }: Props) {
+export default function Database({ hosts = [], servers = [], nodes = [], dbFiles = [], dbTables = [], realDatabases = false, panelDatabase = 'cinammon_web', phpMyAdminUrl = 'http://localhost:8081' }: Props) {
+    const pma = phpMyAdminUrl.replace(/\/$/, '');
     const [selectedDb, setSelectedDb] = useState<SelectedDatabaseContext | null>(() => {
         if (typeof window !== 'undefined') {
             const params = new URLSearchParams(window.location.search);
@@ -1247,7 +1251,7 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                 <div className="flex flex-wrap items-center gap-2.5">
                                     <h3 className="font-bold text-base sm:text-lg text-white font-[Orbitron]">Base de Datos de la Web (Panel Cinammon)</h3>
                                     <span className="rounded-lg border border-amber-500/50 bg-amber-500/20 px-2.5 py-1 font-mono text-xs font-bold text-amber-300">
-                                        cinammon_web
+                                        {panelDatabase}
                                     </span>
                                     <span className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 font-mono text-xs text-emerald-400 flex items-center gap-1.5">
                                         <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -1257,7 +1261,7 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                 <p className="text-xs sm:text-sm text-neutral-400 mt-1.5 max-w-3xl">
                                     Base de datos relacional de la web (usuarios, servidores, roles, tickets, nodos y logs). Acceso directo por phpMyAdmin o visor integrado.
                                 </p>
-                                <div className="mt-3.5 flex flex-wrap items-center gap-3 font-mono text-xs text-neutral-300">
+                                {!realDatabases && <div className="mt-3.5 flex flex-wrap items-center gap-3 font-mono text-xs text-neutral-300">
                                     <div className="flex items-center gap-2 rounded-xl border border-neutral-800 bg-black/80 px-3 py-1.5 shadow-sm">
                                         <span className="text-neutral-500">Usuario:</span>
                                         <span className="font-bold text-cyan-300">cinammon</span>
@@ -1294,7 +1298,7 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                         <span className="text-neutral-500">Admin global:</span>
                                         <span className="text-neutral-300">root</span> / <span className="text-neutral-300">password</span>
                                     </div>
-                                </div>
+                                </div>}
                             </div>
                         </div>
 
@@ -1302,8 +1306,8 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                             <button
                                 type="button"
                                 onClick={() => {
-                                    toast.success('Abriendo phpMyAdmin directamente en cinammon_web...');
-                                    window.open('http://localhost:8081/index.php?route=/database/structure&db=cinammon_web', '_blank', 'noopener,noreferrer');
+                                    toast.success(`Abriendo phpMyAdmin en ${panelDatabase}...`);
+                                    window.open(`${pma}/index.php?route=/database/structure&db=${encodeURIComponent(panelDatabase)}`, '_blank', 'noopener,noreferrer');
                                 }}
                                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-400 bg-amber-500 px-5 py-2.5 text-xs sm:text-sm font-bold text-black hover:bg-amber-400 transition shadow-[0_0_18px_rgba(245,158,11,0.35)] w-full sm:w-auto"
                                 title="Abrir phpMyAdmin oficial en cinammon_web"
@@ -1331,8 +1335,8 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                         </div>
                     </div>
 
-                    {/* Formulario para nuevo Host con selector de Motor */}
-                    <form
+                    {/* Formulario para nuevo Host con selector de Motor (solo demo: en el panel real el host es la MariaDB del VPS) */}
+                    {!realDatabases && <form
                         onSubmit={handleSubmit}
                         className="rounded-2xl border border-orange-500/30 bg-neutral-900/80 p-5 sm:p-6 space-y-4"
                     >
@@ -1426,7 +1430,7 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                 <Plus className="h-4 w-4" /> Añadir Host
                             </button>
                         </div>
-                    </form>
+                    </form>}
 
                     {/* Tabla de Database Hosts */}
                     <div className="rounded-2xl border border-orange-500/30 bg-neutral-950/90 p-4 sm:p-6 shadow-sm overflow-hidden">
@@ -1491,11 +1495,11 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                                                 type="button"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    toast.success('Abriendo phpMyAdmin (puerto 8081)...');
-                                                                    window.open('http://localhost:8081', '_blank', 'noopener,noreferrer');
+                                                                    toast.success('Abriendo phpMyAdmin...');
+                                                                    window.open(pma, '_blank', 'noopener,noreferrer');
                                                                 }}
                                                                 className="inline-flex items-center gap-1 rounded-lg border border-amber-400/80 bg-amber-500/20 px-2.5 py-1 text-xs font-bold text-amber-300 hover:bg-amber-500 hover:text-black transition shadow-[0_0_8px_rgba(245,158,11,0.2)]"
-                                                                title="Abrir phpMyAdmin oficial en localhost:8081"
+                                                                title="Abrir phpMyAdmin"
                                                             >
                                                                 <ExternalLink className="h-3.5 w-3.5" /> phpMyAdmin
                                                             </button>
@@ -1604,7 +1608,7 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
                                                                             toast.success(`Abriendo phpMyAdmin directamente en ${db.name}...`);
-                                                                            window.open(`http://localhost:8081/index.php?route=/database/structure&db=${encodeURIComponent(db.name)}`, '_blank', 'noopener,noreferrer');
+                                                                            window.open(`${pma}/index.php?route=/database/structure&db=${encodeURIComponent(db.name)}`, '_blank', 'noopener,noreferrer');
                                                                         }}
                                                                         className="inline-flex items-center gap-1 rounded-lg border border-amber-400/80 bg-amber-500/20 px-2.5 py-1 text-xs font-bold text-amber-300 hover:bg-amber-500 hover:text-black transition shadow-[0_0_8px_rgba(245,158,11,0.2)]"
                                                                         title="Abrir directamente en phpMyAdmin"
