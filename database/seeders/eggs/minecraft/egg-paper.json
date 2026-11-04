@@ -14,7 +14,7 @@
         "pid_limit"
     ],
     "docker_images": {
-        "Java 25": "cinammon-paper:java25",
+        "Java 25": "ghcr.io/parkervcp/yolks:java_25",
         "Java 8": "ghcr.io/parkervcp/yolks:java_8",
         "Java 11": "ghcr.io/parkervcp/yolks:java_11",
         "Java 16": "ghcr.io/parkervcp/yolks:java_16",
