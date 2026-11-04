@@ -240,15 +240,15 @@ class EggController extends Controller
     /**
      * Sincroniza todos los eggs desde el repositorio oficial cinammon-net/eggs.
      *
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\RedirectResponse
+     * Recorre todas las carpetas de primer nivel del repo (cada carpeta es una
+     * categoría), así que una carpeta nueva no necesita tocar el panel.
      */
     public function syncRepo(Request $request)
     {
         $repoPath = is_dir(base_path('../eggs')) ? base_path('../eggs') : null;
         $tempDir = null;
 
-        if (!$repoPath || !is_dir($repoPath)) {
+        if (!$repoPath) {
             $zipUrl = 'https://codeload.github.com/cinammon-net/eggs/zip/refs/heads/main';
             $tempZip = sys_get_temp_dir() . '/cinammon-eggs-' . uniqid() . '.zip';
             $tempDir = sys_get_temp_dir() . '/cinammon-eggs-' . uniqid();
@@ -260,76 +260,42 @@ class EggController extends Controller
                 if ($zip->open($tempZip) === true) {
                     $zip->extractTo($tempDir);
                     $zip->close();
-                    @unlink($tempZip);
                     $repoPath = $tempDir . '/eggs-main';
                 }
+                @unlink($tempZip);
             }
         }
 
-        $categories = ['minecraft', 'games', 'bots', 'database', 'generic', 'software', 'voice'];
+        if (!$repoPath || !is_dir($repoPath)) {
+            return back()->withErrors(['sync' => 'No se pudo descargar el repositorio cinammon-net/eggs desde GitHub.']);
+        }
+
         $syncedCount = 0;
+        $skipped = [];
 
-        if ($repoPath && is_dir($repoPath)) {
-            foreach ($categories as $cat) {
-                $files = glob("{$repoPath}/{$cat}/*.json");
-                if (!$files) continue;
+        foreach (glob("{$repoPath}/*", GLOB_ONLYDIR) ?: [] as $dir) {
+            $folder = basename($dir);
+            if ($folder === 'docs' || str_starts_with($folder, '.')) continue;
 
-                foreach ($files as $file) {
-                    $raw = file_get_contents($file);
-                    $data = json_decode($raw, true);
-                    if (!is_array($data) || empty($data['uuid'])) continue;
+            $category = Str::slug($folder);
 
-                    $egg = Egg::updateOrCreate(
-                        ['uuid' => $data['uuid']],
-                        [
-                            'name' => $data['name'] ?? basename($file, '.json'),
-                            'author' => $data['author'] ?? 'support@cinammon.net',
-                            'description' => $data['description'] ?? '',
-                            'category' => $cat,
-                            'startup' => $data['startup'] ?? '',
-                            'config_stop' => $data['config']['stop'] ?? null,
-                            'config_startup' => isset($data['config']['startup']) ? (is_string($data['config']['startup']) ? $data['config']['startup'] : json_encode($data['config']['startup'])) : '{}',
-                            'config_files' => isset($data['config']['files']) ? (is_string($data['config']['files']) ? $data['config']['files'] : json_encode($data['config']['files'])) : '{}',
-                            'config_logs' => isset($data['config']['logs']) ? (is_string($data['config']['logs']) ? $data['config']['logs'] : json_encode($data['config']['logs'])) : '{}',
-                            'script_install' => $data['scripts']['installation']['script'] ?? null,
-                            'script_container' => $data['scripts']['installation']['container'] ?? 'ghcr.io/parkervcp/installers:debian',
-                            'script_entry' => $data['scripts']['installation']['entrypoint'] ?? 'bash',
-                            'script_is_privileged' => !empty($data['scripts']['installation']['is_privileged']) ? 1 : 0,
-                            'features' => json_encode($data['features'] ?? []),
-                            'docker_images' => json_encode($data['docker_images'] ?? []),
-                            'update_url' => $data['meta']['update_url'] ?? "https://raw.githubusercontent.com/cinammon-net/eggs/main/{$cat}/" . basename($file),
-                            'file_denylist' => json_encode($data['file_denylist'] ?? []),
-                            'force_outgoing_ip' => !empty($data['force_outgoing_ip']) ? 1 : 0,
-                            'tags' => is_array($data['tags'] ?? null) ? implode(',', $data['tags']) : ($data['tags'] ?? $cat),
-                        ]
-                    );
+            foreach (glob("{$dir}/*.json") ?: [] as $file) {
+                $data = json_decode(file_get_contents($file), true);
+                $relative = "{$folder}/" . basename($file);
 
+                if (!is_array($data) || empty($data['name'])) {
+                    $skipped[] = "{$relative} (JSON inválido)";
+                    continue;
+                }
+
+                $data['meta']['update_url'] ??= 'https://raw.githubusercontent.com/cinammon-net/eggs/main/' . rawurlencode($folder) . '/' . rawurlencode(basename($file));
+
+                try {
+                    $this->upsertEggFromExport($data, $category);
                     $syncedCount++;
-
-                    if (!empty($data['variables']) && is_array($data['variables'])) {
-                        $sort = 1;
-                        foreach ($data['variables'] as $var) {
-                            if (empty($var['env_variable'])) continue;
-                            $rules = $var['rules'] ?? '';
-                            if (is_array($rules)) $rules = implode('|', $rules);
-
-                            DB::table('egg_variables')->updateOrInsert(
-                                [
-                                    'egg_id' => $egg->id,
-                                    'env_variable' => $var['env_variable'],
-                                ],
-                                [
-                                    'name' => $var['name'] ?? $var['env_variable'],
-                                    'description' => $var['description'] ?? '',
-                                    'default_value' => (string)($var['default_value'] ?? ''),
-                                    'user_viewable' => !empty($var['user_viewable']) ? 1 : 0,
-                                    'user_editable' => !empty($var['user_editable']) ? 1 : 0,
-                                    'rules' => (string)$rules,
-                                    'sort' => $sort++,
-                                ]
-                            );
-                        }
-                    }
+                } catch (\Throwable $e) {
+                    report($e);
+                    $skipped[] = "{$relative} ({$e->getMessage()})";
                 }
             }
         }
@@ -338,97 +304,117 @@ class EggController extends Controller
             shell_exec('rm -rf ' . escapeshellarg($tempDir));
         }
 
-        return redirect()->route('eggs.index')->with('success', "Se han sincronizado correctamente {$syncedCount} eggs desde el repositorio oficial cinammon-net/eggs.");
+        $message = "Se han sincronizado correctamente {$syncedCount} eggs desde el repositorio oficial cinammon-net/eggs.";
+        if ($skipped) {
+            $message .= ' Omitidos: ' . implode(', ', $skipped);
+        }
+
+        return redirect()->route('eggs.index')->with('success', $message);
     }
 
     /**
-     * Importa Eggs desde un archivo JSON.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\RedirectResponse
+     * Importa Eggs desde un archivo JSON (formato PTDL/PLCN exportado).
      */
-
     public function import(Request $request) {
         $request->validate([
-            'file' => 'required|file|mimes:json',
+            'file' => 'required|file|mimes:json,txt',
         ]);
 
-        $jsonContent = file_get_contents($request->file('file')->getRealPath());
-        $json = json_decode($jsonContent, true);
+        $json = json_decode(file_get_contents($request->file('file')->getRealPath()), true);
 
         if (!$json || !is_array($json)) {
             return back()->withErrors(['file' => 'JSON inválido']);
         }
 
         $eggsData = $this->is_assoc_array($json) ? [$json] : $json;
+        $imported = 0;
 
         foreach ($eggsData as $eggData) {
-            if (!isset($eggData['uuid'])) {
-                continue; // Saltar si no hay UUID
-            }
+            if (!is_array($eggData) || empty($eggData['name'])) continue;
 
-            // Guardar el config.stop y config.startup antes de eliminar config
-            $configStop = $eggData['config']['stop'] ?? null;
-            $configStartup = $eggData['config']['startup'] ?? null;
-
-            unset($eggData['_comment'], $eggData['meta'], $eggData['config']);
-
-            if (isset($eggData['tags']) && is_array($eggData['tags'])) {
-                $eggData['tags'] = implode(',', $eggData['tags']);
-            }
-
-            if (isset($eggData['features']) && is_array($eggData['features'])) {
-                $eggData['features'] = json_encode($eggData['features']);
-            }
-
-            if (isset($eggData['docker_images']) && is_array($eggData['docker_images'])) {
-                $eggData['docker_images'] = json_encode($eggData['docker_images']);
-            }
-
-            if (isset($eggData['file_denylist']) && is_array($eggData['file_denylist'])) {
-                $eggData['file_denylist'] = json_encode($eggData['file_denylist']);
-            }
-
-            // Asignar stop y startup command directamente
-            $eggData['config_stop'] = $configStop;
-            $eggData['config_startup'] = $configStartup;
-
-            if (isset($eggData['scripts']['installation'])) {
-                $installation = $eggData['scripts']['installation'];
-                $eggData['script_install'] = $installation['script'] ?? null;
-                $eggData['script_container'] = $installation['container'] ?? null;
-                $eggData['script_entry'] = $installation['entrypoint'] ?? null;
-                $eggData['script_is_privileged'] = $installation['is_privileged'] ?? 0;
-            }
-
-            unset($eggData['scripts']);
-
-            $egg = Egg::updateOrCreate(['uuid' => $eggData['uuid']], $eggData);
-
-            if (isset($eggData['variables']) && is_array($eggData['variables'])) {
-                $sortOrder = 1;
-                foreach ($eggData['variables'] as $varData) {
-                    $varData['egg_id'] = $egg->id;
-
-                    if (isset($varData['rules']) && is_array($varData['rules'])) {
-                        $varData['rules'] = json_encode($varData['rules']);
-                    }
-
-                    if (!isset($varData['sort']) || $varData['sort'] === null) {
-                        $varData['sort'] = $sortOrder;
-                    }
-
-                    DB::table('egg_variables')->updateOrInsert(
-                        ['env_variable' => $varData['env_variable'], 'egg_id' => $egg->id],
-                        $varData
-                    );
-
-                    $sortOrder++;
-                }
-            }
+            $this->upsertEggFromExport($eggData, $eggData['category'] ?? null);
+            $imported++;
         }
 
-        return redirect()->route('eggs.index')->with('success', 'Eggs importados correctamente');
+        if ($imported === 0) {
+            return back()->withErrors(['file' => 'El archivo no contiene ningún egg válido (falta "name").']);
+        }
+
+        return redirect()->route('eggs.index')->with('success', "{$imported} egg(s) importados correctamente");
+    }
+
+    /**
+     * Crea o actualiza un Egg (y sus variables) a partir de un JSON exportado.
+     *
+     * Si el JSON no trae uuid se genera uno determinista a partir del nombre,
+     * así reimportar o resincronizar el mismo egg lo actualiza en vez de duplicarlo.
+     */
+    private function upsertEggFromExport(array $data, ?string $category): Egg
+    {
+        $uuid = $data['uuid'] ?? null;
+        if (!is_string($uuid) || !Str::isUuid($uuid)) {
+            $uuid = \Ramsey\Uuid\Uuid::uuid5(\Ramsey\Uuid\Uuid::NAMESPACE_URL, 'cinammon-egg:' . Str::lower(trim($data['name'])))->toString();
+        }
+
+        $config = is_array($data['config'] ?? null) ? $data['config'] : [];
+        $install = $data['scripts']['installation'] ?? [];
+        $asText = fn($v, $default = '{}') => $v === null ? $default : (is_string($v) ? $v : json_encode($v));
+
+        $category = $category ?: 'generic';
+        $tags = $data['tags'] ?? null;
+
+        $egg = DB::transaction(function () use ($data, $uuid, $config, $install, $asText, $category, $tags) {
+            $egg = Egg::updateOrCreate(
+                ['uuid' => $uuid],
+                [
+                    'name' => $data['name'],
+                    'author' => $data['author'] ?? 'support@cinammon.net',
+                    'description' => $data['description'] ?? '',
+                    'category' => $category,
+                    'startup' => $data['startup'] ?? '',
+                    'config_stop' => $config['stop'] ?? null,
+                    'config_startup' => $asText($config['startup'] ?? null),
+                    'config_files' => $asText($config['files'] ?? null),
+                    'config_logs' => $asText($config['logs'] ?? null),
+                    'script_install' => $install['script'] ?? null,
+                    'script_container' => $install['container'] ?? 'ghcr.io/parkervcp/installers:debian',
+                    'script_entry' => $install['entrypoint'] ?? 'bash',
+                    'script_is_privileged' => !empty($install['is_privileged']) ? 1 : 0,
+                    'features' => json_encode($data['features'] ?? []),
+                    'docker_images' => json_encode($data['docker_images'] ?? []),
+                    'update_url' => $data['meta']['update_url'] ?? null,
+                    'file_denylist' => json_encode($data['file_denylist'] ?? []),
+                    'force_outgoing_ip' => !empty($data['force_outgoing_ip']) ? 1 : 0,
+                    'tags' => is_array($tags) ? implode(',', $tags) : ($tags ?: $category),
+                ]
+            );
+
+            $sort = 1;
+            foreach (($data['variables'] ?? []) as $var) {
+                if (!is_array($var) || empty($var['env_variable'])) continue;
+                $rules = $var['rules'] ?? '';
+                if (is_array($rules)) $rules = implode('|', $rules);
+
+                DB::table('egg_variables')->updateOrInsert(
+                    ['egg_id' => $egg->id, 'env_variable' => $var['env_variable']],
+                    [
+                        'name' => $var['name'] ?? $var['env_variable'],
+                        'description' => $var['description'] ?? '',
+                        'default_value' => (string) ($var['default_value'] ?? ''),
+                        'user_viewable' => !empty($var['user_viewable']) ? 1 : 0,
+                        'user_editable' => !empty($var['user_editable']) ? 1 : 0,
+                        'rules' => (string) $rules,
+                        'sort' => $var['sort'] ?? $sort,
+                        'updated_at' => now(),
+                    ]
+                );
+                $sort++;
+            }
+
+            return $egg;
+        });
+
+        return $egg;
     }
 
     /**

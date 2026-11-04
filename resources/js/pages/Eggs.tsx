@@ -50,13 +50,14 @@ export default function Eggs() {
         setIsSyncing(true);
         router.post('/eggs/sync-repo', {}, {
             preserveScroll: true,
-            onSuccess: () => {
+            onSuccess: (page) => {
                 setIsSyncing(false);
-                toast.success('Eggs sincronizados con éxito desde cinammon-net/eggs');
+                const message = (page.props as { flash?: { success?: string } }).flash?.success;
+                toast.success(message || 'Eggs sincronizados con éxito desde cinammon-net/eggs', { duration: 10000 });
             },
-            onError: () => {
+            onError: (errors) => {
                 setIsSyncing(false);
-                toast.error('Error al sincronizar eggs desde el repositorio');
+                toast.error(Object.values(errors)[0] || 'Error al sincronizar eggs desde el repositorio');
             },
         });
     };
@@ -87,11 +88,12 @@ export default function Eggs() {
                 preserveScroll: true,
                 preserveState: false,
                 headers: { 'Content-Type': 'multipart/form-data' },
-                onSuccess: () => {
-                    toast('Archivo importado correctamente');
+                onSuccess: (page) => {
+                    const message = (page.props as { flash?: { success?: string } }).flash?.success;
+                    toast.success(message || 'Archivo importado correctamente');
                     setIsImportModalOpen(false);
                 },
-                onError: (errors) => toast('Error al importar: ' + JSON.stringify(errors)),
+                onError: (errors) => toast.error('Error al importar: ' + (Object.values(errors)[0] || JSON.stringify(errors))),
             });
         } else {
             toast('Importar desde URL no implementado');
