@@ -26,6 +26,7 @@ import {
     Network,
     Play,
     Puzzle,
+    SlidersHorizontal,
     ScrollText,
     Settings,
     ShieldCheck,
@@ -99,6 +100,14 @@ export default function ServerSidebar({
                     icon: Files,
                     color: 'text-cyan-400',
                     show: true,
+                },
+                {
+                    key: 'game',
+                    title: 'Ajustes del juego',
+                    href: `/servers/${server.id}/game`,
+                    icon: SlidersHorizontal,
+                    color: 'text-cyan-400',
+                    show: Boolean(currentServer?.players),
                 },
                 {
                     key: 'addons',

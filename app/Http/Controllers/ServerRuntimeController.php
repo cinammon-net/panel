@@ -179,8 +179,12 @@ class ServerRuntimeController extends Controller
             $state = $wings->forServer($server)->timeout(4)->get('/servers/'.$server->uuid)->throw()->json();
             $u = $state['utilization'] ?? null;
 
+            $running = ($state['state'] ?? 'offline') === 'running';
+            $ping = $running ? \App\Support\MinecraftPing::forServer($server, 10) : null;
+
             return response()->json([
                 'state' => $state['state'] ?? 'offline',
+                'players' => $ping ? ['online' => $ping['online'], 'max' => $ping['max']] : null,
                 'utilization' => is_array($u) ? [
                     'cpu_absolute' => round(max(0, (float) ($u['cpu_absolute'] ?? 0)), 2),
                     'memory_bytes' => max(0, (int) ($u['memory_bytes'] ?? 0)),

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Ban, Crown, Globe, Loader2, LogOut, Plus, RefreshCw, ShieldCheck, ShieldOff, UserCheck, Users, X } from 'lucide-react';
+import { Ban, Crown, Globe, Loader2, LogOut, Plus, RefreshCw, ShieldCheck, ShieldOff, UserCheck, Users, Wifi, X } from 'lucide-react';
 import { FormEvent, ReactNode, useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -13,7 +13,8 @@ type Lists = {
     banned: BanEntry[];
     banned_ips: BanEntry[];
 };
-type Tab = 'ops' | 'whitelist' | 'banned';
+type Tab = 'online' | 'ops' | 'whitelist' | 'banned';
+type Online = { reachable: boolean; online: number; max: number; players: { name: string; id: string }[]; version?: string | null };
 
 const errorMessage = (error: unknown, fallback: string) =>
     axios.isAxiosError(error) ? (error.response?.data?.message as string) || fallback : fallback;
@@ -42,7 +43,8 @@ function Head({ name, uuid }: { name: string; uuid?: string }) {
 export default function PlayersPanel({ serverId, running }: { serverId: number; running: boolean }) {
     const base = `/servers/${serverId}/players`;
     const [lists, setLists] = useState<Lists | null>(null);
-    const [tab, setTab] = useState<Tab>('ops');
+    const [tab, setTab] = useState<Tab>('online');
+    const [online, setOnline] = useState<Online | null>(null);
     const [name, setName] = useState('');
     const [reason, setReason] = useState('');
     const [banIp, setBanIp] = useState(false);
@@ -67,6 +69,26 @@ export default function PlayersPanel({ serverId, running }: { serverId: number; 
         void load();
     }, [load]);
 
+    const loadOnline = useCallback(async () => {
+        try {
+            const { data } = await axios.get<Online>(`${base}/online`);
+            setOnline(data);
+        } catch {
+            setOnline(null);
+        }
+    }, [base]);
+
+    // Conectados: cada 15 s mientras el servidor está encendido.
+    useEffect(() => {
+        if (!running) {
+            setOnline(null);
+            return;
+        }
+        void loadOnline();
+        const timer = window.setInterval(() => !document.hidden && void loadOnline(), 15000);
+        return () => window.clearInterval(timer);
+    }, [running, loadOnline]);
+
     /** Envía la acción; el servidor tarda un momento en guardar el archivo, así que se recarga dos veces. */
     const act = async (action: string, target = '', why = '') => {
         const key = `${action}:${target}`;
@@ -76,6 +98,7 @@ export default function PlayersPanel({ serverId, running }: { serverId: number; 
             toast.success(`/${data.command}`);
             window.setTimeout(() => void load(), 1200);
             window.setTimeout(() => void load(), 4000);
+            if (action === 'kick' || action === 'ban') window.setTimeout(() => void loadOnline(), 1500);
             return true;
         } catch (e) {
             toast.error(errorMessage(e, 'No se pudo ejecutar.'));
@@ -89,7 +112,7 @@ export default function PlayersPanel({ serverId, running }: { serverId: number; 
         event.preventDefault();
         const target = name.trim();
         if (!target) return;
-        const action = tab === 'ops' ? 'op' : tab === 'whitelist' ? 'whitelist_add' : banIp ? 'ban_ip' : 'ban';
+        const action = tab === 'ops' || tab === 'online' ? 'op' : tab === 'whitelist' ? 'whitelist_add' : banIp ? 'ban_ip' : 'ban';
         if (await act(action, target, tab === 'banned' ? reason.trim() : '')) {
             setName('');
             setReason('');
@@ -103,6 +126,7 @@ export default function PlayersPanel({ serverId, running }: { serverId: number; 
     };
 
     const tabs: { key: Tab; label: string; icon: typeof Crown; count: number }[] = [
+        { key: 'online', label: 'En línea', icon: Wifi, count: online?.online ?? 0 },
         { key: 'ops', label: 'Operadores', icon: Crown, count: lists?.ops.length ?? 0 },
         { key: 'whitelist', label: 'Whitelist', icon: UserCheck, count: lists?.whitelist.length ?? 0 },
         { key: 'banned', label: 'Baneados', icon: Ban, count: (lists?.banned.length ?? 0) + (lists?.banned_ips.length ?? 0) },
@@ -184,6 +208,7 @@ export default function PlayersPanel({ serverId, running }: { serverId: number; 
             )}
 
             {/* Añadir */}
+            {tab !== 'online' && (
             <form onSubmit={submit} className="flex flex-col gap-2 sm:flex-row">
                 <input
                     value={name}
@@ -225,6 +250,7 @@ export default function PlayersPanel({ serverId, running }: { serverId: number; 
                     )}
                 </div>
             </form>
+            )}
             {tab === 'banned' && (
                 <label className="flex w-fit cursor-pointer items-center gap-2 text-xs text-neutral-400">
                     <input type="checkbox" checked={banIp} onChange={(e) => setBanIp(e.target.checked)} className="rounded border-neutral-700 bg-neutral-900 text-red-500" />
@@ -243,6 +269,53 @@ export default function PlayersPanel({ serverId, running }: { serverId: number; 
                 </div>
             ) : lists ? (
                 <ul className="grid gap-2 md:grid-cols-2">
+                    {tab === 'online' &&
+                        (!running ? (
+                            empty('El servidor está apagado.')
+                        ) : !online ? (
+                            empty('Consultando…')
+                        ) : !online.reachable ? (
+                            empty('El servidor no responde todavía (puede estar arrancando).')
+                        ) : online.players.length === 0 ? (
+                            empty(online.online > 0 ? `${online.online} conectados (el servidor oculta los nombres).` : 'No hay nadie conectado.')
+                        ) : (
+                            <>
+                                {online.players.map((p) => {
+                                    const isOp = lists.ops.some((o) => o.name.toLowerCase() === p.name.toLowerCase());
+                                    const btn = 'flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold transition disabled:opacity-40';
+                                    return (
+                                        <li key={p.name} className="flex items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900/60 px-3 py-2">
+                                            <Head name={p.name} uuid={p.id} />
+                                            <span className="min-w-0">
+                                                <span className="block truncate font-mono text-sm text-white">{p.name}</span>
+                                                {isOp && <span className="text-[10px] text-amber-300">OP</span>}
+                                            </span>
+                                            <span className="ml-auto flex shrink-0 gap-1">
+                                                <button type="button" disabled={busy !== null} onClick={() => void act(isOp ? 'deop' : 'op', p.name)} className={`${btn} border-amber-500/40 text-amber-300 hover:bg-amber-500/10`}>
+                                                    <Crown className="h-3 w-3" /> {isOp ? 'Quitar OP' : 'OP'}
+                                                </button>
+                                                <button type="button" disabled={busy !== null} onClick={() => void act('kick', p.name)} className={`${btn} border-neutral-600 text-neutral-200 hover:bg-white/5`}>
+                                                    <LogOut className="h-3 w-3" /> Expulsar
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    disabled={busy !== null}
+                                                    onClick={() => window.confirm(`¿Banear a ${p.name}?`) && void act('ban', p.name)}
+                                                    className={`${btn} border-red-500/40 text-red-300 hover:bg-red-500/10`}
+                                                >
+                                                    <Ban className="h-3 w-3" /> Banear
+                                                </button>
+                                            </span>
+                                        </li>
+                                    );
+                                })}
+                                {online.online > online.players.length && (
+                                    <li className="flex items-center justify-center rounded-lg border border-dashed border-neutral-800 px-3 py-2 text-xs text-neutral-500">
+                                        y {online.online - online.players.length} más
+                                    </li>
+                                )}
+                            </>
+                        ))}
                     {tab === 'ops' &&
                         (lists.ops.length
                             ? lists.ops.map((p) =>

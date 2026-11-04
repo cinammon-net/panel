@@ -492,6 +492,12 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
     Route::post('/servers/{server}/eula', [App\Http\Controllers\ServerRuntimeController::class, 'acceptEula']);
     Route::get('/servers/{server}/players', [App\Http\Controllers\ServerPlayersController::class, 'index'])->middleware('throttle:120,1');
     Route::post('/servers/{server}/players', [App\Http\Controllers\ServerPlayersController::class, 'action'])->middleware('throttle:60,1');
+    Route::get('/servers/{server}/players/online', [App\Http\Controllers\ServerPlayersController::class, 'online'])->middleware('throttle:120,1');
+    Route::get('/servers/{server}/game', [App\Http\Controllers\ServerGameController::class, 'page'])->name('servers.game');
+    Route::get('/servers/{server}/game/settings', [App\Http\Controllers\ServerGameController::class, 'show']);
+    Route::put('/servers/{server}/game/settings', [App\Http\Controllers\ServerGameController::class, 'update'])->middleware('throttle:30,1');
+    Route::post('/servers/{server}/game/icon', [App\Http\Controllers\ServerGameController::class, 'uploadIcon'])->middleware('throttle:20,1');
+    Route::delete('/servers/{server}/game/icon', [App\Http\Controllers\ServerGameController::class, 'deleteIcon']);
     Route::middleware('admin')->group(function () {
         Route::post('/servers/{uuid}/toggle-install', [ServerController::class, 'toggleInstall']);
         Route::post('/servers/{uuid}/suspend', [ServerController::class, 'suspend']);

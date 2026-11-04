@@ -14,6 +14,7 @@ export type ServerSection =
     | 'startup'
     | 'files'
     | 'addons'
+    | 'game'
     | 'sftp'
     | 'wingslog'
     | 'databases'
@@ -38,7 +39,7 @@ export default function ServerLayout({
     const { auth, serverLock, currentServer } = usePage<{
         auth?: { user?: { id: number } | null };
         serverLock?: { has_code: boolean; active: boolean } | null;
-        currentServer?: { minecraft: boolean; addons: string | null } | null;
+        currentServer?: { minecraft: boolean; addons: string | null; players?: boolean } | null;
     }>().props;
     const showLockNotice =
         auth?.user?.id !== undefined && server.owner_id === auth.user.id && serverLock?.has_code === true && !serverLock.active;
@@ -47,6 +48,7 @@ export default function ServerLayout({
         console: 'Consola',
         startup: 'Inicio',
         files: 'Archivos',
+        game: 'Ajustes del juego',
         addons: currentServer?.addons === 'plugins' ? 'Plugins' : currentServer?.addons === 'mods' ? 'Mods' : 'Plugins y mods',
         sftp: 'Acceso SFTP',
         wingslog: 'Registro de Wings',

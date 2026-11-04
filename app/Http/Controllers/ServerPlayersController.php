@@ -76,6 +76,15 @@ class ServerPlayersController extends Controller
         }
     }
 
+    /** Jugadores conectados ahora mismo (Server List Ping). */
+    public function online(Request $request, Server $server)
+    {
+        $this->authorizeServer($request, $server);
+        $ping = \App\Support\MinecraftPing::forServer($server);
+
+        return response()->json($ping ? ['reachable' => true] + $ping : ['reachable' => false, 'online' => 0, 'max' => 0, 'players' => []]);
+    }
+
     public function action(Request $request, Server $server, WingsClient $wings)
     {
         $this->authorizeServer($request, $server);

@@ -68,7 +68,7 @@ class HandleInertiaRequests extends Middleware
 
                 $addons = \App\Support\MinecraftAddons::kind($server);
 
-                return $server ? ['minecraft' => $addons !== null, 'addons' => $addons] : null;
+                return $server ? ['minecraft' => $addons !== null, 'addons' => $addons, 'players' => \App\Support\MinecraftAddons::hasPlayerLists($server)] : null;
             },
 
             // Aviso de actualizaciones pendientes (solo admins; se cachea en UpdateChecker)

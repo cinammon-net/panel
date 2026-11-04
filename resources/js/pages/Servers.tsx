@@ -33,6 +33,7 @@ import {
     User,
     Zap,
     ExternalLink,
+    Users,
 } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 
@@ -88,7 +89,7 @@ function CopyAddress({ address }: { address: string }) {
     );
 }
 
-type LiveUsage = { cpu: number; memMb: number; diskMb: number };
+type LiveUsage = { cpu: number; memMb: number; diskMb: number; players: { online: number; max: number } | null };
 
 const fmtMb = (mb: number) => (mb >= 1024 ? `${(mb / 1024).toFixed(1)} GiB` : `${Math.round(mb)} MiB`);
 const pct = (used: number, limit?: number) => (limit ? Math.min(100, Math.max(0, (used / limit) * 100)) : 0);
@@ -113,12 +114,14 @@ function useLiveUsage(id: number, enabled: boolean): LiveUsage | null {
                     signal: ctrl.signal,
                 });
                 if (!res.ok) return;
-                const u = (await res.json())?.utilization;
+                const body = await res.json();
+                const u = body?.utilization;
                 if (alive && u) {
                     setUsage({
                         cpu: Number(u.cpu_absolute) || 0,
                         memMb: (Number(u.memory_bytes) || 0) / 1048576,
                         diskMb: (Number(u.disk_bytes) || 0) / 1048576,
+                        players: body.players ? { online: Number(body.players.online) || 0, max: Number(body.players.max) || 0 } : null,
                     });
                 }
             } catch {
@@ -337,6 +340,14 @@ function ServerCard({ item }: { item: ServerItem }) {
                         <Power size={12} className={isOnline ? 'text-emerald-400' : 'text-neutral-500'} />
                         <span>{isOnline ? 'En línea' : 'Detenido'}</span>
                     </span>
+                    {isOnline && usage?.players && (
+                        <span
+                            title="Jugadores conectados"
+                            className="inline-flex items-center gap-1.5 rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-300"
+                        >
+                            <Users size={12} /> {usage.players.online}/{usage.players.max}
+                        </span>
+                    )}
                 </div>
             </div>
 
