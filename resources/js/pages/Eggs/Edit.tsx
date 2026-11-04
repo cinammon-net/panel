@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 
 
 import EggFormModal from '@/components/EggFormModal';
+import EggAvatar from '@/components/EggIcon';
 const tabs = [
     { id: 'config', title: 'Configuration', icon: Settings },
     { id: 'process', title: 'Process Management', icon: Cpu },
@@ -137,6 +138,37 @@ export default function EditEgg() {
 
     const [variables, setVariables] = useState<any[]>(egg.variables || []);
 
+    // Icono del egg: preview = lo que se ve; value = nuevo icono a enviar (data URI o URL https)
+    const [icon, setIcon] = useState<{ preview: string | null; value: string | null; remove: boolean; url: string }>({
+        preview: egg.image_url || null,
+        value: null,
+        remove: false,
+        url: '',
+    });
+
+    const handleIconFile = (file?: File) => {
+        if (!file) return;
+        if (!/^image\/(png|jpe?g|webp|gif)$/.test(file.type)) {
+            toast.error('El icono debe ser PNG, JPG, WEBP o GIF.');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+                // Recorte cuadrado centrado a 128x128 para que pese poco
+                const side = Math.min(img.width, img.height);
+                const canvas = document.createElement('canvas');
+                canvas.width = canvas.height = 128;
+                canvas.getContext('2d')?.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, 128, 128);
+                const dataUrl = canvas.toDataURL('image/png');
+                setIcon({ preview: dataUrl, value: dataUrl, remove: false, url: '' });
+            };
+            img.src = String(reader.result);
+        };
+        reader.readAsDataURL(file);
+    };
+
     // Cambios en generalData
     const handleGeneralChange = (field: string, value: any) => {
         setGeneralData((prev: any) => ({
@@ -250,6 +282,8 @@ export default function EditEgg() {
             ...processConfig,
             ...installScript,
             variables,
+            ...(icon.value ? { image: icon.value } : {}),
+            ...(icon.remove ? { remove_image: true } : {}),
         };
 
         router.put(`/eggs/${generalData.id}`, payload, {
@@ -395,6 +429,51 @@ export default function EditEgg() {
                 <form onSubmit={(e) => e.preventDefault()}>
                     {activeTab === 'config' && (
                         <section className="space-y-6">
+                            {/* Icono */}
+                            <div className="flex flex-col gap-4 rounded border border-cyan-800 bg-[#111] p-4 sm:flex-row sm:items-center">
+                                <EggAvatar src={icon.preview} category={egg.category} name={generalData.name} size={72} />
+                                <div className="flex-1 space-y-2">
+                                    <p className="text-sm font-semibold">Icono</p>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <label className="cursor-pointer rounded border border-cyan-600 px-3 py-1.5 text-sm text-cyan-300 hover:bg-cyan-900/40">
+                                            Subir imagen
+                                            <input
+                                                type="file"
+                                                accept="image/png,image/jpeg,image/webp,image/gif"
+                                                className="hidden"
+                                                onChange={(e) => handleIconFile(e.target.files?.[0])}
+                                            />
+                                        </label>
+                                        <input
+                                            type="url"
+                                            placeholder="o pega una URL https://…"
+                                            className="min-w-0 flex-1 rounded border border-cyan-700 bg-[#1a1a1a] p-1.5 text-sm text-cyan-300 placeholder-cyan-600"
+                                            value={icon.url}
+                                            onChange={(e) => {
+                                                const url = e.target.value.trim();
+                                                setIcon((prev) => ({
+                                                    ...prev,
+                                                    url: e.target.value,
+                                                    ...(url.startsWith('https://') ? { preview: url, value: url, remove: false } : {}),
+                                                }));
+                                            }}
+                                        />
+                                        {icon.preview && (
+                                            <button
+                                                type="button"
+                                                className="rounded border border-red-700 px-3 py-1.5 text-sm text-red-400 hover:bg-red-900/30"
+                                                onClick={() => setIcon({ preview: null, value: null, remove: true, url: '' })}
+                                            >
+                                                Quitar
+                                            </button>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-cyan-500">
+                                        PNG, JPG, WEBP o GIF; se recorta a 128×128. Sin icono se usa el de la categoría. Al sincronizar, el icono del repo cinammon-net/eggs reemplaza a este.
+                                    </p>
+                                </div>
+                            </div>
+
                             {/* Configuración básica */}
                             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                                 <div>

@@ -1,4 +1,5 @@
 import EggFormModal from '@/components/EggFormModal';
+import EggIcon from '@/components/EggIcon';
 import AppLayout from '@/layouts/app-layout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ChevronDown, ChevronUp, Copy, Egg, Pencil, RefreshCw, Server, Trash2, Upload } from 'lucide-react';
@@ -11,6 +12,8 @@ interface Egg {
     name: string;
     author: string;
     description: string;
+    category?: string | null;
+    image_url?: string | null;
     servers: number;
 }
 
@@ -414,12 +417,12 @@ export default function Eggs() {
                                             </td>
 
                                             <td className="px-4 py-4">
-                                                <div className="flex flex-col">
-                                                    <span className="inline-flex items-center gap-2 font-semibold text-black dark:text-white">
-                                                        <Egg className="h-4 w-4" />
-                                                        {egg.name}
-                                                    </span>
-                                                    <span className="text-sm text-cyan-600 dark:text-cyan-400">{egg.description}</span>
+                                                <div className="flex items-start gap-3">
+                                                    <EggIcon src={egg.image_url} category={egg.category} name={egg.name} size={40} />
+                                                    <div className="flex min-w-0 flex-col">
+                                                        <span className="font-semibold text-black dark:text-white">{egg.name}</span>
+                                                        <span className="text-sm text-cyan-600 dark:text-cyan-400">{egg.description}</span>
+                                                    </div>
                                                 </div>
                                             </td>
 

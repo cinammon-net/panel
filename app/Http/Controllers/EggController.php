@@ -118,10 +118,24 @@ class EggController extends Controller
             'update_url' => 'nullable|url',
             'docker_images' => 'nullable|array',
             'variables' => 'nullable|array',
+            'image' => 'nullable|string|max:1500000',
+            'remove_image' => 'nullable|boolean',
         ]);
 
         $variables = $validated['variables'] ?? null;
         unset($validated['variables']);
+
+        if (!empty($validated['remove_image'])) {
+            $validated['image'] = null;
+        } elseif (!empty($validated['image'])) {
+            $validated['image'] = Egg::normalizeImage($validated['image']);
+            if ($validated['image'] === null) {
+                return back()->withErrors(['image' => 'El icono debe ser PNG, JPG, WEBP o GIF (máx. 1 MB) o una URL https.']);
+            }
+        } else {
+            unset($validated['image']);
+        }
+        unset($validated['remove_image']);
 
         if (isset($validated['tags']) && is_array($validated['tags'])) {
             $validated['tags'] = implode(',', $validated['tags']);
@@ -180,10 +194,12 @@ class EggController extends Controller
             'update_url' => 'nullable|url',
             'docker_images' => 'nullable|array',
             'variables' => 'nullable|array',
+            'image' => 'nullable|string|max:1500000',
         ]);
 
         $variables = $validated['variables'] ?? [];
         unset($validated['variables']);
+        $validated['image'] = Egg::normalizeImage($validated['image'] ?? null);
 
         $validated['uuid'] = Str::uuid()->toString();
         if (isset($validated['tags']) && is_array($validated['tags'])) {
@@ -304,6 +320,8 @@ class EggController extends Controller
             shell_exec('rm -rf ' . escapeshellarg($tempDir));
         }
 
+        \Illuminate\Support\Facades\Cache::forget('eggs:icon-catalog');
+
         $message = "Se han sincronizado correctamente {$syncedCount} eggs desde el repositorio oficial cinammon-net/eggs.";
         if ($skipped) {
             $message .= ' Omitidos: ' . implode(', ', $skipped);
@@ -339,6 +357,8 @@ class EggController extends Controller
         if ($imported === 0) {
             return back()->withErrors(['file' => 'El archivo no contiene ningún egg válido (falta "name").']);
         }
+
+        \Illuminate\Support\Facades\Cache::forget('eggs:icon-catalog');
 
         return redirect()->route('eggs.index')->with('success', "{$imported} egg(s) importados correctamente");
     }
@@ -386,6 +406,8 @@ class EggController extends Controller
                     'file_denylist' => json_encode($data['file_denylist'] ?? []),
                     'force_outgoing_ip' => !empty($data['force_outgoing_ip']) ? 1 : 0,
                     'tags' => is_array($tags) ? implode(',', $tags) : ($tags ?: $category),
+                    // Solo se pisa el icono si el JSON trae uno válido.
+                    ...(($image = Egg::normalizeImage($data['image'] ?? null)) ? ['image' => $image] : []),
                 ]
             );
 

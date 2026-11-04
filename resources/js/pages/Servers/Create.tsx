@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import EggIcon from '@/components/EggIcon';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import AppLayout from '@/layouts/app-layout';
 import { Head } from '@inertiajs/react';
@@ -536,7 +537,16 @@ export default function CreateServer() {
                                             Name <span className="text-red-400">*</span>
                                         </label>
                                         <div className="relative flex items-center rounded border border-cyan-600 bg-black/90 hover:border-cyan-400 transition">
-                                            <Egg className="absolute left-2 h-5 w-5 text-cyan-500 pointer-events-none" />
+                                            {(() => {
+                                                const selected = eggs.find((e) => e.id === Number(server.egg));
+                                                return selected ? (
+                                                    <span className="pointer-events-none absolute left-2">
+                                                        <EggIcon src={selected.image_url} category={selected.category} name={selected.name} size={22} />
+                                                    </span>
+                                                ) : (
+                                                    <Egg className="absolute left-2 h-5 w-5 text-cyan-500 pointer-events-none" />
+                                                );
+                                            })()}
                                             <select
                                                 id="egg"
                                                 name="egg"

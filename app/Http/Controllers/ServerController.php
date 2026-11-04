@@ -145,6 +145,7 @@ class ServerController extends Controller
                 'status' => $server->status ? 'online' : 'offline',
                 'egg' => $full?->egg?->name ?? '–',
                 'category' => $full?->egg?->category ?? 'minecraft',
+                'egg_icon' => $full?->egg?->image_url,
                 'owner_id' => $server->owner_id,
                 'username' => $full?->owner?->name ?? 'Unknown',
                 'node' => $full?->node?->name ?? 'Unknown',
@@ -444,6 +445,8 @@ class ServerController extends Controller
                 'status' => $server->status ? 'online' : 'offline',
                 'node' => $server->node->name ?? 'Unknown',
                 'egg' => optional($server->egg)->name ?? 'Unknown',
+                'egg_icon' => $server->egg?->image_url,
+                'category' => $server->egg?->category,
                 'allocation' => optional($server->allocation)?->ip && optional($server->allocation)?->port
                     ? $server->allocation->ip . ':' . $server->allocation->port
                     : '–',

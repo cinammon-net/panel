@@ -1,4 +1,5 @@
 import AppLayout from '@/layouts/app-layout';
+import EggIcon from '@/components/EggIcon';
 import { Head, router, usePage } from '@inertiajs/react';
 import {
     Activity,
@@ -43,6 +44,7 @@ interface ServerItem {
     description?: string;
     node: string;
     egg: string;
+    egg_icon?: string | null;
     category?: string;
     nest?: string;
     status: string;
@@ -199,7 +201,8 @@ function ServerCard({ item }: { item: ServerItem }) {
                         </div>
 
                         <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs">
-                            <span className="rounded-md bg-cyan-950/90 border border-cyan-800/80 px-2.5 py-0.5 text-cyan-300 font-semibold tracking-wide">
+                            <span className="inline-flex items-center gap-1.5 rounded-md bg-cyan-950/90 border border-cyan-800/80 px-2.5 py-0.5 text-cyan-300 font-semibold tracking-wide">
+                                <EggIcon src={item.egg_icon} category={item.category} name={item.egg} size={16} className="rounded-sm" />
                                 {item.egg}
                             </span>
                             <span className="text-neutral-300 font-mono text-[11px] flex items-center gap-1 bg-black/60 px-2.5 py-0.5 rounded border border-neutral-800">
@@ -1094,8 +1097,9 @@ export default function Servers() {
                                                                 </div>
                                                             </td>
                                                             <td className="hidden sm:table-cell px-3 py-3">
-                                                                <span className="text-xs text-neutral-700 dark:text-cyan-300 truncate max-w-[150px] block" title={item.egg}>
-                                                                    {item.egg}
+                                                                <span className="flex items-center gap-2 text-xs text-neutral-700 dark:text-cyan-300 max-w-[170px]" title={item.egg}>
+                                                                    <EggIcon src={item.egg_icon} category={item.category} name={item.egg} size={20} />
+                                                                    <span className="truncate">{item.egg}</span>
                                                                 </span>
                                                             </td>
                                                             <td className="hidden md:table-cell px-3 py-3 text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
@@ -1198,8 +1202,9 @@ export default function Servers() {
                                                                         </div>
                                                                     </td>
                                                                     <td className="hidden sm:table-cell px-3 py-3">
-                                                                        <span className="text-xs text-neutral-700 dark:text-cyan-300 truncate max-w-[150px] block" title={item.egg}>
-                                                                            {item.egg}
+                                                                        <span className="flex items-center gap-2 text-xs text-neutral-700 dark:text-cyan-300 max-w-[170px]" title={item.egg}>
+                                                                            <EggIcon src={item.egg_icon} category={item.category} name={item.egg} size={20} />
+                                                                            <span className="truncate">{item.egg}</span>
                                                                         </span>
                                                                     </td>
                                                                     <td className="hidden md:table-cell px-3 py-3 text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
