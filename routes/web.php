@@ -490,6 +490,8 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
     Route::post('/servers/{server}/command', [App\Http\Controllers\ServerRuntimeController::class, 'command']);
     Route::post('/servers/{server}/discord', [App\Http\Controllers\ServerRuntimeController::class, 'configureDiscord']);
     Route::post('/servers/{server}/eula', [App\Http\Controllers\ServerRuntimeController::class, 'acceptEula']);
+    Route::get('/servers/{server}/players', [App\Http\Controllers\ServerPlayersController::class, 'index'])->middleware('throttle:120,1');
+    Route::post('/servers/{server}/players', [App\Http\Controllers\ServerPlayersController::class, 'action'])->middleware('throttle:60,1');
     Route::middleware('admin')->group(function () {
         Route::post('/servers/{uuid}/toggle-install', [ServerController::class, 'toggleInstall']);
         Route::post('/servers/{uuid}/suspend', [ServerController::class, 'suspend']);

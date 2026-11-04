@@ -41,6 +41,30 @@ class MinecraftAddons
         return 'auto';
     }
 
+    /**
+     * Servidores Java con jugadores (op, whitelist, ban...). Excluye proxies (Velocity, BungeeCord...),
+     * limbos y Bedrock/PocketMine, que no usan esos comandos ni esos archivos.
+     */
+    public static function hasPlayerLists(?Server $server): bool
+    {
+        $kind = self::kind($server);
+        if ($kind === null) {
+            return false;
+        }
+        $name = strtolower((string) $server->egg->name);
+        // Vanilla Java no carga plugins pero sí tiene op, whitelist y baneos.
+        if ($kind === 'none' && ! (str_contains($name, 'vanilla') && ! str_contains($name, 'bedrock'))) {
+            return false;
+        }
+        foreach (['velocity', 'bungee', 'waterfall', 'travertine', 'waterdog', 'viaproxy', 'limbo', 'gomint', 'nukkit'] as $word) {
+            if (str_contains($name, $word)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     /** Carpetas que se muestran, o null = las que existan (auto). */
     public static function folders(?string $kind): ?array
     {

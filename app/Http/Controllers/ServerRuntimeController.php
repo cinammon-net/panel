@@ -63,6 +63,8 @@ class ServerRuntimeController extends Controller
             'egg' => $server->egg->name, 'node' => $server->node?->name ?: 'Cinammon Nodo', 'memory' => $server->memory, 'disk' => $server->disk, 'cpu' => $server->cpu,
             'discord_bot' => $isDiscord,
             'minecraft' => str_contains(strtolower($server->egg->name), 'paper'),
+            // Panel de jugadores (op, whitelist, baneos) en servidores Java con jugadores
+            'players' => \App\Support\MinecraftAddons::hasPlayerLists($server),
             // Hosting web: enlace a la web publicada (subdominio por Cloudflare; IP:puerto solo si no hay dominio de webs)
             'web_url' => $server->egg?->category === 'web' && $server->allocation
                 ? ($server->siteUrl() ?? 'http://' . $server->allocation->publicAddress())
