@@ -210,7 +210,7 @@ const mainNavItems: NavItem[] = [
 const footerNavItems: NavItem[] = [
     {
         title: 'Repository',
-        href: 'https://github.com/cinammon-es/panel',
+        href: 'https://github.com/cinammon-net/panel',
         icon: FolderGit2,
         group: 'extra',
         groupColor: 'text-yellow-400',
