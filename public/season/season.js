@@ -6,9 +6,34 @@
  */
 (function () {
     'use strict';
-    var S = window.__SEASON__;
-    if (!S || window.top !== window.self || window.__cinSeasonLoaded) return;
+    if (window.top !== window.self || window.__cinSeasonLoaded) return;
     window.__cinSeasonLoaded = true;
+
+    // Sin contexto incrustado (panel/portada): se pide al billing desde el navegador del visitante.
+    if (!window.__SEASON__ && window.__SEASON_URL__) {
+        var CK = 'cin-season-ctx';
+        try {
+            var c = JSON.parse(sessionStorage.getItem(CK) || 'null');
+            if (c && c.t > Date.now() - 600000) { window.__SEASON__ = c.v; }
+        } catch (e) { /* sin almacenamiento */ }
+        if (!window.__SEASON__) {
+            fetch(window.__SEASON_URL__, { credentials: 'omit' })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (v) {
+                    if (!v) return;
+                    try { sessionStorage.setItem(CK, JSON.stringify({ t: Date.now(), v: v })); } catch (e) { /* nada */ }
+                    window.__SEASON__ = v;
+                    run();
+                })
+                .catch(function () { /* sin decoraci\u00f3n */ });
+            return;
+        }
+    }
+    run();
+
+    function run() {
+    var S = window.__SEASON__;
+    if (!S) return;
 
     var store = {
         get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
@@ -23,17 +48,17 @@
 
     // Partículas por tema: glifos (emoji) o formas dibujadas.
     var THEMES = {
-        snow: { glyphs: ['❄', '❅', '•'], color: '#e0f2fe', dir: 1, speed: [0.4, 1.1], size: [8, 16], sway: 1 },
-        petals: { glyphs: ['🌸', '🌸', '💮'], dir: 1, speed: [0.4, 0.9], size: [12, 18], sway: 1.4 },
-        sun: { glyphs: ['✦', '✧', '·'], color: '#fde68a', dir: -1, speed: [0.2, 0.5], size: [8, 14], sway: 0.6 },
-        leaves: { glyphs: ['🍂', '🍁', '🍃'], dir: 1, speed: [0.5, 1.2], size: [14, 20], sway: 1.8 },
+        snow: { glyphs: ['\u2744', '\u2745', '\u2022'], color: '#e0f2fe', dir: 1, speed: [0.4, 1.1], size: [8, 16], sway: 1 },
+        petals: { glyphs: ['\ud83c\udf38', '\ud83c\udf38', '\ud83d\udcae'], dir: 1, speed: [0.4, 0.9], size: [12, 18], sway: 1.4 },
+        sun: { glyphs: ['\u2726', '\u2727', '\u00b7'], color: '#fde68a', dir: -1, speed: [0.2, 0.5], size: [8, 14], sway: 0.6 },
+        leaves: { glyphs: ['\ud83c\udf42', '\ud83c\udf41', '\ud83c\udf43'], dir: 1, speed: [0.5, 1.2], size: [14, 20], sway: 1.8 },
         confetti: { confetti: true, dir: 1, speed: [0.8, 1.8], size: [5, 9], sway: 1.2 },
-        stars: { glyphs: ['✨', '⭐', '✦'], color: '#fde047', dir: 1, speed: [0.3, 0.8], size: [10, 16], sway: 0.8 },
-        hearts: { glyphs: ['💖', '💕', '💘'], dir: -1, speed: [0.4, 0.9], size: [12, 20], sway: 1.2 },
-        spooky: { glyphs: ['🎃', '🦇', '👻', '🕸'], dir: 1, speed: [0.4, 1.0], size: [14, 22], sway: 1.6 },
-        marigold: { glyphs: ['🌼', '💀', '🕯'], dir: 1, speed: [0.4, 0.9], size: [12, 18], sway: 1.3 },
-        roses: { glyphs: ['🌹', '📖', '🌹'], dir: 1, speed: [0.4, 0.9], size: [12, 18], sway: 1.2 },
-        sparks: { glyphs: ['✦', '✧', '•'], color: '#f0abfc', dir: -1, speed: [0.5, 1.2], size: [7, 13], sway: 0.7 },
+        stars: { glyphs: ['\u2728', '\u2b50', '\u2726'], color: '#fde047', dir: 1, speed: [0.3, 0.8], size: [10, 16], sway: 0.8 },
+        hearts: { glyphs: ['\ud83d\udc96', '\ud83d\udc95', '\ud83d\udc98'], dir: -1, speed: [0.4, 0.9], size: [12, 20], sway: 1.2 },
+        spooky: { glyphs: ['\ud83c\udf83', '\ud83e\udd87', '\ud83d\udc7b', '\ud83d\udd78'], dir: 1, speed: [0.4, 1.0], size: [14, 22], sway: 1.6 },
+        marigold: { glyphs: ['\ud83c\udf3c', '\ud83d\udc80', '\ud83d\udd6f'], dir: 1, speed: [0.4, 0.9], size: [12, 18], sway: 1.3 },
+        roses: { glyphs: ['\ud83c\udf39', '\ud83d\udcd6', '\ud83c\udf39'], dir: 1, speed: [0.4, 0.9], size: [12, 18], sway: 1.2 },
+        sparks: { glyphs: ['\u2726', '\u2727', '\u2022'], color: '#f0abfc', dir: -1, speed: [0.5, 1.2], size: [7, 13], sway: 0.7 },
     };
     var CONFETTI = ['#f472b6', '#22d3ee', '#a78bfa', '#facc15', '#34d399', '#fb7185'];
     var cfg = THEMES[theme] || THEMES.stars;
@@ -145,7 +170,7 @@
         fx.title = 'Efectos de temporada';
         fx.setAttribute('aria-label', 'Activar o desactivar efectos de temporada');
         fx.style.cssText = 'flex-shrink:0;width:24px;height:24px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:transparent;color:inherit;cursor:pointer;font-size:12px;line-height:1';
-        var paint = function () { fx.textContent = fxOn ? '✨' : '○'; fx.style.opacity = fxOn ? '1' : '.6'; };
+        var paint = function () { fx.textContent = fxOn ? '\u2728' : '\u25cb'; fx.style.opacity = fxOn ? '1' : '.6'; };
         paint();
         fx.onclick = function () {
             fxOn = !fxOn; store.set(FX_KEY, fxOn ? 'on' : 'off'); paint();
@@ -155,7 +180,7 @@
 
         var close = document.createElement('button');
         close.type = 'button';
-        close.textContent = '×';
+        close.textContent = '\u00d7';
         close.title = 'Ocultar';
         close.setAttribute('aria-label', 'Ocultar aviso de temporada');
         close.style.cssText = 'flex-shrink:0;width:24px;height:24px;border-radius:999px;border:0;background:transparent;color:#f9a8d4;cursor:pointer;font-size:16px;line-height:1';
@@ -164,7 +189,7 @@
         // Plegado: solo un botón redondo con el emoji (no tapa contenido). Se abre al pulsarlo.
         var mini = document.createElement('button');
         mini.type = 'button';
-        mini.title = name + (S.discount > 0 ? ' · -' + S.discount + '%' : '');
+        mini.title = name + (S.discount > 0 ? ' \u00b7 -' + S.discount + '%' : '');
         mini.setAttribute('aria-label', 'Mostrar aviso de temporada: ' + mini.title);
         mini.textContent = holiday ? holiday.emoji : season.emoji;
         mini.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:45;width:40px;height:40px;border-radius:999px;border:1px solid rgba(244,114,182,.5);' +
@@ -198,4 +223,5 @@
         if (fxOn) startFx();
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+    }
 })();

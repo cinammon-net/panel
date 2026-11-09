@@ -1,6 +1,5 @@
-@php($__season = \App\Support\SeasonContext::forRequest(request()))
-@if ($__season)
-    <!-- Ambientación de temporada / festivos según el país del visitante -->
-    <script>window.__SEASON__ = @json($__season);</script>
-    <script src="/season/season.js?v=2" defer></script>
-@endif
+@unless (config('panel.demo') || ! config('services.billing.url'))
+    <!-- Ambientación de temporada / festivos: el navegador la pide al billing (país vía Cloudflare) -->
+    <script>window.__SEASON_URL__ = @json(rtrim(config('services.billing.url'), '/').'/api/season');</script>
+    <script src="/season/season.js?v=3" defer></script>
+@endunless
