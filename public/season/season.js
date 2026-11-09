@@ -1,7 +1,7 @@
 /*
- * Cinammon · ambientación de temporada y festivos.
+ * Cinammon \u00b7 ambientaci\u00f3n de temporada y festivos.
  * Lee window.__SEASON__ = { season, holiday, discount, promotion, store_url } (lo inyecta el servidor
- * según el país del visitante) y pinta partículas ligeras + un aviso pequeño con la oferta.
+ * seg\u00fan el pa\u00eds del visitante) y pinta part\u00edculas ligeras + un aviso peque\u00f1o con la oferta.
  * Mismo archivo en panel y billing (public/season/season.js).
  */
 (function () {
@@ -46,7 +46,7 @@
     if (!theme) return;
     document.documentElement.setAttribute('data-season', theme);
 
-    // Partículas por tema: glifos (emoji) o formas dibujadas.
+    // Part\u00edculas por tema: glifos (emoji) o formas dibujadas.
     var THEMES = {
         snow: { glyphs: ['\u2744', '\u2745', '\u2022'], color: '#e0f2fe', dir: 1, speed: [0.4, 1.1], size: [8, 16], sway: 1 },
         petals: { glyphs: ['\ud83c\udf38', '\ud83c\udf38', '\ud83d\udcae'], dir: 1, speed: [0.4, 0.9], size: [12, 18], sway: 1.4 },
@@ -67,7 +67,7 @@
     var fxOn = store.get(FX_KEY) !== 'off';
     var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    // ---------- Partículas ----------
+    // ---------- Part\u00edculas ----------
     var canvas = null, ctx = null, parts = [], raf = 0, W = 0, H = 0, dpr = 1;
     var rnd = function (a, b) { return a + Math.random() * (b - a); };
 
@@ -140,6 +140,44 @@
         if (document.hidden) cancelAnimationFrame(raf); else raf = requestAnimationFrame(frame);
     });
 
+
+    // ---------- Colores de marca por festivo/estaci\u00f3n ----------
+    // Se cambia solo el tono (H) de las familias de acento; luminosidad y croma se mantienen
+    // (mismo contraste). Panel: variables de Tailwind 4 (--color-*). Billing: --tw-c-* (Tailwind 3).
+    var FAMS = {"pink":[[50,0.971,0.014],[100,0.948,0.028],[200,0.899,0.061],[300,0.823,0.12],[400,0.718,0.202],[500,0.656,0.241],[600,0.592,0.249],[700,0.525,0.223],[800,0.459,0.187],[900,0.408,0.153],[950,0.284,0.109]],"fuchsia":[[50,0.977,0.017],[100,0.952,0.037],[200,0.903,0.076],[300,0.833,0.145],[400,0.74,0.238],[500,0.667,0.295],[600,0.591,0.293],[700,0.518,0.253],[800,0.452,0.211],[900,0.401,0.17],[950,0.293,0.136]],"purple":[[50,0.977,0.014],[100,0.946,0.033],[200,0.902,0.063],[300,0.827,0.119],[400,0.714,0.203],[500,0.627,0.265],[600,0.558,0.288],[700,0.496,0.265],[800,0.438,0.218],[900,0.381,0.176],[950,0.291,0.149]],"cyan":[[50,0.984,0.019],[100,0.956,0.045],[200,0.917,0.08],[300,0.865,0.127],[400,0.789,0.154],[500,0.715,0.143],[600,0.609,0.126],[700,0.52,0.105],[800,0.45,0.085],[900,0.398,0.07],[950,0.302,0.056]]};
+    var NEON = [0.887, 0.151];
+    // [rosa, fucsia, morado, cian, ne\u00f3n]
+    var PALETTES = {
+        christmas: [25, 15, 145, 150, 150], new_year: [85, 300, 290, 230, 85], reyes: [85, 70, 295, 220, 85],
+        valentine: [0, 350, 10, 355, 355], carnival: [330, 300, 280, 130, 95], easter: [340, 300, 290, 145, 145],
+        halloween: [50, 40, 305, 135, 60], muertos: [55, 340, 300, 80, 75], thanksgiving: [45, 30, 20, 75, 75],
+        black_friday: [95, 85, 85, 95, 95], gamer_day: [145, 300, 290, 200, 145], star_wars: [25, 15, 260, 240, 240],
+        book_day: [20, 10, 340, 145, 145], san_juan: [45, 35, 25, 70, 70],
+        winter: [250, 270, 280, 220, 215], spring: [350, 320, 300, 150, 150], summer: [40, 25, 340, 195, 195], autumn: [45, 30, 20, 75, 75],
+    };
+    var paletteKey = holiday ? (PALETTES[holiday.key] ? holiday.key : null) : (season && season.key);
+    var colorStyle = null;
+    function applyColors(on) {
+        var pal = paletteKey && PALETTES[paletteKey];
+        if (!pal) return;
+        if (!on) { document.documentElement.removeAttribute('data-season-colors'); return; }
+        if (!colorStyle) {
+            var css = '';
+            ['pink', 'fuchsia', 'purple', 'cyan'].forEach(function (fam, i) {
+                FAMS[fam].forEach(function (v) {
+                    var lch = v[1] + ' ' + v[2] + ' ' + pal[i];
+                    css += '--color-' + fam + '-' + v[0] + ':oklch(' + lch + ');--tw-c-' + fam + '-' + v[0] + ':' + lch + ';';
+                });
+            });
+            css += '--tw-c-neon:' + NEON[0] + ' ' + NEON[1] + ' ' + pal[4] + ';';
+            colorStyle = document.createElement('style');
+            colorStyle.setAttribute('data-season', paletteKey);
+            colorStyle.textContent = ':root[data-season-colors]{' + css + '}';
+            document.head.appendChild(colorStyle);
+        }
+        document.documentElement.setAttribute('data-season-colors', paletteKey);
+    }
+
     // ---------- Aviso (abajo a la izquierda) ----------
     var PILL_KEY = 'cin-season-pill:' + (holiday ? holiday.key + ':' + (holiday.ends || '') : 'season:' + season.key);
     function pill() {
@@ -167,13 +205,14 @@
 
         var fx = document.createElement('button');
         fx.type = 'button';
-        fx.title = 'Efectos de temporada';
+        fx.title = 'Efectos y colores de temporada';
         fx.setAttribute('aria-label', 'Activar o desactivar efectos de temporada');
         fx.style.cssText = 'flex-shrink:0;width:24px;height:24px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:transparent;color:inherit;cursor:pointer;font-size:12px;line-height:1';
         var paint = function () { fx.textContent = fxOn ? '\u2728' : '\u25cb'; fx.style.opacity = fxOn ? '1' : '.6'; };
         paint();
         fx.onclick = function () {
             fxOn = !fxOn; store.set(FX_KEY, fxOn ? 'on' : 'off'); paint();
+            applyColors(fxOn);
             if (fxOn) startFx(); else stopFx();
         };
         el.appendChild(fx);
@@ -186,7 +225,7 @@
         close.style.cssText = 'flex-shrink:0;width:24px;height:24px;border-radius:999px;border:0;background:transparent;color:#f9a8d4;cursor:pointer;font-size:16px;line-height:1';
         el.appendChild(close);
 
-        // Plegado: solo un botón redondo con el emoji (no tapa contenido). Se abre al pulsarlo.
+        // Plegado: solo un bot\u00f3n redondo con el emoji (no tapa contenido). Se abre al pulsarlo.
         var mini = document.createElement('button');
         mini.type = 'button';
         mini.title = name + (S.discount > 0 ? ' \u00b7 -' + S.discount + '%' : '');
@@ -205,12 +244,12 @@
         mini.onclick = function () { expand(); setTimeout(collapse, 8000); };
         close.onclick = function () { store.set(PILL_KEY, 'hidden'); el.remove(); mini.remove(); };
 
-        // Sin festivo ni oferta, el aviso de la estación solo se ve una vez.
+        // Sin festivo ni oferta, el aviso de la estaci\u00f3n solo se ve una vez.
         if (!hidden && (holiday || S.discount > 0 || store.get(PILL_KEY) !== 'seen')) {
             document.body.appendChild(el);
             document.body.appendChild(mini);
             if (!holiday) store.set(PILL_KEY, 'seen');
-            // Abierto solo la primera vez en la sesión; luego plegado.
+            // Abierto solo la primera vez en la sesi\u00f3n; luego plegado.
             var seenKey = 'cin-season-open:' + PILL_KEY;
             var seen = false;
             try { seen = sessionStorage.getItem(seenKey) === '1'; sessionStorage.setItem(seenKey, '1'); } catch (e) { /* sin almacenamiento */ }
@@ -222,6 +261,8 @@
         pill();
         if (fxOn) startFx();
     }
+    // Los colores se aplican cuanto antes (antes de pintar) para evitar el parpadeo.
+    applyColors(fxOn);
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
     }
 })();
