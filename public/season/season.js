@@ -144,7 +144,7 @@
     // ---------- Colores de marca por festivo/estaci\u00f3n ----------
     // Se cambia solo el tono (H) de las familias de acento; luminosidad y croma se mantienen
     // (mismo contraste). Panel: variables de Tailwind 4 (--color-*). Billing: --tw-c-* (Tailwind 3).
-    var FAMS = {"pink":[[50,0.971,0.014],[100,0.948,0.028],[200,0.899,0.061],[300,0.823,0.12],[400,0.718,0.202],[500,0.656,0.241],[600,0.592,0.249],[700,0.525,0.223],[800,0.459,0.187],[900,0.408,0.153],[950,0.284,0.109]],"fuchsia":[[50,0.977,0.017],[100,0.952,0.037],[200,0.903,0.076],[300,0.833,0.145],[400,0.74,0.238],[500,0.667,0.295],[600,0.591,0.293],[700,0.518,0.253],[800,0.452,0.211],[900,0.401,0.17],[950,0.293,0.136]],"purple":[[50,0.977,0.014],[100,0.946,0.033],[200,0.902,0.063],[300,0.827,0.119],[400,0.714,0.203],[500,0.627,0.265],[600,0.558,0.288],[700,0.496,0.265],[800,0.438,0.218],[900,0.381,0.176],[950,0.291,0.149]],"cyan":[[50,0.984,0.019],[100,0.956,0.045],[200,0.917,0.08],[300,0.865,0.127],[400,0.789,0.154],[500,0.715,0.143],[600,0.609,0.126],[700,0.52,0.105],[800,0.45,0.085],[900,0.398,0.07],[950,0.302,0.056]]};
+    var FAMS = {"pink":[[50,0.971,0.014],[100,0.948,0.028],[200,0.899,0.061],[300,0.823,0.12],[400,0.718,0.202],[500,0.656,0.241],[600,0.592,0.249],[700,0.525,0.223],[800,0.459,0.187],[900,0.408,0.153],[950,0.284,0.109]],"fuchsia":[[50,0.977,0.017],[100,0.952,0.037],[200,0.903,0.076],[300,0.833,0.145],[400,0.74,0.238],[500,0.667,0.295],[600,0.591,0.293],[700,0.518,0.253],[800,0.452,0.211],[900,0.401,0.17],[950,0.293,0.136]],"purple":[[50,0.977,0.014],[100,0.946,0.033],[200,0.902,0.063],[300,0.827,0.119],[400,0.714,0.203],[500,0.627,0.265],[600,0.558,0.288],[700,0.496,0.265],[800,0.438,0.218],[900,0.381,0.176],[950,0.291,0.149]],"cyan":[[50,0.984,0.019],[100,0.956,0.045],[200,0.917,0.08],[300,0.865,0.127],[400,0.789,0.154],[500,0.715,0.143],[600,0.609,0.126],[700,0.52,0.105],[800,0.45,0.085],[900,0.398,0.07],[950,0.302,0.056]],"blue":[[50,0.97,0.014],[100,0.932,0.032],[200,0.882,0.059],[300,0.809,0.105],[400,0.707,0.165],[500,0.623,0.214],[600,0.546,0.245],[700,0.488,0.243],[800,0.424,0.199],[900,0.379,0.146],[950,0.282,0.091]],"sky":[[50,0.977,0.013],[100,0.951,0.026],[200,0.901,0.058],[300,0.828,0.111],[400,0.746,0.16],[500,0.685,0.169],[600,0.588,0.158],[700,0.5,0.134],[800,0.443,0.11],[900,0.391,0.09],[950,0.293,0.066]],"indigo":[[50,0.962,0.018],[100,0.93,0.034],[200,0.87,0.065],[300,0.785,0.115],[400,0.673,0.182],[500,0.585,0.233],[600,0.511,0.262],[700,0.457,0.24],[800,0.398,0.195],[900,0.359,0.144],[950,0.257,0.09]],"violet":[[50,0.969,0.016],[100,0.943,0.029],[200,0.894,0.057],[300,0.811,0.111],[400,0.702,0.183],[500,0.606,0.25],[600,0.541,0.281],[700,0.491,0.27],[800,0.432,0.232],[900,0.38,0.189],[950,0.283,0.141]]};
     var NEON = [0.887, 0.151];
     // [rosa, fucsia, morado, cian, ne\u00f3n]
     var PALETTES = {
@@ -157,25 +157,191 @@
     };
     var paletteKey = holiday ? (PALETTES[holiday.key] ? holiday.key : null) : (season && season.key);
     var colorStyle = null;
+    var sheetStyle = null;
+    var ATTR = ':root[data-season-colors]';
+    // Familia de Tailwind -> \u00edndice de la paleta (azules siguen al cian, \u00edndigo/violeta al morado).
+    var IDX = { pink: 0, fuchsia: 1, purple: 2, cyan: 3, blue: 3, sky: 3, indigo: 2, violet: 2 };
+
+    // rgb (0-255) -> [L, C, H] en OKLCH
+    function toOklch(r, g, b) {
+        function lin(c) { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+        r = lin(r); g = lin(g); b = lin(b);
+        var l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+        var m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+        var s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+        var L = 0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s;
+        var A = 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s;
+        var B = 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s;
+        var H = Math.atan2(B, A) * 180 / Math.PI;
+        return [L, Math.sqrt(A * A + B * B), H < 0 ? H + 360 : H];
+    }
+    // Qu\u00e9 tono de la paleta toca a un color de marca; null = no tocar (grises, verdes, rojos, amarillos de estado).
+    function slot(h, c) {
+        if (c < 0.06) return null;
+        if (h >= 330 || h < 10) return 0;   // rosa
+        if (h >= 312) return 1;             // fucsia
+        if (h >= 262) return 2;             // morado / violeta / \u00edndigo
+        if (h >= 180) return 3;             // cian / azul
+        return null;
+    }
+    function recolorValue(v, pal) {
+        if (v.indexOf('rgb') < 0) return null;
+        var hit = false;
+        var out = v.replace(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)\s*(?:[,/]\s*([\d.]+%?))?\s*\)/g, function (all, r, g, b, a) {
+            var o = toOklch(+r, +g, +b), i = slot(o[2], o[1]);
+            if (i === null) return all;
+            hit = true;
+            return 'oklch(' + o[0].toFixed(3) + ' ' + o[1].toFixed(3) + ' ' + pal[i] + (a !== undefined ? ' / ' + a : '') + ')';
+        });
+        return hit ? out : null;
+    }
+    function splitSel(sel) {
+        var parts = [], depth = 0, cur = '';
+        for (var i = 0; i < sel.length; i++) {
+            var ch = sel[i];
+            if (ch === '(') depth++; else if (ch === ')') depth--;
+            if (ch === ',' && depth === 0) { parts.push(cur); cur = ''; } else cur += ch;
+        }
+        parts.push(cur);
+        return parts.map(function (p) { p = p.trim(); return /^:root\b|^html\b/.test(p) ? p.replace(/^(:root|html)/, ATTR) : ATTR + ' ' + p; }).join(',');
+    }
+    // Recorre las reglas CSS (con @media/@supports/@layer y anidamiento) y devuelve solo las que cambian.
+    function walk(rules, pal, nested) {
+        var css = '';
+        for (var i = 0; i < rules.length; i++) {
+            var r = rules[i], inner = '';
+            try {
+                if (r.style && r.selectorText !== undefined) {
+                    var decl = '';
+                    for (var k = 0; k < r.style.length; k++) {
+                        var prop = r.style[k];
+                        if (prop.indexOf('--') === 0) continue;
+                        var nv = recolorValue(r.style.getPropertyValue(prop), pal);
+                        if (nv) decl += prop + ':' + nv + (r.style.getPropertyPriority(prop) ? ' !important' : '') + ';';
+                    }
+                    if (r.cssRules && r.cssRules.length) inner = walk(r.cssRules, pal, true);
+                    if (decl || inner) css += (nested ? r.selectorText : splitSel(r.selectorText)) + '{' + decl + inner + '}';
+                } else if (r.cssRules) {
+                    inner = walk(r.cssRules, pal, nested);
+                    if (!inner) continue;
+                    if (r.media) css += '@media ' + r.media.mediaText + '{' + inner + '}';
+                    else if (r.conditionText !== undefined) css += '@supports ' + r.conditionText + '{' + inner + '}';
+                    else css += inner; // @layer: fuera de capa para que gane
+                }
+            } catch (e) { /* regla rara: se ignora */ }
+        }
+        return css;
+    }
+    var seen = [];
+    function scanSheets(pal) {
+        for (var i = 0; i < document.styleSheets.length; i++) {
+            var sh = document.styleSheets[i];
+            if (seen.indexOf(sh) >= 0 || sh.ownerNode === colorStyle || sh.ownerNode === sheetStyle) continue;
+            var rules;
+            try { rules = sh.cssRules; } catch (e) { seen.push(sh); continue; } // otra web (fuentes): no se puede leer
+            if (!rules) continue;
+            seen.push(sh);
+            sheetStyle.textContent += walk(rules, pal, false);
+        }
+    }
+    // ---------- Logos (im\u00e1genes): se recolorean p\u00edxel a p\u00edxel con la misma paleta ----------
+    function fromOklch(L, C, H) {
+        var h = H * Math.PI / 180, a = C * Math.cos(h), b = C * Math.sin(h);
+        var l = Math.pow(L + 0.3963377774 * a + 0.2158037573 * b, 3);
+        var m = Math.pow(L - 0.1055613458 * a - 0.0638541728 * b, 3);
+        var s = Math.pow(L - 0.0894841775 * a - 1.291485548 * b, 3);
+        function g(x) { x = x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055; return Math.max(0, Math.min(255, Math.round(x * 255))); }
+        return [g(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s), g(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s), g(-0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s)];
+    }
+    var LOGO_SEL = 'img[src*="logo" i],img[alt*="logo" i],img[src*="favicon" i]';
+    var logoCache = {};
+    function recolorLogo(img, pal) {
+        if (img.getAttribute('data-season-logo')) return;
+        var orig = img.getAttribute('src');
+        if (!orig || orig.indexOf('data:') === 0) return;
+        var done = function (url) { img.setAttribute('data-season-logo', orig); img.src = url; };
+        if (logoCache[orig]) return done(logoCache[orig]);
+        var src = new Image();
+        src.onload = function () {
+            try {
+                var w = src.naturalWidth, h = src.naturalHeight;
+                if (!w || !h || w * h > 4000000) return;
+                var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+                var cx = cv.getContext('2d'); cx.drawImage(src, 0, 0);
+                var d = cx.getImageData(0, 0, w, h), px = d.data, memo = {};
+                for (var i = 0; i < px.length; i += 4) {
+                    if (!px[i + 3]) continue;
+                    var key = (px[i] << 16) | (px[i + 1] << 8) | px[i + 2], o = memo[key];
+                    if (o === undefined) {
+                        var c = toOklch(px[i], px[i + 1], px[i + 2]), sl = slot(c[2], c[1]);
+                        o = memo[key] = sl === null ? null : fromOklch(c[0], c[1], pal[sl]);
+                    }
+                    if (o) { px[i] = o[0]; px[i + 1] = o[1]; px[i + 2] = o[2]; }
+                }
+                cx.putImageData(d, 0, 0);
+                done(logoCache[orig] = cv.toDataURL('image/png'));
+            } catch (e) { img.setAttribute('data-season-logo', 'x'); } // imagen de otro dominio: se deja igual
+        };
+        src.src = orig;
+    }
+    function logosOn(pal) {
+        var list = document.querySelectorAll(LOGO_SEL);
+        for (var i = 0; i < list.length; i++) recolorLogo(list[i], pal);
+    }
+    function logosOff() {
+        var list = document.querySelectorAll('img[data-season-logo]');
+        for (var i = 0; i < list.length; i++) {
+            var o = list[i].getAttribute('data-season-logo');
+            if (o !== 'x') list[i].src = o;
+            list[i].removeAttribute('data-season-logo');
+        }
+    }
+    var logoObs = null;
     function applyColors(on) {
         var pal = paletteKey && PALETTES[paletteKey];
         if (!pal) return;
-        if (!on) { document.documentElement.removeAttribute('data-season-colors'); return; }
+        if (!on) {
+            document.documentElement.removeAttribute('data-season-colors');
+            logosOff();
+            if (logoObs) { logoObs.disconnect(); logoObs = null; }
+            return;
+        }
         if (!colorStyle) {
             var css = '';
-            ['pink', 'fuchsia', 'purple', 'cyan'].forEach(function (fam, i) {
+            Object.keys(IDX).forEach(function (fam) {
                 FAMS[fam].forEach(function (v) {
-                    var lch = v[1] + ' ' + v[2] + ' ' + pal[i];
+                    var lch = v[1] + ' ' + v[2] + ' ' + pal[IDX[fam]];
                     css += '--color-' + fam + '-' + v[0] + ':oklch(' + lch + ');--tw-c-' + fam + '-' + v[0] + ':' + lch + ';';
                 });
             });
             css += '--tw-c-neon:' + NEON[0] + ' ' + NEON[1] + ' ' + pal[4] + ';';
             colorStyle = document.createElement('style');
             colorStyle.setAttribute('data-season', paletteKey);
-            colorStyle.textContent = ':root[data-season-colors]{' + css + '}';
+            colorStyle.textContent = ATTR + '{' + css + '}';
+            // Logos: las im\u00e1genes giran de tono (el rosa de marca pasa al color principal de la paleta);
+            // el hex\u00e1gono SVG de la tienda cambia su parada rosa.
+            colorStyle.textContent += ATTR + ' stop[stop-color="#ff4da6" i]{stop-color:oklch(0.69 0.21 ' + pal[0] + ')}'
+                + ATTR + ' .cyber-border::before{background:conic-gradient(from 0deg,oklch(0.68 0.26 ' + pal[0] + '),oklch(0.47 0.29 ' + pal[2] + '),oklch(0.79 0.13 ' + pal[3] + '),oklch(0.68 0.26 ' + pal[0] + '))}';
             document.head.appendChild(colorStyle);
+            // Colores escritos a mano en el CSS (#00f7ff, rgba(255,0,150,..), degradados...): se recolorean leyendo las hojas.
+            sheetStyle = document.createElement('style');
+            sheetStyle.setAttribute('data-season-sheets', paletteKey);
+            document.head.appendChild(sheetStyle);
+            var rescan = function () { scanSheets(pal); };
+            rescan();
+            window.addEventListener('load', rescan);
+            document.addEventListener('load', function (e) { if (e.target && e.target.tagName === 'LINK') rescan(); }, true);
+            if (window.MutationObserver) new MutationObserver(function () { setTimeout(rescan, 50); }).observe(document.head, { childList: true });
         }
         document.documentElement.setAttribute('data-season-colors', paletteKey);
+        var go = function () { if (document.body) logosOn(pal); };
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
+        if (!logoObs && window.MutationObserver) {
+            var t = null;
+            logoObs = new MutationObserver(function () { clearTimeout(t); t = setTimeout(go, 120); });
+            var watch = function () { logoObs && logoObs.observe(document.body, { childList: true, subtree: true }); };
+            if (document.body) watch(); else document.addEventListener('DOMContentLoaded', watch);
+        }
     }
 
     // ---------- Aviso (abajo a la izquierda) ----------
