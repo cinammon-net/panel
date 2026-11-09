@@ -31,6 +31,7 @@ import {
     Users,
     Webhook,
     Wrench,
+    Coins,
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -61,6 +62,16 @@ const mainNavItems: NavItem[] = [
         icon: CreditCard,
         group: 'main',
         groupColor: 'text-pink-400',
+        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin', 'Owner'],
+        permissions: [],
+    },
+    {
+        title: 'Servidor gratis',
+        href: '/billing/redirect?to=coins',
+        external: true,
+        icon: Coins,
+        group: 'main',
+        groupColor: 'text-yellow-400',
         roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin', 'Owner'],
         permissions: [],
     },

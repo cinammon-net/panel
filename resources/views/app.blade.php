@@ -74,6 +74,7 @@
     @viteReactRefresh
     @vite('resources/js/app.tsx')
     @inertiaHead
+    @include('partials.season')
 </head>
 
 <body class="font-sans antialiased">

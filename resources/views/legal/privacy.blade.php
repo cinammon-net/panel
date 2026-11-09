@@ -25,6 +25,7 @@
             border-radius: 10px;
         }
     </style>
+    @include('partials.season')
 </head>
 
 <body class="bg-gradient-to-br from-[#0B0D1A] via-[#1f1f2f] to-[#0B0D1A] min-h-screen text-gray-300 px-4 sm:px-8 md:px-32 py-10 sm:py-16 overflow-x-hidden">

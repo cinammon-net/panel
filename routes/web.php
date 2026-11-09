@@ -75,7 +75,10 @@ Route::get('/billing/redirect', function (Request $request) {
     $encoded = base64_encode(json_encode($payload));
     $sig = hash_hmac('sha256', $encoded, $secret);
 
-    return redirect("{$billingUrl}/sso?data={$encoded}&sig={$sig}");
+    // Destino dentro del billing (lista cerrada): ?to=coins abre la página de monedas.
+    $to = $request->query('to') === 'coins' ? '&to=coins' : '';
+
+    return redirect("{$billingUrl}/sso?data={$encoded}&sig={$sig}{$to}");
 })->middleware('auth')->name('billing.redirect');
 Route::view('/terms', 'legal.terms')->name('terms');
 Route::view('/privacy', 'legal.privacy')->name('privacy');
