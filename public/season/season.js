@@ -185,8 +185,14 @@
         return null;
     }
     function recolorValue(v, pal) {
-        if (v.indexOf('rgb') < 0) return null;
+        if (v.indexOf('rgb') < 0 && v.indexOf('#') < 0) return null;
         var hit = false;
+        // #rgb / #rrggbb / #rrggbbaa (p.ej. --tw-gradient-to: #30d5f6) -> rgb() para tratarlo igual
+        v = v.replace(/#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})\b/gi, function (all, hx) {
+            if (hx.length < 5) hx = hx.replace(/./g, '$&$&');
+            var n = function (i) { return parseInt(hx.substr(i, 2), 16); };
+            return 'rgb(' + n(0) + ' ' + n(2) + ' ' + n(4) + (hx.length === 8 ? ' / ' + (n(6) / 255).toFixed(3) : '') + ')';
+        });
         var out = v.replace(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)\s*(?:[,/]\s*([\d.]+%?))?\s*\)/g, function (all, r, g, b, a) {
             var o = toOklch(+r, +g, +b), i = slot(o[2], o[1]);
             if (i === null) return all;
@@ -215,7 +221,7 @@
                     var decl = '';
                     for (var k = 0; k < r.style.length; k++) {
                         var prop = r.style[k];
-                        if (prop.indexOf('--') === 0) continue;
+                        if (prop.indexOf('--') === 0 && prop.indexOf('--tw-') !== 0) continue;
                         var nv = recolorValue(r.style.getPropertyValue(prop), pal);
                         if (nv) decl += prop + ':' + nv + (r.style.getPropertyPriority(prop) ? ' !important' : '') + ';';
                     }
@@ -261,8 +267,10 @@
         if (!orig || orig.indexOf('data:') === 0) return;
         var done = function (url) { img.setAttribute('data-season-logo', orig); img.src = url; };
         if (logoCache[orig]) return done(logoCache[orig]);
-        var src = new Image();
-        src.onload = function () {
+        // Se usa la propia imagen de la p\u00e1gina (mismo dominio); si a\u00fan no carg\u00f3, se espera a que lo haga.
+        if (!img.complete || !img.naturalWidth) { img.addEventListener('load', function () { recolorLogo(img, pal); }, { once: true }); return; }
+        var src = img;
+        (function () {
             try {
                 var w = src.naturalWidth, h = src.naturalHeight;
                 if (!w || !h || w * h > 4000000) return;
@@ -281,8 +289,7 @@
                 cx.putImageData(d, 0, 0);
                 done(logoCache[orig] = cv.toDataURL('image/png'));
             } catch (e) { img.setAttribute('data-season-logo', 'x'); } // imagen de otro dominio: se deja igual
-        };
-        src.src = orig;
+        })();
     }
     function logosOn(pal) {
         var list = document.querySelectorAll(LOGO_SEL);
