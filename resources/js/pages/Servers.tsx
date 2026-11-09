@@ -9,6 +9,7 @@ import {
     ChevronDown,
     ChevronRight,
     ChevronUp,
+    Clock,
     Copy,
     Cpu,
     Database,
@@ -35,6 +36,7 @@ import {
     ExternalLink,
     Users,
 } from 'lucide-react';
+import { formatUptime, useLiveUptime } from '@/lib/uptime';
 import React, { useEffect, useMemo, useState } from 'react';
 
 interface ServerItem {
@@ -89,7 +91,7 @@ function CopyAddress({ address }: { address: string }) {
     );
 }
 
-type LiveUsage = { cpu: number; memMb: number; diskMb: number; players: { online: number; max: number } | null };
+type LiveUsage = { cpu: number; memMb: number; diskMb: number; uptimeMs: number; players: { online: number; max: number } | null };
 
 const fmtMb = (mb: number) => (mb >= 1024 ? `${(mb / 1024).toFixed(1)} GiB` : `${Math.round(mb)} MiB`);
 const pct = (used: number, limit?: number) => (limit ? Math.min(100, Math.max(0, (used / limit) * 100)) : 0);
@@ -121,6 +123,7 @@ function useLiveUsage(id: number, enabled: boolean): LiveUsage | null {
                         cpu: Number(u.cpu_absolute) || 0,
                         memMb: (Number(u.memory_bytes) || 0) / 1048576,
                         diskMb: (Number(u.disk_bytes) || 0) / 1048576,
+                        uptimeMs: Number(u.uptime) || 0,
                         players: body.players ? { online: Number(body.players.online) || 0, max: Number(body.players.max) || 0 } : null,
                     });
                 }
@@ -142,6 +145,7 @@ function useLiveUsage(id: number, enabled: boolean): LiveUsage | null {
 function ServerCard({ item }: { item: ServerItem }) {
     const isOnline = item.status === 'online';
     const usage = useLiveUsage(item.id, isOnline);
+    const uptime = useLiveUptime(isOnline ? usage?.uptimeMs : null);
     // "uso / límite"; sin datos de Wings se muestra "— / límite" y la barra vacía (nunca valores inventados)
     const cpuLimit = item.cpu ? `${item.cpu}%` : '∞';
     const memLimit = item.memory ? fmtMb(item.memory) : '∞';
@@ -340,6 +344,14 @@ function ServerCard({ item }: { item: ServerItem }) {
                         <Power size={12} className={isOnline ? 'text-emerald-400' : 'text-neutral-500'} />
                         <span>{isOnline ? 'En línea' : 'Detenido'}</span>
                     </span>
+                    {isOnline && uptime !== null && (
+                        <span
+                            title="Tiempo encendido"
+                            className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 font-mono text-xs font-semibold text-emerald-300"
+                        >
+                            <Clock size={12} /> {formatUptime(uptime)}
+                        </span>
+                    )}
                     {isOnline && usage?.players && (
                         <span
                             title="Jugadores conectados"

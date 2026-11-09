@@ -2,6 +2,7 @@ import LogDiagnostics from '@/components/server/log-diagnostics';
 import PlayersPanel from '@/components/server/players-panel';
 import ServerLayout from '@/layouts/server-layout';
 import { colorizeLogs } from '@/lib/terminal-colors';
+import { formatUptime, useLiveUptime } from '@/lib/uptime';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import { CategoryScale, Chart as ChartJS, Filler, Legend, LinearScale, LineElement, PointElement, Title, Tooltip } from 'chart.js';
@@ -23,6 +24,7 @@ type Snapshot = {
         memory_bytes?: number;
         cpu_absolute?: number;
         disk_bytes?: number;
+        uptime?: number;
         network?: {
             rx_bytes?: number;
             tx_bytes?: number;
@@ -265,6 +267,7 @@ export default function Console({ server }: { server: Server }) {
     const ready = snapshot?.installed && !busy;
     const needsEula = server.minecraft && snapshot?.installed && !snapshot.eula_accepted;
     const running = snapshot?.state === 'running';
+    const uptime = useLiveUptime(running ? snapshot?.utilization?.uptime : null);
 
     const htmlLogs = useMemo(() => {
         if (!snapshot?.logs) return null;
@@ -351,7 +354,7 @@ export default function Console({ server }: { server: Server }) {
                 </header>
                 <section aria-label="Estadísticas del servidor" className="grid gap-3 rounded-lg border border-cyan-800/80 bg-[#080d16] p-4 sm:grid-cols-2 xl:grid-cols-3">
                     <Metric label="Nombre" value={server.name} />
-                    <Metric label="Estado" value={snapshot ? states[snapshot.state] || snapshot.state : 'Conectando…'} live={running} />
+                    <Metric label="Estado" value={snapshot ? `${states[snapshot.state] || snapshot.state}${running && uptime !== null ? ` · ${formatUptime(uptime)}` : ''}` : 'Conectando…'} live={running} />
                     <div className="flex min-w-0 items-center justify-between rounded border border-cyan-800/80 bg-black/70 px-4 py-3.5 text-sm transition hover:border-cyan-600/70">
                         <span className="shrink-0 text-xs font-semibold uppercase tracking-wider text-cyan-500">Dirección</span>
                         {server.discord_bot ? (

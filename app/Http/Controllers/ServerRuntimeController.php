@@ -162,6 +162,7 @@ class ServerRuntimeController extends Controller
             'cpu_absolute' => round(max(0, (float) ($utilization['cpu_absolute'] ?? 0)), 2),
             'memory_bytes' => max(0, (int) ($utilization['memory_bytes'] ?? 0)),
             'disk_bytes' => max(0, (int) ($utilization['disk_bytes'] ?? 0)),
+            'uptime' => max(0, (int) ($utilization['uptime'] ?? 0)),
             'network' => [
                 'rx_bytes' => $rxBytes,
                 'tx_bytes' => $txBytes,
@@ -189,6 +190,7 @@ class ServerRuntimeController extends Controller
                     'cpu_absolute' => round(max(0, (float) ($u['cpu_absolute'] ?? 0)), 2),
                     'memory_bytes' => max(0, (int) ($u['memory_bytes'] ?? 0)),
                     'disk_bytes' => max(0, (int) ($u['disk_bytes'] ?? 0)),
+                    'uptime' => max(0, (int) ($u['uptime'] ?? 0)),
                 ] : null,
             ]);
         } catch (ConnectionException|RequestException $exception) {
