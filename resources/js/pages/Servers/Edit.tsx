@@ -151,16 +151,16 @@ export default function CreateServer() {
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet" />
             </Head>
 
-            <div className="min-h-screen bg-white p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
+            <div className="min-h-screen bg-white p-4 sm:p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
                 {/* Header */}
-                <div className="mb-6 flex items-center justify-between border-cyan-600">
+                <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-cyan-600">
                     <div className="flex items-center gap-3">
                         <Server className="h-7 w-7 text-cyan-400" />
                         <h1 className="text-2xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400">
                             EDIT SERVER
                         </h1>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <button
                             onClick={() => {
                                 if (confirm('¿Estás segura de que quieres eliminar este servidor?')) {

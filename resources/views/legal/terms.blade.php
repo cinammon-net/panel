@@ -27,14 +27,14 @@
     </style>
 </head>
 
-<body class="bg-gradient-to-br from-[#0B0D1A] via-[#1f1f2f] to-[#0B0D1A] min-h-screen text-gray-300 px-8 md:px-32 py-16">
+<body class="bg-gradient-to-br from-[#0B0D1A] via-[#1f1f2f] to-[#0B0D1A] min-h-screen text-gray-300 px-4 sm:px-8 md:px-32 py-10 sm:py-16 overflow-x-hidden">
 
     <header class="max-w-6xl mx-auto mb-16 text-center">
-        <h1 class="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#7F1DFF] to-[#30D5F6] mb-6 tracking-widest uppercase drop-shadow-lg">
+        <h1 class="text-3xl sm:text-5xl break-words font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#7F1DFF] to-[#30D5F6] mb-6 tracking-wide sm:tracking-widest uppercase drop-shadow-lg">
             Terms & Conditions
         </h1>
-        <nav class="flex justify-center gap-12 mb-12">
-            <a href="{{ route('privacy') }}" class="text-xl font-bold text-[#F93FFF] hover:text-[#7F1DFF] transition">Privacy Policy</a>
+        <nav class="flex flex-wrap justify-center gap-x-8 gap-y-3 mb-12">
+            <a href="{{ route('privacy') }}" class="text-base sm:text-xl font-bold text-[#F93FFF] hover:text-[#7F1DFF] transition">Privacy Policy</a>
         </nav>
         <p class="max-w-4xl mx-auto text-purple-400 leading-relaxed">
             Please read these terms carefully before using Cinammon.net. By using our services, you agree to these terms.
@@ -43,7 +43,7 @@
 
     <main class="max-w-5xl mx-auto space-y-20">
         <section class="scroll-mt-28">
-            <h2 class="text-3xl font-bold text-[#F93FFF] mb-6 border-b border-purple-700 pb-2">1. Account Management</h2>
+            <h2 class="text-xl sm:text-3xl font-bold text-[#F93FFF] mb-6 border-b border-purple-700 pb-2">1. Account Management</h2>
             <ul class="list-disc list-inside ml-6 space-y-3 text-gray-300 leading-relaxed">
                 <li>We reserve the right to cancel your account at any time, with or without prior notice.</li>
                 <li>When you request a server or other service from Cinammon.net, you are renting the hosting service only. All servers remain the property of Cinammon.net.</li>
@@ -52,7 +52,7 @@
         </section>
 
         <section>
-            <h2 class="text-3xl font-bold text-[#F93FFF] mb-6 border-b border-purple-700 pb-2">2. Payment Process</h2>
+            <h2 class="text-xl sm:text-3xl font-bold text-[#F93FFF] mb-6 border-b border-purple-700 pb-2">2. Payment Process</h2>
             <ul class="list-disc list-inside ml-6 space-y-3 text-gray-300 leading-relaxed">
                 <li>Services activate only after confirmed payment. Manual review may occur if fraud is suspected.</li>
                 <li>If payment renewal is missed, your server will be suspended but data kept 7 days.</li>
@@ -63,7 +63,7 @@
         </section>
 
         <section>
-            <h2 class="text-3xl font-bold text-[#F93FFF] mb-6 border-b border-purple-700 pb-2">3. Service Cancellations</h2>
+            <h2 class="text-xl sm:text-3xl font-bold text-[#F93FFF] mb-6 border-b border-purple-700 pb-2">3. Service Cancellations</h2>
             <ul class="list-disc list-inside ml-6 space-y-3 text-gray-300 leading-relaxed">
                 <li>Cancel services via billing portal: <a href="https://billing.cinammon.net/home" class="text-[#30D5F6] underline" target="_blank">https://billing.cinammon.net/home</a></li>
                 <li>Paypal automatic payments must be cancelled manually.</li>
@@ -72,7 +72,7 @@
         </section>
 
         <section>
-            <h2 class="text-3xl font-bold text-[#F93FFF] mb-6 border-b border-purple-700 pb-2">4. Service Usage</h2>
+            <h2 class="text-xl sm:text-3xl font-bold text-[#F93FFF] mb-6 border-b border-purple-700 pb-2">4. Service Usage</h2>
             <ul class="list-disc list-inside ml-6 space-y-3 text-gray-300 leading-relaxed">
                 <li>No bypassing limits (RAM, storage, CPU, slots). Violations result in suspension and account termination.</li>
                 <li>Minecraft hosting starts with 50GB, expandable. Excessive files may be deleted.</li>
@@ -81,7 +81,7 @@
         </section>
 
         <section>
-            <h2 class="text-3xl font-bold text-[#F93FFF] mb-6 border-b border-purple-700 pb-2">5. Customer Obligations</h2>
+            <h2 class="text-xl sm:text-3xl font-bold text-[#F93FFF] mb-6 border-b border-purple-700 pb-2">5. Customer Obligations</h2>
             <ul class="list-disc list-inside ml-6 space-y-3 text-gray-300 leading-relaxed">
                 <li>Illegal or pirated activities strictly prohibited. Violators banned.</li>
                 <li>We comply with legal requests from government entities without notice.</li>
@@ -91,7 +91,7 @@
         </section>
 
         <section>
-            <h2 class="text-3xl font-bold text-[#F93FFF] mb-6 border-b border-purple-700 pb-2">6. Liability</h2>
+            <h2 class="text-xl sm:text-3xl font-bold text-[#F93FFF] mb-6 border-b border-purple-700 pb-2">6. Liability</h2>
             <ul class="list-disc list-inside ml-6 space-y-3 text-gray-300 leading-relaxed">
                 <li>We may change prices, rules, offers, or cancel services anytime without notice.</li>
                 <li>Service interruptions, data loss, or delays may occur outside our control.</li>
@@ -102,7 +102,7 @@
         </section>
 
         <section>
-            <h2 class="text-3xl font-bold text-[#F93FFF] mb-6 border-b border-purple-700 pb-2">7. Our Website</h2>
+            <h2 class="text-xl sm:text-3xl font-bold text-[#F93FFF] mb-6 border-b border-purple-700 pb-2">7. Our Website</h2>
             <ul class="list-disc list-inside ml-6 space-y-3 text-gray-300 leading-relaxed">
                 <li>Site info & terms may change anytime without notice.</li>
                 <li>Stripe processes purchases. Users agree to <a href="https://stripe.com/legal" class="text-[#7F1DFF] underline" target="_blank">Stripe Terms</a>.</li>

@@ -370,7 +370,7 @@ export default function CreateEgg() {
                                 </div>
 
                                 {/* Monaco Editor */}
-                                <div className="col-span-3 mt-4">
+                                <div className="col-span-full mt-4">
                                     <label className="mb-1 block text-sm font-semibold" htmlFor="installScript">
                                         Install Script
                                     </label>

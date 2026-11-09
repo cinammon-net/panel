@@ -494,7 +494,7 @@ export default function CreateServer() {
                                     </div>
 
                                     {/* Campo para ingresar la descripción del servidor */}
-                                    <div className="col-span-2">
+                                    <div className="sm:col-span-2">
                                         <label className="mt-6 mb-1 block text-sm font-semibold" htmlFor="description">
                                             Description
                                         </label>

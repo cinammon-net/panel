@@ -15,7 +15,7 @@
 
 <body class="flex items-center justify-center min-h-screen p-6">
   <div class="text-center max-w-md w-full">
-    <h1 class="text-4xl font-bold mb-6 drop-shadow-[0_0_10px_rgb(255_0_255_/_0.7)]">
+    <h1 class="text-2xl sm:text-4xl font-bold mb-6 break-words drop-shadow-[0_0_10px_rgb(255_0_255_/_0.7)]">
       Please accept our Terms and Privacy Policy
     </h1>
     <form method="POST" action="{{ route('terms.accept.post') }}">

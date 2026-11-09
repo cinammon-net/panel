@@ -148,7 +148,7 @@ export default function WebhooksPage({ server, webhooks = [] }: PageProps) {
                                 key={wh.id}
                                 className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/60 p-5 transition-all shadow-lg hover:border-cyan-500/40 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
                             >
-                                <div className="space-y-2 flex-1">
+                                <div className="w-full min-w-0 space-y-2 md:w-auto md:flex-1">
                                     <div className="flex items-center gap-3 flex-wrap">
                                         <h3 className="text-base font-bold text-neutral-900 dark:text-white">
                                             {wh.name}

@@ -237,8 +237,8 @@ function ServerCard({ item }: { item: ServerItem }) {
             />
 
             {/* Contenido Superior e Intermedio */}
-            <div className="relative z-10 p-5 sm:p-6 space-y-4">
-                <div className="flex items-start justify-between gap-4">
+            <div className="relative z-10 p-4 sm:p-6 space-y-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                     <div className="min-w-0 flex-1 pl-1">
                         <div className="flex items-center gap-3">
                             <span
@@ -271,7 +271,7 @@ function ServerCard({ item }: { item: ServerItem }) {
                     </div>
 
                     {/* Acciones Rápidas */}
-                    <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1.5 shrink-0 pl-1 sm:pl-0" onClick={(e) => e.stopPropagation()}>
                         {/* Botón Cambiar Fondo */}
                         <button
                             type="button"
@@ -365,7 +365,7 @@ function ServerCard({ item }: { item: ServerItem }) {
 
             {/* Barras de Recursos (Gauges visuales de CPU, RAM y Disco) */}
             <div className="relative z-10 border-t border-cyan-950/80 bg-black/75 p-4 sm:px-6">
-                <div className="grid grid-cols-3 gap-3 sm:gap-6">
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-6">
                     {/* CPU */}
                     <div className="space-y-1.5">
                         <div className="flex items-center justify-between text-xs font-mono">

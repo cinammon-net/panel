@@ -156,6 +156,13 @@
         @apply border-border;
     }
 
+    /* Cada página ocupa todo el ancho disponible: con mx-auto + max-w-* sin w-full,
+       una tabla ancha (aunque esté en overflow-x-auto) estiraba la página entera en móvil. */
+    :where([data-slot='sidebar-inset']) > :where(*) {
+        width: 100%;
+        min-width: 0;
+    }
+
     html,
     body {
         overflow-x: hidden;

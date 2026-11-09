@@ -131,14 +131,14 @@ export default function Eggs() {
 
             <div className="min-h-screen bg-white p-6 font-[Orbitron] text-black transition-colors dark:bg-black dark:text-white">
                 {/* Header */}
-                <div className="mb-6 flex items-center justify-between border-cyan-600">
+                <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-cyan-600">
                     <div className="flex items-center gap-3">
                         <Egg className="h-8 w-8 text-cyan-400" />
-                        <h1 className="text-3xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400">
+                        <h1 className="text-2xl sm:text-3xl font-semibold tracking-widest text-cyan-800 drop-shadow-none dark:text-cyan-400">
                             EGGS
                         </h1>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                         <button
                             type="button"
                             disabled={isSyncing}
@@ -387,7 +387,7 @@ export default function Eggs() {
                     )}
 
                     {/* Table */}
-                    <div className="bg-cyan overflow-hidden shadow-none transition dark:border-cyan-700 dark:bg-neutral-950 dark:shadow-[0_0_10px_#0ff3]">
+                    <div className="bg-cyan overflow-x-auto shadow-none transition dark:border-cyan-700 dark:bg-neutral-950 dark:shadow-[0_0_10px_#0ff3]">
                         <table className="min-w-full table-auto text-sm">
                             <thead className="border-b border-cyan-500 bg-cyan-900 text-cyan-200">
                                 <tr>

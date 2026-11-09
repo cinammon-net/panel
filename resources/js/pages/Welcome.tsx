@@ -202,7 +202,7 @@ export default function WelcomePanel() {
                         className="w-full max-w-3xl rounded-xl border-2 border-pink-500 bg-black/60 px-6 py-12 shadow-[0_0_30px_5px_rgba(255,0,150,0.3)] backdrop-blur-sm sm:px-10 sm:py-16"
                         data-aos="zoom-in"
                     >
-                        <h1 className="mb-4 text-4xl font-extrabold tracking-widest text-pink-400 sm:text-5xl" data-aos="fade-up">
+                        <h1 className="mb-4 break-words text-3xl font-extrabold tracking-wider text-pink-400 sm:text-5xl sm:tracking-widest" data-aos="fade-up">
                             <span className="text-[#00f7ff]">cinammon</span>.net
                         </h1>
                         <p className="text-xl font-semibold text-pink-300 sm:text-2xl" data-aos="fade-up" data-aos-delay="100">
@@ -517,7 +517,7 @@ export default function WelcomePanel() {
                                 <div
                                     key={i}
                                     className={`scroll-snap-align-start flex-shrink-0 rounded-lg border border-pink-600 bg-transparent p-6 shadow-md ${
-                                        reviews.length === 1 ? 'mx-auto w-full max-w-md' : 'w-[48%]'
+                                        reviews.length === 1 ? 'mx-auto w-full max-w-md' : 'w-full sm:w-[48%]'
                                     }`}
                                     data-aos="fade-up"
                                     data-aos-delay={i * 50}

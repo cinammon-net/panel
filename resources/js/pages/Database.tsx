@@ -1440,7 +1440,7 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                             </h2>
                             <span className="text-xs text-neutral-500">Endpoints Activos</span>
                         </div>
-                        <div className="w-full rounded-xl border border-neutral-800/80">
+                        <div className="w-full overflow-x-auto rounded-xl border border-neutral-800/80">
                             <table className="w-full text-left text-xs sm:text-sm table-auto">
                                 <thead className="border-b border-orange-500/25 bg-neutral-900/60 text-xs uppercase font-bold text-orange-300 font-[Orbitron]">
                                     <tr>
@@ -1546,7 +1546,7 @@ export default function Database({ hosts = [], servers = [], nodes = [], dbFiles
                             </h2>
                             <span className="text-xs text-neutral-500">Instancias por Instancia</span>
                         </div>
-                        <div className="w-full rounded-xl border border-neutral-800/80">
+                        <div className="w-full overflow-x-auto rounded-xl border border-neutral-800/80">
                             <table className="w-full text-left text-xs sm:text-sm table-auto">
                                 <thead className="border-b border-orange-500/25 bg-neutral-900/60 text-xs uppercase font-bold text-orange-300 font-[Orbitron]">
                                     <tr>

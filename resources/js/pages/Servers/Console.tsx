@@ -957,9 +957,9 @@ export default function Console({ server }: { server: Server }) {
 
 function Metric({ label, value, live = false }: { label: string; value: string; live?: boolean }) {
     return (
-        <div className="flex min-w-0 items-center justify-between rounded border border-cyan-800/80 bg-black/70 px-4 py-3.5 text-sm transition hover:border-cyan-600/70">
+        <div className="flex min-w-0 items-center justify-between gap-3 rounded border border-cyan-800/80 bg-black/70 px-4 py-3.5 text-sm transition hover:border-cyan-600/70">
             <span className="shrink-0 text-xs font-semibold uppercase tracking-wider text-cyan-500">{label}</span>
-            <span className={`flex items-center gap-1.5 text-sm font-semibold tracking-wide break-words ${live ? 'text-emerald-400 font-bold drop-shadow-[0_0_6px_rgba(52,211,153,0.6)]' : 'text-cyan-200'}`}>
+            <span className={`flex min-w-0 items-center justify-end gap-1.5 text-right text-sm font-semibold tracking-wide break-words ${live ? 'text-emerald-400 font-bold drop-shadow-[0_0_6px_rgba(52,211,153,0.6)]' : 'text-cyan-200'}`}>
                 {live && <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse" />}
                 {value}
             </span>
