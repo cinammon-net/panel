@@ -153,7 +153,7 @@
         halloween: [50, 40, 305, 135, 60], muertos: [55, 340, 300, 80, 75], thanksgiving: [45, 30, 20, 75, 75],
         black_friday: [95, 85, 85, 95, 95], gamer_day: [145, 300, 290, 200, 145], star_wars: [25, 15, 260, 240, 240],
         book_day: [20, 10, 340, 145, 145], san_juan: [45, 35, 25, 70, 70],
-        winter: [250, 270, 280, 220, 215], spring: [350, 320, 300, 150, 150], summer: [40, 25, 340, 195, 195], autumn: [45, 30, 20, 75, 75],
+        winter: [250, 270, 280, 220, 215], spring: [150, 130, 330, 165, 150], summer: [75, 55, 30, 195, 190], autumn: [38, 22, 12, 65, 65],
     };
     var paletteKey = holiday ? (PALETTES[holiday.key] ? holiday.key : null) : (season && season.key);
     var colorStyle = null;
