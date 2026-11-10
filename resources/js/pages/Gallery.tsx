@@ -1,6 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head } from '@inertiajs/react';
-import { ImagePlus, Trash2, Upload } from 'lucide-react';
+import { Folder, ImagePlus, Trash2, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -18,7 +18,7 @@ export default function Gallery() {
             const data = await res.json();
             setImages(data); // Actualiza las URLs de las imágenes
         } catch {
-            toast.error('❌ Error al cargar la galería');
+            toast.error('Error al cargar la galería');
         } finally {
             setLoading(false);
         }
@@ -48,7 +48,7 @@ export default function Gallery() {
         formData.append('image', file);
 
         const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        if (!token) return toast.error('❌ Token CSRF no encontrado');
+        if (!token) return toast.error('Token CSRF no encontrado');
 
         try {
             const res = await fetch('/gallery/upload', {
@@ -64,13 +64,13 @@ export default function Gallery() {
                 fetchImages();
                 setFile(null);
                 setImagePreview(null); // Limpiar la vista previa
-                toast.success('✅ Imagen subida correctamente');
+                toast.success('Imagen subida correctamente');
             } else {
                 const errorData = await res.json();
-                toast.error(`❌ Error al subir la imagen: ${errorData.message || 'Desconocido'}`);
+                toast.error(`Error al subir la imagen: ${errorData.message || 'Desconocido'}`);
             }
         } catch (error) {
-            toast.error('❌ Error al subir la imagen');
+            toast.error('Error al subir la imagen');
             console.error(error);
         }
     };
@@ -89,13 +89,13 @@ export default function Gallery() {
 
             if (!res.ok) {
                 const errorData = await res.json();
-                toast.error(`❌ No se pudo eliminar la imagen: ${errorData.message || 'Desconocido'}`);
+                toast.error(`No se pudo eliminar la imagen: ${errorData.message || 'Desconocido'}`);
             } else {
                 fetchImages();
-                toast.success('🗑️ Imagen eliminada');
+                toast.success('Imagen eliminada');
             }
         } catch (error) {
-            toast.error('❌ Error al eliminar la imagen');
+            toast.error('Error al eliminar la imagen');
             console.error(error);
         }
     };
@@ -133,7 +133,7 @@ export default function Gallery() {
                         {loading ? 'Subiendo...' : 'Subir Imagen'}
                     </button>
 
-                    {file && <p className="text-sm text-purple-400">📁 {file.name}</p>}
+                    {file && <p className="flex items-center gap-1.5 text-sm text-purple-400"><Folder className="h-4 w-4" aria-hidden="true" /> {file.name}</p>}
                 </form>
 
                 {/* Vista previa de la imagen seleccionada */}

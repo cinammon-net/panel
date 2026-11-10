@@ -6,7 +6,7 @@ import { formatUptime, useLiveUptime } from '@/lib/uptime';
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import { CategoryScale, Chart as ChartJS, Filler, Legend, LinearScale, LineElement, PointElement, Title, Tooltip } from 'chart.js';
-import { Activity, ArrowDownUp, Check, Copy, Cpu, ExternalLink, Maximize2, Minimize2, Play, RotateCw, Send, Square, Terminal, Trash2 } from 'lucide-react';
+import { Activity, ArrowDownUp, Zap, Check, Copy, Cpu, ExternalLink, Maximize2, Minimize2, Play, RotateCw, Send, Square, Terminal, Trash2 } from 'lucide-react';
 import { CSSProperties, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Line } from 'react-chartjs-2';
 
@@ -717,7 +717,7 @@ export default function Console({ server }: { server: Server }) {
                         {/* Comandos rápidos como chips */}
                         {running && (
                             <div className="flex items-center gap-2 overflow-x-auto pb-0.5 select-none">
-                                <span className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-500">⚡ Rápidos</span>
+                                <span className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-500"><Zap className="mr-1 inline h-3 w-3 -translate-y-px" aria-hidden="true" />Rápidos</span>
                                 {quickCommands.map((cmd) => (
                                     <button
                                         key={cmd}
@@ -768,7 +768,7 @@ export default function Console({ server }: { server: Server }) {
                                     onKeyDown={handleKeyDown}
                                     placeholder={
                                         !running
-                                            ? '🔒 Servidor detenido — inícialo para escribir comandos'
+                                            ? 'Servidor detenido — inícialo para escribir comandos'
                                             : server.discord_bot
                                             ? 'Escribe un comando…  (status, test, ping, stop)'
                                             : 'Escribe un comando…  (list, tps, say, stop)'

@@ -39,7 +39,7 @@ class NodeController extends Controller
                 'status' => $node->maintenance_mode ? 'warning' : ($node->online ? 'online' : 'offline'),
                 'ssl' => $node->scheme === 'https',
                 'maintenance' => (bool) $node->maintenance_mode,
-                'health' => $node->maintenance_mode ? '⚠️' : ($node->online ? '✅' : '❌'),
+                'health' => $node->maintenance_mode ? 'maintenance' : ($node->online ? 'online' : 'offline'),
             ];
         });
 

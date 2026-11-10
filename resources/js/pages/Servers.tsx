@@ -561,10 +561,10 @@ export default function Servers() {
     // Subcategorías de Minecraft
     const mcSubcategories = [
         { id: 'all', label: 'All Minecraft', count: 30 },
-        { id: 'mods', label: '⚙️ Mods & Híbridos', count: 13 },
-        { id: 'plugins', label: '⚡ Plugins & Perf', count: 6 },
-        { id: 'proxies', label: '🌐 Proxies & Redes', count: 6 },
-        { id: 'vanilla', label: '🧱 Vanilla & Bedrock', count: 5 },
+        { id: 'mods', label: 'Mods & Híbridos', count: 13 },
+        { id: 'plugins', label: 'Plugins & Perf', count: 6 },
+        { id: 'proxies', label: 'Proxies & Redes', count: 6 },
+        { id: 'vanilla', label: 'Vanilla & Bedrock', count: 5 },
     ];
 
     const getMcSubcategory = (eggName: string): string => {
@@ -687,7 +687,7 @@ export default function Servers() {
             if (groupBy === 'category') {
                 key = server.category ? server.category.toUpperCase() : 'OTHER';
             } else if (groupBy === 'status') {
-                key = server.status === 'online' ? '🟢 EN LÍNEA (ONLINE)' : '⚪ APAGADOS (OFFLINE)';
+                key = server.status === 'online' ? 'EN LÍNEA (ONLINE)' : 'APAGADOS (OFFLINE)';
             } else if (groupBy === 'node') {
                 key = server.node || 'Unknown';
             } else if (groupBy === 'username') {

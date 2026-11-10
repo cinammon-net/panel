@@ -132,7 +132,7 @@ export default function CreateServer() {
                 router.visit('/servers');
             },
             onError: (errors) => {
-                toast.error('❌ Error al guardar: ' + JSON.stringify(errors));
+                toast.error('Error al guardar: ' + JSON.stringify(errors));
             },
         });
     };
@@ -166,12 +166,12 @@ export default function CreateServer() {
                                 if (confirm('¿Estás segura de que quieres eliminar este servidor?')) {
                                     router.delete(`/servers/${server.uuid}`, {
                                         onSuccess: () => {
-                                            toast.success('✅ Server deleted!');
+                                            toast.success('Server deleted!');
                                             router.visit('/servers');
                                         },
                                         onError: (errors) => {
                                             console.error(errors);
-                                            toast.error('❌ Error deleting server');
+                                            toast.error('Error deleting server');
                                         },
                                     });
                                 }
@@ -1010,8 +1010,8 @@ export default function CreateServer() {
                                                 className="w-full px-4 py-2 rounded bg-cyan-500 text-black font-bold hover:bg-cyan-400 transition"
                                                 onClick={() => {
                                                     router.post(`/servers/${server.uuid}/toggle-install`, {}, {
-                                                        onSuccess: () => toast.success("✅ Install status toggled"),
-                                                        onError: () => toast.error("❌ Failed to toggle install status")
+                                                        onSuccess: () => toast.success("Install status toggled"),
+                                                        onError: () => toast.error("Failed to toggle install status")
                                                     });
                                                 }}
                                             >
@@ -1029,8 +1029,8 @@ export default function CreateServer() {
                                                 className="w-full px-4 py-2 rounded bg-yellow-500 text-black font-bold hover:bg-yellow-400 transition"
                                                 onClick={() => {
                                                     router.post(`/servers/${server.uuid}/suspend`, {}, {
-                                                        onSuccess: () => toast.success("✅ Server suspended"),
-                                                        onError: () => toast.error("❌ Failed to suspend server")
+                                                        onSuccess: () => toast.success("Server suspended"),
+                                                        onError: () => toast.error("Failed to suspend server")
                                                     });
                                                 }}
                                             >
@@ -1048,8 +1048,8 @@ export default function CreateServer() {
                                                 className="w-full px-4 py-2 rounded bg-blue-500 text-white font-bold hover:bg-blue-400 transition"
                                                 onClick={() => {
                                                     router.post(`/servers/${server.uuid}/transfer`, {}, {
-                                                        onSuccess: () => toast.success("✅ Transfer initiated"),
-                                                        onError: () => toast.error("❌ Transfer failed")
+                                                        onSuccess: () => toast.success("Transfer initiated"),
+                                                        onError: () => toast.error("Transfer failed")
                                                     });
                                                 }}
                                             >
@@ -1067,8 +1067,8 @@ export default function CreateServer() {
                                                 className="w-full px-4 py-2 rounded bg-red-500 text-white font-bold hover:bg-red-400 transition"
                                                 onClick={() => {
                                                     router.post(`/servers/${server.uuid}/reinstall`, {}, {
-                                                        onSuccess: () => toast.success("✅ Server reinstallation started"),
-                                                        onError: () => toast.error("❌ Reinstallation failed")
+                                                        onSuccess: () => toast.success("Server reinstallation started"),
+                                                        onError: () => toast.error("Reinstallation failed")
                                                     });
                                                 }}
                                             >

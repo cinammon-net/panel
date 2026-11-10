@@ -200,7 +200,7 @@ class BillingApiController extends Controller
         $server->forceFill([
             'active' => 0,
             'status' => 2, // Suspendido
-            'description' => trim(($server->description ?? '') . ' [⚠️ SERVICIO CANCELADO · Programado para eliminación en 7 días]'),
+            'description' => trim(($server->description ?? '') . ' [SERVICIO CANCELADO · Programado para eliminación en 7 días]'),
         ])->save();
 
         // 2. Detener de inmediato el contenedor en Wings/Docker

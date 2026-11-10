@@ -85,7 +85,7 @@ class WingsPublicController extends Controller
                 'csrf' => csrf_token(),
                 'log_notice' => $user
                     ? 'Sin eventos recientes para tu rol.'
-                    : '🔒 Inicia sesión para ver la consola de Wings. Cada rol ve solo lo que le corresponde.',
+                    : 'Inicia sesión para ver la consola de Wings. Cada rol ve solo lo que le corresponde.',
             ],
         ])->header('Cache-Control', 'no-store');
     }

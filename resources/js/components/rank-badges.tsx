@@ -1,4 +1,5 @@
 import { usePage } from '@inertiajs/react';
+import { Crown } from 'lucide-react';
 
 export interface Badge {
     name: string;
@@ -49,7 +50,8 @@ export default function RankBadges({ max = 6 }: { max?: number }) {
                     rel="noopener noreferrer"
                     className="w-full rounded-md border border-yellow-500/50 bg-yellow-500/10 px-2 py-1 text-center font-[Orbitron] text-[10px] font-bold text-yellow-300 transition hover:bg-yellow-400 hover:text-black"
                 >
-                    👑 {hasRank ? 'Mejorar mi rango' : 'Conseguir un rango VIP'}
+                    <Crown className="mr-1 inline h-3 w-3 -translate-y-px" aria-hidden="true" />
+                    {hasRank ? 'Mejorar mi rango' : 'Conseguir un rango VIP'}
                 </a>
             )}
         </div>

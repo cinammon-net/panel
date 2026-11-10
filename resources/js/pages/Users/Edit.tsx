@@ -1,5 +1,6 @@
 import AppLayout from '@/layouts/app-layout';
 import { Head, router, usePage } from '@inertiajs/react';
+import { Info } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -122,7 +123,7 @@ export default function EditUser() {
                                 <legend className="flex items-center gap-2 px-2 text-sm font-semibold text-pink-600 dark:text-pink-400">
                                     Assign Roles
                                     <span className="group relative cursor-help text-sm text-pink-400 dark:text-pink-300">
-                                        🛈
+                                        <Info className="h-4 w-4" aria-label="Información" />
                                         <div className="absolute top-6 left-0 z-10 hidden w-[200px] rounded bg-white p-2 text-xs text-gray-800 shadow-lg group-hover:block dark:bg-neutral-800 dark:text-white">
                                             Select the roles to assign to this user.
                                         </div>

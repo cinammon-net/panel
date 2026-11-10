@@ -118,12 +118,12 @@ export default function CreateServer() {
     
         router.post('/servers', payload, {
             onSuccess: () => {
-                toast.success('✅ Server created successfully!');
+                toast.success('Server created successfully!');
                 router.visit('/servers');
             },
             onError: (errors) => {
                 console.error(errors);
-                toast.error('❌ Error creating server: ' + JSON.stringify(errors));
+                toast.error('Error creating server: ' + JSON.stringify(errors));
                 alert('Error al crear el server: ' + JSON.stringify(errors));
             },
         });

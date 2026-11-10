@@ -244,7 +244,7 @@ export default function Webhooks({ webhooks = [], deliveries = [] }: Props) {
                     username: 'Cinammon Panel',
                     embeds: [
                         {
-                            title: `🔔 Evento: ${configForm.events[0] || 'server.power'}`,
+                            title: `Evento: ${configForm.events[0] || 'server.power'}`,
                             description: `Notificación enviada por **${configForm.name || 'Webhook'}**`,
                             color: 16484412,
                             fields: [

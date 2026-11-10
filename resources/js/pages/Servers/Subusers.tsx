@@ -15,6 +15,7 @@ import {
     UserPlus,
     Users,
     X,
+    AlertTriangle,
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -557,7 +558,7 @@ export default function Subusers({ server, subusers = [], owner, availableUsers 
 
                             <form onSubmit={handleTransferSubmit} className="p-5 space-y-4">
                                 <div className="rounded-xl border border-amber-500/40 bg-amber-950/20 p-3 text-xs text-amber-300 space-y-1">
-                                    <p className="font-bold">⚠️ Atención:</p>
+                                    <p className="flex items-center gap-1.5 font-bold"><AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" /> Atención:</p>
                                     <p className="text-[11px] text-neutral-300">
                                         Al transferir el servidor, el nuevo usuario se convertirá en el Propietario Principal con control total e irrevocable.
                                     </p>
