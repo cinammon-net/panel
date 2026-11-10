@@ -70,7 +70,9 @@
     var cfg = THEMES[theme] || THEMES.stars;
 
     var FX_KEY = 'cin-season-fx';
-    var fxOn = store.get(FX_KEY) !== 'off';
+    // __SEASON_COLORS_ONLY__: solo los colores de la temporada (sin particulas ni aviso), p. ej. paginas de estado.
+    var colorsOnly = !!window.__SEASON_COLORS_ONLY__;
+    var fxOn = colorsOnly || store.get(FX_KEY) !== 'off';
     var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     // ---------- Part\u00edculas ----------
@@ -689,6 +691,7 @@
     }
 
     function init() {
+        if (colorsOnly) return;
         pill();
         if (fxOn) startFx();
     }
