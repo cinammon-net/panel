@@ -105,7 +105,7 @@ class WelcomeController extends Controller
             'billingUrl' => $billingUrl,
             'billingCategories' => $billingCategories,
             'stats' => [
-                'users' => User::when(! \App\Support\Panel::demoMode(), fn ($q) => $q->whereNotIn('email', config('panel.demo_emails', [])))->count(),
+                'users' => User::visible()->count(),
                 'servers' => Server::count(),
                 'nodes' => Node::count(),
                 'eggs' => Egg::count(),

@@ -37,7 +37,7 @@ class BotApiController extends Controller
             'stats' => [
                 'servers' => Server::count(),
                 'nodes' => max(1, Node::count()),
-                'users' => max(1, User::count()),
+                'users' => max(1, User::visible()->count()),
             ],
             'servers' => $servers,
             'plans' => [

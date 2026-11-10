@@ -25,7 +25,7 @@ class RoleController extends Controller
 
         $roles = $query
             ->with(['node', 'permissions'])
-            ->withCount('users')
+            ->withCount(['users' => fn ($q) => $q->visible()])
             ->paginate($request->input('per_page', 10))
             ->withQueryString();
 

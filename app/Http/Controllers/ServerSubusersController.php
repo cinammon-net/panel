@@ -54,7 +54,7 @@ class ServerSubusersController extends Controller
                 'email' => $server->owner?->email,
                 'avatar' => $server->owner?->avatar_url,
             ],
-            'availableUsers' => User::select('id', 'name', 'email')->get(),
+            'availableUsers' => User::visible()->select('id', 'name', 'email')->get(),
         ]);
     }
 
@@ -87,8 +87,8 @@ class ServerSubusersController extends Controller
             'permissions.*' => 'string',
         ]);
 
-        $targetUser = User::where('email', $validated['email'])
-            ->orWhere('name', $validated['email'])
+        $targetUser = User::visible()
+            ->where(fn ($q) => $q->where('email', $validated['email'])->orWhere('name', $validated['email']))
             ->first();
 
         if (!$targetUser) {

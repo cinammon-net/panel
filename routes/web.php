@@ -221,14 +221,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
             for ($i = 6; $i >= 0; $i--) {
                 $dateStr = now()->subDays($i)->toDateString();
                 $installations[] = Server::whereDate('created_at', $dateStr)->count();
-                $newUsers[] = User::whereDate('created_at', $dateStr)->count();
+                $newUsers[] = User::visible()->whereDate('created_at', $dateStr)->count();
                 $errors[] = $hasFailedJobs
                     ? DB::table('failed_jobs')->whereDate('failed_at', $dateStr)->count()
                     : 0;
             }
 
             $stats = [
-                'users' => User::count(),
+                'users' => User::visible()->count(),
                 'servers' => Server::count(),
                 'installations' => Egg::count(),
                 'nodes' => Node::count(),
@@ -262,7 +262,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
             for ($i = 6; $i >= 0; $i--) {
                 $dateStr = now()->subDays($i)->toDateString();
-                $newUsers[] = User::whereDate('created_at', $dateStr)->count();
+                $newUsers[] = User::visible()->whereDate('created_at', $dateStr)->count();
                 $ticketsActivity[] = $hasTickets
                     ? \App\Models\Ticket::whereDate('created_at', $dateStr)->count()
                     : 0;
@@ -271,7 +271,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             $stats = [
                 'openTickets' => $hasTickets ? \App\Models\Ticket::where('status', 'open')->count() : 0,
                 'totalTickets' => $hasTickets ? \App\Models\Ticket::count() : 0,
-                'users' => User::count(),
+                'users' => User::visible()->count(),
                 'servers' => Server::count(),
             ];
 

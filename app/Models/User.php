@@ -47,6 +47,15 @@ class User extends Authenticatable
         return '/storage/'.ltrim($avatar, '/');
     }
 
+    /**
+     * Personas reales: fuera de la demo se excluyen las cuentas de demostración/prueba
+     * (config panel.demo_emails); dentro de la demo solo existen esas.
+     */
+    public function scopeVisible($query)
+    {
+        return $query->when(! \App\Support\Panel::demoMode(), fn ($q) => $q->whereNotIn('email', config('panel.demo_emails', [])));
+    }
+
     public function getAvatarUrlAttribute(): ?string
     {
         return self::avatarUrlFor($this->attributes['avatar'] ?? null);

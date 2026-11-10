@@ -103,7 +103,7 @@ class AdvancedSectionController extends Controller
                 'timezone' => config('app.timezone'),
                 'ssl' => request()->isSecure(),
                 'counts' => [
-                    'users' => User::count(),
+                    'users' => User::visible()->count(),
                     'servers' => Server::count(),
                     'nodes' => Node::count(),
                     'eggs' => Egg::count(),

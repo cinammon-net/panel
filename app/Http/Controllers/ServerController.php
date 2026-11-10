@@ -209,7 +209,7 @@ class ServerController extends Controller
     public function create()
     {
         $nodes = Node::all(); // Obteniendo los nodos
-        $owners = User::all(); // Obteniendo los usuarios
+        $owners = User::visible()->get(); // Obteniendo los usuarios
         $allocations = Allocation::whereNull('server_id')->whereNull('assigned_to')->orderBy('node_id')->orderBy('port')->get();
         $eggs = Egg::with('variables')
             ->select('id', 'name', 'startup', 'docker_images')
@@ -519,7 +519,7 @@ class ServerController extends Controller
         return Inertia::render('Servers/Edit', [
             'server' => $server,
             'nodes' => Node::all(),
-            'owners' => User::all(),
+            'owners' => User::visible()->get(),
             'allocations' => Allocation::where(fn ($q) => $q->whereNull('server_id')->whereNull('assigned_to')->orWhere('server_id', $server->id))
                 ->orderBy('node_id')->orderBy('port')->get(),
             'eggs' => $eggs,

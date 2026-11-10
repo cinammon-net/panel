@@ -26,7 +26,7 @@ class MaintenanceController extends Controller
                     'created_by' => $m->creator?->name,
                 ]),
             'mailEnabled' => !in_array(config('mail.default'), ['log', 'array'], true),
-            'usersCount' => User::count(),
+            'usersCount' => User::visible()->count(),
         ]);
     }
 
