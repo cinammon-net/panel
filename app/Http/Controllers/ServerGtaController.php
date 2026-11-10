@@ -347,7 +347,8 @@ class ServerGtaController extends Controller
     }
     private function write($client, Server $server, string $path, string $body): void
     {
-        $client->withBody($body, 'text/plain')->withHeaders(['Content-Length' => (string) strlen($body)])
+        // PendingRequest es mutable: withBody() se queda para las siguientes peticiones, así que se usa una copia.
+        (clone $client)->withBody($body, 'text/plain')->withHeaders(['Content-Length' => (string) strlen($body)])
             ->post('/servers/'.$server->uuid.'/files/write?'.http_build_query(['file' => '/'.$path]))->throw();
     }
 
@@ -450,7 +451,7 @@ class ServerGtaController extends Controller
 
             $stream = fopen($upload->getRealPath(), 'rb');
             try {
-                $client->withBody($stream, 'application/octet-stream')->withHeaders(['Content-Length' => (string) $upload->getSize()])
+                (clone $client)->withBody($stream, 'application/octet-stream')->withHeaders(['Content-Length' => (string) $upload->getSize()])
                     ->post('/servers/'.$server->uuid.'/files/write?'.http_build_query(['file' => '/'.$folder.'/'.$name]))->throw();
             } finally {
                 if (is_resource($stream)) {
