@@ -210,7 +210,7 @@
             return 'rgb(' + n(0) + ' ' + n(2) + ' ' + n(4) + (hx.length === 8 ? ' / ' + (n(6) / 255).toFixed(3) : '') + ')';
         });
         var out = v.replace(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)\s*(?:[,/]\s*([\d.]+%?|var\([^()]*\)))?\s*\)/g, function (all, r, g, b, a) {
-            if (Math.abs(r - 88) + Math.abs(g - 101) + Math.abs(b - 242) < 24) return all; // Discord: color de su marca
+            if (+r === 88 && +g === 101 && +b === 242) return all; // Discord (#5865F2): color de su marca, solo ese exacto
             var o = toOklch(+r, +g, +b), i = slot(o[2], o[1]);
             if (i === null || pal[i] == null) return all;
             hit = true;
