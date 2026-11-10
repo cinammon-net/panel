@@ -1,71 +1,71 @@
 {{-- Pantalla de carga al abrir/recargar la página (no en la navegación interna de Inertia).
-     Colores: los de acento de la web, así sigue la temporada. Mismo archivo en panel y billing. --}}
+     Muestra el logo de la web (season.js lo recolorea según la temporada). Mismo archivo en panel y billing. --}}
 <div id="cin-loader" role="status" aria-label="Cargando" style="--ld-a: {{ $a ?? '#ec4899' }}; --ld-b: {{ $b ?? '#22d3ee' }}">
     <div class="cin-ld-box">
-        <svg class="cin-ld-mark" viewBox="0 0 100 100" width="76" height="76" aria-hidden="true">
-            <defs>
-                <linearGradient id="cin-ld-grad" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" style="stop-color: var(--ld-a)" />
-                    <stop offset="1" style="stop-color: var(--ld-b)" />
-                </linearGradient>
-            </defs>
-            <path class="cin-ld-core" fill="url(#cin-ld-grad)" fill-rule="evenodd" d="M50 5L90 30V70L50 95L10 70V30L50 5Z M50 20L25 35V65L50 80L75 65V35L50 20Z" />
-            <path class="cin-ld-trace" fill="none" stroke="url(#cin-ld-grad)" stroke-width="2.5" stroke-linejoin="round" d="M50 5L90 30V70L50 95L10 70V30Z" />
-        </svg>
-        <span class="cin-ld-name">CINAMMON</span>
+        <span class="cin-ld-logo">
+            <img src="/favicon.ico" alt="Cinammon.net Logo" width="866" height="258" draggable="false" decoding="sync" fetchpriority="high" />
+            <i class="cin-ld-shine" aria-hidden="true"></i>
+        </span>
         <span class="cin-ld-bar"><i></i></span>
     </div>
 </div>
 <noscript><style>#cin-loader{display:none}</style></noscript>
 <style>
-    #cin-loader { position: fixed; inset: 0; z-index: 2147483000; display: grid; place-items: center; background: #05060a; transition: opacity .45s ease, visibility .45s ease; }
+    #cin-loader { position: fixed; inset: 0; z-index: 2147483000; display: grid; place-items: center; background: #05060a; transition: opacity .6s ease, visibility .6s ease; }
+    #cin-loader::before { content: ''; position: absolute; left: 50%; top: 50%; width: 520px; height: 320px; max-width: 90vw; transform: translate(-50%, -50%); background: radial-gradient(closest-side, color-mix(in oklab, var(--ld-a) 22%, transparent), transparent); opacity: 0; transition: opacity .6s ease; pointer-events: none; }
+    #cin-loader.cin-ld-ready::before { opacity: 1; animation: cin-ld-glow 2.4s ease-in-out infinite; }
     #cin-loader.cin-ld-out { opacity: 0; visibility: hidden; }
-    #cin-loader .cin-ld-box { display: flex; flex-direction: column; align-items: center; gap: 16px; opacity: 0; }
-    #cin-loader.cin-ld-ready .cin-ld-box { opacity: 1; animation: cin-ld-in .35s ease-out both; }
-    #cin-loader .cin-ld-mark { overflow: visible; filter: drop-shadow(0 0 14px color-mix(in oklab, var(--ld-a) 55%, transparent)); }
-    #cin-loader .cin-ld-core { opacity: .9; transform-origin: 50% 50%; animation: cin-ld-pulse 1.6s ease-in-out infinite; }
-    #cin-loader .cin-ld-trace { stroke-dasharray: 70 200; animation: cin-ld-trace 1.4s linear infinite; }
-    #cin-loader .cin-ld-name { font: 600 11px/1 Orbitron, ui-sans-serif, system-ui, sans-serif; letter-spacing: .5em; padding-left: .5em; color: #a3a3a3; }
-    #cin-loader .cin-ld-bar { position: relative; width: 150px; height: 2px; overflow: hidden; border-radius: 2px; background: rgba(255, 255, 255, .08); }
-    #cin-loader .cin-ld-bar i { position: absolute; inset: 0 auto 0 0; width: 40%; border-radius: 2px; background: linear-gradient(90deg, var(--ld-a), var(--ld-b)); animation: cin-ld-bar 1.1s ease-in-out infinite; }
-    @keyframes cin-ld-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-    @keyframes cin-ld-pulse { 0%, 100% { transform: scale(.94); opacity: .75; } 50% { transform: scale(1); opacity: 1; } }
-    @keyframes cin-ld-trace { to { stroke-dashoffset: -270; } }
+    #cin-loader .cin-ld-box { position: relative; display: flex; flex-direction: column; align-items: center; gap: 26px; opacity: 0; }
+    #cin-loader.cin-ld-ready .cin-ld-box { opacity: 1; animation: cin-ld-in .6s cubic-bezier(.2, .7, .2, 1) both; }
+    #cin-loader .cin-ld-logo { position: relative; display: block; width: min(260px, 70vw); aspect-ratio: 866 / 258; animation: cin-ld-float 2.4s ease-in-out infinite; }
+    #cin-loader .cin-ld-logo img { display: block; width: 100%; height: 100%; user-select: none; filter: drop-shadow(0 0 18px color-mix(in oklab, var(--ld-a) 45%, transparent)); }
+    /* Brillo que recorre el logo (recortado con la forma del propio logo) */
+    #cin-loader .cin-ld-shine { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .75) 50%, transparent 65%) no-repeat; background-size: 250% 100%; background-position: 150% 0; -webkit-mask: url(/favicon.ico) center / contain no-repeat; mask: url(/favicon.ico) center / contain no-repeat; mix-blend-mode: overlay; animation: cin-ld-shine 2.2s ease-in-out .3s infinite; }
+    #cin-loader .cin-ld-bar { position: relative; width: min(200px, 55vw); height: 2px; overflow: hidden; border-radius: 2px; background: rgba(255, 255, 255, .08); }
+    #cin-loader .cin-ld-bar i { position: absolute; inset: 0 auto 0 0; width: 40%; border-radius: 2px; background: linear-gradient(90deg, var(--ld-a), var(--ld-b)); animation: cin-ld-bar 1.3s ease-in-out infinite; }
+    @keyframes cin-ld-in { from { opacity: 0; transform: translateY(10px) scale(.96); } to { opacity: 1; transform: none; } }
+    @keyframes cin-ld-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+    @keyframes cin-ld-glow { 0%, 100% { opacity: .7; } 50% { opacity: 1; } }
+    @keyframes cin-ld-shine { 0% { background-position: 150% 0; } 60%, 100% { background-position: -50% 0; } }
     @keyframes cin-ld-bar { 0% { transform: translateX(-110%); } 100% { transform: translateX(260%); } }
     @media (prefers-reduced-motion: reduce) {
-        #cin-loader .cin-ld-core, #cin-loader .cin-ld-trace, #cin-loader .cin-ld-bar i, #cin-loader .cin-ld-box { animation: none; }
+        #cin-loader .cin-ld-logo, #cin-loader .cin-ld-shine, #cin-loader .cin-ld-bar i, #cin-loader .cin-ld-box, #cin-loader::before { animation: none; }
+        #cin-loader .cin-ld-shine { display: none; }
     }
 </style>
 <script>
     (function () {
         var el = document.getElementById('cin-loader');
         if (!el) return;
+        var img = el.querySelector('img');
+        var SHOW = 1800; // tiempo mínimo que se ve el logo
         var t0 = Date.now(), done = false, ready = false, readyAt = 0;
-        // El hexágono aparece cuando ya se conocen los colores de la temporada (o a los 500 ms), sin saltos de color.
+        // El logo aparece cuando ya está recoloreado con la temporada (o al cargar, si no hay temporada), sin saltos de color.
         function setReady() {
             if (ready) return;
             ready = true; readyAt = Date.now();
             el.classList.add('cin-ld-ready');
         }
-        var root = document.documentElement;
-        if (root.hasAttribute('data-season-colors')) setReady();
-        else if (window.MutationObserver) {
-            var mo = new MutationObserver(function () { if (root.hasAttribute('data-season-colors')) { mo.disconnect(); setReady(); } });
-            mo.observe(root, { attributes: true, attributeFilter: ['data-season-colors'] });
+        function check() {
+            if (img.getAttribute('data-season-logo')) return setReady();
+            // Sin temporada activa: el logo original vale en cuanto haya cargado.
+            if (!document.documentElement.hasAttribute('data-season-colors') && Date.now() - t0 > 700 && img.complete && img.naturalWidth) setReady();
         }
-        setTimeout(setReady, 500);
+        if (window.MutationObserver) new MutationObserver(check).observe(img, { attributes: true, attributeFilter: ['data-season-logo', 'src'] });
+        var iv = setInterval(function () { check(); if (ready) clearInterval(iv); }, 100);
+        setTimeout(setReady, 1500);
         function hide() {
             if (done) return;
+            if (!ready) { setTimeout(hide, 100); return; }
             done = true;
-            // Si el logo ya se ve, se deja un momento para que no "parpadee"; si no llegó a verse, se va directamente.
-            var wait = ready ? Math.max(0, 350 - (Date.now() - t0), readyAt + 300 - Date.now()) : 0;
+            var wait = Math.max(0, readyAt + SHOW - Date.now());
             setTimeout(function () {
                 el.classList.add('cin-ld-out');
-                setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 500);
+                setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 650);
             }, wait);
         }
         if (document.readyState === 'complete') hide();
         else window.addEventListener('load', hide);
-        setTimeout(hide, 4000); // nunca bloquea la web si algo tarda en cargar
+        setTimeout(function () { setReady(); hide(); }, 7000); // nunca bloquea la web si algo tarda en cargar
     })();
 </script>
