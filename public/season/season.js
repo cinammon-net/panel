@@ -98,6 +98,7 @@
         };
     }
     function frame() {
+        selfDraw = true;
         ctx.clearRect(0, 0, W, H);
         for (var i = 0; i < parts.length; i++) {
             var p = parts[i];
@@ -111,6 +112,7 @@
             ctx.restore();
         }
         ctx.globalAlpha = 1;
+        selfDraw = false;
         raf = requestAnimationFrame(frame);
     }
     var COLORS = CONFETTI;
@@ -262,7 +264,9 @@
             if (ch === ',' && depth === 0) { parts.push(cur); cur = ''; } else cur += ch;
         }
         parts.push(cur);
-        return parts.map(function (p) { p = p.trim(); return /^:root\b|^html\b/.test(p) ? p.replace(/^(:root|html)/, ATTR) : ATTR + ' ' + p; }).join(',');
+        return parts.map(function (p) { p = p.trim(); if (/^:root\b|^html\b/.test(p)) return p.replace(/^(:root|html)/, ATTR);
+            // .dark body: la clase .dark est\u00e1 en el propio <html>, as\u00ed que tambi\u00e9n se prueba pegada a :root
+            return /^[.\[]/.test(p) ? ATTR + ' ' + p + ',' + ATTR + p : ATTR + ' ' + p; }).join(',');
     }
     // Separa \"a: b; c: d\" respetando par\u00e9ntesis y comillas (url(data:...;...), etc.).
     function splitDecls(t) {
@@ -305,7 +309,11 @@
                     if (!inner) continue;
                     if (r.media) css += '@media ' + r.media.mediaText + '{' + inner + '}';
                     else if (r.conditionText !== undefined) css += '@supports ' + r.conditionText + '{' + inner + '}';
-                    else css += inner; // @layer: fuera de capa para que gane
+                    else {
+                        css += inner; // @layer: fuera de capa para que gane
+                        // Pero un !important dentro de una capa gana a uno sin capa: esos se repiten en la misma capa.
+                        if (r.name && inner.indexOf('!important') >= 0) css += '@layer ' + r.name + '{' + inner + '}';
+                    }
                 }
             } catch (e) { /* regla rara: se ignora */ }
         }
@@ -375,6 +383,82 @@
             } catch (e) { img.setAttribute('data-season-logo', 'x'); } // imagen de otro dominio: se deja igual
         })();
     }
+    // ---------- Gr\u00e1ficas (canvas), estilos en l\u00ednea y colores de SVG ----------
+    var selfDraw = false, canvasPal = null, canvasMemo = {}, canvasMemoN = 0;
+    function canvasColor(v) {
+        var m = canvasMemo[v];
+        if (m === undefined) {
+            if (canvasMemoN++ > 2000) { canvasMemo = {}; canvasMemoN = 0; }
+            m = canvasMemo[v] = recolorValue(v, canvasPal) || '';
+        }
+        return m || v;
+    }
+    function skipCanvas(cv) {
+        if (!cv || !cv.isConnected) return false;
+        if (cv.__seasonSkip === undefined) cv.__seasonSkip = !!(cv.closest && cv.closest('.xterm,[data-season-ui],#cin-loader'));
+        return cv.__seasonSkip;
+    }
+    function patchCanvas() {
+        if (patchCanvas.done || !window.CanvasRenderingContext2D) return;
+        patchCanvas.done = true;
+        var P = CanvasRenderingContext2D.prototype;
+        ['fillStyle', 'strokeStyle', 'shadowColor'].forEach(function (k) {
+            var d = Object.getOwnPropertyDescriptor(P, k);
+            if (!d || !d.set || !d.configurable) return;
+            Object.defineProperty(P, k, {
+                configurable: true, enumerable: d.enumerable, get: d.get,
+                set: function (v) {
+                    if (canvasPal && !selfDraw && typeof v === 'string' && !skipCanvas(this.canvas)) v = canvasColor(v);
+                    d.set.call(this, v);
+                },
+            });
+        });
+        if (window.CanvasGradient) {
+            var add = CanvasGradient.prototype.addColorStop;
+            CanvasGradient.prototype.addColorStop = function (o, c) {
+                return add.call(this, o, canvasPal && !selfDraw && typeof c === 'string' ? canvasColor(c) : c);
+            };
+        }
+    }
+    var INL_SEL = '[style*="rgb"],[style*="#"],[fill^="#"],[fill^="rgb"],[stroke^="#"],[stroke^="rgb"],[stop-color]';
+    var INL_ATTRS = ['fill', 'stroke', 'stop-color'];
+    var inlineTouched = [];
+    function inlineOn(pal) {
+        var list = document.body.querySelectorAll(INL_SEL);
+        for (var i = 0; i < list.length; i++) {
+            var el = list[i];
+            if (el.closest('[data-season-ui],#cin-loader')) continue;
+            var st = el.getAttribute('style');
+            // Si React cambi\u00f3 el estilo despu\u00e9s, se vuelve a recolorear el nuevo.
+            if (st && (st.indexOf('rgb') >= 0 || st.indexOf('#') >= 0) && st !== el.__seasonStyleNew) {
+                var nv = recolorValue(st, pal);
+                if (nv) {
+                    if (!el.__seasonInl) { el.__seasonInl = {}; inlineTouched.push(el); }
+                    el.__seasonInl.style = st; el.__seasonStyleNew = nv;
+                    el.setAttribute('style', nv);
+                } else el.__seasonStyleNew = st;
+            }
+            for (var k = 0; k < INL_ATTRS.length; k++) {
+                var an = INL_ATTRS[k], av = el.getAttribute(an);
+                if (!av || (el.__seasonAttrNew && el.__seasonAttrNew[an] === av)) continue;
+                var na = recolorValue(av, pal);
+                if (!el.__seasonAttrNew) el.__seasonAttrNew = {};
+                if (na) {
+                    if (!el.__seasonInl) { el.__seasonInl = {}; inlineTouched.push(el); }
+                    el.__seasonInl[an] = av; el.__seasonAttrNew[an] = na;
+                    el.setAttribute(an, na);
+                } else el.__seasonAttrNew[an] = av;
+            }
+        }
+    }
+    function inlineOff() {
+        for (var i = 0; i < inlineTouched.length; i++) {
+            var el = inlineTouched[i], o = el.__seasonInl;
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) el.setAttribute(k, o[k]);
+            el.__seasonInl = el.__seasonStyleNew = el.__seasonAttrNew = undefined;
+        }
+        inlineTouched = [];
+    }
     function logosOn(pal) {
         // Iconos de icons8 (flechas, etc.): se recolorean p\u00edxel a p\u00edxel; el de Discord se deja con su marca.
         var icons = document.querySelectorAll('img[src*="icons8.com"]:not([alt="Discord" i])');
@@ -397,6 +481,8 @@
         if (!on) {
             document.documentElement.removeAttribute('data-season-colors');
             logosOff();
+            inlineOff();
+            canvasPal = null;
             if (logoObs) { logoObs.disconnect(); logoObs = null; }
             return;
         }
@@ -429,12 +515,15 @@
             if (window.MutationObserver) new MutationObserver(function () { setTimeout(rescan, 50); }).observe(document.head, { childList: true });
         }
         document.documentElement.setAttribute('data-season-colors', paletteKey);
-        var go = function () { if (document.body) logosOn(pal); };
+        if (canvasPal !== pal) { canvasPal = pal; canvasMemo = {}; canvasMemoN = 0; }
+        patchCanvas();
+        var go = function () { if (document.body) { logosOn(pal); inlineOn(pal); } };
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
         if (!logoObs && window.MutationObserver) {
             var t = null;
-            logoObs = new MutationObserver(function () { clearTimeout(t); t = setTimeout(go, 120); });
-            var watch = function () { logoObs && logoObs.observe(document.body, { childList: true, subtree: true }); };
+            // Se agrupa: como mucho una pasada cada 150 ms aunque haya animaciones cambiando estilos sin parar.
+            logoObs = new MutationObserver(function () { if (!t) t = setTimeout(function () { t = null; go(); }, 150); });
+            var watch = function () { logoObs && logoObs.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'fill', 'stroke', 'stop-color'] }); };
             if (document.body) watch(); else document.addEventListener('DOMContentLoaded', watch);
         }
     }
