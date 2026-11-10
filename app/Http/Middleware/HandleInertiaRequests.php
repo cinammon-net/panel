@@ -102,6 +102,8 @@ class HandleInertiaRequests extends Middleware
                 'user' => fn() => $request->user() ? [
                     'id' => $request->user()->id,
                     'name' => $request->user()->name,
+                    'email' => $request->user()->email,
+                    'avatar' => $request->user()->avatar_url,
                     'roles' => $request->user()->getRoleNames(), // ← Spatie roles
                     'permissions' => $request->user()->getAllPermissions()->pluck('name'), // ← Spatie permissions
                 ] : null,

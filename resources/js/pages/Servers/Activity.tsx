@@ -21,6 +21,7 @@ import {
     User,
     Users,
 } from 'lucide-react';
+import { avatarUrl } from '@/components/user-avatar';
 import { useState } from 'react';
 
 interface ActivityItem {
@@ -123,7 +124,7 @@ function UserAvatar({ name, avatar }: { name: string; avatar?: string | null }) 
     return (
         <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-neutral-300 bg-gradient-to-br from-cyan-500/30 to-pink-500/30 text-xs font-bold text-neutral-800 dark:border-neutral-700 dark:text-white">
             {avatar && !failed ? (
-                <img src={avatar} alt="" loading="lazy" onError={() => setFailed(true)} className="h-full w-full object-cover" />
+                <img src={avatarUrl(avatar) ?? undefined} alt="" loading="lazy" onError={() => setFailed(true)} className="h-full w-full object-cover" />
             ) : (
                 <span>{initials || '?'}</span>
             )}
