@@ -111,6 +111,26 @@ function getActionBadge(action: string) {
     };
 }
 
+/** Foto del usuario o sus iniciales si no tiene o no carga. */
+function UserAvatar({ name, avatar }: { name: string; avatar?: string | null }) {
+    const [failed, setFailed] = useState(false);
+    const initials = name
+        .split(/\s+/)
+        .map((w) => w.charAt(0))
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
+    return (
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-neutral-300 bg-gradient-to-br from-cyan-500/30 to-pink-500/30 text-xs font-bold text-neutral-800 dark:border-neutral-700 dark:text-white">
+            {avatar && !failed ? (
+                <img src={avatar} alt="" loading="lazy" onError={() => setFailed(true)} className="h-full w-full object-cover" />
+            ) : (
+                <span>{initials || '?'}</span>
+            )}
+        </div>
+    );
+}
+
 export default function ActivityPage({ server, activity = [] }: PageProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [actionFilter, setActionFilter] = useState('all');
@@ -210,17 +230,7 @@ export default function ActivityPage({ server, activity = [] }: PageProps) {
                                 className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/60 p-4 transition-all shadow-sm hover:border-cyan-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
                             >
                                 <div className="flex items-start gap-3.5">
-                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 font-bold text-xs uppercase border border-neutral-300 dark:border-neutral-700">
-                                        {item.user.avatar ? (
-                                            <img
-                                                src={item.user.avatar}
-                                                alt={item.user.name}
-                                                className="h-full w-full rounded-lg object-cover"
-                                            />
-                                        ) : (
-                                            <span>{item.user.name.slice(0, 2)}</span>
-                                        )}
-                                    </div>
+                                    <UserAvatar name={item.user.name} avatar={item.user.avatar} />
 
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-2 flex-wrap">

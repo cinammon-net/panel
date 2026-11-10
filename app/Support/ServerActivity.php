@@ -25,7 +25,7 @@ class ServerActivity
                 'user_id' => $user?->id,
                 'user_name' => mb_substr((string) ($user?->name ?? $actor['name'] ?? 'Sistema'), 0, 120),
                 'user_email' => $user?->email ?? $actor['email'] ?? null,
-                'user_avatar' => $user?->avatar ? mb_substr((string) $user->avatar, 0, 500) : null,
+                'user_avatar' => $user?->avatar && strlen((string) $user->avatar) <= 500 ? (string) $user->avatar : null,
                 'source' => $source,
                 'action' => mb_substr($action, 0, 80),
                 'description' => mb_substr(trim(preg_replace('/[\x00-\x1f\x7f]+/', ' ', $description)), 0, 600),
@@ -48,13 +48,28 @@ class ServerActivity
         }
     }
 
+    /** Los avatares subidos se guardan como "avatars/x.png" (disco public): se sirven en /storage/... */
+    private static function avatarUrl(?string $avatar): ?string
+    {
+        if (! $avatar) {
+            return null;
+        }
+        if (preg_match('#^(https?:)?//|^data:image/|^/#i', $avatar)) {
+            return $avatar;
+        }
+
+        return '/storage/'.ltrim($avatar, '/');
+    }
+
     /** Entradas para la página de Actividad, más recientes primero. */
     public static function recent(int $serverId, int $limit = 500): array
     {
-        return DB::table('server_activity_logs')->where('server_id', $serverId)->orderByDesc('id')->limit($limit)->get()
+        return DB::table('server_activity_logs as l')->leftJoin('users as u', 'u.id', '=', 'l.user_id')
+            ->where('l.server_id', $serverId)->orderByDesc('l.id')->limit($limit)
+            ->get(['l.*', 'u.avatar as current_avatar', 'u.name as current_name'])
             ->map(fn ($r) => [
                 'id' => (string) $r->id,
-                'user' => ['name' => $r->user_name ?? 'Sistema', 'email' => $r->user_email ?? '', 'avatar' => $r->user_avatar],
+                'user' => ['name' => $r->current_name ?? $r->user_name ?? 'Sistema', 'email' => $r->user_email ?? '', 'avatar' => self::avatarUrl($r->current_avatar ?? $r->user_avatar)],
                 'source' => $r->source,
                 'action' => $r->action,
                 'description' => $r->description,

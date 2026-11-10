@@ -19,14 +19,20 @@ function Avatar({
   )
 }
 
+// Los avatares subidos se guardan como "avatars/x.png" (disco public) y se sirven en /storage/.
+const avatarSrc = (src?: string) =>
+  src && !/^(https?:)?\/\/|^data:|^blob:|^\//i.test(src) ? `/storage/${src}` : src
+
 function AvatarImage({
   className,
+  src,
   ...props
 }: React.ComponentProps<typeof AvatarPrimitive.Image>) {
   return (
     <AvatarPrimitive.Image
       data-slot="avatar-image"
-      className={cn("aspect-square size-full", className)}
+      className={cn("aspect-square size-full object-cover", className)}
+      src={avatarSrc(src)}
       {...props}
     />
   )
