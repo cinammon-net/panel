@@ -1,5 +1,4 @@
 import LogDiagnostics from '@/components/server/log-diagnostics';
-import GtaPanel from '@/components/server/gta-panel';
 import PlayersPanel from '@/components/server/players-panel';
 import ServerLayout from '@/layouts/server-layout';
 import { colorizeLogs } from '@/lib/terminal-colors';
@@ -805,9 +804,6 @@ export default function Console({ server }: { server: Server }) {
 
                 {/* Operadores, whitelist y baneos (Minecraft Java) */}
                 {server.players && <PlayersPanel serverId={server.id} running={running} />}
-
-                {/* Jugadores conectados y mods/resources (MTA, SA-MP, FiveM...) */}
-                {server.gta && <GtaPanel serverId={server.id} running={running} />}
 
                 {/* Gráficos de recursos debajo de la consola: CPU, Memoria y Red */}
                 <section aria-label="Gráficos de rendimiento del servidor" className="grid gap-4 lg:grid-cols-3">
