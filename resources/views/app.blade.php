@@ -61,7 +61,12 @@
     <title inertia>{{ config('app.name', 'Cinammon') }}</title>
 
     <!-- 🖼️ Iconos -->
-    <link rel="icon" href="/favicon.ico" sizes="any">
+    @php
+        // Logo según el subdominio (cinammon.panel, .demo, .store, .billing); el dominio principal usa el original (.net).
+        $cinSub = explode('.', request()->getHost())[0];
+        $cinLogo = in_array($cinSub, ['panel', 'demo', 'store', 'billing'], true) ? "/logos/cinammon-{$cinSub}.png" : '/favicon.ico';
+    @endphp
+    <link rel="icon" href="{{ $cinLogo }}" sizes="any">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
     <!-- 🔤 Fuente Orbitron -->
@@ -78,7 +83,7 @@
 </head>
 
 <body class="font-sans antialiased">
-    @include('partials.loader', ['a' => 'var(--color-pink-500, #ec4899)', 'b' => 'var(--color-cyan-400, #22d3ee)'])
+    @include('partials.loader', ['a' => 'var(--color-pink-500, #ec4899)', 'b' => 'var(--color-cyan-400, #22d3ee)', 'logo' => $cinLogo])
     @inertia
 </body>
 

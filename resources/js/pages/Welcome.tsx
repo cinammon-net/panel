@@ -8,6 +8,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Activity, BarChart3, Gauge, Heart, Images, MessageSquareQuote, Newspaper, Palette, SlidersHorizontal, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { cinLogo } from '@/lib/brand';
 
 const CookieBanner: React.FC = () => {
     const [cookiesAccepted, setCookiesAccepted] = useState<boolean>(false);
@@ -157,7 +158,7 @@ export default function WelcomePanel() {
                 {/* NAVBAR FIJO */}
                 <header className="animate-fade-in fixed top-0 z-50 flex w-full flex-wrap items-center justify-between gap-4 border-b border-pink-600 bg-black/70 p-6 backdrop-blur-md">
                     <Link href={route('home')} data-aos="fade-right">
-                        <img src="/favicon.ico" alt="Cinammon.net Logo" className="h-10 transition hover:opacity-80 sm:h-12" draggable={false} />
+                        <img src={cinLogo()} alt="Cinammon Logo" className="h-10 transition hover:opacity-80 sm:h-12" draggable={false} />
                     </Link>
                     <nav className="flex gap-3" data-aos="fade-left">
                         <a
@@ -659,7 +660,7 @@ export default function WelcomePanel() {
             <footer className="w-full border-t border-neutral-700 bg-black text-neutral-300">
                 <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 py-10 text-sm sm:grid-cols-3">
                     <div className="flex flex-col items-start gap-4">
-                        <img src="/favicon.ico" alt="Logo Cinammon" className="h-12 w-auto" draggable={false} />
+                        <img src={cinLogo()} alt="Cinammon Logo" className="h-12 w-auto" draggable={false} />
                         <p className="leading-relaxed text-neutral-400">
                             cinammon.net es una plataforma de gestión moderna para redes y comunidades digitales.
                         </p>

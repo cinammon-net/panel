@@ -362,26 +362,51 @@
             return;
         }
         if (cross) src = img.__seasonCors;
-        (function () {
-            try {
-                var w = src.naturalWidth, h = src.naturalHeight;
-                if (!w || !h || w * h > 4000000) return;
-                var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-                var cx = cv.getContext('2d'); cx.drawImage(src, 0, 0);
-                var d = cx.getImageData(0, 0, w, h), px = d.data, memo = {};
-                for (var i = 0; i < px.length; i += 4) {
-                    if (!px[i + 3]) continue;
-                    var key = (px[i] << 16) | (px[i + 1] << 8) | px[i + 2], o = memo[key];
-                    if (o === undefined) {
-                        var c = toOklch(px[i], px[i + 1], px[i + 2]), sl = slot(c[2], c[1]);
-                        o = memo[key] = (sl === null || pal[sl] == null) ? null : fromOklch(c[0], c[1], pal[sl]);
-                    }
-                    if (o) { px[i] = o[0]; px[i + 1] = o[1]; px[i + 2] = o[2]; }
-                }
-                cx.putImageData(d, 0, 0);
-                done(logoCache[orig] = cv.toDataURL('image/png'));
-            } catch (e) { img.setAttribute('data-season-logo', 'x'); } // imagen de otro dominio: se deja igual
-        })();
+        try {
+            var url = recolorPixels(src, pal);
+            if (url) done(logoCache[orig] = url);
+        } catch (e) { img.setAttribute('data-season-logo', 'x'); } // imagen de otro dominio: se deja igual
+    }
+    // Recolorea los p\u00edxeles de una imagen ya cargada con la paleta; devuelve un data URL (o null si es demasiado grande).
+    function recolorPixels(src, pal) {
+        var w = src.naturalWidth, h = src.naturalHeight;
+        if (!w || !h || w * h > 4000000) return null;
+        var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        var cx = cv.getContext('2d'); cx.drawImage(src, 0, 0);
+        var d = cx.getImageData(0, 0, w, h), px = d.data, memo = {};
+        for (var i = 0; i < px.length; i += 4) {
+            if (!px[i + 3]) continue;
+            var key = (px[i] << 16) | (px[i + 1] << 8) | px[i + 2], o = memo[key];
+            if (o === undefined) {
+                var c = toOklch(px[i], px[i + 1], px[i + 2]), sl = slot(c[2], c[1]);
+                o = memo[key] = (sl === null || pal[sl] == null) ? null : fromOklch(c[0], c[1], pal[sl]);
+            }
+            if (o) { px[i] = o[0]; px[i + 1] = o[1]; px[i + 2] = o[2]; }
+        }
+        cx.putImageData(d, 0, 0);
+        return cv.toDataURL('image/png');
+    }
+    // Favicon de la pesta\u00f1a: la misma imagen recoloreada.
+    var favLinks = [];
+    function faviconOn(pal) {
+        var links = document.querySelectorAll('link[rel~="icon"]');
+        for (var i = 0; i < links.length; i++) {
+            var l = links[i], href = l.getAttribute('href');
+            if (l.__seasonOrig || !href || href.indexOf('data:') === 0) continue;
+            l.__seasonOrig = href; favLinks.push(l);
+            (function (l, href) {
+                if (logoCache[href]) { l.href = logoCache[href]; return; }
+                var im = new Image();
+                im.onload = function () {
+                    try { var u = recolorPixels(im, pal); if (u && l.__seasonOrig === href) l.href = logoCache[href] = u; } catch (e) { /* se deja igual */ }
+                };
+                im.src = href;
+            })(l, href);
+        }
+    }
+    function faviconOff() {
+        for (var i = 0; i < favLinks.length; i++) { favLinks[i].href = favLinks[i].__seasonOrig; favLinks[i].__seasonOrig = undefined; }
+        favLinks = [];
     }
     // ---------- Gr\u00e1ficas (canvas), estilos en l\u00ednea y colores de SVG ----------
     var selfDraw = false, canvasPal = null, canvasMemo = {}, canvasMemoN = 0;
@@ -481,8 +506,10 @@
         for (var j = 0; j < icons.length; j++) recolorLogo(icons[j], pal);
         var list = document.querySelectorAll(LOGO_SEL);
         for (var i = 0; i < list.length; i++) recolorLogo(list[i], pal);
+        faviconOn(pal);
     }
     function logosOff() {
+        faviconOff();
         var list = document.querySelectorAll('img[data-season-logo]');
         for (var i = 0; i < list.length; i++) {
             var o = list[i].getAttribute('data-season-logo');

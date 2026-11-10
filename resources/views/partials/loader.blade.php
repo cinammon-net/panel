@@ -1,7 +1,8 @@
 {{-- Pantalla de carga al abrir/recargar la página (no en la navegación interna de Inertia).
      Muestra el logo de la web (season.js lo recolorea según la temporada); todo lo demás usa --ld-a / --ld-b,
      que son los colores de acento de la web, así sigue la temporada. Mismo archivo en panel y billing. --}}
-<div id="cin-loader" role="status" aria-label="Cargando" style="--ld-a: {{ $a ?? '#ec4899' }}; --ld-b: {{ $b ?? '#22d3ee' }}">
+@php($ldLogo = $logo ?? '/favicon.ico')
+<div id="cin-loader" role="status" aria-label="Cargando" style="--ld-a: {{ $a ?? '#ec4899' }}; --ld-b: {{ $b ?? '#22d3ee' }}; --ld-logo: url('{{ $ldLogo }}')">
     <i class="cin-ld-aura cin-ld-aura-a" aria-hidden="true"></i>
     <i class="cin-ld-aura cin-ld-aura-b" aria-hidden="true"></i>
     <i class="cin-ld-grid" aria-hidden="true"></i>
@@ -9,7 +10,7 @@
     <div class="cin-ld-box">
         <span class="cin-ld-orbit" aria-hidden="true"><i></i><i></i></span>
         <span class="cin-ld-logo">
-            <img src="/favicon.ico" alt="Cinammon.net Logo" width="866" height="258" draggable="false" decoding="sync" fetchpriority="high" />
+            <img src="{{ $ldLogo }}" alt="Cinammon Logo" width="866" height="{{ $ldLogo === '/favicon.ico' ? 258 : 282 }}" draggable="false" decoding="sync" fetchpriority="high" />
             <i class="cin-ld-shine" aria-hidden="true"></i>
         </span>
         <span class="cin-ld-progress">
@@ -45,11 +46,11 @@
     #cin-loader .cin-ld-orbit i { position: absolute; inset: -1px; border-radius: 50%; border: 2px solid transparent; border-top-color: var(--ld-a); filter: drop-shadow(0 0 5px var(--ld-a)); -webkit-mask: linear-gradient(90deg, transparent 15%, #000 50%, transparent 85%); mask: linear-gradient(90deg, transparent 15%, #000 50%, transparent 85%); animation: cin-ld-spin 2.2s linear infinite; }
     #cin-loader .cin-ld-orbit i + i { border-top-color: transparent; border-bottom-color: var(--ld-b); filter: drop-shadow(0 0 6px var(--ld-b)); animation-duration: 3.1s; animation-direction: reverse; }
 
-    #cin-loader .cin-ld-logo { position: relative; display: block; width: min(290px, 72vw); aspect-ratio: 866 / 258; filter: drop-shadow(0 0 20px color-mix(in oklab, var(--ld-a) 55%, transparent)); }
+    #cin-loader .cin-ld-logo { position: relative; display: block; width: min(290px, 72vw); filter: drop-shadow(0 0 20px color-mix(in oklab, var(--ld-a) 55%, transparent)); }
     #cin-loader.cin-ld-ready .cin-ld-logo { animation: cin-ld-breathe 2.6s ease-in-out 1.1s infinite; }
-    #cin-loader .cin-ld-logo img { display: block; width: 100%; height: 100%; user-select: none; clip-path: inset(0 100% 0 0); }
+    #cin-loader .cin-ld-logo img { display: block; width: 100%; height: auto; user-select: none; clip-path: inset(0 100% 0 0); }
     #cin-loader.cin-ld-ready .cin-ld-logo img { animation: cin-ld-reveal .9s cubic-bezier(.65, 0, .35, 1) .15s forwards; }
-    #cin-loader .cin-ld-shine { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .85) 50%, transparent 65%) no-repeat; background-size: 250% 100%; background-position: 150% 0; -webkit-mask: url(/favicon.ico) center / contain no-repeat; mask: url(/favicon.ico) center / contain no-repeat; mix-blend-mode: overlay; }
+    #cin-loader .cin-ld-shine { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .85) 50%, transparent 65%) no-repeat; background-size: 250% 100%; background-position: 150% 0; -webkit-mask: var(--ld-logo) center / contain no-repeat; mask: var(--ld-logo) center / contain no-repeat; mix-blend-mode: overlay; }
     #cin-loader.cin-ld-ready .cin-ld-shine { animation: cin-ld-shine 2.4s ease-in-out 1s infinite; }
 
     #cin-loader .cin-ld-progress { display: flex; flex-direction: column; gap: 10px; width: min(240px, 62vw); }

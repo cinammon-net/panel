@@ -8,6 +8,7 @@ import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cinLogo } from '@/lib/brand';
 
 function AuthLayout({ description, children }: { title: string; description?: string; children: ReactNode }) {
     return (
@@ -20,7 +21,7 @@ function AuthLayout({ description, children }: { title: string; description?: st
                 <div className="mb-6 text-center">
                     <div className="mb-4 flex justify-center">
                         <a href="https://cinammon.net" title="Volver a Cinammon.net" className="transition hover:opacity-80 hover:scale-105">
-                            <img src="/favicon.ico" alt="Cinammon.net Logo" className="h-20 sm:h-22" draggable={false} />
+                            <img src={cinLogo()} alt="Cinammon Logo" className="h-20 sm:h-22" draggable={false} />
                         </a>
                     </div>
                     <h1 className="font-[Orbitron] text-3xl tracking-wide text-pink-400">Regístrate</h1>
