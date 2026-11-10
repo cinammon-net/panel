@@ -406,11 +406,14 @@ class ServerGtaController extends Controller
                 $this->write($client, $server, $configPath, GtaServers::toggleConfig($kind, $config, $name, $file, $data['section'], $on));
             }
 
+            // Aplicarlo en vivo es un extra: si falla, la configuración ya está guardada y basta con reiniciar.
             $live = false;
             $commands = GtaServers::liveCommand($kind, $name, $data['section'], $on);
-            if ($commands && $client->get('/servers/'.$server->uuid)->json('state') === 'running') {
-                $client->post('/servers/'.$server->uuid.'/commands', ['commands' => $commands])->throw();
-                $live = true;
+            try {
+                $live = $commands && $wings->forServer($server)->timeout(5)->get('/servers/'.$server->uuid)->json('state') === 'running'
+                    && $wings->forServer($server)->timeout(5)->post('/servers/'.$server->uuid.'/commands', ['commands' => $commands])->successful();
+            } catch (ConnectionException|RequestException) {
+                $live = false;
             }
         } catch (ConnectionException|RequestException) {
             return response()->json(['message' => 'No se pudo guardar la configuración.'], 502);
