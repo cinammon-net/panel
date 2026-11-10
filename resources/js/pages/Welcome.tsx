@@ -27,21 +27,26 @@ const CookieBanner: React.FC = () => {
 
     
     return (
-        <div className="fixed bottom-0 left-0 z-50 w-full bg-black/70 p-4 text-center text-white">
-            <p>
-                We use cookies to enhance your experience. By continuing to use this site, you accept our{' '}
-                <a href="/privacy" className="text-[#30D5F6] underline">
-                    Privacy Policy
-                </a>{' '}
-                and{' '}
-                <a href="/terms" className="text-[#30D5F6] underline">
-                    Terms & Conditions
-                </a>
-                .
-            </p>
-            <button onClick={acceptCookies} className="mt-2 rounded-md bg-pink-500 px-4 py-2 text-white transition hover:bg-pink-600">
-                Accept Cookies
-            </button>
+        <div className="fixed inset-x-0 bottom-0 z-[60] border-t border-pink-600/40 bg-black/90 px-4 py-3 text-white backdrop-blur-md sm:py-4">
+            <div className="mx-auto flex max-w-4xl flex-col items-center gap-2 text-center sm:flex-row sm:gap-4 sm:text-left">
+                <p className="text-xs leading-relaxed sm:flex-1 sm:text-sm">
+                    Usamos cookies para mejorar tu experiencia. Al seguir navegando aceptas la{' '}
+                    <a href="/privacy" className="text-[#30D5F6] underline">
+                        Política de privacidad
+                    </a>{' '}
+                    y los{' '}
+                    <a href="/terms" className="text-[#30D5F6] underline">
+                        Términos
+                    </a>
+                    .
+                </p>
+                <button
+                    onClick={acceptCookies}
+                    className="shrink-0 rounded-md bg-pink-500 px-4 py-1.5 text-sm text-white transition hover:bg-pink-600 sm:py-2"
+                >
+                    Aceptar
+                </button>
+            </div>
         </div>
     );
 };
@@ -156,11 +161,11 @@ export default function WelcomePanel() {
                 <div className="pointer-events-none absolute top-0 left-0 z-0 h-full w-full bg-[radial-gradient(circle,#ffffff_1px,transparent_1px)] bg-[length:22px_22px] opacity-20" />
 
                 {/* NAVBAR FIJO */}
-                <header className="animate-fade-in fixed top-0 z-50 flex w-full flex-wrap items-center justify-between gap-4 border-b border-pink-600 bg-black/70 p-6 backdrop-blur-md">
+                <header className="animate-fade-in fixed top-0 z-50 flex w-full items-center justify-between gap-2 border-b border-pink-600 bg-black/70 px-4 py-3 backdrop-blur-md sm:gap-4 sm:p-6">
                     <Link href={route('home')} data-aos="fade-right">
-                        <img src={cinLogo()} alt="Cinammon Logo" className="h-10 transition hover:opacity-80 sm:h-12" draggable={false} />
+                        <img src={cinLogo()} alt="Cinammon Logo" className="h-8 shrink-0 transition hover:opacity-80 sm:h-12" draggable={false} />
                     </Link>
-                    <nav className="flex gap-3" data-aos="fade-left">
+                    <nav className="flex shrink-0 gap-2 sm:gap-3" data-aos="fade-left">
                         <a
                             href="#planes"
                             className="hidden items-center rounded-md border border-[#00f7ff]/60 px-4 py-2 font-semibold text-[#00f7ff] transition hover:bg-[#00f7ff] hover:text-black sm:flex"
@@ -170,7 +175,7 @@ export default function WelcomePanel() {
                         {auth?.user ? (
                             <a
                                 href="https://panel.cinammon.net/servers"
-                                className="rounded-md bg-pink-500 px-4 py-2 font-semibold text-white shadow transition hover:bg-pink-600"
+                                className="rounded-md bg-pink-500 px-3 py-1.5 text-sm font-semibold text-white shadow transition hover:bg-pink-600 sm:px-4 sm:py-2 sm:text-base"
                             >
                                 Panel
                             </a>
@@ -178,13 +183,13 @@ export default function WelcomePanel() {
                             <>
                                 <a
                                     href="https://panel.cinammon.net/login"
-                                    className="rounded-md bg-gradient-to-r from-pink-500 to-fuchsia-600 px-4 py-2 font-semibold text-white shadow hover:from-pink-600 hover:to-fuchsia-700"
+                                    className="rounded-md bg-gradient-to-r from-pink-500 to-fuchsia-600 px-3 py-1.5 text-sm font-semibold whitespace-nowrap text-white shadow hover:from-pink-600 hover:to-fuchsia-700 sm:px-4 sm:py-2 sm:text-base"
                                 >
                                     Iniciar sesión
                                 </a>
                                 <a
                                     href="https://panel.cinammon.net/register"
-                                    className="rounded-md border border-pink-400 px-4 py-2 font-semibold text-pink-300 transition hover:bg-pink-400 hover:text-black"
+                                    className="rounded-md border border-pink-400 px-3 py-1.5 text-sm font-semibold whitespace-nowrap text-pink-300 transition hover:bg-pink-400 hover:text-black sm:px-4 sm:py-2 sm:text-base"
                                 >
                                     Registrarse
                                 </a>
@@ -195,7 +200,7 @@ export default function WelcomePanel() {
 
                 {/* SECCIÓN 1 */}
                 <section
-                    className="relative z-10 mt-28 flex min-h-screen flex-col items-center justify-center px-6 py-20 text-center sm:px-10"
+                    className="relative z-10 mt-16 flex min-h-screen flex-col sm:mt-28 items-center justify-center px-6 py-20 text-center sm:px-10"
                     data-aos="fade-up"
                     data-aos-anchor-placement="top-bottom"
                 >
@@ -642,11 +647,14 @@ export default function WelcomePanel() {
               -ms-overflow-style: none;
               scrollbar-width: none;
             }
+            /* El aviso de temporada (season.js) va encima del botón de Discord */
+            :root { --cin-pill-bottom: 72px; }
+            @media (min-width: 640px) { :root { --cin-pill-bottom: 92px; } }
           `}
                 </style>
 
                 {/* FLECHA PARA SUBIR */}
-                <a href="#top" className="fixed right-6 bottom-6 z-50 animate-bounce p-7 transition hover:opacity-90">
+                <a href="#top" aria-label="Subir arriba" className="fixed right-2 bottom-3 z-50 animate-bounce p-3 transition hover:opacity-90 sm:right-6 sm:bottom-6 sm:p-7">
                     <img
                         src="https://img.icons8.com/?size=100&id=71020&format=png&color=ff4da6"
                         alt="Subir arriba"
@@ -702,10 +710,11 @@ export default function WelcomePanel() {
                 <a
                     href="https://discord.gg/hikarinet"
                     target="_blank"
-                    className="fixed bottom-6 left-6 z-50 rounded-full bg-[#5865F2] p-3 shadow-lg transition hover:scale-110"
+                    aria-label="Discord"
+                    className="fixed bottom-4 left-4 z-50 rounded-full bg-[#5865F2] p-2.5 shadow-lg transition hover:scale-110 sm:bottom-6 sm:left-6 sm:p-3"
                     data-aos="fade-left"
                 >
-                    <img src="https://img.icons8.com/?size=100&id=30998&format=png&color=ffffff" alt="Discord" className="h-8 w-8" />
+                    <img src="https://img.icons8.com/?size=100&id=30998&format=png&color=ffffff" alt="Discord" className="h-6 w-6 sm:h-8 sm:w-8" />
                 </a>
             </footer>
         </>

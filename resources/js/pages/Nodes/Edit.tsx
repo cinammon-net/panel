@@ -349,7 +349,7 @@ export default function EditNode() {
                             <div className="flex flex-col gap-2 p-3 px-3">
                                 <fieldset className="rounded-lg border border-cyan-700 p-4">
                                     <legend className="px-2 text-sm font-semibold text-cyan-600 dark:text-cyan-400">Node Information</legend>
-                                    <div className="grid grid-cols-4 gap-4 md:grid-cols-4">
+                                    <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                                         <div className="w-4/4">
                                             <label className="mb-1 block text-sm font-semibold text-cyan-400" htmlFor="name">
                                                 Wings Version
@@ -406,14 +406,14 @@ export default function EditNode() {
                                 </fieldset>
 
                                 <div className="mt-4 rounded-lg border border-cyan-700 p-4">
-                                    <div className="grid grid-cols-2 gap-2 md:grid-cols-2">
+                                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                                         <div className="mb-2 w-3/3 rounded">
                                             <CPU {...formData} />
                                         </div>
                                         <div className="mb-2 w-3/3 rounded">
                                             <Memory {...formData} />
                                         </div>
-                                        <div className="h-96 w-6/3 rounded">
+                                        <div className="h-96 rounded sm:col-span-2">
                                             <Storage {...formData} />
                                         </div>
                                     </div>

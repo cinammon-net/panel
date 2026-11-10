@@ -218,13 +218,13 @@ export default function CreateNode() {
                     <div className="mb-6 flex flex-wrap border-b border-cyan-700">
                         <ol
                             id="ol-1"
-                            className="scrollbar-hide grid w-full grid-cols-[220px_270px] grid-rows-[62px] gap-x-62 overflow-y-hidden border-b border-cyan-700"
+                            className="scrollbar-hide flex w-full items-center gap-2 overflow-x-auto overflow-y-hidden border-b border-cyan-700 py-2 md:grid md:grid-cols-[220px_270px] md:grid-rows-[62px] md:gap-x-62 md:py-0"
                         >
-                            <li className="relative left-[20px] flex h-full items-center">
+                            <li className="relative flex h-full shrink-0 items-center md:left-[20px]">
                                 <button
                                     type="button"
                                     onClick={() => setStep(1)}
-                                    className={`appearance-button flex max-w-[200px] items-center gap-3 rounded-full border-1 px-4 py-2 transition-colors duration-300 ${
+                                    className={`appearance-button flex max-w-[200px] items-center gap-3 rounded-full border-1 px-4 py-2 whitespace-nowrap transition-colors duration-300 ${
                                         step === 1
                                             ? 'border-cyan-500 text-cyan-400'
                                             : 'border-transparent text-cyan-500 hover:border-cyan-600 hover:text-cyan-600'
@@ -234,7 +234,7 @@ export default function CreateNode() {
                                     <span className="select-none">Basic Settings</span>
                                 </button>
 
-                                <div className="absolute left-[370px] h-full w-7 text-cyan-600 md:block">
+                                <div className="absolute left-[370px] hidden h-full w-7 text-cyan-600 md:block">
                                     <svg fill="none" preserveAspectRatio="none" viewBox="0 0 22 80" className="h-full w-full">
                                         <path
                                             d="M0 -2L20 40L0 82"
@@ -247,7 +247,7 @@ export default function CreateNode() {
                                 </div>
                             </li>
 
-                            <li className="relative flex items-center">
+                            <li className="relative flex shrink-0 items-center">
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -257,7 +257,7 @@ export default function CreateNode() {
                                             toast.error('Por favor completa todos los campos requeridos correctamente antes de continuar.');
                                         }
                                     }}
-                                    className={`appearance-button flex items-center gap-4 rounded-full border-1 px-5 py-2 transition-colors duration-300 ${
+                                    className={`appearance-button flex items-center gap-4 rounded-full border-1 px-5 py-2 whitespace-nowrap transition-colors duration-300 ${
                                         step === 2
                                             ? 'border-cyan-500 text-cyan-400'
                                             : 'border-transparent text-cyan-500 hover:border-cyan-600 hover:text-cyan-600'
@@ -392,7 +392,7 @@ export default function CreateNode() {
                                 {/* Selector SSL sin constante */}
                                 <div className="grid">
                                     <label className="mb block font-semibold text-white">Communicate over SSL</label>
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                                         <div
                                             role="radio"
                                             aria-checked={sslMode === 'http'}
@@ -452,7 +452,7 @@ export default function CreateNode() {
                                                     : 'text-white-400 border-cyan-700 bg-cyan-800 hover:bg-cyan-700 hover:text-white dark:bg-cyan-900/40 dark:text-cyan-300 dark:hover:bg-cyan-700/60'
                                             } `}
                                         >
-                                            <Shield size={38} />
+                                            <Shield size={22} className="shrink-0" />
                                             <span>HTTPS with (reverse) proxy</span>
                                         </div>
                                     </div>

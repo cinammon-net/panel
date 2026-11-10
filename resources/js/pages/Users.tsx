@@ -69,13 +69,13 @@ export default function Users() {
                     <table className="w-full table-auto text-sm text-pink-800 dark:text-pink-300">
                         <thead className="display-table border-b border-pink-500 bg-pink-900 text-pink-200">
                             <tr>
-                                <th className="w-[60px] px-4 py-3 text-left"></th>
+                                <th className="w-[60px] px-2 py-3 text-left sm:px-4"></th>
                                 <th className="w-1/5 px-4 py-3 text-left">name</th>
-                                <th className="w-1/4 px-4 py-3 text-left">Email</th>
-                                <th className="w-[80px] px-4 py-3 text-left">2FA</th>
+                                <th className="hidden w-1/4 px-4 py-3 text-left md:table-cell">Email</th>
+                                <th className="hidden w-[80px] px-4 py-3 text-left md:table-cell">2FA</th>
                                 <th className="w-1/5 px-4 py-3 text-left">Roles</th>
                                 <th className="w-[80px] px-4 py-3 text-left">Servers</th>
-                                <th className="w-[90px] px-4 py-3 text-left">Subusers</th>
+                                <th className="hidden w-[90px] px-4 py-3 text-left md:table-cell">Subusers</th>
                                 <th className="w-[60px] px-4 py-3 text-right"></th>
                             </tr>
                         </thead>
@@ -95,19 +95,23 @@ export default function Users() {
                                         className="cursor-pointer border-b border-pink-800 transition hover:bg-pink-900/20"
                                     >
                                         {' '}
-                                        <td className="px-4 py-3">
+                                        <td className="px-2 py-3 sm:px-4">
                                             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-pink-700 font-bold text-white uppercase">
                                                 {user.name.charAt(0)}
                                             </div>
                                         </td>
-                                        <td className="truncate px-4 py-3 text-pink-200">{user.name}</td>
-                                        <td className="truncate px-4 py-3 text-pink-300">
+                                        <td className="max-w-[160px] px-4 py-3 text-pink-200 md:max-w-none">
+                                            <span className="block truncate">{user.name}</span>
+                                            {/* En móvil el email va debajo del nombre (su columna se oculta) */}
+                                            <span className="block truncate text-xs text-pink-400/80 md:hidden">{user.email}</span>
+                                        </td>
+                                        <td className="hidden truncate px-4 py-3 text-pink-300 md:table-cell">
                                             <div className="flex items-center gap-2">
                                                 <Mail className="h-4 w-4" />
                                                 <span className="truncate">{user.email}</span>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3 text-pink-300">
+                                        <td className="hidden px-4 py-3 text-pink-300 md:table-cell">
                                             {user.has2fa ? <UserRoundCheck className="text-green-400" /> : <UserRoundX className="text-red-400" />}
                                         </td>
                                         <td className="px-4 py-3 text-pink-300">
@@ -134,7 +138,7 @@ export default function Users() {
                                                 <Server className="h-4 w-4" /> {user.servers}
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3 text-pink-300">
+                                        <td className="hidden px-4 py-3 text-pink-300 md:table-cell">
                                             <div className="flex items-center gap-1 font-semibold">
                                                 <UsersRound className="h-4 w-4" /> {user.subusers}
                                             </div>

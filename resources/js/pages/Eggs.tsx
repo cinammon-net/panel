@@ -391,7 +391,7 @@ export default function Eggs() {
                         <table className="min-w-full table-auto text-sm">
                             <thead className="border-b border-cyan-500 bg-cyan-900 text-cyan-200">
                                 <tr>
-                                    <th className="px-4 py-3 text-left">
+                                    <th className="py-3 pr-1 pl-3 text-left sm:px-4">
                                         <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} className="accent-cyan-400" />
                                     </th>
                                     <th className="px-4 py-3 text-left">
@@ -405,7 +405,7 @@ export default function Eggs() {
                                                 ))}
                                         </button>
                                     </th>
-                                    <th className="px-4 py-3 text-left font-semibold">Servers</th>
+                                    <th className="py-3 pr-3 pl-1 text-left font-semibold sm:px-4">Servers</th>
                                     <th className="hidden px-4 py-3 text-right font-semibold sm:table-cell">Actions</th>
                                 </tr>
                             </thead>
@@ -426,7 +426,7 @@ export default function Eggs() {
                                                 selectedEggs.includes(egg.id) ? 'bg-cyan-900/30' : ''
                                             }`}
                                         >
-                                            <td className="px-4 py-4 align-top">
+                                            <td className="py-4 pr-1 pl-3 align-top sm:px-4">
                                                 <input
                                                     type="checkbox"
                                                     checked={selectedEggs.includes(egg.id)}
@@ -436,17 +436,17 @@ export default function Eggs() {
                                                 />
                                             </td>
 
-                                            <td className="px-4 py-4">
-                                                <div className="flex items-start gap-3">
+                                            <td className="px-2 py-4 sm:px-4">
+                                                <div className="flex items-start gap-2 sm:gap-3">
                                                     <EggIcon src={egg.image_url} category={egg.category} name={egg.name} size={40} />
                                                     <div className="flex min-w-0 flex-col">
                                                         <span className="font-semibold text-black dark:text-white">{egg.name}</span>
-                                                        <span className="text-sm text-cyan-600 dark:text-cyan-400">{egg.description}</span>
+                                                        <span className="line-clamp-2 text-sm text-cyan-600 sm:line-clamp-3 dark:text-cyan-400">{egg.description}</span>
                                                     </div>
                                                 </div>
                                             </td>
 
-                                            <td className="px-4 py-4 text-center">
+                                            <td className="py-4 pr-3 pl-1 text-center sm:px-4">
                                                 <div className="inline-flex items-center gap-1 font-semibold text-cyan-600 dark:text-cyan-400">
                                                     <Server className="h-4 w-4" />
                                                     {egg.servers ?? 0}

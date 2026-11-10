@@ -640,7 +640,7 @@ export default function Console({ server }: { server: Server }) {
                     <pre
                         ref={logRef}
                         aria-label="Logs del servidor"
-                        className={`server-console-terminal term-crt overflow-auto bg-[#04060d] p-4 md:p-6 text-xs md:text-[13px] whitespace-pre text-neutral-200 selection:bg-cyan-500/30 selection:text-cyan-200 transition-all ${
+                        className={`server-console-terminal term-crt overflow-auto bg-[#04060d] p-3 md:p-6 text-[11px] md:text-[13px] whitespace-pre-wrap [overflow-wrap:anywhere] md:whitespace-pre md:[overflow-wrap:normal] text-neutral-200 selection:bg-cyan-500/30 selection:text-cyan-200 transition-all ${
                             isFullscreen
                                 ? 'flex-1 h-full'
                                 : 'h-[520px] md:h-[600px] min-h-[460px] max-h-[75vh]'

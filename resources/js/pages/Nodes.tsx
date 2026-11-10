@@ -107,14 +107,14 @@ export default function Nodes() {
                                             (filters.direction === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
                                     </button>
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="hidden px-4 py-2 sm:table-cell">
                                     <button onClick={() => handleSort('fqdn')} className="flex items-center gap-1 font-semibold hover:text-white">
                                         Address
                                         {filters.sort === 'fqdn' &&
                                             (filters.direction === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
                                     </button>
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="hidden px-4 py-2 sm:table-cell">
                                     <button onClick={() => handleSort('ssl')} className="flex items-center gap-1 font-semibold hover:text-white">
                                         SSL
                                         {filters.sort === 'ssl' &&
@@ -128,7 +128,7 @@ export default function Nodes() {
                                             (filters.direction === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
                                     </button>
                                 </th>
-                                <th className="px-4 py-2">
+                                <th className="hidden px-4 py-2 sm:table-cell">
                                     <button onClick={() => handleSort('public')} className="flex items-center gap-1 font-semibold hover:text-white">
                                         Public
                                         {filters.sort === 'public' &&
@@ -154,13 +154,17 @@ export default function Nodes() {
                                     )}
                                     </td>
 
-                                    <td className="px-4 py-2">{node.name}</td>
-                                    <td className="px-4 py-2">{node.fqdn}</td>
                                     <td className="px-4 py-2">
+                                        {node.name}
+                                        {/* En móvil la dirección va debajo del nombre */}
+                                        <span className="block text-xs break-all opacity-70 sm:hidden">{node.fqdn}</span>
+                                    </td>
+                                    <td className="hidden px-4 py-2 sm:table-cell">{node.fqdn}</td>
+                                    <td className="hidden px-4 py-2 sm:table-cell">
                                         {node.ssl ? <LockOpen className="h-5 w-5 text-green-500" /> : <Lock className="h-5 w-5 text-red-500" />}
                                     </td>
                                     <td className="px-4 py-2">{node.servers}</td>
-                                    <td className="px-4 py-2">
+                                    <td className="hidden px-4 py-2 sm:table-cell">
                                         {node.public ? <Eye className="h-5 w-5 text-blue-500" /> : <EyeOff className="h-5 w-5 text-gray-500" />}
                                     </td>
                                 </tr>
