@@ -153,7 +153,7 @@
         halloween: [50, 40, 305, 135, 60], muertos: [55, 340, 300, 80, 75], thanksgiving: [45, 30, 20, 75, 75],
         black_friday: [95, 85, 85, 95, 95], gamer_day: [145, 300, 290, 200, 145], star_wars: [25, 15, 260, 240, 240],
         book_day: [20, 10, 340, 145, 145], san_juan: [45, 35, 25, 70, 70],
-        winter: [250, 270, 280, 220, 215], spring: [150, 130, 330, 165, 150], summer: [75, 55, 30, 195, 190], autumn: [48, 28, 355, 170, 85],
+        winter: [250, 270, 280, 220, 215], spring: [150, 130, 330, 165, 150], summer: [75, 55, 30, 195, 190], autumn: [48, 28, 5, 80, 85],
     };
     // Color de "online" (verde esmeralda de los servidores) por estaci\u00f3n/festivo. Nunca cerca del rojo
     // (apagado, ~25) ni del \u00e1mbar (arrancando, ~70) para que el estado se siga entendiendo.
@@ -287,6 +287,17 @@
         // Se usa la propia imagen de la p\u00e1gina (mismo dominio); si a\u00fan no carg\u00f3, se espera a que lo haga.
         if (!img.complete || !img.naturalWidth) { img.addEventListener('load', function () { recolorLogo(img, pal); }, { once: true }); return; }
         var src = img;
+        var cross = /^https?:/i.test(orig) && orig.indexOf(location.origin) !== 0;
+        if (cross && !img.__seasonCors) {
+            // Otro dominio (p.ej. iconos de icons8): copia con CORS para poder leer los p\u00edxeles.
+            var cimg = new Image();
+            cimg.crossOrigin = 'anonymous';
+            cimg.onload = function () { img.__seasonCors = cimg; recolorLogo(img, pal); };
+            cimg.onerror = function () { img.setAttribute('data-season-logo', 'x'); };
+            cimg.src = orig;
+            return;
+        }
+        if (cross) src = img.__seasonCors;
         (function () {
             try {
                 var w = src.naturalWidth, h = src.naturalHeight;
@@ -309,20 +320,9 @@
         })();
     }
     function logosOn(pal) {
-        var icons = document.querySelectorAll('img[src*="icons8.com"][src*="color="]');
-        for (var j = 0; j < icons.length; j++) {
-            var im = icons[j], u = im.getAttribute('src');
-            if (im.getAttribute('data-season-logo')) continue;
-            var mm = /color=([0-9a-f]{6})/i.exec(u);
-            if (!mm) continue;
-            var hx = mm[1], rr = parseInt(hx.substr(0, 2), 16), gg = parseInt(hx.substr(2, 2), 16), bb = parseInt(hx.substr(4, 2), 16);
-            var oc = toOklch(rr, gg, bb), si = slot(oc[2], oc[1]);
-            if (si === null || pal[si] == null) continue;
-            var nc = fromOklch(oc[0], oc[1], pal[si]);
-            var nh = nc.map(function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
-            im.setAttribute('data-season-logo', u);
-            im.src = u.replace(mm[0], 'color=' + nh);
-        }
+        // Iconos de icons8 (flechas, etc.): se recolorean p\u00edxel a p\u00edxel; el de Discord se deja con su marca.
+        var icons = document.querySelectorAll('img[src*="icons8.com"]:not([alt="Discord" i])');
+        for (var j = 0; j < icons.length; j++) recolorLogo(icons[j], pal);
         var list = document.querySelectorAll(LOGO_SEL);
         for (var i = 0; i < list.length; i++) recolorLogo(list[i], pal);
     }
