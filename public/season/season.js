@@ -413,7 +413,8 @@
         var links = document.querySelectorAll('link[rel~="icon"]');
         for (var i = 0; i < links.length; i++) {
             var l = links[i], href = l.getAttribute('href');
-            if (l.__seasonOrig || !href || href.indexOf('data:') === 0) continue;
+            // Los favicons de /season-favicon ya vienen coloreados del servidor (Safari no acepta cambiarlos por JS).
+            if (l.__seasonOrig || !href || href.indexOf('data:') === 0 || href.indexOf('season-favicon') >= 0) continue;
             l.__seasonOrig = href; favLinks.push(l);
             (function (l, href) {
                 if (logoCache[href]) { l.href = logoCache[href]; return; }

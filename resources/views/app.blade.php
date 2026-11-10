@@ -66,7 +66,14 @@
         $cinSub = explode('.', request()->getHost())[0];
         $cinLogo = in_array($cinSub, ['panel', 'demo', 'store', 'billing'], true) ? "/logos/cinammon-{$cinSub}.png" : '/favicon.ico';
     @endphp
-    <link rel="icon" href="{{ $cinLogo }}" sizes="any">
+    @php
+        // Favicon ya coloreado con la temporada/festivo del visitante (lo sirve el billing según el país).
+        // La fecha en la URL hace que Safari lo vuelva a pedir cada día.
+        $cinFavBase = config('services.billing.url') ?: (config('panel.demo') ? 'https://billing.cinammon.net' : null);
+        $cinFavSite = in_array($cinSub, ['panel', 'demo', 'store', 'billing'], true) ? $cinSub : 'net';
+        $cinFavicon = $cinFavBase ? rtrim($cinFavBase, '/')."/api/season-favicon/{$cinFavSite}.png?d=".now()->format('Ymd') : $cinLogo;
+    @endphp
+    <link rel="icon" type="image/png" href="{{ $cinFavicon }}">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
     <!-- 🔤 Fuente Orbitron -->
