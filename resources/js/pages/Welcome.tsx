@@ -264,23 +264,23 @@ export default function WelcomePanel() {
                                         data-aos-delay={index * 100}
                                     >
                                         <div>
-                                            <div className="flex items-center justify-between">
-                                                <h3 className="text-lg font-bold tracking-wide text-pink-400 group-hover:text-[#00f7ff] transition">{cat.title}</h3>
-                                                <span className="font-mono text-[11px] rounded bg-neutral-900 px-2 py-0.5 border border-neutral-700 text-[#00f7ff]">{cat.plans.length} planes</span>
+                                            <div className="flex items-start justify-between gap-2">
+                                                <h3 className="min-w-0 text-lg font-bold tracking-wide text-pink-400 group-hover:text-[#00f7ff] transition">{cat.title}</h3>
+                                                <span className="mt-1 shrink-0 whitespace-nowrap font-mono text-[11px] rounded bg-neutral-900 px-2 py-0.5 border border-neutral-700 text-[#00f7ff]">{cat.plans.length} planes</span>
                                             </div>
                                             <p className="mt-1.5 text-xs text-neutral-400 line-clamp-2">{cat.tagline}</p>
 
                                             {featured && (
                                                 <div className="mt-4 rounded-xl border border-[#00f7ff]/30 bg-black/60 p-3.5 shadow-inner">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-xs font-semibold text-white">{featured.name}</span>
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <span className="min-w-0 truncate text-xs font-semibold text-white">{featured.name}</span>
                                                         {featured.popular && (
-                                                            <span className="rounded-full bg-[#00f7ff] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-black">
+                                                            <span className="shrink-0 whitespace-nowrap rounded-full bg-[#00f7ff] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-black">
                                                                 Popular
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <p className="mt-1 text-2xl font-black text-[#00f7ff]">
+                                                    <p className="mt-1 whitespace-nowrap text-2xl font-black text-[#00f7ff]">
                                                         {featured.price.toFixed(2)} €<span className="text-xs font-normal text-neutral-400">/mes</span>
                                                     </p>
                                                     {featured.role ? (
