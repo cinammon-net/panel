@@ -73,6 +73,7 @@ class DaemonController extends Controller
             foreach ($data['data'] as $event) {
                 $serverUuid = $event['server'] ?? null;
                 $eventName = $event['event'] ?? '';
+                $this->recordActivity($event);
                 if ($serverUuid) {
                     if (str_contains($eventName, 'crashed') || str_contains($eventName, 'stop') || str_contains($eventName, 'kill')) {
                         \App\Models\Server::where('uuid', $serverUuid)->update(['status' => 0]);
@@ -83,6 +84,46 @@ class DaemonController extends Controller
             }
         }
         return response()->noContent();
+    }
+
+    /**
+     * Guarda en la Actividad del servidor lo que Wings hace por su cuenta: acciones por SFTP,
+     * comandos y encendidos desde la consola en directo, y caídas del servidor.
+     */
+    private function recordActivity(array $event): void
+    {
+        $server = isset($event['server']) ? \App\Models\Server::where('uuid', (string) $event['server'])->first() : null;
+        $name = (string) ($event['event'] ?? '');
+        if (! $server || $name === '') {
+            return;
+        }
+        $meta = is_array($event['metadata'] ?? null) ? $event['metadata'] : [];
+        $userId = $event['user'] ?? null;
+        // El SFTP del panel identifica a la persona por su id numérico.
+        $user = is_scalar($userId) && ctype_digit((string) $userId) ? \App\Models\User::find((int) $userId) : null;
+        $files = collect((array) ($meta['files'] ?? []))->map(fn ($f) => is_array($f) ? (($f['from'] ?? '').' a '.($f['to'] ?? '')) : (string) $f)->filter()->take(5)->implode(', ');
+        $dir = isset($meta['directory']) ? rtrim((string) $meta['directory'], '/').'/' : '/';
+        $sftp = str_contains($name, 'sftp');
+
+        $description = match (true) {
+            str_ends_with($name, 'sftp.write') => 'Subió o editó por SFTP: '.$files,
+            str_ends_with($name, 'sftp.create') => 'Creó por SFTP: '.$files,
+            str_ends_with($name, 'sftp.create-directory') => 'Creó la carpeta por SFTP: '.$dir.$files,
+            str_ends_with($name, 'sftp.delete') => 'Borró por SFTP: '.$files,
+            str_ends_with($name, 'sftp.rename') => 'Renombró por SFTP: '.$files,
+            $sftp => 'Acción por SFTP ('.$name.')',
+            str_contains($name, 'console.command') => 'Ejecutó en la consola: '.($meta['command'] ?? ''),
+            str_contains($name, 'power.start') => 'Encendió el servidor desde la consola',
+            str_contains($name, 'power.stop') => 'Apagó el servidor desde la consola',
+            str_contains($name, 'power.restart') => 'Reinició el servidor desde la consola',
+            str_contains($name, 'power.kill') => 'Forzó el apagado desde la consola',
+            str_contains($name, 'crash') => ($meta['oomkilled'] ?? false) ? 'El servidor se ha caído por falta de memoria' : 'El servidor se ha detenido (código de salida '.($meta['exit_code'] ?? '?').')',
+            str_contains($name, 'backup') => 'Copia de seguridad: '.$name,
+            str_contains($name, 'install') => 'Instalación: '.$name,
+            default => $name,
+        };
+        $actor = $user ? null : ['name' => $sftp ? 'SFTP' : 'Wings'];
+        \App\Support\ServerActivity::log($server, $user, $name, $description, isset($event['ip']) ? (string) $event['ip'] : null, $sftp ? 'sftp' : 'wings', $actor);
     }
 
     /**

@@ -73,6 +73,7 @@ class ResetDemoData extends Command
         File::deleteDirectory(storage_path('app/public/demo'));
         foreach (range(1, 20) as $id) {
             Cache::forget("server_activity_{$id}");
+            \Illuminate\Support\Facades\DB::table('server_activity_logs')->where('server_id', $id)->delete();
             Cache::forget("servers:{$id}:has-bot-status");
         }
 

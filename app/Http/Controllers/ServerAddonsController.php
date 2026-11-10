@@ -65,17 +65,7 @@ class ServerAddonsController extends Controller
     private function logActivity(Server $server, Request $request, string $action, string $description): void
     {
         $user = $request->user();
-        $key = "server_activity_{$server->id}";
-        $activity = Cache::get($key, []);
-        array_unshift($activity, [
-            'id' => (string) Str::uuid(),
-            'user' => ['name' => $user->name, 'email' => $user->email, 'avatar' => $user->avatar ?? null],
-            'action' => $action,
-            'description' => $description,
-            'ip' => $request->ip(),
-            'created_at' => now()->toIso8601String(),
-        ]);
-        Cache::forever($key, array_slice($activity, 0, 50));
+        \App\Support\ServerActivity::log($server, $request->user(), $action, $description, $request->ip());
     }
 
     /** Entradas de /<folder> (null si la carpeta no existe o es un enlace simbólico). */

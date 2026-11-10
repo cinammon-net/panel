@@ -29,24 +29,7 @@ class ServerModulesController extends Controller
     private function logActivity(Server $server, Request $request, string $action, string $description): void
     {
         $user = $request->user();
-        $key = "server_activity_{$server->id}";
-        $activity = Cache::get($key, []);
-
-        array_unshift($activity, [
-            'id' => (string) Str::uuid(),
-            'user' => [
-                'name' => $user->name,
-                'email' => $user->email,
-                'avatar' => $user->avatar ?? null,
-            ],
-            'action' => $action,
-            'description' => $description,
-            'ip' => $request->ip(),
-            'created_at' => now()->toIso8601String(),
-        ]);
-
-        // Guardar las últimas 50 actividades
-        Cache::forever($key, array_slice($activity, 0, 50));
+        \App\Support\ServerActivity::log($server, $request->user(), $action, $description, $request->ip());
     }
 
     // ==========================================
@@ -503,33 +486,24 @@ class ServerModulesController extends Controller
     {
         $this->authorizeServer($request, $server);
 
+        // Lo que hubiera en la caché antigua (últimas 50) se pasa una vez a la tabla.
         $key = "server_activity_{$server->id}";
-        $activity = Cache::get($key, [
-            [
-                'id' => 'act_1',
-                'user' => [
-                    'name' => $server->owner?->name ?? 'Owner',
-                    'email' => $server->owner?->email ?? 'owner@cinammon.net',
-                    'avatar' => null,
-                ],
-                'action' => 'server:power.start',
-                'description' => 'Servidor iniciado correctamente',
-                'ip' => '127.0.0.1',
-                'created_at' => now()->subMinutes(15)->toIso8601String(),
-            ],
-            [
-                'id' => 'act_2',
-                'user' => [
-                    'name' => $server->owner?->name ?? 'Owner',
-                    'email' => $server->owner?->email ?? 'owner@cinammon.net',
-                    'avatar' => null,
-                ],
-                'action' => 'server:files.write',
-                'description' => 'Modificación del archivo de configuración',
-                'ip' => '127.0.0.1',
-                'created_at' => now()->subHours(2)->toIso8601String(),
-            ],
-        ]);
+        $old = Cache::pull($key);
+        if (is_array($old) && $old) {
+            foreach (array_reverse($old) as $entry) {
+                \Illuminate\Support\Facades\DB::table('server_activity_logs')->insert([
+                    'server_id' => $server->id,
+                    'user_name' => mb_substr((string) ($entry['user']['name'] ?? 'Sistema'), 0, 120),
+                    'user_email' => $entry['user']['email'] ?? null,
+                    'source' => 'panel',
+                    'action' => mb_substr((string) ($entry['action'] ?? 'server'), 0, 80),
+                    'description' => mb_substr((string) ($entry['description'] ?? ''), 0, 600),
+                    'ip' => $entry['ip'] ?? null,
+                    'created_at' => \Illuminate\Support\Carbon::parse($entry['created_at'] ?? now())->setTimezone(config('app.timezone')),
+                ]);
+            }
+        }
+        $activity = \App\Support\ServerActivity::recent($server->id);
 
         return Inertia::render('Servers/Activity', [
             'server' => [

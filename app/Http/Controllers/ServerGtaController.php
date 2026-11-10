@@ -331,17 +331,7 @@ class ServerGtaController extends Controller
         Cache::forget('gta_query:'.$server->id);
 
         $user = $request->user();
-        $key = "server_activity_{$server->id}";
-        $activity = Cache::get($key, []);
-        array_unshift($activity, [
-            'id' => (string) Str::uuid(),
-            'user' => ['name' => $user->name, 'email' => $user->email, 'avatar' => $user->avatar ?? null],
-            'action' => 'players:'.$data['action'],
-            'description' => 'Ejecutó '.$command,
-            'ip' => $request->ip(),
-            'created_at' => now()->toIso8601String(),
-        ]);
-        Cache::forever($key, array_slice($activity, 0, 50));
+        \App\Support\ServerActivity::log($server, $request->user(), 'players:'.$data['action'], 'Ejecutó '.$command, $request->ip());
 
         return response()->json(['command' => $command]);
     }
@@ -355,17 +345,7 @@ class ServerGtaController extends Controller
     private function log(Request $request, Server $server, string $action, string $description): void
     {
         $user = $request->user();
-        $key = "server_activity_{$server->id}";
-        $activity = Cache::get($key, []);
-        array_unshift($activity, [
-            'id' => (string) Str::uuid(),
-            'user' => ['name' => $user->name, 'email' => $user->email, 'avatar' => $user->avatar ?? null],
-            'action' => $action,
-            'description' => $description,
-            'ip' => $request->ip(),
-            'created_at' => now()->toIso8601String(),
-        ]);
-        Cache::forever($key, array_slice($activity, 0, 50));
+        \App\Support\ServerActivity::log($server, $request->user(), $action, $description, $request->ip());
     }
 
     /** Ruta de un mod validada: dentro de las carpetas de mods del juego y sin "..". */

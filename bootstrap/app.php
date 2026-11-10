@@ -35,6 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
             \App\Http\Middleware\BlockDuringMaintenance::class,
+            \App\Http\Middleware\LogServerActivity::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

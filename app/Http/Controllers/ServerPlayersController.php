@@ -273,17 +273,7 @@ class ServerPlayersController extends Controller
         }
 
         $user = $request->user();
-        $key = "server_activity_{$server->id}";
-        $activity = Cache::get($key, []);
-        array_unshift($activity, [
-            'id' => (string) Str::uuid(),
-            'user' => ['name' => $user->name, 'email' => $user->email, 'avatar' => $user->avatar ?? null],
-            'action' => 'players:'.$action,
-            'description' => 'Ejecutó /'.$command,
-            'ip' => $request->ip(),
-            'created_at' => now()->toIso8601String(),
-        ]);
-        Cache::forever($key, array_slice($activity, 0, 50));
+        \App\Support\ServerActivity::log($server, $request->user(), 'players:'.$action, 'Ejecutó /'.$command, $request->ip());
 
         return response()->json(['command' => $command]);
     }

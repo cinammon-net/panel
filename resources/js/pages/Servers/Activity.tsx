@@ -9,6 +9,11 @@ import {
     HardDrive,
     Lock,
     Power,
+    Puzzle,
+    Database,
+    AlertTriangle,
+    Rocket,
+    UsersRound,
     Radio,
     Search,
     Shield,
@@ -42,6 +47,27 @@ interface PageProps {
 }
 
 function getActionBadge(action: string) {
+    if (action.includes('crash')) {
+        return { label: 'CAÍDA', icon: AlertTriangle, color: 'border-red-500/40 bg-red-500/10 text-red-400' };
+    }
+    if (action.includes('sftp')) {
+        return { label: 'SFTP', icon: Lock, color: 'border-sky-500/40 bg-sky-500/10 text-sky-400' };
+    }
+    if (action.includes('console')) {
+        return { label: 'CONSOLA', icon: Terminal, color: 'border-lime-500/40 bg-lime-500/10 text-lime-400' };
+    }
+    if (action.startsWith('players') || action.includes('player')) {
+        return { label: 'JUGADORES', icon: UsersRound, color: 'border-orange-500/40 bg-orange-500/10 text-orange-400' };
+    }
+    if (action.startsWith('addon') || action.startsWith('gta:')) {
+        return { label: 'MODS', icon: Puzzle, color: 'border-fuchsia-500/40 bg-fuchsia-500/10 text-fuchsia-400' };
+    }
+    if (action.includes('database')) {
+        return { label: 'BASE DE DATOS', icon: Database, color: 'border-teal-500/40 bg-teal-500/10 text-teal-400' };
+    }
+    if (action.includes('startup') || action.includes('game') || action.includes('schedule') || action.includes('settings')) {
+        return { label: 'AJUSTES', icon: Rocket, color: 'border-indigo-500/40 bg-indigo-500/10 text-indigo-400' };
+    }
     if (action.includes('power')) {
         return {
             label: 'ENERGÍA',
@@ -94,10 +120,18 @@ export default function ActivityPage({ server, activity = [] }: PageProps) {
             item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
             item.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             item.user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            item.ip.includes(searchQuery);
+                item.ip.includes(searchQuery) ||
+            item.action.toLowerCase().includes(searchQuery.toLowerCase());
 
         if (actionFilter === 'all') return matchesSearch;
-        return matchesSearch && item.action.includes(actionFilter);
+        const a = item.action;
+        const groups: Record<string, boolean> = {
+            files: a.includes('files') && !a.includes('sftp'),
+            player: a.startsWith('players') || a.includes('player'),
+            mods: a.startsWith('addon') || a.startsWith('gta:'),
+            settings: a.includes('startup') || a.includes('game') || a.includes('schedule') || a.includes('settings'),
+        };
+        return matchesSearch && (actionFilter in groups ? groups[actionFilter] : a.includes(actionFilter));
     });
 
     return (
@@ -152,7 +186,14 @@ export default function ActivityPage({ server, activity = [] }: PageProps) {
                             <option value="backup">Copias de Seguridad</option>
                             <option value="network">Red y Puertos</option>
                             <option value="files">Archivos</option>
+                            <option value="sftp">SFTP</option>
+                            <option value="console">Consola</option>
+                            <option value="player">Jugadores</option>
+                            <option value="mods">Mods y plugins</option>
+                            <option value="database">Bases de datos</option>
+                            <option value="settings">Ajustes</option>
                             <option value="subuser">Usuarios</option>
+                            <option value="crash">Caídas</option>
                         </select>
                     </div>
                 </div>
@@ -186,9 +227,11 @@ export default function ActivityPage({ server, activity = [] }: PageProps) {
                                             <span className="text-xs font-bold text-neutral-900 dark:text-white">
                                                 {item.user.name}
                                             </span>
-                                            <span className="text-[11px] text-neutral-500 dark:text-neutral-400">
-                                                ({item.user.email})
-                                            </span>
+                                            {item.user.email && (
+                                                <span className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                                                    ({item.user.email})
+                                                </span>
+                                            )}
                                             <span
                                                 className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase ${badge.color}`}
                                             >
@@ -204,7 +247,7 @@ export default function ActivityPage({ server, activity = [] }: PageProps) {
                                 </div>
 
                                 <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto text-[11px] text-neutral-500 dark:text-neutral-400 gap-1 pt-2 sm:pt-0 border-t sm:border-t-0 border-neutral-200 dark:border-neutral-800">
-                                    <span className="font-mono">{item.ip}</span>
+                                    {item.ip && <span className="font-mono">{item.ip}</span>}
                                     <span>{new Date(item.created_at).toLocaleString('es-ES')}</span>
                                 </div>
                             </div>
