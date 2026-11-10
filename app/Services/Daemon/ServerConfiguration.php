@@ -40,6 +40,17 @@ class ServerConfiguration
             $taken = DB::table('allocations')->where('node_id', $server->allocation->node_id)->where('port', $ase)
                 ->whereNotNull('server_id')->where('server_id', '!=', $server->id)->exists();
             if ($ase <= 65535 && ! $taken) $mappings[$server->allocation->ip][] = $ase;
+
+            // Los jugadores descargan los scripts y mapas por el puerto HTTP. Si el cliente no ha elegido
+            // uno (se queda el 22005 del huevo, que no está publicado), se usa el del juego: el juego va por
+            // UDP y la web por TCP, así que MTA permite compartirlo y ese puerto ya está abierto.
+            // Si el cliente pone su propio puerto en las variables, se respeta tal cual.
+            $webVariable = $egg->variables->firstWhere('env_variable', 'SERVER_WEBPORT');
+            $chosen = $webVariable && DB::table('server_variables')->where('server_id', $server->id)
+                ->where('variable_id', $webVariable->id)->whereNotNull('variable_value')->where('variable_value', '!=', '')->exists();
+            if ($webVariable && ! $chosen) {
+                $environment['SERVER_WEBPORT'] = (string) $server->allocation->port;
+            }
         }
         $mappings = array_map(fn ($ports) => array_values(array_unique($ports)), $mappings);
         $port = (string) $server->allocation->port;
