@@ -314,6 +314,35 @@ export default function WelcomePanel() {
                                     </div>
                                 );
                             })}
+                            {(() => {
+                                // Rellena la última fila para que ninguna categoría quede sola (2 columnas en tablet, 4 en escritorio).
+                                const n = billingCategories.length;
+                                const fillSm = n % 2 ? 2 - (n % 2) : 0;
+                                const fillLg = n % 4 ? 4 - (n % 4) : 0;
+                                if (!fillSm && !fillLg) return null;
+                                const lgSpan = { 1: 'lg:col-span-1', 2: 'lg:col-span-2', 3: 'lg:col-span-3' }[fillLg] ?? '';
+                                const cls = [
+                                    'hidden',
+                                    fillSm ? 'sm:flex sm:col-span-1' : 'sm:hidden',
+                                    fillLg ? `lg:flex ${lgSpan}` : 'lg:hidden',
+                                ].join(' ');
+                                return (
+                                    <a
+                                        href={`${billingUrl}/store`}
+                                        className={`${cls} group flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[#00f7ff]/40 bg-black/50 p-8 text-center backdrop-blur-md transition duration-300 hover:border-[#00f7ff] hover:bg-black/70 hover:shadow-[0_0_30px_rgba(0,247,255,0.2)]`}
+                                        data-aos="fade-up"
+                                    >
+                                        <span className="font-mono text-[11px] tracking-widest text-neutral-400">// CATÁLOGO COMPLETO</span>
+                                        <span className="text-xl font-bold text-pink-400 transition group-hover:text-[#00f7ff]">¿No ves lo que buscas?</span>
+                                        <span className="max-w-md text-sm text-neutral-400">
+                                            {billingCategories.reduce((t, c) => t + c.plans.length, 0)} planes en {n} categorías, rangos VIP y servidores gratis con monedas.
+                                        </span>
+                                        <span className="mt-2 inline-flex whitespace-nowrap rounded-xl bg-gradient-to-r from-pink-500 to-fuchsia-600 px-5 py-2.5 text-xs font-bold text-white shadow transition group-hover:from-pink-600 group-hover:to-fuchsia-700">
+                                            Ver toda la tienda →
+                                        </span>
+                                    </a>
+                                );
+                            })()}
                         </div>
 
                         <a
