@@ -78,6 +78,7 @@
 </head>
 
 <body class="font-sans antialiased">
+    @include('partials.loader', ['a' => 'var(--color-pink-500, #ec4899)', 'b' => 'var(--color-cyan-400, #22d3ee)'])
     @inertia
 </body>
 
