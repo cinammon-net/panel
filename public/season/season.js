@@ -212,7 +212,15 @@
         var out = v.replace(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)\s*(?:[,/]\s*([\d.]+%?|var\([^()]*\)))?\s*\)/g, function (all, r, g, b, a) {
             if (+r === 88 && +g === 101 && +b === 242) return all; // Discord (#5865F2): color de su marca, solo ese exacto
             var o = toOklch(+r, +g, +b), i = slot(o[2], o[1]);
-            if (i === null || pal[i] == null) return all;
+            if (i === null || pal[i] == null) {
+                // Fondos y bordes oscuros azulados (slate / navy, p.ej. #060914): un tinte muy suave del color
+                // principal de la temporada para que no quede todo azul marino debajo. Grises puros y negro no se tocan.
+                if (o[1] >= 0.008 && o[1] < 0.06 && o[2] >= 200 && o[2] < 300 && o[0] < 0.85) {
+                    hit = true;
+                    return 'oklch(' + o[0].toFixed(3) + ' ' + Math.min(o[1], 0.035).toFixed(3) + ' ' + pal[0] + (a !== undefined ? ' / ' + a : '') + ')';
+                }
+                return all;
+            }
             hit = true;
             return 'oklch(' + o[0].toFixed(3) + ' ' + o[1].toFixed(3) + ' ' + pal[i] + (a !== undefined ? ' / ' + a : '') + ')';
         });
@@ -228,6 +236,21 @@
         parts.push(cur);
         return parts.map(function (p) { p = p.trim(); return /^:root\b|^html\b/.test(p) ? p.replace(/^(:root|html)/, ATTR) : ATTR + ' ' + p; }).join(',');
     }
+    // Separa \"a: b; c: d\" respetando par\u00e9ntesis y comillas (url(data:...;...), etc.).
+    function splitDecls(t) {
+        var out = [], depth = 0, q = '', cur = '';
+        for (var i = 0; i < t.length; i++) {
+            var ch = t[i];
+            if (q) { if (ch === q && t[i - 1] !== '\\') q = ''; }
+            else if (ch === '"' || ch === "'") q = ch;
+            else if (ch === '(') depth++;
+            else if (ch === ')') depth--;
+            else if (ch === ';' && depth === 0) { out.push(cur); cur = ''; continue; }
+            cur += ch;
+        }
+        if (cur.trim()) out.push(cur);
+        return out;
+    }
     // Recorre las reglas CSS (con @media/@supports/@layer y anidamiento) y devuelve solo las que cambian.
     function walk(rules, pal, nested) {
         var css = '';
@@ -236,11 +259,16 @@
             try {
                 if (r.style && r.selectorText !== undefined) {
                     var decl = '';
-                    for (var k = 0; k < r.style.length; k++) {
-                        var prop = r.style[k];
+                    // Se lee el texto de la regla (no propiedad a propiedad): con var() en atajos como
+                    // border-color, el navegador deja vac\u00edos los valores sueltos.
+                    var ds = splitDecls(r.style.cssText);
+                    for (var k = 0; k < ds.length; k++) {
+                        var c2 = ds[k].indexOf(':');
+                        if (c2 < 1) continue;
+                        var prop = ds[k].slice(0, c2).trim();
                         if (prop.indexOf('--') === 0 && prop.indexOf('--tw-') !== 0) continue;
-                        var nv = recolorValue(r.style.getPropertyValue(prop), pal);
-                        if (nv) decl += prop + ':' + nv + (r.style.getPropertyPriority(prop) ? ' !important' : '') + ';';
+                        var nv = recolorValue(ds[k].slice(c2 + 1).trim(), pal);
+                        if (nv) decl += prop + ':' + nv + ';';
                     }
                     if (r.cssRules && r.cssRules.length) inner = walk(r.cssRules, pal, true);
                     if (decl || inner) css += (nested ? r.selectorText : splitSel(r.selectorText)) + '{' + decl + inner + '}';
