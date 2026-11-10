@@ -425,9 +425,11 @@
     var inlineTouched = [];
     function inlineOn(pal) {
         var list = document.body.querySelectorAll(INL_SEL);
-        for (var i = 0; i < list.length; i++) {
-            var el = list[i];
-            if (el.closest('[data-season-ui],#cin-loader')) continue;
+        for (var i = 0; i < list.length; i++) inlineEl(list[i], pal);
+    }
+    function inlineEl(el, pal) {
+        {
+            if (el.nodeType !== 1 || el.closest('[data-season-ui],#cin-loader')) return;
             var st = el.getAttribute('style');
             // Si React cambi\u00f3 el estilo despu\u00e9s, se vuelve a recolorear el nuevo.
             if (st && (st.indexOf('rgb') >= 0 || st.indexOf('#') >= 0) && st !== el.__seasonStyleNew) {
@@ -448,6 +450,20 @@
                     el.__seasonInl[an] = av; el.__seasonAttrNew[an] = na;
                     el.setAttribute(an, na);
                 } else el.__seasonAttrNew[an] = av;
+            }
+        }
+    }
+    // Cambios del DOM: se recolorean en el momento (antes de pintar), as\u00ed no hay parpadeo del color original.
+    function inlineRecords(recs, pal) {
+        for (var i = 0; i < recs.length; i++) {
+            var r = recs[i];
+            if (r.type === 'attributes') { inlineEl(r.target, pal); continue; }
+            for (var j = 0; j < r.addedNodes.length; j++) {
+                var n = r.addedNodes[j];
+                if (n.nodeType !== 1) continue;
+                if (n.matches && n.matches(INL_SEL)) inlineEl(n, pal);
+                var sub = n.querySelectorAll ? n.querySelectorAll(INL_SEL) : [];
+                for (var k = 0; k < sub.length; k++) inlineEl(sub[k], pal);
             }
         }
     }
@@ -522,7 +538,10 @@
         if (!logoObs && window.MutationObserver) {
             var t = null;
             // Se agrupa: como mucho una pasada cada 150 ms aunque haya animaciones cambiando estilos sin parar.
-            logoObs = new MutationObserver(function () { if (!t) t = setTimeout(function () { t = null; go(); }, 150); });
+            logoObs = new MutationObserver(function (recs) {
+                if (canvasPal) inlineRecords(recs, canvasPal);
+                if (!t) t = setTimeout(function () { t = null; if (document.body) logosOn(pal); }, 150);
+            });
             var watch = function () { logoObs && logoObs.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'fill', 'stroke', 'stop-color'] }); };
             if (document.body) watch(); else document.addEventListener('DOMContentLoaded', watch);
         }
