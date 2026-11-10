@@ -153,7 +153,7 @@
         halloween: [50, 40, 305, 135, 60], muertos: [55, 340, 300, 80, 75], thanksgiving: [45, 30, 20, 75, 75],
         black_friday: [95, 85, 85, 95, 95], gamer_day: [145, 300, 290, 200, 145], star_wars: [25, 15, 260, 240, 240],
         book_day: [20, 10, 340, 145, 145], san_juan: [45, 35, 25, 70, 70],
-        winter: [250, 270, 280, 220, 215], spring: [150, 130, 330, 165, 150], summer: [75, 55, 30, 195, 190], autumn: [38, 22, 12, 65, 65],
+        winter: [250, 270, 280, 220, 215], spring: [150, 130, 330, 165, 150], summer: [75, 55, 30, 195, 190], autumn: [48, 28, 355, 170, 85],
     };
     // Color de "online" (verde esmeralda de los servidores) por estaci\u00f3n/festivo. Nunca cerca del rojo
     // (apagado, ~25) ni del \u00e1mbar (arrancando, ~70) para que el estado se siga entendiendo.
@@ -210,6 +210,7 @@
             return 'rgb(' + n(0) + ' ' + n(2) + ' ' + n(4) + (hx.length === 8 ? ' / ' + (n(6) / 255).toFixed(3) : '') + ')';
         });
         var out = v.replace(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)\s*(?:[,/]\s*([\d.]+%?|var\([^()]*\)))?\s*\)/g, function (all, r, g, b, a) {
+            if (Math.abs(r - 88) + Math.abs(g - 101) + Math.abs(b - 242) < 24) return all; // Discord: color de su marca
             var o = toOklch(+r, +g, +b), i = slot(o[2], o[1]);
             if (i === null || pal[i] == null) return all;
             hit = true;
@@ -308,6 +309,20 @@
         })();
     }
     function logosOn(pal) {
+        var icons = document.querySelectorAll('img[src*="icons8.com"][src*="color="]');
+        for (var j = 0; j < icons.length; j++) {
+            var im = icons[j], u = im.getAttribute('src');
+            if (im.getAttribute('data-season-logo')) continue;
+            var mm = /color=([0-9a-f]{6})/i.exec(u);
+            if (!mm) continue;
+            var hx = mm[1], rr = parseInt(hx.substr(0, 2), 16), gg = parseInt(hx.substr(2, 2), 16), bb = parseInt(hx.substr(4, 2), 16);
+            var oc = toOklch(rr, gg, bb), si = slot(oc[2], oc[1]);
+            if (si === null || pal[si] == null) continue;
+            var nc = fromOklch(oc[0], oc[1], pal[si]);
+            var nh = nc.map(function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+            im.setAttribute('data-season-logo', u);
+            im.src = u.replace(mm[0], 'color=' + nh);
+        }
         var list = document.querySelectorAll(LOGO_SEL);
         for (var i = 0; i < list.length; i++) recolorLogo(list[i], pal);
     }
