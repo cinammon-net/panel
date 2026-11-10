@@ -357,10 +357,10 @@ export default function Addons({ server, kind }: { server: { id: number; name: s
     const toggle = async (addon: Addon) => {
         setBusy(addon.file);
         try {
-            const { data } = await axios.post<{ file: string; enabled: boolean }>(`${base}/toggle`, { folder: addon.folder, file: addon.file });
+            const { data } = await axios.post<{ file: string; enabled: boolean; live?: boolean }>(`${base}/toggle`, { folder: addon.folder, file: addon.file, name: addon.name });
             patch(addon.folder, addon.file, { file: data.file, enabled: data.enabled });
-            setNeedsRestart(true);
-            toast.success(`${addon.name} ${data.enabled ? 'activado' : 'desactivado'}.`);
+            if (!data.live) setNeedsRestart(true);
+            toast.success(`${addon.name} ${data.enabled ? 'activado' : 'desactivado'}${data.live ? ' al momento, sin reiniciar' : ''}.`);
         } catch (e) {
             toast.error(errorMessage(e, 'No se pudo cambiar el estado.'));
         } finally {
@@ -380,6 +380,21 @@ export default function Addons({ server, kind }: { server: { id: number; name: s
             toast.error(errorMessage(e, 'No se pudo borrar el archivo.'));
         } finally {
             setBusy(null);
+        }
+    };
+
+    const [restarting, setRestarting] = useState(false);
+    const restartNow = async () => {
+        if (!window.confirm('Se reiniciará el servidor y los jugadores conectados saldrán unos segundos. ¿Continuar?')) return;
+        setRestarting(true);
+        try {
+            await axios.post(`/servers/${server.id}/power`, { action: 'restart' });
+            setNeedsRestart(false);
+            toast.success('Reiniciando el servidor…');
+        } catch (e) {
+            toast.error(errorMessage(e, 'No se pudo reiniciar.'));
+        } finally {
+            setRestarting(false);
         }
     };
 
@@ -473,9 +488,19 @@ export default function Addons({ server, kind }: { server: { id: number; name: s
                         <span className="flex items-center gap-2">
                             <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" /> Reinicia el servidor para que se apliquen los cambios.
                         </span>
-                        <Link href={`/servers/${server.id}/console`} className="text-xs font-bold text-amber-300 underline-offset-2 hover:underline">
-                            Ir a la consola →
-                        </Link>
+                        <span className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                disabled={restarting}
+                                onClick={() => void restartNow()}
+                                className="flex items-center gap-1.5 rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-bold text-black transition hover:bg-amber-300 disabled:opacity-60"
+                            >
+                                {restarting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />} Reiniciar ahora
+                            </button>
+                            <Link href={`/servers/${server.id}/console`} className="text-xs font-bold text-amber-300 underline-offset-2 hover:underline">
+                                Ir a la consola →
+                            </Link>
+                        </span>
                     </div>
                 )}
 

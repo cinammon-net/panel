@@ -157,6 +157,9 @@ class ServerAddonsController extends Controller
             $folders = [];
             foreach ($wanted ?? self::FOLDERS as $folder) {
                 $entries = $this->folderEntries($client, $server, $folder);
+                if ($folder === 'plugins' && $entries !== null && $this->ensurePlugman($client, $server, $entries)) {
+                    $entries = $this->folderEntries($client, $server, $folder);
+                }
                 // Tipo conocido: la carpeta se muestra aunque aún no exista (se crea al subir).
                 $entries ??= $wanted === null ? null : [];
                 $folders[$folder] = $entries === null ? null : collect($entries)
@@ -171,6 +174,44 @@ class ServerAddonsController extends Controller
             return response()->json(['kind' => $kind, 'folders' => (object) $folders]);
         } catch (ConnectionException|RequestException $exception) {
             return response()->json(['message' => 'No se pudo conectar con el nodo.'], 502);
+        }
+    }
+
+    /**
+     * PlugManX viene por defecto en los servidores de plugins (Paper, Purpur, Spigot, Folia):
+     * permite activar y desactivar plugins sin reiniciar. Se instala una sola vez; si el usuario lo
+     * borra o lo desactiva no se vuelve a poner.
+     */
+    private function ensurePlugman($client, Server $server, array $entries): bool
+    {
+        $name = strtolower((string) $server->egg?->name);
+        $supported = collect(['paper', 'purpur', 'spigot', 'bukkit', 'pufferfish', 'folia'])->contains(fn ($w) => str_contains($name, $w));
+        $present = collect($entries)->contains(fn ($e) => preg_match('/^plugman/i', (string) ($e['name'] ?? '')));
+        if (! $supported || $present || Cache::has('plugman_done:'.$server->id)) {
+            return false;
+        }
+        Cache::put('plugman_done:'.$server->id, true, now()->addYears(5));
+
+        try {
+            $version = $this->minecraftVersion($client, $server);
+            $params = ['loaders' => json_encode($this->modrinthLoaders($server))];
+            $versions = $this->modrinth()->get(self::MODRINTH.'/project/plugmanx/version', $params)->throw()->json() ?? [];
+            // Mejor una versión que declare la del servidor; si no, la última estable.
+            $release = collect($versions)->first(fn ($v) => ($v['version_type'] ?? '') === 'release' && (! $version || in_array($version, (array) ($v['game_versions'] ?? []), true)))
+                ?? collect($versions)->firstWhere('version_type', 'release');
+            $file = $release ? (collect($release['files'] ?? [])->firstWhere('primary', true) ?? ($release['files'][0] ?? null)) : null;
+            if (! $file) {
+                return false;
+            }
+            $jar = $this->jarName(basename(rawurldecode((string) parse_url((string) $file['url'], PHP_URL_PATH))));
+            $this->downloadToServer(clone $client, $server, 'plugins', $jar, $file);
+            Cache::put('plugman_installed_at:'.$server->id, now()->timestamp, now()->addYears(5));
+
+            return true;
+        } catch (\Throwable $e) {
+            report($e);
+
+            return false;
         }
     }
 
@@ -219,7 +260,7 @@ class ServerAddonsController extends Controller
     public function toggle(Request $request, Server $server, WingsClient $wings)
     {
         $this->authorizeServer($request, $server);
-        $data = $request->validate(['folder' => 'required|string', 'file' => 'required|string|max:255']);
+        $data = $request->validate(['folder' => 'required|string', 'file' => 'required|string|max:255', 'name' => 'nullable|string|max:80']);
         $folder = $this->folder($server, $data['folder']);
         $file = $this->jarName($data['file']);
         $target = preg_match('/\.disabled$/i', $file) ? preg_replace('/\.disabled$/i', '', $file) : $file.'.disabled';
@@ -235,7 +276,28 @@ class ServerAddonsController extends Controller
             $enabled = ! preg_match('/\.disabled$/i', $target);
             $this->logActivity($server, $request, $enabled ? 'addon:enable' : 'addon:disable', ($enabled ? 'Activó ' : 'Desactivó ').$folder.'/'.$target);
 
-            return response()->json(['file' => $target, 'enabled' => $enabled]);
+            // Con PlugManX instalado, el plugin se carga o descarga al momento, sin reiniciar.
+            $live = false;
+            $hasPlugman = $entries->contains(fn ($e) => preg_match('/^plugman.*\.jar$/i', (string) ($e['name'] ?? '')));
+            $stem = preg_replace('/\.jar(\.disabled)?$/i', '', $target);
+            if ($folder === 'plugins' && $hasPlugman && ! preg_match('/^plugman/i', $stem)) {
+                $name = trim((string) ($data['name'] ?? ''));
+                $pluginName = preg_match('/^[A-Za-z0-9_.\-]{1,64}$/', $name) ? $name : $stem;
+                $command = $enabled ? 'plugman load '.$stem : 'plugman unload '.$pluginName;
+                try {
+                    // Si PlugManX se instaló después del último arranque todavía no está cargado.
+                    $state = $wings->forServer($server)->timeout(5)->get('/servers/'.$server->uuid)->json();
+                    $installedAt = Cache::get('plugman_installed_at:'.$server->id);
+                    $startedAt = now()->timestamp - (int) (($state['utilization']['uptime'] ?? 0) / 1000);
+                    $loaded = ! $installedAt || $startedAt > $installedAt;
+                    $live = $loaded && ($state['state'] ?? '') === 'running'
+                        && $wings->forServer($server)->timeout(5)->post('/servers/'.$server->uuid.'/commands', ['commands' => [$command]])->successful();
+                } catch (ConnectionException|RequestException) {
+                    $live = false;
+                }
+            }
+
+            return response()->json(['file' => $target, 'enabled' => $enabled, 'live' => $live, 'plugman' => $folder === 'plugins' && $hasPlugman]);
         } catch (ConnectionException|RequestException $exception) {
             return response()->json(['message' => 'Wings no pudo renombrar el archivo.'], 502);
         }
