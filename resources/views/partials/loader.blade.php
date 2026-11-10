@@ -20,7 +20,8 @@
 <style>
     #cin-loader { position: fixed; inset: 0; z-index: 2147483000; display: grid; place-items: center; background: #05060a; transition: opacity .45s ease, visibility .45s ease; }
     #cin-loader.cin-ld-out { opacity: 0; visibility: hidden; }
-    #cin-loader .cin-ld-box { display: flex; flex-direction: column; align-items: center; gap: 16px; animation: cin-ld-in .35s ease-out both; }
+    #cin-loader .cin-ld-box { display: flex; flex-direction: column; align-items: center; gap: 16px; opacity: 0; }
+    #cin-loader.cin-ld-ready .cin-ld-box { opacity: 1; animation: cin-ld-in .35s ease-out both; }
     #cin-loader .cin-ld-mark { overflow: visible; filter: drop-shadow(0 0 14px color-mix(in oklab, var(--ld-a) 55%, transparent)); }
     #cin-loader .cin-ld-core { opacity: .9; transform-origin: 50% 50%; animation: cin-ld-pulse 1.6s ease-in-out infinite; }
     #cin-loader .cin-ld-trace { stroke-dasharray: 70 200; animation: cin-ld-trace 1.4s linear infinite; }
@@ -39,15 +40,29 @@
     (function () {
         var el = document.getElementById('cin-loader');
         if (!el) return;
-        var t0 = Date.now(), done = false;
+        var t0 = Date.now(), done = false, ready = false, readyAt = 0;
+        // El hexágono aparece cuando ya se conocen los colores de la temporada (o a los 500 ms), sin saltos de color.
+        function setReady() {
+            if (ready) return;
+            ready = true; readyAt = Date.now();
+            el.classList.add('cin-ld-ready');
+        }
+        var root = document.documentElement;
+        if (root.hasAttribute('data-season-colors')) setReady();
+        else if (window.MutationObserver) {
+            var mo = new MutationObserver(function () { if (root.hasAttribute('data-season-colors')) { mo.disconnect(); setReady(); } });
+            mo.observe(root, { attributes: true, attributeFilter: ['data-season-colors'] });
+        }
+        setTimeout(setReady, 500);
         function hide() {
             if (done) return;
             done = true;
-            // Un mínimo corto para que no "parpadee" en cargas muy rápidas.
+            // Si el logo ya se ve, se deja un momento para que no "parpadee"; si no llegó a verse, se va directamente.
+            var wait = ready ? Math.max(0, 350 - (Date.now() - t0), readyAt + 300 - Date.now()) : 0;
             setTimeout(function () {
                 el.classList.add('cin-ld-out');
                 setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 500);
-            }, Math.max(0, 350 - (Date.now() - t0)));
+            }, wait);
         }
         if (document.readyState === 'complete') hide();
         else window.addEventListener('load', hide);
