@@ -319,7 +319,7 @@
                         var c2 = ds[k].indexOf(':');
                         if (c2 < 1) continue;
                         var prop = ds[k].slice(0, c2).trim();
-                        if (prop.indexOf('--') === 0 && prop.indexOf('--tw-') !== 0) continue;
+                        if (prop.indexOf('--') === 0 && prop.indexOf('--tw-') !== 0 && !colorsOnly) continue; // paginas de estado: sus colores son variables
                         var nv = recolorValue(ds[k].slice(c2 + 1).trim(), pal);
                         if (nv) decl += prop + ':' + nv + ';';
                     }
