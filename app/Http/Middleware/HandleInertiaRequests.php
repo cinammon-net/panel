@@ -72,6 +72,7 @@ class HandleInertiaRequests extends Middleware
                     'minecraft' => $addons !== null,
                     'addons' => $addons,
                     'players' => \App\Support\MinecraftAddons::hasPlayerLists($server),
+                    'gta' => \App\Support\GtaServers::kind($server),
                     // Para la pantalla de entrada al servidor
                     'id' => $server->id,
                     'name' => $server->name,

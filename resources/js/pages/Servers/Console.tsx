@@ -1,4 +1,5 @@
 import LogDiagnostics from '@/components/server/log-diagnostics';
+import GtaPanel from '@/components/server/gta-panel';
 import PlayersPanel from '@/components/server/players-panel';
 import ServerLayout from '@/layouts/server-layout';
 import { colorizeLogs } from '@/lib/terminal-colors';
@@ -13,7 +14,7 @@ import { Line } from 'react-chartjs-2';
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
 type Server = { id: number; name: string; address: string; egg: string; node?: string; memory: number; disk: number; cpu: number; minecraft: boolean;
-        web_url?: string | null; discord_bot?: boolean; players?: boolean };
+        web_url?: string | null; discord_bot?: boolean; players?: boolean; gta?: string | null };
 type Snapshot = {
     state: string;
     installed: boolean;
@@ -804,6 +805,9 @@ export default function Console({ server }: { server: Server }) {
 
                 {/* Operadores, whitelist y baneos (Minecraft Java) */}
                 {server.players && <PlayersPanel serverId={server.id} running={running} />}
+
+                {/* Jugadores conectados y mods/resources (MTA, SA-MP, FiveM...) */}
+                {server.gta && <GtaPanel serverId={server.id} running={running} />}
 
                 {/* Gráficos de recursos debajo de la consola: CPU, Memoria y Red */}
                 <section aria-label="Gráficos de rendimiento del servidor" className="grid gap-4 lg:grid-cols-3">

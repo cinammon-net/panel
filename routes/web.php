@@ -496,6 +496,9 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
     Route::get('/servers/{server}/players', [App\Http\Controllers\ServerPlayersController::class, 'index'])->middleware('throttle:120,1');
     Route::post('/servers/{server}/players', [App\Http\Controllers\ServerPlayersController::class, 'action'])->middleware('throttle:60,1');
     Route::get('/servers/{server}/players/online', [App\Http\Controllers\ServerPlayersController::class, 'online'])->middleware('throttle:120,1');
+    Route::get('/servers/{server}/gta/online', [App\Http\Controllers\ServerGtaController::class, 'online'])->middleware('throttle:120,1');
+    Route::get('/servers/{server}/gta/mods', [App\Http\Controllers\ServerGtaController::class, 'mods'])->middleware('throttle:60,1');
+    Route::post('/servers/{server}/gta/players', [App\Http\Controllers\ServerGtaController::class, 'action'])->middleware('throttle:60,1');
     Route::get('/servers/{server}/people', [App\Http\Controllers\ServerPlayersController::class, 'page'])->name('servers.people');
     Route::get('/servers/{server}/players/roster', [App\Http\Controllers\ServerPlayersController::class, 'roster'])->middleware('throttle:60,1');
     Route::get('/servers/{server}/game', [App\Http\Controllers\ServerGameController::class, 'page'])->name('servers.game');

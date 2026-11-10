@@ -33,6 +33,14 @@ class ServerConfiguration
         $allocations = DB::table('allocations')->where('server_id', $server->id)->get();
         foreach ($allocations as $allocation) $mappings[$allocation->ip][] = (int) $allocation->port;
         $mappings[$server->allocation->ip][] = (int) $server->allocation->port;
+        // MTA responde a la lista de servidores (ASE) en el puerto del juego + 123: se publica también
+        // para que el panel vea los jugadores y el servidor salga en el navegador de MTA.
+        if (\App\Support\GtaServers::kind($server) === 'mta') {
+            $ase = (int) $server->allocation->port + \App\Support\GtaServers::ASE_OFFSET;
+            $taken = DB::table('allocations')->where('node_id', $server->allocation->node_id)->where('port', $ase)
+                ->whereNotNull('server_id')->where('server_id', '!=', $server->id)->exists();
+            if ($ase <= 65535 && ! $taken) $mappings[$server->allocation->ip][] = $ase;
+        }
         $mappings = array_map(fn ($ports) => array_values(array_unique($ports)), $mappings);
         $port = (string) $server->allocation->port;
         $ip = '0.0.0.0';

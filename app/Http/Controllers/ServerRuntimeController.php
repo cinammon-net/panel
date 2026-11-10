@@ -65,6 +65,8 @@ class ServerRuntimeController extends Controller
             'minecraft' => str_contains(strtolower($server->egg->name), 'paper'),
             // Panel de jugadores (op, whitelist, baneos) en servidores Java con jugadores
             'players' => \App\Support\MinecraftAddons::hasPlayerLists($server),
+            // Jugadores y mods de los servidores de GTA (MTA, SA-MP, FiveM...)
+            'gta' => \App\Support\GtaServers::kind($server),
             // Hosting web: enlace a la web publicada (subdominio por Cloudflare; IP:puerto solo si no hay dominio de webs)
             'web_url' => $server->egg?->category === 'web' && $server->allocation
                 ? ($server->siteUrl() ?? 'http://' . $server->allocation->publicAddress())
@@ -181,7 +183,7 @@ class ServerRuntimeController extends Controller
             $u = $state['utilization'] ?? null;
 
             $running = ($state['state'] ?? 'offline') === 'running';
-            $ping = $running ? \App\Support\MinecraftPing::forServer($server, 10) : null;
+            $ping = $running ? (\App\Support\MinecraftPing::forServer($server, 10) ?? \App\Support\GtaServers::query($server, 10)) : null;
 
             return response()->json([
                 'state' => $state['state'] ?? 'offline',
