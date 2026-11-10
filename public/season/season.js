@@ -202,6 +202,25 @@
     var paletteKey = holiday ? (PALETTES[holiday.key] ? holiday.key : null) : (season && season.key);
     var colorStyle = null;
     var sheetStyle = null;
+    // Hoja de estilos propia. Con una CSP sin 'unsafe-inline' (Cockpit) un <style> se bloquea: ahi se usa una
+    // hoja construida (adoptedStyleSheets), que la CSP no filtra. Se activa con window.__SEASON_CSP__ = true.
+    function makeStyle(attr, val) {
+        if (window.__SEASON_CSP__ && window.CSSStyleSheet && document.adoptedStyleSheets) {
+            try {
+                var sh = new CSSStyleSheet(), txt = '';
+                document.adoptedStyleSheets = document.adoptedStyleSheets.concat([sh]);
+                return {
+                    setAttribute: function () {},
+                    get textContent() { return txt; },
+                    set textContent(v) { txt = v; try { sh.replaceSync(v); } catch (e) { /* regla no valida */ } }
+                };
+            } catch (e) { /* sin hojas construidas: se usa <style> */ }
+        }
+        var el = document.createElement('style');
+        el.setAttribute(attr, val);
+        document.head.appendChild(el);
+        return el;
+    }
     var ATTR = ':root[data-season-colors]';
     // Familia de Tailwind -> \u00edndice de la paleta (azules siguen al cian, \u00edndigo/violeta al morado).
     var IDX = { pink: 0, fuchsia: 1, purple: 2, cyan: 3, blue: 3, sky: 3, indigo: 2, violet: 2, emerald: 5, green: 5, teal: 5, lime: 6, yellow: 6, amber: 6, orange: 6 };
@@ -539,18 +558,14 @@
                 });
             });
             css += '--tw-c-neon:' + NEON[0] + ' ' + NEON[1] + ' ' + pal[4] + ';';
-            colorStyle = document.createElement('style');
-            colorStyle.setAttribute('data-season', paletteKey);
+            colorStyle = makeStyle('data-season', paletteKey);
             colorStyle.textContent = ATTR + '{' + css + '}';
             // Logos: las im\u00e1genes giran de tono (el rosa de marca pasa al color principal de la paleta);
             // el hex\u00e1gono SVG de la tienda cambia su parada rosa.
             colorStyle.textContent += ATTR + ' stop[stop-color="#ff4da6" i]{stop-color:oklch(0.69 0.21 ' + pal[0] + ')}'
                 + ATTR + ' .cyber-border::before{background:conic-gradient(from 0deg,oklch(0.68 0.26 ' + pal[0] + '),oklch(0.47 0.29 ' + pal[2] + '),oklch(0.79 0.13 ' + pal[3] + '),oklch(0.68 0.26 ' + pal[0] + '))}';
-            document.head.appendChild(colorStyle);
             // Colores escritos a mano en el CSS (#00f7ff, rgba(255,0,150,..), degradados...): se recolorean leyendo las hojas.
-            sheetStyle = document.createElement('style');
-            sheetStyle.setAttribute('data-season-sheets', paletteKey);
-            document.head.appendChild(sheetStyle);
+            sheetStyle = makeStyle('data-season-sheets', paletteKey);
             var rescan = function () { scanSheets(pal); };
             rescan();
             window.addEventListener('load', rescan);
