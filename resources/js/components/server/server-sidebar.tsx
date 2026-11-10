@@ -181,7 +181,7 @@ export default function ServerSidebar({
             items: [
                 {
                     key: 'subdomains',
-                    title: 'Subdominios',
+                    title: 'Dominios',
                     href: `/servers/${server.id}/subdomains`,
                     icon: Globe,
                     color: 'text-cyan-400',

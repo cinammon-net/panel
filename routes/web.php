@@ -543,9 +543,13 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
     Route::post('/servers/{server}/webhooks/{webhookId}/test', [App\Http\Controllers\ServerModulesController::class, 'testWebhook'])->name('servers.webhooks.test');
     Route::delete('/servers/{server}/webhooks/{webhookId}', [App\Http\Controllers\ServerModulesController::class, 'destroyWebhook'])->name('servers.webhooks.destroy');
 
-    Route::get('/servers/{server}/subdomains', [App\Http\Controllers\ServerModulesController::class, 'subdomains'])->name('servers.subdomains');
-    Route::post('/servers/{server}/subdomains', [App\Http\Controllers\ServerModulesController::class, 'storeSubdomain'])->name('servers.subdomains.store');
-    Route::delete('/servers/{server}/subdomains/{subdomainId}', [App\Http\Controllers\ServerModulesController::class, 'destroySubdomain'])->name('servers.subdomains.destroy');
+    // Dominios propios (solo servidores de pago) con conexión automática a Cloudflare
+    Route::get('/servers/{server}/subdomains', [App\Http\Controllers\ServerDomainsController::class, 'page'])->name('servers.subdomains');
+    Route::post('/servers/{server}/subdomains', [App\Http\Controllers\ServerDomainsController::class, 'store'])->middleware('throttle:15,1')->name('servers.subdomains.store');
+    Route::post('/servers/{server}/subdomains/{subdomain}/verify', [App\Http\Controllers\ServerDomainsController::class, 'verify'])->middleware('throttle:30,1')->name('servers.subdomains.verify');
+    Route::delete('/servers/{server}/subdomains/{subdomain}', [App\Http\Controllers\ServerDomainsController::class, 'destroy'])->middleware('throttle:15,1')->name('servers.subdomains.destroy');
+    Route::post('/cloudflare/connection', [App\Http\Controllers\ServerDomainsController::class, 'connect'])->middleware('throttle:10,1')->name('cloudflare.connect');
+    Route::delete('/cloudflare/connection', [App\Http\Controllers\ServerDomainsController::class, 'disconnect'])->name('cloudflare.disconnect');
 
     Route::get('/servers/{server}/activity', [App\Http\Controllers\ServerModulesController::class, 'activity'])->name('servers.activity');
     Route::get('/servers/{server}/addons', [App\Http\Controllers\ServerAddonsController::class, 'page'])->name('servers.addons');

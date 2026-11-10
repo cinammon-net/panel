@@ -63,6 +63,20 @@ class Server extends Model
         return ($slug !== '' ? $slug : 'web') . '-' . substr($this->uuid, 0, 4) . '.' . $domain;
     }
 
+    /**
+     * Servidores de pago: los de la tienda pagados con dinero (no los gratuitos con monedas) y los que
+     * crea el equipo a mano (sin pedido de la tienda). Solo estos pueden usar dominios propios.
+     */
+    public function hasPaidPlan(): bool
+    {
+        $external = (string) $this->external_id;
+        if (str_starts_with($external, 'billing-')) {
+            return (bool) $this->billing_paid;
+        }
+
+        return true;
+    }
+
     public function siteUrl(): ?string
     {
         $host = $this->siteHost();
@@ -89,6 +103,13 @@ class Server extends Model
     protected static function booted()
     {
         static::deleting(function (Server $server) {
+            // Dominios propios: quitar sus registros de Cloudflare
+            try {
+                \App\Support\ServerDomains::removeAllFor($server);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("No se pudieron quitar los dominios del servidor {$server->id}: " . $e->getMessage());
+            }
+
             // 0. Borrar de MariaDB las bases de datos reales del servidor y sus usuarios
             try {
                 foreach (\App\Models\ServerDatabase::where('server_id', $server->id)->get() as $database) {

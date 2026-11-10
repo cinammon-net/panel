@@ -132,6 +132,8 @@ class ServerModulesController extends Controller
             'port' => $allocation->port,
         ]);
 
+        \App\Support\ServerDomains::syncPort($server->fresh(['allocation', 'egg']));
+
         $this->logActivity($server, $request, 'server:network.primary', "Se estableció el puerto {$allocation->port} como primario.");
 
         return back()->with('success', "Puerto principal actualizado a {$allocation->port}.");
@@ -396,87 +398,6 @@ class ServerModulesController extends Controller
         $this->logActivity($server, $request, 'server:webhook.destroy', "Se eliminó un webhook del servidor.");
 
         return back()->with('success', 'Webhook eliminado.');
-    }
-
-    // ==========================================
-    // 5. SUBDOMINIOS
-    // ==========================================
-    public function subdomains(Request $request, Server $server)
-    {
-        $this->authorizeServer($request, $server);
-
-        $key = "server_subdomains_{$server->id}";
-        $subdomains = Cache::get($key, [
-            [
-                'id' => 'sub_1',
-                'subdomain' => 'bot',
-                'domain' => 'cinammon.net',
-                'full_domain' => 'bot.cinammon.net',
-                'record_type' => 'A',
-                'target' => $server->allocation ? "127.0.0.1:{$server->allocation->port}" : '127.0.0.1',
-                'status' => 'active',
-                'created_at' => now()->subDays(3)->toIso8601String(),
-            ],
-        ]);
-
-        return Inertia::render('Servers/Subdomains', [
-            'server' => [
-                'id' => $server->id,
-                'name' => $server->name,
-                'uuid' => $server->uuid,
-                'owner_id' => $server->owner_id,
-            ],
-            'subdomains' => $subdomains,
-            'availableDomains' => ['cinammon.net', 'cinammon.es', 'playcinammon.com'],
-        ]);
-    }
-
-    public function storeSubdomain(Request $request, Server $server)
-    {
-        $this->authorizeServer($request, $server);
-
-        $validated = $request->validate([
-            'subdomain' => 'required|alpha_dash|max:50',
-            'domain' => 'required|string|max:100',
-            'record_type' => 'nullable|string|in:A,CNAME,SRV',
-        ]);
-
-        $key = "server_subdomains_{$server->id}";
-        $subdomains = Cache::get($key, []);
-
-        $fullDomain = strtolower($validated['subdomain']) . '.' . $validated['domain'];
-
-        $newSubdomain = [
-            'id' => 'sub_' . Str::random(8),
-            'subdomain' => strtolower($validated['subdomain']),
-            'domain' => $validated['domain'],
-            'full_domain' => $fullDomain,
-            'record_type' => $validated['record_type'] ?? 'CNAME',
-            'target' => $server->allocation ? "127.0.0.1:{$server->allocation->port}" : '127.0.0.1',
-            'status' => 'active',
-            'created_at' => now()->toIso8601String(),
-        ];
-
-        $subdomains[] = $newSubdomain;
-        Cache::forever($key, $subdomains);
-
-        $this->logActivity($server, $request, 'server:subdomain.create', "Se vinculó el subdominio '{$fullDomain}'.");
-
-        return back()->with('success', "Subdominio {$fullDomain} vinculado correctamente.");
-    }
-
-    public function destroySubdomain(Request $request, Server $server, string $subdomainId)
-    {
-        $this->authorizeServer($request, $server);
-
-        $key = "server_subdomains_{$server->id}";
-        $subdomains = Cache::get($key, []);
-        $filtered = collect($subdomains)->reject(fn ($s) => $s['id'] === $subdomainId)->values()->all();
-        Cache::forever($key, $filtered);
-
-        $this->logActivity($server, $request, 'server:subdomain.destroy', "Se eliminó un subdominio del servidor.");
-
-        return back()->with('success', 'Subdominio desvinculado.');
     }
 
     // ==========================================

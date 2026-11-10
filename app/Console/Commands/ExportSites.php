@@ -32,6 +32,17 @@ class ExportSites extends Command
             ])
             ->values();
 
+        // Dominios propios de las webs (registro A con proxy en el Cloudflare del cliente).
+        $custom = \App\Models\ServerSubdomain::where('kind', 'web')->where('status', 'active')->get()
+            ->map(function (\App\Models\ServerSubdomain $sub) use ($sites) {
+                $site = $sites->firstWhere('server', $sub->server?->uuid);
+
+                return $site ? ['host' => $sub->domain] + $site + ['custom' => true] : null;
+            })
+            ->filter()
+            ->values();
+        $sites = $sites->concat($custom)->values();
+
         $this->line($sites->toJson(JSON_UNESCAPED_SLASHES));
 
         return self::SUCCESS;

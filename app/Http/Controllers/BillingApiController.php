@@ -73,11 +73,17 @@ class BillingApiController extends Controller
             'cpu_pct' => ['required', 'integer', 'min:25'],
             // Egg concreto del plan (planes por juego); si no existe se usa el de la categoría.
             'egg' => ['nullable', 'string', 'max:255'],
+            // Pagado con dinero (true) o gratuito con monedas (false). Solo los de pago tienen dominio propio.
+            'paid' => ['sometimes', 'boolean'],
         ]);
 
         // Idempotente: si el pedido ya se aprovisionó, devolverlo.
         $existing = Server::where('external_id', $data['external_id'])->first();
         if ($existing) {
+            if (array_key_exists('paid', $data)) {
+                $existing->forceFill(['billing_paid' => (bool) $data['paid']])->save();
+            }
+
             return response()->json($this->payload($existing));
         }
 
@@ -137,7 +143,10 @@ class BillingApiController extends Controller
             'status' => 0,
         ]);
 
-        $server->forceFill(['external_id' => $data['external_id']])->save();
+        $server->forceFill([
+            'external_id' => $data['external_id'],
+            'billing_paid' => array_key_exists('paid', $data) ? (bool) $data['paid'] : null,
+        ])->save();
 
         $allocation->forceFill(['server_id' => $server->id])->save();
 
