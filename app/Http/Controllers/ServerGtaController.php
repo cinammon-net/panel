@@ -296,6 +296,7 @@ class ServerGtaController extends Controller
                 'type' => $isDir ? 'folder' : $ext,
                 'size' => $isDir ? null : (int) ($e['size'] ?? 0),
                 'modified' => $e['modified'] ?? null,
+                'toggleable' => $enabled !== null && GtaServers::canToggle($kind, $label),
                 'enabled' => $enabled === null ? null : (in_array(strtolower($base), $enabled, true) || ($groupKey && in_array($groupKey, $enabled, true))),
             ];
         }
@@ -343,5 +344,148 @@ class ServerGtaController extends Controller
         Cache::forever($key, array_slice($activity, 0, 50));
 
         return response()->json(['command' => $command]);
+    }
+    private function write($client, Server $server, string $path, string $body): void
+    {
+        $client->withBody($body, 'text/plain')->withHeaders(['Content-Length' => (string) strlen($body)])
+            ->post('/servers/'.$server->uuid.'/files/write?'.http_build_query(['file' => '/'.$path]))->throw();
+    }
+
+    private function log(Request $request, Server $server, string $action, string $description): void
+    {
+        $user = $request->user();
+        $key = "server_activity_{$server->id}";
+        $activity = Cache::get($key, []);
+        array_unshift($activity, [
+            'id' => (string) Str::uuid(),
+            'user' => ['name' => $user->name, 'email' => $user->email, 'avatar' => $user->avatar ?? null],
+            'action' => $action,
+            'description' => $description,
+            'ip' => $request->ip(),
+            'created_at' => now()->toIso8601String(),
+        ]);
+        Cache::forever($key, array_slice($activity, 0, 50));
+    }
+
+    /** Ruta de un mod validada: dentro de las carpetas de mods del juego y sin "..". */
+    private function modPath(string $kind, string $path): string
+    {
+        $path = trim(str_replace('\\', '/', $path), '/');
+        $inside = collect(GtaServers::modFolders($kind))->contains(fn ($f) => str_starts_with($path, $f[0].'/'));
+        abort_unless($inside && ! str_contains($path, '..') && ! str_contains($path, "\0"), 422, 'Ruta no válida.');
+
+        return $path;
+    }
+
+    /** Activa o desactiva un mod en la configuración y, si el servidor está encendido, lo aplica al momento. */
+    public function toggle(Request $request, Server $server, WingsClient $wings)
+    {
+        $kind = $this->authorizeServer($request, $server);
+        $data = $request->validate([
+            'path' => 'required|string|max:300',
+            'section' => 'required|string|max:40',
+            'enabled' => 'required|boolean',
+        ]);
+        $path = $this->modPath($kind, $data['path']);
+        abort_unless(GtaServers::canToggle($kind, $data['section']), 422, 'Este mod no se puede activar desde el panel.');
+        $file = basename($path);
+        $name = preg_replace('/\.(zip|amx|so|dll)$/i', '', $file);
+        abort_unless(preg_match('/^[\w.\-]+$/', $name), 422, 'Nombre de mod no válido.');
+        $on = (bool) $data['enabled'];
+
+        try {
+            $client = $wings->forServer($server)->timeout(15);
+            $configPath = GtaServers::configFile($kind);
+            $json = $kind === 'samp' ? $this->file($client, $server, 'config.json') : '';
+            if ($json !== '' && ($newJson = GtaServers::toggleOpenMpJson($json, $name, $data['section'], $on)) !== null) {
+                $this->write($client, $server, 'config.json', $newJson);
+            } else {
+                $config = $this->file($client, $server, $configPath);
+                abort_if($config === '' && $kind === 'mta', 422, 'No se encontró '.$configPath.'.');
+                $this->write($client, $server, $configPath, GtaServers::toggleConfig($kind, $config, $name, $file, $data['section'], $on));
+            }
+
+            $live = false;
+            $commands = GtaServers::liveCommand($kind, $name, $data['section'], $on);
+            if ($commands && $client->get('/servers/'.$server->uuid)->json('state') === 'running') {
+                $client->post('/servers/'.$server->uuid.'/commands', ['commands' => $commands])->throw();
+                $live = true;
+            }
+        } catch (ConnectionException|RequestException) {
+            return response()->json(['message' => 'No se pudo guardar la configuración.'], 502);
+        }
+        Cache::forget('gta_mods:'.$server->id);
+        $this->log($request, $server, 'gta:toggle', ($on ? 'Activó ' : 'Desactivó ').$name);
+
+        return response()->json(['enabled' => $on, 'live' => $live]);
+    }
+
+    /** Sube un resource (.zip), script (.amx) o plugin (.so/.dll). Los .zip de FiveM/alt:V/RAGE se descomprimen. */
+    public function upload(Request $request, Server $server, WingsClient $wings)
+    {
+        $kind = $this->authorizeServer($request, $server);
+        $request->validate(['upload' => 'required|file|max:204800']);
+        $upload = $request->file('upload');
+        $name = preg_replace('/[^\w.\-\[\] ]+/', '_', basename((string) $upload->getClientOriginalName()));
+        $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+        $target = GtaServers::uploadTarget($kind, $ext);
+        abort_unless($target !== null, 422, match ($kind) {
+            'samp' => 'Sube un script .amx o un plugin .so / .dll.',
+            default => 'Sube el resource comprimido en .zip.',
+        });
+        [$folder, $extract] = $target;
+        if ($ext === 'zip') {
+            $zip = new \ZipArchive();
+            abort_unless($zip->open($upload->getRealPath()) === true, 422, 'El .zip no es válido.');
+            $zip->close();
+        }
+
+        try {
+            $client = $wings->forServer($server)->timeout(180);
+            $existing = collect($this->dir($client, $server, $folder))->pluck('name');
+            if ($existing->isEmpty()) {
+                $client->post('/servers/'.$server->uuid.'/files/create-directory', ['path' => '/'.dirname($folder) === '/.' ? '/' : '/'.dirname($folder), 'name' => basename($folder)]);
+            }
+            abort_if(! $extract && $existing->contains($name), 409, 'Ya existe '.$name.'.');
+
+            $stream = fopen($upload->getRealPath(), 'rb');
+            try {
+                $client->withBody($stream, 'application/octet-stream')->withHeaders(['Content-Length' => (string) $upload->getSize()])
+                    ->post('/servers/'.$server->uuid.'/files/write?'.http_build_query(['file' => '/'.$folder.'/'.$name]))->throw();
+            } finally {
+                if (is_resource($stream)) {
+                    fclose($stream);
+                }
+            }
+            if ($extract) {
+                $client->post('/servers/'.$server->uuid.'/files/decompress', ['root' => '/'.$folder, 'file' => $name])->throw();
+                $client->post('/servers/'.$server->uuid.'/files/delete', ['root' => '/'.$folder, 'files' => [$name]]);
+            }
+        } catch (ConnectionException|RequestException) {
+            return response()->json(['message' => 'Wings no pudo recibir el archivo.'], 502);
+        }
+        Cache::forget('gta_mods:'.$server->id);
+        $this->log($request, $server, 'gta:upload', 'Subió '.$folder.'/'.$name);
+
+        return response()->noContent();
+    }
+
+    /** Borra un mod (archivo o carpeta). */
+    public function remove(Request $request, Server $server, WingsClient $wings)
+    {
+        $kind = $this->authorizeServer($request, $server);
+        $path = $this->modPath($kind, (string) $request->validate(['path' => 'required|string|max:300'])['path']);
+        abort_if(in_array($path, array_map(fn ($f) => $f[0], GtaServers::modFolders($kind)), true), 422, 'Ruta no válida.');
+
+        try {
+            $wings->forServer($server)->timeout(60)
+                ->post('/servers/'.$server->uuid.'/files/delete', ['root' => '/'.dirname($path), 'files' => [basename($path)]])->throw();
+        } catch (ConnectionException|RequestException) {
+            return response()->json(['message' => 'No se pudo borrar.'], 502);
+        }
+        Cache::forget('gta_mods:'.$server->id);
+        $this->log($request, $server, 'gta:delete', 'Eliminó '.$path);
+
+        return response()->noContent();
     }
 }

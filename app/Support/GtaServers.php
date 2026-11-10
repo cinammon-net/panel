@@ -374,4 +374,129 @@ class GtaServers
             array_filter($names, fn ($n) => trim((string) $n) !== '')
         )));
     }
+
+    /** Se puede activar/desactivar desde el panel (se edita el archivo de configuración). */
+    public static function canToggle(?string $kind, string $section): bool
+    {
+        return match ($kind) {
+            'mta', 'cfx', 'altv' => true,
+            'samp' => in_array($section, ['Filterscripts', 'Plugins'], true),
+            default => false,
+        };
+    }
+
+    /**
+     * Activa o desactiva un mod en el texto de configuración y devuelve el texto nuevo.
+     * $name es el nombre del resource/script; $file el nombre del archivo (para los plugins de SA-MP).
+     */
+    public static function toggleConfig(string $kind, string $config, string $name, string $file, string $section, bool $on): string
+    {
+        $q = preg_quote($name, '/');
+        switch ($kind) {
+            case 'mta':
+                if (preg_match('/<resource\s[^>]*src="'.$q.'"[^>]*>/i', $config, $m)) {
+                    $line = $m[0];
+                    $value = 'startup="'.($on ? '1' : '0').'"';
+                    $new = preg_match('/startup="[^"]*"/i', $line) ? preg_replace('/startup="[^"]*"/i', $value, $line) : preg_replace('/\s*\/?>$/', ' '.$value.' />', $line);
+
+                    return str_replace($line, $new, $config);
+                }
+                if (! $on) {
+                    return $config;
+                }
+                $entry = '    <resource src="'.$name.'" startup="1" protected="0" />';
+
+                return preg_match('/<\/config>/i', $config)
+                    ? preg_replace('/(\R?)([ \t]*)<\/config>/i', "\n".$entry.'$1$2</config>', $config, 1)
+                    : rtrim($config)."\n".$entry."\n";
+
+            case 'cfx':
+                $active = '/^([ \t]*)(ensure|start)[ \t]+'.$q.'[ \t]*(#.*)?$/mi';
+                $commented = '/^[ \t]*#+[ \t]*(ensure|start)[ \t]+'.$q.'[ \t]*$/mi';
+                if (! $on) {
+                    return preg_replace($active, '$1# $2 '.$name, $config);
+                }
+                if (preg_match($active, $config)) {
+                    return $config;
+                }
+                if (preg_match($commented, $config)) {
+                    return preg_replace($commented, 'ensure '.$name, $config, 1);
+                }
+
+                return rtrim($config)."\nensure ".$name."\n";
+
+            case 'altv':
+                if (! preg_match('/^(\s*resources\s*=\s*\[)(.*?)(\])/ms', $config, $m)) {
+                    return $on ? rtrim($config)."\nresources = [\"".$name."\"]\n" : $config;
+                }
+                preg_match_all('/["\']([^"\']+)["\']/', $m[2], $list);
+                $names = array_values(array_filter($list[1], fn ($n) => strtolower($n) !== strtolower($name)));
+                if ($on) {
+                    $names[] = $name;
+                }
+                $body = $names ? "\n".implode(",\n", array_map(fn ($n) => '    "'.$n.'"', $names))."\n" : '';
+
+                return str_replace($m[0], $m[1].$body.$m[3], $config);
+
+            case 'samp':
+                $key = $section === 'Plugins' ? 'plugins' : 'filterscripts';
+                $value = $section === 'Plugins' ? $file : $name;
+                if (preg_match('/^[ \t]*'.$key.'\b[ \t]*(.*)$/mi', $config, $m)) {
+                    $words = array_values(array_filter(preg_split('/\s+/', trim($m[1])), fn ($w) => $w !== '' && strtolower(preg_replace('/\.(so|dll)$/i', '', $w)) !== strtolower(preg_replace('/\.(so|dll)$/i', '', $value))));
+                    if ($on) {
+                        $words[] = $value;
+                    }
+
+                    return str_replace($m[0], trim($key.' '.implode(' ', $words)), $config);
+                }
+
+                return $on ? rtrim($config)."\n".$key.' '.$value."\n" : $config;
+        }
+
+        return $config;
+    }
+
+    /** Lo mismo para el config.json de open.mp. */
+    public static function toggleOpenMpJson(string $json, string $name, string $section, bool $on): ?string
+    {
+        $cfg = json_decode($json, true);
+        if (! is_array($cfg)) {
+            return null;
+        }
+        $key = $section === 'Plugins' ? 'legacy_plugins' : 'side_scripts';
+        $value = $section === 'Plugins' ? $name : 'filterscripts/'.$name;
+        $list = array_values(array_filter((array) ($cfg['pawn'][$key] ?? []), fn ($v) => strtolower(basename(preg_replace('/\.(so|dll|amx)$/i', '', (string) $v))) !== strtolower($name)));
+        if ($on) {
+            $list[] = $value;
+        }
+        $cfg['pawn'][$key] = $list;
+
+        return json_encode($cfg, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)."\n";
+    }
+
+    /** Comando de consola para aplicar el cambio sin reiniciar (null = hace falta reiniciar). */
+    public static function liveCommand(string $kind, string $name, string $section, bool $on): ?array
+    {
+        return match ($kind) {
+            'mta' => ['refresh', ($on ? 'start ' : 'stop ').$name],
+            'cfx' => ['refresh', ($on ? 'ensure ' : 'stop ').$name],
+            'samp' => $section === 'Filterscripts' ? [($on ? 'loadfs ' : 'unloadfs ').$name] : null,
+            default => null,
+        };
+    }
+
+    /** Extensiones que se pueden subir y a qué carpeta van. */
+    public static function uploadTarget(?string $kind, string $ext): ?array
+    {
+        $ext = strtolower($ext);
+
+        return match (true) {
+            $kind === 'mta' && $ext === 'zip' => ['mods/deathmatch/resources', false],
+            in_array($kind, ['cfx', 'altv', 'gtac'], true) && $ext === 'zip' => ['resources', true],
+            $kind === 'samp' && $ext === 'amx' => ['filterscripts', false],
+            $kind === 'samp' && in_array($ext, ['so', 'dll'], true) => ['plugins', false],
+            $kind === 'ragemp' && $ext === 'zip' => ['packages', true],
+            default => null,
+        };
+    }
 }

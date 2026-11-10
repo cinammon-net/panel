@@ -501,6 +501,9 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
     Route::get('/servers/{server}/gta/online', [App\Http\Controllers\ServerGtaController::class, 'online'])->middleware('throttle:120,1');
     Route::get('/servers/{server}/gta/mods', [App\Http\Controllers\ServerGtaController::class, 'mods'])->middleware('throttle:60,1');
     Route::get('/servers/{server}/gta/mod-icon', [App\Http\Controllers\ServerGtaController::class, 'icon'])->middleware('throttle:600,1');
+    Route::post('/servers/{server}/gta/mods/toggle', [App\Http\Controllers\ServerGtaController::class, 'toggle'])->middleware('throttle:60,1');
+    Route::post('/servers/{server}/gta/mods/upload', [App\Http\Controllers\ServerGtaController::class, 'upload'])->middleware('throttle:30,1');
+    Route::post('/servers/{server}/gta/mods/delete', [App\Http\Controllers\ServerGtaController::class, 'remove'])->middleware('throttle:60,1');
     Route::post('/servers/{server}/gta/players', [App\Http\Controllers\ServerGtaController::class, 'action'])->middleware('throttle:60,1');
     Route::get('/servers/{server}/people', [App\Http\Controllers\ServerPlayersController::class, 'page'])->name('servers.people');
     Route::get('/servers/{server}/players/roster', [App\Http\Controllers\ServerPlayersController::class, 'roster'])->middleware('throttle:60,1');
