@@ -6,7 +6,7 @@ import 'aos/dist/aos.css';
 import 'aos/dist/aos.js';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Heart } from 'lucide-react'; // Para el icono de corazón
+import { Activity, BarChart3, Gauge, Heart, Images, MessageSquareQuote, Newspaper, Palette, SlidersHorizontal, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 const CookieBanner: React.FC = () => {
@@ -242,7 +242,7 @@ export default function WelcomePanel() {
                     <section id="planes" className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-24 text-center text-white sm:px-10">
                         <div className="space-y-3" data-aos="fade-up">
                             <div className="inline-flex items-center gap-2 rounded-full border border-pink-500/40 bg-pink-500/10 px-4 py-1.5 text-xs font-mono text-pink-300 shadow-[0_0_15px_rgba(255,0,150,0.25)]">
-                                ⚡ INFRAESTRUCTURA CLOUD & GAME SERVERS
+                                <Zap className="h-3.5 w-3.5" aria-hidden /> INFRAESTRUCTURA CLOUD & GAME SERVERS
                             </div>
                             <h2 className="text-3xl font-extrabold text-white sm:text-5xl tracking-wide">
                                 Planes y <span className="bg-gradient-to-r from-pink-400 via-fuchsia-400 to-[#00f7ff] bg-clip-text text-transparent">Precios</span>
@@ -379,19 +379,19 @@ export default function WelcomePanel() {
                         </h2>
                         <div className="grid grid-cols-1 gap-8 text-left text-sm text-pink-100 sm:grid-cols-2 sm:text-base">
                             <div data-aos="fade-up" data-aos-delay="400">
-                                <h3 className="mb-1 text-lg font-semibold text-pink-400">⚙️ Control total</h3>
+                                <h3 className="mb-1 flex items-center gap-2 text-lg font-semibold text-pink-400"><SlidersHorizontal className="h-5 w-5 shrink-0" aria-hidden /> Control total</h3>
                                 <p>Gestiona usuarios, roles y configuraciones del sistema con una interfaz clara y rápida.</p>
                             </div>
                             <div data-aos="fade-up" data-aos-delay="500">
-                                <h3 className="mb-1 text-lg font-semibold text-pink-400">🎨 Personalización visual</h3>
+                                <h3 className="mb-1 flex items-center gap-2 text-lg font-semibold text-pink-400"><Palette className="h-5 w-5 shrink-0" aria-hidden /> Personalización visual</h3>
                                 <p>Cambia colores, temas y diseño con un solo clic. Estilo cyber garantizado.</p>
                             </div>
                             <div data-aos="fade-up" data-aos-delay="600">
-                                <h3 className="mb-1 text-lg font-semibold text-pink-400">🚀 Rendimiento extremo</h3>
+                                <h3 className="mb-1 flex items-center gap-2 text-lg font-semibold text-pink-400"><Gauge className="h-5 w-5 shrink-0" aria-hidden /> Rendimiento extremo</h3>
                                 <p>Panel optimizado para ofrecerte velocidad, fluidez y animaciones suaves.</p>
                             </div>
                             <div data-aos="fade-up" data-aos-delay="700">
-                                <h3 className="mb-1 text-lg font-semibold text-pink-400">📈 Estadísticas en vivo</h3>
+                                <h3 className="mb-1 flex items-center gap-2 text-lg font-semibold text-pink-400"><Activity className="h-5 w-5 shrink-0" aria-hidden /> Estadísticas en vivo</h3>
                                 <p>Consulta actividad en tiempo real con gráficos, logs y métricas clave.</p>
                             </div>
                         </div>
@@ -408,8 +408,8 @@ export default function WelcomePanel() {
 
                 {/* SECCIÓN DE POSTS */}
                 <section className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
-                    <h2 className="text-2xl font-bold text-pink-400 sm:text-4xl" data-aos="fade-up">
-                        📝 Últimos posts
+                    <h2 className="flex items-center justify-center gap-3 text-2xl font-bold text-pink-400 sm:text-4xl" data-aos="fade-up">
+                        <Newspaper className="h-7 w-7 shrink-0 sm:h-9 sm:w-9" aria-hidden /> Últimos posts
                     </h2>
 
                     <div className="grid w-full max-w-4xl grid-cols-1 gap-8 sm:grid-cols-1">
@@ -461,8 +461,8 @@ export default function WelcomePanel() {
 
                 {/* SECCIÓN ESTADÍSTICAS */}
                 <section className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
-                    <h2 className="text-3xl font-bold text-pink-400 sm:text-4xl" data-aos="fade-up">
-                        📊 Nuestras estadísticas
+                    <h2 className="flex items-center justify-center gap-3 text-3xl font-bold text-pink-400 sm:text-4xl" data-aos="fade-up">
+                        <BarChart3 className="h-7 w-7 shrink-0 sm:h-9 sm:w-9" aria-hidden /> Nuestras estadísticas
                     </h2>
                     <div className="grid max-w-4xl grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-4">
                         <div className="rounded-lg bg-black/60 p-6 shadow-md backdrop-blur-md" data-aos="fade-up" data-aos-delay="100">
@@ -487,8 +487,8 @@ export default function WelcomePanel() {
                 {/* SECCIÓN GALERÍA */}
                 <section className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
                     <div className="space-y-3" data-aos="fade-up">
-                        <h2 className="text-3xl font-bold text-pink-400 sm:text-4xl">
-                            🖼️ Galería de Cinammon
+                        <h2 className="flex items-center justify-center gap-3 text-3xl font-bold text-pink-400 sm:text-4xl">
+                            <Images className="h-7 w-7 shrink-0 sm:h-9 sm:w-9" aria-hidden /> Galería de Cinammon
                         </h2>
                         <p className="mx-auto max-w-2xl text-sm text-neutral-400 sm:text-base">
                             Explora las vistas reales de nuestro panel de control para servidores, nodos, bases de datos y monitoreo en tiempo real.
@@ -531,8 +531,8 @@ export default function WelcomePanel() {
 
                 {/* SECCIÓN TESTIMONIOS */}
                 <section className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
-                    <h2 className="text-2xl font-bold text-pink-400 sm:text-4xl" data-aos="fade-up">
-                        💬 Testimonios de nuestros usuarios
+                    <h2 className="flex items-center justify-center gap-3 text-2xl font-bold text-pink-400 sm:text-4xl" data-aos="fade-up">
+                        <MessageSquareQuote className="h-7 w-7 shrink-0 sm:h-9 sm:w-9" aria-hidden /> Testimonios de nuestros usuarios
                     </h2>
 
                     <div

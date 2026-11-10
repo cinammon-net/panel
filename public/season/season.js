@@ -46,21 +46,27 @@
     if (!theme) return;
     document.documentElement.setAttribute('data-season', theme);
 
-    // Part\u00edculas por tema: glifos (emoji) o formas dibujadas.
+    // Part\u00edculas por tema: formas vectoriales sencillas (sin emojis), con los colores de la temporada.
     var THEMES = {
-        snow: { glyphs: ['\u2744', '\u2745', '\u2022'], color: '#e0f2fe', dir: 1, speed: [0.4, 1.1], size: [8, 16], sway: 1 },
-        petals: { glyphs: ['\ud83c\udf38', '\ud83c\udf38', '\ud83d\udcae'], dir: 1, speed: [0.4, 0.9], size: [12, 18], sway: 1.4 },
-        sun: { glyphs: ['\u2726', '\u2727', '\u00b7'], color: '#fde68a', dir: -1, speed: [0.2, 0.5], size: [8, 14], sway: 0.6 },
-        leaves: { glyphs: ['\ud83c\udf42', '\ud83c\udf41', '\ud83c\udf43'], dir: 1, speed: [0.5, 1.2], size: [14, 20], sway: 1.8 },
-        confetti: { confetti: true, dir: 1, speed: [0.8, 1.8], size: [5, 9], sway: 1.2 },
-        stars: { glyphs: ['\u2728', '\u2b50', '\u2726'], color: '#fde047', dir: 1, speed: [0.3, 0.8], size: [10, 16], sway: 0.8 },
-        hearts: { glyphs: ['\ud83d\udc96', '\ud83d\udc95', '\ud83d\udc98'], dir: -1, speed: [0.4, 0.9], size: [12, 20], sway: 1.2 },
-        spooky: { glyphs: ['\ud83c\udf83', '\ud83e\udd87', '\ud83d\udc7b', '\ud83d\udd78'], dir: 1, speed: [0.4, 1.0], size: [14, 22], sway: 1.6 },
-        marigold: { glyphs: ['\ud83c\udf3c', '\ud83d\udc80', '\ud83d\udd6f'], dir: 1, speed: [0.4, 0.9], size: [12, 18], sway: 1.3 },
-        roses: { glyphs: ['\ud83c\udf39', '\ud83d\udcd6', '\ud83c\udf39'], dir: 1, speed: [0.4, 0.9], size: [12, 18], sway: 1.2 },
-        sparks: { glyphs: ['\u2726', '\u2727', '\u2022'], color: '#f0abfc', dir: -1, speed: [0.5, 1.2], size: [7, 13], sway: 0.7 },
+        snow: { shape: 'flake', white: true, dir: 1, speed: [0.3, 0.9], size: [4, 8], sway: 1 },
+        petals: { shape: 'petal', dir: 1, speed: [0.35, 0.8], size: [5, 9], sway: 1.4 },
+        sun: { shape: 'glow', dir: -1, speed: [0.15, 0.4], size: [2, 5], sway: 0.6 },
+        leaves: { shape: 'leaf', dir: 1, speed: [0.4, 1.0], size: [7, 12], sway: 1.6 },
+        confetti: { shape: 'confetti', dir: 1, speed: [0.8, 1.8], size: [5, 9], sway: 1.2 },
+        stars: { shape: 'spark', dir: 1, speed: [0.3, 0.8], size: [4, 8], sway: 0.8 },
+        hearts: { shape: 'heart', dir: -1, speed: [0.35, 0.8], size: [5, 9], sway: 1.2 },
+        spooky: { shape: 'glow', dir: -1, speed: [0.2, 0.6], size: [2, 5], sway: 1.4 },
+        marigold: { shape: 'petal', dir: 1, speed: [0.35, 0.8], size: [5, 9], sway: 1.3 },
+        roses: { shape: 'petal', dir: 1, speed: [0.35, 0.8], size: [5, 9], sway: 1.2 },
+        sparks: { shape: 'spark', dir: -1, speed: [0.4, 1.0], size: [3, 7], sway: 0.7 },
     };
     var CONFETTI = ['#f472b6', '#22d3ee', '#a78bfa', '#facc15', '#34d399', '#fb7185'];
+    // Colores de las part\u00edculas: los tonos de la paleta de la temporada (o los de marca si no hay paleta).
+    function particleColors() {
+        var pal = paletteKey && PALETTES[paletteKey];
+        if (!pal || !fxOn) return CONFETTI;
+        return [0, 1, 3, 6].filter(function (i) { return pal[i] != null; }).map(function (i) { return 'oklch(0.78 0.15 ' + pal[i] + ')'; });
+    }
     var cfg = THEMES[theme] || THEMES.stars;
 
     var FX_KEY = 'cin-season-fx';
@@ -84,12 +90,11 @@
             y: initial ? rnd(0, H) : (cfg.dir > 0 ? -20 : H + 20),
             v: rnd(cfg.speed[0], cfg.speed[1]),
             s: rnd(cfg.size[0], cfg.size[1]),
-            g: cfg.glyphs ? cfg.glyphs[(Math.random() * cfg.glyphs.length) | 0] : null,
-            c: CONFETTI[(Math.random() * CONFETTI.length) | 0],
+            c: cfg.white ? 'rgba(226,240,255,0.95)' : COLORS[(Math.random() * COLORS.length) | 0],
             p: rnd(0, Math.PI * 2),
             r: rnd(0, Math.PI * 2),
             vr: rnd(-0.04, 0.04),
-            a: rnd(0.45, 0.9),
+            a: rnd(0.35, 0.75),
         };
     }
     function frame() {
@@ -102,20 +107,43 @@
             if (p.y > H + 30 || p.y < -30) parts[i] = spawn(false);
             ctx.globalAlpha = p.a;
             ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r);
-            if (cfg.confetti) {
-                ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2);
-            } else {
-                ctx.font = p.s + 'px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
-                ctx.fillStyle = cfg.color || '#fff';
-                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText(p.g, 0, 0);
-            }
+            draw(cfg.shape, p.s, p.c);
             ctx.restore();
         }
         ctx.globalAlpha = 1;
         raf = requestAnimationFrame(frame);
     }
+    var COLORS = CONFETTI;
+    function draw(shape, s, c) {
+        ctx.fillStyle = c; ctx.strokeStyle = c;
+        ctx.beginPath();
+        if (shape === 'leaf') {
+            ctx.moveTo(0, -s); ctx.quadraticCurveTo(s * 0.75, 0, 0, s); ctx.quadraticCurveTo(-s * 0.75, 0, 0, -s); ctx.fill();
+            ctx.globalAlpha *= 0.5; ctx.lineWidth = 0.8; ctx.strokeStyle = 'rgba(0,0,0,.6)';
+            ctx.beginPath(); ctx.moveTo(0, -s * 0.8); ctx.lineTo(0, s * 0.9); ctx.stroke();
+        } else if (shape === 'petal') {
+            ctx.ellipse(0, 0, s * 0.45, s, 0, 0, Math.PI * 2); ctx.fill();
+        } else if (shape === 'flake') {
+            ctx.lineWidth = 1; ctx.lineCap = 'round';
+            for (var k = 0; k < 3; k++) { var an = k * Math.PI / 3; ctx.moveTo(-Math.cos(an) * s, -Math.sin(an) * s); ctx.lineTo(Math.cos(an) * s, Math.sin(an) * s); }
+            ctx.stroke();
+        } else if (shape === 'glow') {
+            var g = ctx.createRadialGradient(0, 0, 0, 0, 0, s * 2.2);
+            g.addColorStop(0, c); g.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = g; ctx.arc(0, 0, s * 2.2, 0, Math.PI * 2); ctx.fill();
+        } else if (shape === 'spark') {
+            ctx.moveTo(0, -s); ctx.quadraticCurveTo(0, 0, s, 0); ctx.quadraticCurveTo(0, 0, 0, s);
+            ctx.quadraticCurveTo(0, 0, -s, 0); ctx.quadraticCurveTo(0, 0, 0, -s); ctx.fill();
+        } else if (shape === 'heart') {
+            ctx.moveTo(0, s * 0.35);
+            ctx.bezierCurveTo(-s, -s * 0.35, -s * 0.45, -s, 0, -s * 0.4);
+            ctx.bezierCurveTo(s * 0.45, -s, s, -s * 0.35, 0, s * 0.35); ctx.fill();
+        } else {
+            ctx.fillRect(-s / 2, -s / 4, s, s / 2);
+        }
+    }
     function startFx() {
+        COLORS = particleColors();
         if (reduced || canvas) return;
         canvas = document.createElement('canvas');
         canvas.setAttribute('aria-hidden', 'true');
@@ -413,18 +441,37 @@
 
     // ---------- Aviso (abajo a la izquierda) ----------
     var PILL_KEY = 'cin-season-pill:' + (holiday ? holiday.key + ':' + (holiday.ends || '') : 'season:' + season.key);
+    // Iconos de l\u00ednea (estilo Lucide) para el aviso, en vez de emojis.
+    var ICONS = {
+        leaves: '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/>',
+        snow: '<path d="M2 12h20M12 2v20m8-6-4-4 4-4M4 8l4 4-4 4m12-12-4 4-4-4M8 20l4-4 4 4"/>',
+        sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>',
+        petals: '<path d="M7 20h10M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/>',
+        hearts: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+        fx: '<path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"/>',
+    };
+    function icon(key, size) {
+        return '<svg xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block">' + (ICONS[key] || ICONS.fx) + '</svg>';
+    }
     function pill() {
+        var pal0 = paletteKey && PALETTES[paletteKey];
+        var hue = pal0 ? pal0[0] : 350;
+        var ACC = 'oklch(0.75 0.16 ' + hue + ')', ACC_SOFT = 'oklch(0.75 0.16 ' + hue + ' / .45)', ACC_GLOW = 'oklch(0.65 0.2 ' + hue + ' / .25)';
         var el = document.createElement('div');
         el.setAttribute('role', 'status');
         el.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:45;max-width:calc(100% - 24px);display:flex;align-items:center;gap:8px;' +
-            'padding:7px 8px 7px 12px;border-radius:999px;border:1px solid rgba(244,114,182,.45);background:rgba(10,10,20,.88);' +
-            'backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#fce7f3;font:600 12px/1.3 system-ui,-apple-system,"Segoe UI",sans-serif;' +
-            'box-shadow:0 0 18px rgba(236,72,153,.25)';
+            'padding:7px 8px 7px 10px;border-radius:999px;border:1px solid ' + ACC_SOFT + ';background:rgba(10,10,14,.9);' +
+            'backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#f5f5f5;font:600 12px/1.3 system-ui,-apple-system,"Segoe UI",sans-serif;' +
+            'box-shadow:0 0 18px ' + ACC_GLOW;
 
         var hidden = store.get(PILL_KEY) === 'hidden';
+        var ic = document.createElement('span');
+        ic.style.cssText = 'flex-shrink:0;color:' + ACC;
+        ic.innerHTML = icon(theme, 15);
+        el.appendChild(ic);
         var label = document.createElement('span');
         label.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
-        var name = holiday ? holiday.emoji + ' ' + holiday.name : season.emoji + ' ' + season.name;
+        var name = holiday ? holiday.name : season.name;
         label.textContent = name;
         el.appendChild(label);
 
@@ -432,7 +479,7 @@
             var a = document.createElement('a');
             a.href = S.store_url;
             a.textContent = '-' + S.discount + '% en la tienda';
-            a.style.cssText = 'flex-shrink:0;padding:3px 9px;border-radius:999px;background:linear-gradient(90deg,#ec4899,#a855f7);color:#fff;text-decoration:none;font-weight:800';
+            a.style.cssText = 'flex-shrink:0;padding:3px 9px;border-radius:999px;background:' + ACC + ';color:#0a0a0a;text-decoration:none;font-weight:800';
             el.appendChild(a);
         }
 
@@ -440,8 +487,9 @@
         fx.type = 'button';
         fx.title = 'Efectos y colores de temporada';
         fx.setAttribute('aria-label', 'Activar o desactivar efectos de temporada');
-        fx.style.cssText = 'flex-shrink:0;width:24px;height:24px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:transparent;color:inherit;cursor:pointer;font-size:12px;line-height:1';
-        var paint = function () { fx.textContent = fxOn ? '\u2728' : '\u25cb'; fx.style.opacity = fxOn ? '1' : '.6'; };
+        fx.style.cssText = 'flex-shrink:0;width:24px;height:24px;display:grid;place-items:center;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:transparent;color:' + ACC + ';cursor:pointer;padding:0';
+        fx.innerHTML = icon('fx', 13);
+        var paint = function () { fx.style.opacity = fxOn ? '1' : '.4'; fx.setAttribute('aria-pressed', fxOn ? 'true' : 'false'); };
         paint();
         fx.onclick = function () {
             fxOn = !fxOn; store.set(FX_KEY, fxOn ? 'on' : 'off'); paint();
@@ -455,24 +503,24 @@
         close.textContent = '\u00d7';
         close.title = 'Ocultar';
         close.setAttribute('aria-label', 'Ocultar aviso de temporada');
-        close.style.cssText = 'flex-shrink:0;width:24px;height:24px;border-radius:999px;border:0;background:transparent;color:#f9a8d4;cursor:pointer;font-size:16px;line-height:1';
+        close.style.cssText = 'flex-shrink:0;width:24px;height:24px;border-radius:999px;border:0;background:transparent;color:#a3a3a3;cursor:pointer;font-size:16px;line-height:1';
         el.appendChild(close);
 
-        // Plegado: solo un bot\u00f3n redondo con el emoji (no tapa contenido). Se abre al pulsarlo.
+        // Plegado: solo un bot\u00f3n redondo con el icono de la temporada (no tapa contenido). Se abre al pulsarlo.
         var mini = document.createElement('button');
         mini.type = 'button';
         mini.title = name + (S.discount > 0 ? ' \u00b7 -' + S.discount + '%' : '');
         mini.setAttribute('aria-label', 'Mostrar aviso de temporada: ' + mini.title);
-        mini.textContent = holiday ? holiday.emoji : season.emoji;
-        mini.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:45;width:40px;height:40px;border-radius:999px;border:1px solid rgba(244,114,182,.5);' +
-            'background:rgba(10,10,20,.88);font-size:18px;line-height:1;cursor:pointer;box-shadow:0 0 14px rgba(236,72,153,.3);display:none';
+        mini.innerHTML = icon(theme, 18);
+        mini.style.cssText = 'position:fixed;left:12px;bottom:12px;z-index:45;width:40px;height:40px;place-items:center;padding:0;border-radius:999px;border:1px solid ' + ACC_SOFT + ';' +
+            'background:rgba(10,10,14,.9);color:' + ACC + ';cursor:pointer;box-shadow:0 0 14px ' + ACC_GLOW + ';display:none';
         if (S.discount > 0) {
             var badge = document.createElement('span');
             badge.textContent = '-' + S.discount + '%';
-            badge.style.cssText = 'position:absolute;top:-6px;right:-10px;padding:1px 5px;border-radius:999px;background:#ec4899;color:#fff;font:800 9px/1.4 system-ui,sans-serif';
+            badge.style.cssText = 'position:absolute;top:-6px;right:-10px;padding:1px 5px;border-radius:999px;background:' + ACC + ';color:#0a0a0a;font:800 9px/1.4 system-ui,sans-serif';
             mini.appendChild(badge);
         }
-        var collapse = function () { el.style.display = 'none'; mini.style.display = 'block'; };
+        var collapse = function () { el.style.display = 'none'; mini.style.display = 'grid'; };
         var expand = function () { mini.style.display = 'none'; el.style.display = 'flex'; };
         mini.onclick = function () { expand(); setTimeout(collapse, 8000); };
         close.onclick = function () { store.set(PILL_KEY, 'hidden'); el.remove(); mini.remove(); };
