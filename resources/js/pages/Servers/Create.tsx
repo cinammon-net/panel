@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import UserAvatar from '@/components/user-avatar';
 import EggIcon from '@/components/EggIcon';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import AppLayout from '@/layouts/app-layout';
@@ -329,7 +330,14 @@ export default function CreateServer() {
                                                 className="w-full rounded border border-cyan-600 bg-black px-3 py-2 pr-10 text-left text-sm text-cyan-200 transition-colors duration-200 hover:border-cyan-400"
                                             >
                                                 <div className="flex items-center gap-2">
-                                                    <User className="h-5 w-5 text-cyan-400" />
+                                                    {(() => {
+                                                        const chosen = owners.find((o: any) => String(o.id) === String(server.ownerId));
+                                                        return chosen ? (
+                                                            <UserAvatar name={chosen.name} src={chosen.avatar_url} size={20} fallbackClassName="bg-cyan-800 text-cyan-100" />
+                                                        ) : (
+                                                            <User className="h-5 w-5 text-cyan-400" />
+                                                        );
+                                                    })()}
                                                     <span>{selectedOwner || 'Select Owner'}</span>
                                                 </div>
                                                 <ChevronDown className="absolute top-1/2 right-2 h-4 w-4 -translate-y-1/2 text-cyan-400" />
@@ -358,7 +366,7 @@ export default function CreateServer() {
                                                                     className="cursor-pointer px-3 py-2 text-sm text-cyan-200 hover:bg-cyan-800"
                                                                 >
                                                                     <div className="flex items-center gap-2">
-                                                                        <User className="h-5 w-5 text-cyan-400" />
+                                                                        <UserAvatar name={owner.name} src={owner.avatar_url} size={20} fallbackClassName="bg-cyan-800 text-cyan-100" />
                                                                         <span>{owner.name}</span>
                                                                     </div>
                                                                 </li>

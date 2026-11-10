@@ -1,3 +1,4 @@
+import UserAvatar from '@/components/user-avatar';
 import AppLayout from '@/layouts/app-layout';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect } from 'react';
@@ -11,6 +12,7 @@ interface ReviewItem {
     created_at: string;
     user: {
         name: string;
+        avatar_url?: string | null;
     };
 }
 
@@ -103,7 +105,12 @@ export default function Reviews() {
                         <tbody>
                             {reviews.data.map((review) => (
                                 <tr key={review.id} className="border-b border-yellow-500 hover:bg-yellow-100 dark:hover:bg-yellow-700">
-                                    <td className="px-4 py-2">{review.user.name}</td>
+                                    <td className="px-4 py-2">
+                                        <span className="inline-flex items-center gap-2">
+                                            <UserAvatar name={review.user.name} src={review.user.avatar_url} size={22} fallbackClassName="bg-yellow-700 text-white" />
+                                            {review.user.name}
+                                        </span>
+                                    </td>
                                     <td className="px-4 py-2">{review.rating}</td>
                                     <td className="px-4 py-2">{review.comment}</td>
                                     <td className="px-4 py-2">{new Date(review.created_at).toLocaleDateString()}</td>

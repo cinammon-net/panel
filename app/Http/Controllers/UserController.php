@@ -32,6 +32,7 @@ class UserController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'avatar' => $user->avatar_url,
                 'roles' => $user->getRoleNames(),
                 'has2fa' => !is_null($user->two_factor_secret),
                 'servers' => $user->servers_count,

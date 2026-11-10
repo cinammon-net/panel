@@ -39,6 +39,7 @@ Route::post('/billing/provision', [App\Http\Controllers\BillingApiController::cl
 Route::post('/billing/servers/{externalId}/cancel', [App\Http\Controllers\BillingApiController::class, 'cancel']);
 Route::post('/billing/roles/grant', [App\Http\Controllers\BillingApiController::class, 'grantRole']);
 Route::post('/billing/roles/{externalId}/revoke', [App\Http\Controllers\BillingApiController::class, 'revokeRole']);
+Route::get('/billing/avatar', [App\Http\Controllers\BillingApiController::class, 'avatar'])->middleware('throttle:120,1');
 
 // Iconos de eggs y catálogo público (los consume el panel y la tienda; sin sesión)
 Route::get('/egg-icons/{uuid}', [App\Http\Controllers\EggIconController::class, 'show'])

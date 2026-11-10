@@ -1,3 +1,4 @@
+import UserAvatar from '@/components/user-avatar';
 import AppLayout from '@/layouts/app-layout';
 import { Head, router, usePage, Link } from '@inertiajs/react';
 
@@ -8,6 +9,7 @@ interface UserItem {
     id: number;
     name: string;
     email: string;
+    avatar?: string | null;
     has2fa: boolean;
     roles: string[];
     servers: number;
@@ -96,9 +98,7 @@ export default function Users() {
                                     >
                                         {' '}
                                         <td className="px-2 py-3 sm:px-4">
-                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-pink-700 font-bold text-white uppercase">
-                                                {user.name.charAt(0)}
-                                            </div>
+                                            <UserAvatar name={user.name} src={user.avatar} size={32} />
                                         </td>
                                         <td className="max-w-[160px] px-4 py-3 text-pink-200 md:max-w-none">
                                             <span className="block truncate">{user.name}</span>

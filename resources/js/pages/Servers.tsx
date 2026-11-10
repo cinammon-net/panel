@@ -1,3 +1,4 @@
+import UserAvatar from '@/components/user-avatar';
 import AppLayout from '@/layouts/app-layout';
 import EggIcon from '@/components/EggIcon';
 import { Head, router, usePage } from '@inertiajs/react';
@@ -58,6 +59,7 @@ interface ServerItem {
     backups?: number;
     allocation: string;
     username: string;
+    user_avatar?: string | null;
     cpu?: number;
     memory?: number;
     disk?: number;
@@ -270,7 +272,7 @@ function ServerCard({ item }: { item: ServerItem }) {
                                 <MapPin size={11} className="text-cyan-500" /> {item.node}
                             </span>
                             <span className="text-neutral-300 font-mono text-[11px] flex items-center gap-1 bg-black/60 px-2.5 py-0.5 rounded border border-neutral-800">
-                                <User size={11} className="text-purple-400" /> {item.username}
+                                <UserAvatar name={item.username} src={item.user_avatar} size={13} fallbackClassName="bg-purple-700 text-white" /> {item.username}
                             </span>
                         </div>
                     </div>
@@ -1192,7 +1194,10 @@ export default function Servers() {
                                                                 </span>
                                                             </td>
                                                             <td className="hidden md:table-cell px-3 py-3 text-xs text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
-                                                                {item.username}
+                                                                <span className="inline-flex items-center gap-1.5">
+                                                                    <UserAvatar name={item.username} src={item.user_avatar} size={16} fallbackClassName="bg-purple-700 text-white" />
+                                                                    {item.username}
+                                                                </span>
                                                             </td>
                                                             <td className="hidden lg:table-cell px-3 py-3 font-mono text-xs text-neutral-700 dark:text-cyan-400 whitespace-nowrap tracking-wide">
                                                                 {item.allocation || <span className="italic text-neutral-500">–</span>}

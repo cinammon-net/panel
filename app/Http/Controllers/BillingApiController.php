@@ -161,6 +161,24 @@ class BillingApiController extends Controller
         return response()->json($this->payload($server), 201);
     }
 
+    /**
+     * Foto de perfil del usuario del panel con ese email, para mostrarla también en la tienda.
+     * Solo con el token compartido (no es pública: no deja comprobar qué emails existen).
+     */
+    public function avatar(Request $request): JsonResponse
+    {
+        $this->authorizeToken($request);
+        $email = strtolower(trim((string) $request->query('email', '')));
+        abort_unless(filter_var($email, FILTER_VALIDATE_EMAIL), 422, 'Email no válido');
+
+        $url = User::where('email', $email)->first()?->avatar_url;
+        if ($url && str_starts_with($url, '/') && ! str_starts_with($url, '//')) {
+            $url = rtrim((string) config('app.url'), '/').$url;
+        }
+
+        return response()->json(['avatar' => $url]);
+    }
+
     /** Concede (o renueva) un rango comprado en la tienda. */
     public function grantRole(Request $request): JsonResponse
     {

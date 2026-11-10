@@ -44,7 +44,7 @@ class AppServiceProvider extends ServiceProvider
                         'id' => $user->id,
                         'name' => $user->name,
                         'email' => $user->email,
-                        'avatar' => $user->avatar ? \Illuminate\Support\Facades\Storage::url($user->avatar) : null,
+                        'avatar' => $user->avatar_url,
                         'roles' => $user->load('roles')->roles->pluck('name')->toArray(), // ESTA LÍNEA ES LA CLAVE
                     ] : null,
                 ];

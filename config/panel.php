@@ -75,5 +75,10 @@ return [
         'demo-helper@cinammon.net',
         'demo-sponsors@cinammon.net',
         'demo-members@cinammon.net',
+        // Cuentas de prueba que sembraba la versión antigua del seeder: no son personas reales
+        'moderator@cinammon.net',
+        'helper@cinammon.net',
+        'sponsors@cinammon.net',
+        'members@cinammon.net',
     ],
 ];

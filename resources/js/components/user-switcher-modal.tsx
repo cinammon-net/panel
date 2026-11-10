@@ -1,6 +1,8 @@
 import { router, usePage } from '@inertiajs/react';
-import { ArrowLeftRight, Check, Shield, User as UserIcon, X } from 'lucide-react';
+import { ArrowLeftRight, Check, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import UserAvatar from '@/components/user-avatar';
 import { toast } from 'sonner';
 
 interface SwitchableUser {
@@ -67,8 +69,9 @@ export function UserSwitcherModal({ open, onClose }: UserSwitcherModalProps) {
         );
     };
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 font-[Orbitron]">
+    // Se pinta en <body> para que el menú desplegable no lo encierre ni lo aplaste
+    return createPortal(
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 font-[Orbitron]">
             <div className="w-full max-w-md rounded-2xl border border-cyan-700/80 bg-[#090e17] text-white shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-cyan-900/60 p-4 sm:p-5">
@@ -119,17 +122,7 @@ export function UserSwitcherModal({ open, onClose }: UserSwitcherModalProps) {
                                     }`}
                                 >
                                     <div className="flex items-center gap-3 min-w-0">
-                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-neutral-800 bg-neutral-900 font-bold text-cyan-300 text-sm">
-                                            {u.avatar ? (
-                                                <img
-                                                    src={u.avatar}
-                                                    alt={u.name}
-                                                    className="h-full w-full rounded-xl object-cover"
-                                                />
-                                            ) : (
-                                                <UserIcon size={18} />
-                                            )}
-                                        </div>
+                                        <UserAvatar name={u.name} src={u.avatar} size={40} fallbackClassName="bg-neutral-900 text-cyan-300 border border-neutral-800" />
                                         <div className="min-w-0 flex-1">
                                             <div className="flex items-center gap-2">
                                                 <span className="font-bold text-white text-sm truncate">
@@ -178,7 +171,7 @@ export function UserSwitcherModal({ open, onClose }: UserSwitcherModalProps) {
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }
-

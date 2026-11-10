@@ -1,3 +1,4 @@
+import UserAvatar from '@/components/user-avatar';
 import ServerLayout from '@/layouts/server-layout';
 import { Head, router, useForm } from '@inertiajs/react';
 import {
@@ -11,7 +12,6 @@ import {
     Shield,
     Terminal,
     Trash2,
-    UserCheck,
     UserPlus,
     Users,
     X,
@@ -42,6 +42,7 @@ interface PageProps {
         id?: number;
         name?: string;
         email?: string;
+        avatar?: string | null;
     };
     availableUsers?: Array<{
         id: number;
@@ -248,8 +249,18 @@ export default function Subusers({ server, subusers = [], owner, availableUsers 
                 <div className="rounded-2xl border border-cyan-700/60 bg-gradient-to-r from-cyan-950/20 via-neutral-900/40 to-neutral-950/60 p-5 shadow-lg">
                     <div className="flex items-center justify-between gap-4 flex-wrap">
                         <div className="flex items-center gap-4">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-cyan-400/50 bg-cyan-900/30 text-cyan-300 shadow-[0_0_15px_rgba(34,211,238,0.25)]">
-                                <Crown className="h-6 w-6" />
+                            {/* Foto del propietario, con la corona encima (no ocupa más sitio) */}
+                            <div className="relative h-12 w-12 shrink-0">
+                                <UserAvatar
+                                    name={owner?.name}
+                                    src={owner?.avatar}
+                                    size={48}
+                                    className="border border-cyan-400/50 shadow-[0_0_15px_rgba(34,211,238,0.25)]"
+                                    fallbackClassName="bg-cyan-900/60 text-cyan-200"
+                                />
+                                <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-cyan-400/60 bg-neutral-950 text-cyan-300">
+                                    <Crown className="h-3 w-3" />
+                                </span>
                             </div>
                             <div>
                                 <div className="flex items-center gap-2">
@@ -315,17 +326,13 @@ export default function Subusers({ server, subusers = [], owner, availableUsers 
                                         className="group relative flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-2xl border border-neutral-800 bg-[#080d16] p-5 transition-all hover:border-cyan-500/60 hover:shadow-[0_0_25px_rgba(34,211,238,0.15)]"
                                     >
                                         <div className="flex items-start gap-4">
-                                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-800/60 bg-cyan-950/40 font-bold text-cyan-300">
-                                                {subuser.avatar ? (
-                                                    <img
-                                                        src={subuser.avatar}
-                                                        alt={subuser.name}
-                                                        className="h-full w-full rounded-xl object-cover"
-                                                    />
-                                                ) : (
-                                                    <UserCheck size={20} />
-                                                )}
-                                            </div>
+                                            <UserAvatar
+                                                name={subuser.name}
+                                                src={subuser.avatar}
+                                                size={44}
+                                                className="border border-cyan-800/60"
+                                                fallbackClassName="bg-cyan-950/60 text-cyan-300"
+                                            />
                                             <div className="space-y-1">
                                                 <div className="flex items-center gap-2.5">
                                                     <span className="font-bold text-white text-base group-hover:text-cyan-300 transition-colors">

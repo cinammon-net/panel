@@ -1,3 +1,4 @@
+import UserAvatar from '@/components/user-avatar';
 import ReviewModal from '@/components/ReviewModal';
 import { type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
@@ -75,7 +76,7 @@ type BillingCategory = {
 export default function WelcomePanel() {
     const { auth, reviews, posts, galleryImages, stats, billingUrl, billingCategories } = usePage<
         SharedData & {
-            reviews: { comment: string; rating: number; user: { name: string } }[];
+            reviews: { comment: string; rating: number; user: { name: string; avatar_url?: string | null } }[];
             posts: { id: number; title: string; content: string; picture?: string; created_at: string }[];
             galleryImages?: string[];
             stats?: { users: number; servers: number; nodes: number; eggs: number };
@@ -175,8 +176,9 @@ export default function WelcomePanel() {
                         {auth?.user ? (
                             <a
                                 href="https://panel.cinammon.net/servers"
-                                className="rounded-md bg-pink-500 px-3 py-1.5 text-sm font-semibold text-white shadow transition hover:bg-pink-600 sm:px-4 sm:py-2 sm:text-base"
+                                className="inline-flex items-center gap-2 rounded-md bg-pink-500 px-3 py-1.5 text-sm font-semibold text-white shadow transition hover:bg-pink-600 sm:px-4 sm:py-2 sm:text-base"
                             >
+                                <UserAvatar name={auth.user.name} src={(auth.user as { avatar?: string | null }).avatar} size={20} fallbackClassName="bg-pink-800 text-white" />
                                 Panel
                             </a>
                         ) : (
@@ -561,7 +563,10 @@ export default function WelcomePanel() {
                                     <p className="font-size-16 mt-2 text-3xl text-yellow-600">
                                         {'★'.repeat(review.rating)} {'☆'.repeat(5 - review.rating)}
                                     </p>
-                                    <p className="mt-2 text-sm font-semibold text-pink-500">— {review.user.name}</p>
+                                    <p className="mt-2 flex items-center justify-center gap-2 text-sm font-semibold text-pink-500">
+                                        <UserAvatar name={review.user.name} src={review.user.avatar_url} size={22} />
+                                        {review.user.name}
+                                    </p>
                                 </div>
                             ))
                         ) : (

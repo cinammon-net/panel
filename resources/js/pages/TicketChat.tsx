@@ -1,3 +1,4 @@
+import UserAvatar from '@/components/user-avatar';
 import AppLayout from '@/layouts/app-layout';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
@@ -85,13 +86,6 @@ export default function TicketChat() {
         messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [ticket.messages]);
 
-    const getAvatar = (avatar: string | null | undefined, name: string) => {
-        return avatar?.startsWith('http')
-            ? avatar
-            : avatar
-            ? `/storage/avatars/${avatar}`
-            : `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=333&color=fff`;
-    };
     const startRecording = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -147,11 +141,7 @@ export default function TicketChat() {
                                             t.id === ticket.id ? 'bg-[#2c2c2c]' : 'hover:bg-[#2c2c2c]'
                                         }`}
                                     >
-                                        <img
-                                            src={getAvatar(t.user?.avatar, t.user?.name)}
-                                            alt={t.user?.name}
-                                            className="h-9 w-9 rounded-full border border-gray-600 object-cover"
-                                        />
+                                        <UserAvatar name={t.user?.name} src={t.user?.avatar} size={36} className="border border-gray-600" fallbackClassName="bg-neutral-700 text-white" />
                                         <div className="flex-1">
                                             <div className="flex items-center justify-between">
                                                 <span className="truncate font-medium">{t.subject}</span>
@@ -185,11 +175,7 @@ export default function TicketChat() {
                     {/* Cabecera */}
                     <div className="flex items-center justify-between border-b border-[#333] pb-4">
                         <div className="flex items-center gap-4">
-                            <img
-                                src={auth.user ? getAvatar(auth.user.avatar, auth.user.name) : ''}
-                                alt="Tu avatar"
-                                className="h-10 w-10 rounded-full border border-gray-500 object-cover"
-                            />
+                            <UserAvatar name={auth.user?.name} src={auth.user?.avatar} size={40} className="border border-gray-500" fallbackClassName="bg-neutral-700 text-white" />
                             <div>
                                 <h2 className="text-lg font-semibold">{ticket.subject}</h2>
                                 <p className="text-sm text-gray-400">{auth.user?.name ?? 'Usuario'}</p>
@@ -218,11 +204,7 @@ export default function TicketChat() {
 
                                 return (
                                     <div key={msg.id} className={`group flex items-end gap-3 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
-                                        <img
-                                            src={getAvatar(avatarToUse, nameToUse)}
-                                            alt={nameToUse}
-                                            className="h-8 w-8 rounded-full border border-gray-600 object-cover"
-                                        />
+                                        <UserAvatar name={nameToUse} src={avatarToUse} size={32} className="border border-gray-600" fallbackClassName="bg-neutral-700 text-white" />
                                         <div
                                             className={`max-w-[60%] rounded-lg px-4 py-2 text-sm ${isCurrentUser ? 'bg-blue-600 text-white' : 'bg-[#2c2c2c] text-white'}`}
                                         >

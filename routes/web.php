@@ -605,7 +605,7 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
                     'id' => $u->id,
                     'name' => $u->name,
                     'email' => $u->email,
-                    'avatar' => $u->avatar,
+                    'avatar' => $u->avatar_url,
                     'roles' => $u->roles->pluck('name')->toArray(),
                 ];
             });

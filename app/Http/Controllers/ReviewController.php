@@ -14,7 +14,7 @@ class ReviewController extends Controller
         $sort = $request->get('sort', 'created_at');
         $direction = $request->get('direction', 'desc');
 
-        $reviewsQuery = Review::query()->with('user:id,name');
+        $reviewsQuery = Review::query()->with('user:id,name,avatar');
 
         if ($sort === 'user.name') {
             $reviewsQuery

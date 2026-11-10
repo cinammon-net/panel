@@ -34,7 +34,7 @@ class ServerSubusersController extends Controller
                     'user_id' => $subuser->user_id,
                     'name' => $subuser->user->name ?? 'Usuario',
                     'email' => $subuser->user->email ?? '–',
-                    'avatar' => $subuser->user->avatar ?? null,
+                    'avatar' => $subuser->user?->avatar_url,
                     'permissions' => $subuser->permissions ?? [],
                     'created_at' => $subuser->created_at?->toIso8601String(),
                 ];
@@ -52,6 +52,7 @@ class ServerSubusersController extends Controller
                 'id' => $server->owner?->id,
                 'name' => $server->owner?->name,
                 'email' => $server->owner?->email,
+                'avatar' => $server->owner?->avatar_url,
             ],
             'availableUsers' => User::select('id', 'name', 'email')->get(),
         ]);

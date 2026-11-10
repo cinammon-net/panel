@@ -27,6 +27,31 @@ class User extends Authenticatable
         'lock_code',
     ];
 
+    /** La foto de perfil ya resuelta (URL) va con el usuario a todas las páginas. */
+    protected $appends = ['avatar_url'];
+
+    /**
+     * URL de la foto de perfil: las subidas se guardan como "avatars/x.png" en el disco public
+     * (se sirven en /storage/...), las de Discord u otros proveedores ya son una URL completa.
+     */
+    public static function avatarUrlFor(?string $avatar): ?string
+    {
+        $avatar = trim((string) $avatar);
+        if ($avatar === '') {
+            return null;
+        }
+        if (preg_match('#^(https?:)?//#i', $avatar) || str_starts_with($avatar, '/') || str_starts_with($avatar, 'data:')) {
+            return $avatar;
+        }
+
+        return '/storage/'.ltrim($avatar, '/');
+    }
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        return self::avatarUrlFor($this->attributes['avatar'] ?? null);
+    }
+
     protected function casts(): array
     {
         return [

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import UserAvatar from '@/components/user-avatar';
 import ServerLayout from '@/layouts/server-layout';
 import { Head } from '@inertiajs/react';
 import { ChevronDown, Cpu, Database as DatabaseIcon, Egg, MapPinned, MapPinPlus, PlusIcon, Server, Star, StarOff, Terminal, Trash, User, Zap } from 'lucide-react';
@@ -244,7 +245,14 @@ export default function CreateServer() {
                                         <div>
                                             <label className="mb-1 block text-sm font-semibold" htmlFor="ownerId">Owner <span className="text-red-500">*</span></label>
                                             <div className="relative flex items-center gap-2 rounded border border-cyan-600 bg-black/90 px-3 py-2 text-sm text-cyan-400">
-                                                <User className="h-5 w-5 text-cyan-500" />
+                                                {(() => {
+                                                    const chosen = owners.find((o: any) => String(o.id) === String(server.ownerId));
+                                                    return chosen ? (
+                                                        <UserAvatar name={chosen.name} src={chosen.avatar_url} size={20} fallbackClassName="bg-cyan-800 text-cyan-100" />
+                                                    ) : (
+                                                        <User className="h-5 w-5 text-cyan-500" />
+                                                    );
+                                                })()}
                                                 <select
                                                     id="ownerId"
                                                     name="ownerId"

@@ -148,6 +148,7 @@ class ServerController extends Controller
                 'egg_icon' => $full?->egg?->image_url,
                 'owner_id' => $server->owner_id,
                 'username' => $full?->owner?->name ?? 'Unknown',
+                'user_avatar' => $full?->owner?->avatar_url,
                 'node' => $full?->node?->name ?? 'Unknown',
                 'allocation' => $full?->allocation
                     ? $full->publicAddress()

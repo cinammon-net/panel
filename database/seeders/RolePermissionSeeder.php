@@ -156,12 +156,12 @@ class RolePermissionSeeder extends Seeder
         }
 
         $users = [
-            ['name' => 'Owner',     'email' => 'owner@cinammon.net',     'role' => 'Owner'],
-            ['name' => 'Admin',     'email' => 'admin@cinammon.net',     'role' => 'Admin'],
-            ['name' => 'Moderator', 'email' => 'moderator@cinammon.net', 'role' => 'Moderator'],
-            ['name' => 'Helper',    'email' => 'helper@cinammon.net',    'role' => 'Helper'],
-            ['name' => 'Sponsors',  'email' => 'sponsors@cinammon.net',  'role' => 'Sponsors'],
-            ['name' => 'Members',   'email' => 'members@cinammon.net',   'role' => 'Members'],
+            ['name' => 'Owner',     'email' => 'demo-owner@cinammon.net',     'role' => 'Owner'],
+            ['name' => 'Admin',     'email' => 'demo-admin@cinammon.net',     'role' => 'Admin'],
+            ['name' => 'Moderator', 'email' => 'demo-moderator@cinammon.net', 'role' => 'Moderator'],
+            ['name' => 'Helper',    'email' => 'demo-helper@cinammon.net',    'role' => 'Helper'],
+            ['name' => 'Sponsors',  'email' => 'demo-sponsors@cinammon.net',  'role' => 'Sponsors'],
+            ['name' => 'Members',   'email' => 'demo-members@cinammon.net',   'role' => 'Members'],
         ];
 
         $this->command->line("\033[1;35m⌁ Creación de usuarios de prueba...\033[0m");
