@@ -18,7 +18,8 @@ type Online = {
     map: string | null;
     version: string | null;
 };
-type Mod = { name: string; file: string; path: string; section: string; group: string | null; type: string; size: number | null; enabled: boolean | null };
+type Mod = { name: string; file: string; path: string; section: string; group: string | null; type: string; size: number | null; enabled: boolean | null;
+    icon?: string | null; title?: string | null; author?: string | null; version?: string | null; description?: string | null };
 type Mods = { kind: string; config: string | null; known: boolean; items: Mod[]; total: number };
 type Tab = 'online' | 'mods';
 
@@ -56,6 +57,27 @@ function Avatar({ name }: { name: string }) {
     );
 }
 
+/** Icono propio del resource (icon.png, logo.png...) o uno genérico si no tiene o no carga. */
+function ModIcon({ serverId, mod }: { serverId: number; mod: Mod }) {
+    const [failed, setFailed] = useState(false);
+    if (mod.icon && !failed) {
+        return (
+            <img
+                src={`/servers/${serverId}/gta/mod-icon?path=${encodeURIComponent(mod.icon)}`}
+                alt=""
+                loading="lazy"
+                onError={() => setFailed(true)}
+                className="h-8 w-8 shrink-0 rounded-md border border-neutral-800 bg-neutral-900 object-contain"
+            />
+        );
+    }
+    return (
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-cyan-500/10 text-cyan-300">
+            {mod.type === 'folder' || mod.type === 'zip' ? <Package className="h-4 w-4" /> : <FileCode2 className="h-4 w-4" />}
+        </span>
+    );
+}
+
 function PingBadge({ ping }: { ping: number | null }) {
     if (ping == null) return null;
     const tone = ping < 80 ? 'text-emerald-300' : ping < 160 ? 'text-amber-300' : 'text-red-300';
@@ -66,9 +88,12 @@ function PingBadge({ ping }: { ping: number | null }) {
     );
 }
 
-export default function GtaPanel({ serverId, running }: { serverId: number; running: boolean }) {
+export const gtaModsTitle = (kind?: string | null) => (kind === 'samp' ? 'Scripts y plugins' : kind === 'ragemp' ? 'Packages' : 'Resources');
+
+/** `view` fija una sola vista (páginas del menú lateral); sin él se muestran las dos pestañas. */
+export default function GtaPanel({ serverId, running, view }: { serverId: number; running: boolean; view?: Tab }) {
     const base = `/servers/${serverId}/gta`;
-    const [tab, setTab] = useState<Tab>('online');
+    const [tab, setTab] = useState<Tab>(view ?? 'online');
     const [online, setOnline] = useState<Online | null>(null);
     const [mods, setMods] = useState<Mods | null>(null);
     const [modsLoading, setModsLoading] = useState(false);
@@ -80,7 +105,7 @@ export default function GtaPanel({ serverId, running }: { serverId: number; runn
         try {
             const { data } = await axios.get<Online>(`${base}/online`);
             setOnline(data);
-            if (!data.supported) setTab((t) => (t === 'online' ? 'mods' : t));
+            if (!data.supported && !view) setTab((t) => (t === 'online' ? 'mods' : t));
         } catch {
             setOnline(null);
         }
@@ -97,7 +122,7 @@ export default function GtaPanel({ serverId, running }: { serverId: number; runn
         } finally {
             setModsLoading(false);
         }
-    }, [base]);
+    }, [base, view]);
 
     // Conectados: cada 15 s mientras el servidor está encendido (y una vez apagado para saber el juego).
     useEffect(() => {
@@ -108,8 +133,8 @@ export default function GtaPanel({ serverId, running }: { serverId: number; runn
     }, [running, loadOnline]);
 
     useEffect(() => {
-        void loadMods();
-    }, [loadMods]);
+        if (view !== 'online') void loadMods();
+    }, [loadMods, view]);
 
     const act = async (action: 'kick' | 'ban', p: Player) => {
         if (action === 'ban' && !window.confirm(`¿Banear a ${p.name}?`)) return;
@@ -132,7 +157,7 @@ export default function GtaPanel({ serverId, running }: { serverId: number; runn
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase();
         const items = mods?.items ?? [];
-        return q ? items.filter((m) => `${m.name} ${m.group ?? ''} ${m.section}`.toLowerCase().includes(q)) : items;
+        return q ? items.filter((m) => `${m.name} ${m.title ?? ''} ${m.author ?? ''} ${m.description ?? ''} ${m.group ?? ''} ${m.section}`.toLowerCase().includes(q)) : items;
     }, [mods, query]);
 
     const sections = useMemo(() => {
@@ -156,9 +181,10 @@ export default function GtaPanel({ serverId, running }: { serverId: number; runn
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
                     <h2 className="flex items-center gap-2 text-sm font-bold tracking-wider text-cyan-300 uppercase">
-                        <Users className="h-4 w-4" /> Jugadores y {game.mods.toLowerCase()}
+                        {view === 'mods' ? <Package className="h-4 w-4" /> : <Users className="h-4 w-4" />}
+                        {view === 'online' ? 'Jugadores conectados' : view === 'mods' ? game.mods : `Jugadores y ${game.mods.toLowerCase()}`}
                     </h2>
-                    {online?.reachable && (
+                    {online?.reachable && view !== 'mods' && (
                         <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-neutral-400">
                             {online.hostname && <span className="max-w-[60ch] truncate text-neutral-200">{online.hostname}</span>}
                             {online.gamemode && (
@@ -185,6 +211,7 @@ export default function GtaPanel({ serverId, running }: { serverId: number; runn
                 </button>
             </div>
 
+            {!view && (
             <div className="flex gap-1 overflow-x-auto rounded-xl border border-neutral-800 bg-neutral-900/60 p-1">
                 {tabs.map(({ key, label, icon: Icon, count }) => (
                     <button
@@ -200,6 +227,7 @@ export default function GtaPanel({ serverId, running }: { serverId: number; runn
                     </button>
                 ))}
             </div>
+            )}
 
             {tab === 'online' && (
                 <ul className="grid gap-2 md:grid-cols-2">
@@ -302,13 +330,17 @@ export default function GtaPanel({ serverId, running }: { serverId: number; runn
                                 <ul className="grid max-h-[28rem] gap-2 overflow-y-auto pr-1 md:grid-cols-2">
                                     {items.map((m) => (
                                         <li key={m.path} className="flex items-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900/60 px-3 py-2">
-                                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-cyan-500/10 text-cyan-300">
-                                                {m.type === 'folder' || m.type === 'zip' ? <Package className="h-4 w-4" /> : <FileCode2 className="h-4 w-4" />}
-                                            </span>
-                                            <span className="min-w-0">
-                                                <span className="block truncate font-mono text-sm text-white">{m.name}</span>
+                                            <ModIcon serverId={serverId} mod={m} />
+                                            <span className="min-w-0" title={m.description ?? undefined}>
+                                                <span className="block truncate text-sm text-white">
+                                                    <span className="font-mono">{m.title && m.title.toLowerCase() !== m.name.toLowerCase() ? m.title : m.name}</span>
+                                                    {m.version && <span className="ml-1.5 text-[10px] text-neutral-500">v{m.version.replace(/^v/i, '')}</span>}
+                                                </span>
+                                                {m.description && <span className="block truncate text-[11px] text-neutral-400">{m.description}</span>}
                                                 <span className="block truncate text-[10px] text-neutral-500">
-                                                    {[m.group, m.type === 'folder' ? 'carpeta' : `.${m.type}`, size(m.size)].filter(Boolean).join(' · ')}
+                                                    {[m.title && m.title.toLowerCase() !== m.name.toLowerCase() ? m.name : null, m.author ? `por ${m.author}` : null, m.group, m.type === 'folder' ? null : `.${m.type}`, size(m.size)]
+                                                        .filter(Boolean)
+                                                        .join(' · ')}
                                                 </span>
                                             </span>
                                             {m.enabled !== null && (

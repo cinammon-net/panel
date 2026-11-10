@@ -111,6 +111,22 @@ export default function ServerSidebar({
                     show: Boolean(currentServer?.players),
                 },
                 {
+                    key: 'gta-players',
+                    title: 'Jugadores',
+                    href: `/servers/${server.id}/gta-players`,
+                    icon: UsersRound,
+                    color: 'text-cyan-400',
+                    show: Boolean(currentServer?.gta),
+                },
+                {
+                    key: 'gta-mods',
+                    title: currentServer?.gta === 'samp' ? 'Scripts y plugins' : currentServer?.gta === 'ragemp' ? 'Packages' : 'Resources',
+                    href: `/servers/${server.id}/gta-mods`,
+                    icon: Puzzle,
+                    color: 'text-cyan-400',
+                    show: Boolean(currentServer?.gta),
+                },
+                {
                     key: 'game',
                     title: 'Ajustes del juego',
                     href: `/servers/${server.id}/game`,

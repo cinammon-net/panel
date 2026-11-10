@@ -16,6 +16,8 @@ export type ServerSection =
     | 'addons'
     | 'game'
     | 'people'
+    | 'gta-players'
+    | 'gta-mods'
     | 'sftp'
     | 'wingslog'
     | 'databases'
@@ -40,7 +42,7 @@ export default function ServerLayout({
     const { auth, serverLock, currentServer } = usePage<{
         auth?: { user?: { id: number } | null };
         serverLock?: { has_code: boolean; active: boolean } | null;
-        currentServer?: { minecraft: boolean; addons: string | null; players?: boolean } | null;
+        currentServer?: { minecraft: boolean; addons: string | null; players?: boolean; gta?: string | null } | null;
     }>().props;
     const showLockNotice =
         auth?.user?.id !== undefined && server.owner_id === auth.user.id && serverLock?.has_code === true && !serverLock.active;
@@ -51,6 +53,8 @@ export default function ServerLayout({
         files: 'Archivos',
         game: 'Ajustes del juego',
         people: 'Jugadores',
+        'gta-players': 'Jugadores',
+        'gta-mods': currentServer?.gta === 'samp' ? 'Scripts y plugins' : currentServer?.gta === 'ragemp' ? 'Packages' : 'Resources',
         addons: currentServer?.addons === 'plugins' ? 'Plugins' : currentServer?.addons === 'mods' ? 'Mods' : 'Plugins y mods',
         sftp: 'Acceso SFTP',
         wingslog: 'Registro de Wings',

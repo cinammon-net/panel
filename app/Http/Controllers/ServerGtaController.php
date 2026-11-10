@@ -8,7 +8,9 @@ use App\Support\GtaServers;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Request;
+use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 /**
@@ -30,6 +32,17 @@ class ServerGtaController extends Controller
         abort_unless($kind !== null, 404, 'Esta sección solo existe en servidores de GTA.');
 
         return $kind;
+    }
+
+    /** Páginas del menú lateral: Jugadores (/gta-players) y Resources/Mods (/gta-mods). */
+    public function page(Request $request, Server $server)
+    {
+        $kind = $this->authorizeServer($request, $server);
+
+        return \Inertia\Inertia::render('Servers/Gta', [
+            'server' => ['id' => $server->id, 'name' => $server->name, 'owner_id' => $server->owner_id, 'egg' => $server->egg?->name, 'kind' => $kind],
+            'view' => str_ends_with($request->path(), 'gta-mods') ? 'mods' : 'online',
+        ]);
     }
 
     /** Jugadores conectados ahora mismo. */
@@ -88,6 +101,8 @@ class ServerGtaController extends Controller
                     $this->collect($client, $server, $kind, $folder, $label, null, $entries, $enabled, $items, 0);
                 }
 
+                $this->decorate($server, $kind, $items);
+
                 usort($items, fn ($a, $b) => [$b['enabled'] === true, $a['group'] ?? '', strtolower($a['name'])] <=> [$a['enabled'] === true, $b['group'] ?? '', strtolower($b['name'])]);
 
                 return [
@@ -103,6 +118,133 @@ class ServerGtaController extends Controller
         }
 
         return response()->json($data);
+    }
+
+    private const ICON = '/^(?:icon|logo|preview|thumbnail|thumb|banner|[a-z0-9_-]*icon|[a-z0-9_-]*logo)\.(png|jpe?g|webp|gif)$/i';
+
+    /** Cliente HTTP de Wings dentro de un pool (mismas credenciales que WingsClient). */
+    private function poolRequest(Pool $pool, Server $server, string $key)
+    {
+        $node = $server->node;
+        $scheme = $node->scheme === 'http' ? 'http' : 'https';
+
+        return $pool->as($key)->baseUrl("{$scheme}://{$node->fqdn}:{$node->daemon_listen}/api")
+            ->withToken($node->daemon_token)->acceptJson()->connectTimeout(5)->timeout(15);
+    }
+
+    /**
+     * Icono y datos (nombre, autor, versión, descripción) de cada resource que sea una carpeta.
+     * MTA los declara en meta.xml (<info .../>) y FiveM/RedM en fxmanifest.lua. Se consultan en paralelo
+     * y se guardan 10 minutos (se renuevan si cambia algún resource).
+     */
+    private function decorate(Server $server, string $kind, array &$items): void
+    {
+        $folders = array_values(array_filter(array_keys($items), fn ($i) => $items[$i]['type'] === 'folder'));
+        $folders = array_slice($folders, 0, 400);
+        if ($folders === []) {
+            return;
+        }
+        $manifests = match ($kind) {
+            'mta', 'gtac' => ['meta.xml'],
+            'cfx' => ['fxmanifest.lua', '__resource.lua'],
+            'altv' => ['resource.toml', 'resource.cfg'],
+            default => [],
+        };
+        $signature = md5(implode('|', array_map(fn ($i) => $items[$i]['path'].'@'.($items[$i]['modified'] ?? ''), $folders)));
+
+        $meta = Cache::remember("gta_mod_meta:{$server->id}:{$signature}", now()->addMinutes(10), function () use ($server, $items, $folders, $manifests) {
+            $out = [];
+            foreach (array_chunk($folders, 25) as $chunk) {
+                $lists = Http::pool(fn (Pool $pool) => array_map(
+                    fn ($i) => $this->poolRequest($pool, $server, (string) $i)->get('/servers/'.$server->uuid.'/files/list-directory', ['directory' => '/'.$items[$i]['path']]),
+                    $chunk
+                ));
+                $reads = [];
+                foreach ($chunk as $i) {
+                    $res = $lists[(string) $i] ?? null;
+                    $names = $res instanceof \Illuminate\Http\Client\Response && $res->successful()
+                        ? array_map(fn ($e) => (string) ($e['name'] ?? ''), array_filter((array) $res->json(), fn ($e) => is_array($e) && ($e['file'] ?? true)))
+                        : [];
+                    $icon = collect($names)->first(fn ($n) => preg_match(self::ICON, $n));
+                    $manifest = collect($manifests)->first(fn ($m) => in_array($m, $names, true));
+                    $out[$i] = ['icon' => $icon ? $items[$i]['path'].'/'.$icon : null, 'info' => null];
+                    if ($manifest) {
+                        $reads[$i] = $items[$i]['path'].'/'.$manifest;
+                    }
+                }
+                if ($reads !== []) {
+                    $files = Http::pool(fn (Pool $pool) => array_map(
+                        fn ($i) => $this->poolRequest($pool, $server, (string) $i)->get('/servers/'.$server->uuid.'/files/contents', ['file' => '/'.$reads[$i]]),
+                        array_keys($reads)
+                    ));
+                    foreach (array_keys($reads) as $i) {
+                        $res = $files[(string) $i] ?? null;
+                        if ($res instanceof \Illuminate\Http\Client\Response && $res->successful()) {
+                            $out[$i]['info'] = self::manifestInfo(substr($res->body(), 0, 64 * 1024));
+                        }
+                    }
+                }
+            }
+
+            return $out;
+        });
+
+        foreach ($meta as $i => $m) {
+            if (! isset($items[$i])) {
+                continue;
+            }
+            $items[$i]['icon'] = $m['icon'] ?? null;
+            $items[$i]['title'] = $m['info']['name'] ?? null;
+            $items[$i]['author'] = $m['info']['author'] ?? null;
+            $items[$i]['version'] = $m['info']['version'] ?? null;
+            $items[$i]['description'] = $m['info']['description'] ?? null;
+        }
+    }
+
+    /** Nombre, autor, versión y descripción de meta.xml (MTA) o fxmanifest.lua (FiveM). */
+    private static function manifestInfo(string $text): ?array
+    {
+        $info = [];
+        if (preg_match('/<info\b([^>]*)>/i', $text, $m)) {
+            preg_match_all('/(\w+)\s*=\s*"([^"]*)"/', $m[1], $attrs, PREG_SET_ORDER);
+            foreach ($attrs as [, $key, $value]) {
+                $info[strtolower($key)] = $value;
+            }
+        } else {
+            preg_match_all('/^\s*(name|author|version|description)\s*[ (]?\s*["\']([^"\']*)["\']/mi', $text, $rows, PREG_SET_ORDER);
+            foreach ($rows as [, $key, $value]) {
+                $info[strtolower($key)] ??= $value;
+            }
+        }
+        $clean = fn ($v) => ($v = trim(html_entity_decode(preg_replace('/#[0-9a-f]{6}|\^[0-9]/i', '', (string) $v)))) === '' ? null : mb_substr($v, 0, 160);
+        $out = array_map($clean, array_intersect_key($info, array_flip(['name', 'author', 'version', 'description'])));
+
+        return array_filter($out) ?: null;
+    }
+
+    /** Sirve el icono de un resource (solo imágenes dentro de las carpetas de mods). */
+    public function icon(Request $request, Server $server, WingsClient $wings)
+    {
+        $kind = $this->authorizeServer($request, $server);
+        $path = trim((string) $request->query('path'), '/');
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $inside = collect(GtaServers::modFolders($kind))->contains(fn ($f) => str_starts_with($path, $f[0].'/'));
+        abort_unless($inside && ! str_contains($path, '..') && preg_match(self::ICON, basename($path)), 404);
+
+        try {
+            $res = $wings->forServer($server)->timeout(10)->get('/servers/'.$server->uuid.'/files/contents', ['file' => '/'.$path]);
+        } catch (ConnectionException) {
+            abort(502);
+        }
+        abort_unless($res->successful() && strlen($res->body()) <= 2 * 1024 * 1024, 404);
+        $type = ['png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'webp' => 'image/webp', 'gif' => 'image/gif'][$ext];
+
+        return response($res->body(), 200, [
+            'Content-Type' => $type,
+            'Cache-Control' => 'private, max-age=3600',
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => "default-src 'none'",
+        ]);
     }
 
     /**
