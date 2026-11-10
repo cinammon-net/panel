@@ -68,7 +68,19 @@ class HandleInertiaRequests extends Middleware
 
                 $addons = \App\Support\MinecraftAddons::kind($server);
 
-                return $server ? ['minecraft' => $addons !== null, 'addons' => $addons, 'players' => \App\Support\MinecraftAddons::hasPlayerLists($server)] : null;
+                return $server ? [
+                    'minecraft' => $addons !== null,
+                    'addons' => $addons,
+                    'players' => \App\Support\MinecraftAddons::hasPlayerLists($server),
+                    // Para la pantalla de entrada al servidor
+                    'id' => $server->id,
+                    'name' => $server->name,
+                    'egg' => $server->egg?->name,
+                    'egg_icon' => $server->egg?->image_url,
+                    'category' => $server->egg?->category,
+                    // Solo si es una URL: un banner subido (data:) pesa demasiado para ir en cada página.
+                    'banner' => $server->banner && ! str_starts_with($server->banner, 'data:') ? $server->banner : null,
+                ] : null;
             },
 
             // Aviso de actualizaciones pendientes (solo admins; se cachea en UpdateChecker)

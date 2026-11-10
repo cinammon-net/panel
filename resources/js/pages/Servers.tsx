@@ -37,6 +37,7 @@ import {
     Users,
 } from 'lucide-react';
 import { formatUptime, useLiveUptime } from '@/lib/uptime';
+import { rememberServer } from '@/lib/server-intro';
 import React, { useEffect, useMemo, useState } from 'react';
 
 interface ServerItem {
@@ -145,6 +146,10 @@ function useLiveUsage(id: number, enabled: boolean): LiveUsage | null {
 function ServerCard({ item }: { item: ServerItem }) {
     const isOnline = item.status === 'online';
     const usage = useLiveUsage(item.id, isOnline);
+    // Datos para la pantalla de entrada al servidor (se muestran antes de que cargue su página).
+    useEffect(() => {
+        rememberServer({ id: item.id, name: item.name, egg: item.egg, egg_icon: item.egg_icon, category: item.category, banner: item.banner?.startsWith('data:') ? null : item.banner });
+    }, [item.id, item.name, item.egg, item.egg_icon, item.category, item.banner]);
     const uptime = useLiveUptime(isOnline ? usage?.uptimeMs : null);
     // "uso / límite"; sin datos de Wings se muestra "— / límite" y la barra vacía (nunca valores inventados)
     const cpuLimit = item.cpu ? `${item.cpu}%` : '∞';
