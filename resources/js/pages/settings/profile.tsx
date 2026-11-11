@@ -5,6 +5,7 @@ import { Camera, Trash2 } from 'lucide-react';
 import { ChangeEvent, FormEventHandler, useRef, useState } from 'react';
 
 import DeleteUser from '@/components/delete-user';
+import { LinkedAccounts } from '@/components/social-login';
 import HeadingSmall from '@/components/heading-small';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -25,7 +26,7 @@ type ProfileForm = {
     email: string;
 }
 
-export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: boolean; status?: string }) {
+export default function Profile({ mustVerifyEmail, status, connections = {} }: { mustVerifyEmail: boolean; status?: string; connections?: Record<string, boolean> }) {
     const { auth } = usePage<SharedData>().props;
 
     const { data, setData, patch, errors, processing, recentlySuccessful } = useForm<Required<ProfileForm>>({
@@ -199,6 +200,8 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                         </div>
                     </form>
                 </div>
+
+                <LinkedAccounts connections={connections} />
 
                 <DeleteUser />
             </SettingsLayout>

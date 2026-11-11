@@ -92,108 +92,13 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('api/nodes/{node}/reset', [NodeController::class, 'reset']);
 });
 
-// 🔗 Socialtie
-Route::get('/auth/github/redirect', function () {
-    return Socialite::driver('github')->redirect();
-});
-
-Route::get('/auth/github/callback', function () {
-    $githubUser = Socialite::driver('github')->user();
-
-    $user = User::updateOrCreate([
-        'github_id' => $githubUser->id,
-        'email' => $githubUser->email,
-
-    ], [
-        'name' => $githubUser->name,
-        'email' => $githubUser->email,
-        'github_token' => $githubUser->token,
-        'github_refresh_token' => $githubUser->refreshToken,
-    ]);
-
-    Auth::login($user);
-
-    return redirect('/servers');
-});
-
-Route::get('/auth/discord/redirect', function () {
-    return Socialite::driver('discord')->redirect();
-});
-
-Route::get('/auth/discord/callback', function () {
-    $discordUser = Socialite::driver('discord')->user();
-
-    $user = User::updateOrCreate([
-        'discord_id' => $discordUser->id,
-        'email' => $discordUser->email,
-    ], [
-        'name' => $discordUser->name,
-        'email' => $discordUser->email,
-        'discord_token' => $discordUser->token,
-        'discord_refresh_token' => $discordUser->refreshToken,
-    ]);
-
-    Auth::login($user);
-    return redirect('/servers');
-});
-
-Route::get('/auth/gitlab/redirect', function () {
-    return Socialite::driver('gitlab')->redirect();
-});
-Route::get('/auth/gitlab/callback', function () {
-    $gitlabUser = Socialite::driver('gitlab')->user();
-
-    $user = User::updateOrCreate([
-        'gitlab_id' => $gitlabUser->id,
-        'email' => $gitlabUser->email,
-    ], [
-        'name' => $gitlabUser->name,
-        'email' => $gitlabUser->email,
-        'gitlab_token' => $gitlabUser->token,
-        'gitlab_refresh_token' => $gitlabUser->refreshToken,
-    ]);
-
-    Auth::login($user);
-    return redirect('/servers');
-});
-Route::get('/auth/google/redirect', function () {
-    return Socialite::driver('google')->redirect();
-});
-Route::get('/auth/google/callback', function () {
-    $googleUser = Socialite::driver('google')->user();
-
-    $user = User::updateOrCreate([
-        'google_id' => $googleUser->id,
-        'email' => $googleUser->email,
-    ], [
-        'name' => $googleUser->name,
-        'email' => $googleUser->email,
-        'google_token' => $googleUser->token,
-        'google_refresh_token' => $googleUser->refreshToken,
-    ]);
-
-    Auth::login($user);
-    return redirect('/servers');
-});
-Route::get('/auth/apple/redirect', function () {
-    return Socialite::driver('apple')->redirect();
-});
-Route::get('/auth/apple/callback', function () {
-    $appleUser = Socialite::driver('apple')->user();
-
-    $user = User::updateOrCreate([
-        'apple_id' => $appleUser->id,
-        'email' => $appleUser->email,
-    ], [
-        'name' => $appleUser->name,
-        'email' => $appleUser->email,
-        'apple_token' => $appleUser->token,
-        'apple_refresh_token' => $appleUser->refreshToken,
-    ]);
-
-    Auth::login($user);
-    return redirect('/servers');
-});
+// Entrar / registrarse / vincular con Discord, Google, Microsoft, GitHub, GitLab o Twitch
+Route::get('/auth/{provider}/redirect', [App\Http\Controllers\Auth\SocialAuthController::class, 'redirect'])
+    ->whereIn('provider', array_keys(App\Http\Controllers\Auth\SocialAuthController::PROVIDERS))->middleware('throttle:30,1')->name('social.redirect');
+Route::get('/auth/{provider}/callback', [App\Http\Controllers\Auth\SocialAuthController::class, 'callback'])
+    ->whereIn('provider', array_keys(App\Http\Controllers\Auth\SocialAuthController::PROVIDERS))->middleware('throttle:30,1')->name('social.callback');
+Route::delete('/auth/{provider}', [App\Http\Controllers\Auth\SocialAuthController::class, 'unlink'])
+    ->whereIn('provider', array_keys(App\Http\Controllers\Auth\SocialAuthController::PROVIDERS))->middleware('auth')->name('social.unlink');
 
 // 🔐 Rutas autenticadas y verificadas
 Route::middleware(['auth', 'verified'])->group(function () {

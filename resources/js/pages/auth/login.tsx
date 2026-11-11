@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Listbox } from '@headlessui/react';
 import { cinLogo } from '@/lib/brand';
+import { SocialLogin } from '@/components/social-login';
 
 function AuthLayout({ description, children }: { title: string; description?: string; children: React.ReactNode }) {
     return (
@@ -209,6 +210,8 @@ export default function Login({ status, canResetPassword, demoMode }: LoginProps
                         {processing && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
                         Sign in to panel
                     </Button>
+
+                    {!demoMode && <SocialLogin />}
                 </div>
 
                 {/* REGISTER */}

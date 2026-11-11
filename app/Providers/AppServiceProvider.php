@@ -24,6 +24,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Proveedores extra de Socialite (Discord, Microsoft, Twitch)
+        \Illuminate\Support\Facades\Event::listen(\SocialiteProviders\Manager\SocialiteWasCalled::class, function ($event) {
+            $event->extendSocialite('discord', \SocialiteProviders\Discord\Provider::class);
+            if (class_exists(\SocialiteProviders\Microsoft\Provider::class)) {
+                $event->extendSocialite('microsoft', \SocialiteProviders\Microsoft\Provider::class);
+            }
+            $event->extendSocialite('twitch', \SocialiteProviders\Twitch\Provider::class);
+        });
+
         // Contraseñas sencillas (4+ caracteres, sin exigir mayúsculas ni símbolos); siempre se guardan cifradas con bcrypt.
         \Illuminate\Validation\Rules\Password::defaults(fn () => \Illuminate\Validation\Rules\Password::min(4));
 

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cinLogo } from '@/lib/brand';
+import { SocialLogin } from '@/components/social-login';
 
 function AuthLayout({ description, children }: { title: string; description?: string; children: ReactNode }) {
     return (
@@ -142,6 +143,8 @@ export default function Register() {
                         {processing && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
                         Crear cuenta
                     </Button>
+
+                    <SocialLogin label="O regístrate con" />
                 </div>
                 <div className="mt-6 text-center text-sm text-pink-300">
                     ¿Ya tienes una cuenta?{' '}

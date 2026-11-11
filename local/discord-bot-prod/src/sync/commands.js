@@ -5,6 +5,9 @@
  * vinculada a ese Discord y los mismos permisos que la web. Las respuestas personales son
  * efímeras (solo las ve quien usa el comando).
  */
+const moderation = require('./moderation');
+const admin = require('./admin');
+
 let api = null;
 const gameCache = new Map(); // serverId -> { at, fields }
 
@@ -13,6 +16,7 @@ const V2 = 1 << 15;
 
 function init(a) {
     api = a;
+    admin.init(a);
 }
 
 /* ------------------------------------------------------------ definiciones */
@@ -20,6 +24,10 @@ function init(a) {
 const S = 3, INT = 4, BOOL = 5, USER = 6, FILE = 11;
 
 function definitions(categories = []) {
+    return [...base(categories), ...moderation.definitions(), ...admin.definitions()];
+}
+
+function base(categories) {
     const catChoices = categories.slice(0, 25).map((c) => ({ name: c.title.slice(0, 100), value: c.key }));
     return [
         { name: 'ayuda', description: 'Qué puedes hacer con el bot de Cinammon' },
@@ -115,6 +123,13 @@ const notLinked = () => card(
     text('## Tu Discord no está vinculado\nEntra en el panel con **Iniciar sesión con Discord** (o vincúlalo desde tu perfil) y vuelve a probar. Así el bot sabe cuál es tu cuenta.'),
     row(linkBtn('Vincular en el panel', `${api.PANEL}/login`)),
 );
+
+/** Errores de Discord en moderación (403 = el rol del bot está por debajo). */
+function modError(name, e) {
+    if (name !== 'admin' && e.status === 403) return fail('Discord no me deja: mi rol tiene que estar por encima del de esa persona y tener el permiso necesario.');
+    if (name !== 'admin' && e.status === 404) return fail('No encuentro a esa persona o ese canal en el servidor.');
+    return errorCard(e);
+}
 
 function errorCard(e) {
     if (e.status === 404 && /not_linked/.test(e.message)) return notLinked();
@@ -383,6 +398,16 @@ function topView() {
 
 async function slash(i) {
     const name = i.data.name;
+    if (moderation.NAMES.has(name) || name === 'admin') {
+        await callback(i, { type: 5, data: { flags: EPH } });
+        try {
+            await edit(i, await (name === 'admin' ? admin.run(i) : moderation.run(i)));
+        } catch (e) {
+            api.log(`[CMD] /${name}: ${e.message}`);
+            await edit(i, e.friendly ? fail(e.message) : modError(name, e));
+        }
+        return;
+    }
     const priv = !['ayuda', 'ping', 'estado', 'anuncios', 'planes', 'rangos', 'invitaciones', 'top-invitaciones'].includes(name);
     await callback(i, { type: 5, data: { flags: priv ? EPH : 0 } });
     try {
@@ -627,6 +652,22 @@ async function modal(i) {
 
 /** Devuelve true si la interacción era suya. */
 async function handle(i) {
+    if (i.type === 4) {
+        const choices = i.data.name === 'admin' ? await admin.autocomplete(i) : [];
+        await callback(i, { type: 8, data: { choices } });
+        return true;
+    }
+    if (i.type === 3 && /^(mod|adm):/.test(i.data?.custom_id || '')) {
+        await callback(i, { type: 6 });
+        const mod = i.data.custom_id.startsWith('mod:') ? moderation : admin;
+        try {
+            await edit(i, await mod.component(i));
+        } catch (e) {
+            api.log(`[CMD] ${i.data.custom_id}: ${e.message}`);
+            await edit(i, modError(mod === admin ? 'admin' : 'mod', e));
+        }
+        return true;
+    }
     if (i.type === 2) {
         await slash(i);
         return true;
@@ -648,4 +689,4 @@ async function handle(i) {
     return false;
 }
 
-module.exports = { init, definitions, handle };
+module.exports = { init, initModeration: (a) => moderation.init(a), definitions, handle };

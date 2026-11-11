@@ -724,6 +724,13 @@ function start({ token, guildId, appId }) {
         PANEL: PANEL_PUBLIC,
         BILLING,
     });
+    commands.initModeration({
+        discord, log, saveState,
+        ui: { text, sep, row, container, cut, ts },
+        st: () => st,
+        ctx: () => ({ ...ctx, layout: ctx.layout }),
+        accent: () => accent,
+    });
     members.init({
         discord, sendFile, log, saveState,
         st: () => st,

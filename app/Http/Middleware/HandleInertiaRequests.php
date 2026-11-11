@@ -32,6 +32,8 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'flash' => fn(): array => ['success' => $request->session()->get('success')],
+            // Botones de "Entrar con ..." (solo los proveedores configurados en el .env)
+            'socialProviders' => fn (): array => \App\Http\Controllers\Auth\SocialAuthController::enabled(),
             // Mantenimiento activo o próximo: aviso global para todos (también sin sesión)
             'maintenance' => fn () => \App\Models\Maintenance::current(),
             // Ofertas y novedades publicadas (cada vista filtra por su ubicación)
