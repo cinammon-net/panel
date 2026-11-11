@@ -5,6 +5,7 @@ import {
     AlertTriangle,
     ArrowLeft,
     BarChart3,
+    BookOpen,
     Check,
     Copy,
     Database,
@@ -20,6 +21,7 @@ import {
     Newspaper,
     RefreshCw,
     Wand2,
+    Zap,
     type LucideIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -39,6 +41,7 @@ interface Props {
     demo: boolean;
     ownerEmail?: string | null;
     apps: AppDef[];
+    kind?: 'php' | 'js';
 }
 
 interface Db {
@@ -60,7 +63,7 @@ interface Status {
     files?: string[];
 }
 
-type StepKey = 'prepare' | 'download' | 'unpack' | 'database' | 'config' | 'setup' | 'finish';
+type StepKey = 'prepare' | 'download' | 'unpack' | 'database' | 'config' | 'setup' | 'finish' | 'configure' | 'reinstall' | 'wait_install' | 'start' | 'wait_site';
 type StepStatus = 'pending' | 'running' | 'done' | 'skipped' | 'error';
 
 const INFO: Record<string, { icon: LucideIcon; text: string; color: string }> = {
@@ -68,6 +71,8 @@ const INFO: Record<string, { icon: LucideIcon; text: string; color: string }> = 
     joomla: { icon: Layers, text: 'Gestor de contenidos para webs, portales y comunidades.', color: 'from-orange-500 to-rose-600' },
     drupal: { icon: Droplet, text: 'CMS robusto para webs grandes y con mucho contenido.', color: 'from-blue-500 to-indigo-700' },
     matomo: { icon: BarChart3, text: 'Estadísticas de visitas propias y privadas, sin depender de Google.', color: 'from-emerald-500 to-teal-600' },
+    vitepress: { icon: BookOpen, text: 'Web de documentación como la guía de Vite: portada, menú lateral, buscador y modo oscuro.', color: 'from-indigo-500 to-violet-600' },
+    vite: { icon: Zap, text: 'Proyecto Vite sencillo para empezar a programar tu propia web o app.', color: 'from-amber-400 to-orange-600' },
     grav: { icon: Feather, text: 'CMS ultrarrápido sin base de datos, ideal para webs sencillas.', color: 'from-violet-500 to-fuchsia-600' },
 };
 
@@ -79,10 +84,17 @@ const LABELS: Record<StepKey, string> = {
     config: 'Configurar WordPress',
     setup: 'Crear tu sitio y tu usuario',
     finish: 'Preparar el asistente',
+    configure: 'Elegir la plantilla',
+    reinstall: 'Reinstalar el servidor',
+    wait_install: 'Preparar el entorno',
+    start: 'Arrancar el servidor',
+    wait_site: 'Crear el proyecto, instalar y compilar',
 };
 
-const stepsFor = (app: AppDef): StepKey[] =>
-    app.auto ? ['prepare', 'download', 'unpack', 'database', 'config', 'setup'] : ['prepare', 'download', 'unpack', ...(app.db ? (['database'] as StepKey[]) : []), 'finish'];
+const stepsFor = (app: AppDef, kind: 'php' | 'js'): StepKey[] =>
+    kind === 'js'
+        ? ['prepare', 'configure', 'reinstall', 'wait_install', 'start', 'wait_site']
+        : app.auto ? ['prepare', 'download', 'unpack', 'database', 'config', 'setup'] : ['prepare', 'download', 'unpack', ...(app.db ? (['database'] as StepKey[]) : []), 'finish'];
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const errorOf = (e: unknown) => {
@@ -164,7 +176,8 @@ function DbBox({ db }: { db: Db }) {
     );
 }
 
-export default function AppsPage({ server, site, available, demo, ownerEmail, apps }: Props) {
+export default function AppsPage({ server, site, available, demo, ownerEmail, apps, kind = 'php' }: Props) {
+    const js = kind === 'js';
     const base = `/servers/${server.id}/apps`;
     const [status, setStatus] = useState<Status | null>(null);
     const [loadError, setLoadError] = useState(false);
@@ -202,7 +215,66 @@ export default function AppsPage({ server, site, available, demo, ownerEmail, ap
 
     const mark = (key: StepKey, s: StepStatus) => setSteps((prev) => ({ ...prev, [key]: s }));
 
+    /** VitePress / Vite: el panel elige la plantilla, reinstala y arranca; el servidor crea y compila el proyecto. */
+    const runJs = async (app: AppDef) => {
+        setRunning(true);
+        setError(null);
+        setSteps({});
+        let current: StepKey = 'prepare';
+        const post = (step: StepKey, extra: object = {}) => axios.post(`${base}/step`, { app: app.key, step, ...extra });
+        const poll = async (step: StepKey, tries: number, every: number) => {
+            for (let i = 0; i < tries; i++) {
+                const { data } = await post(step);
+                if (!data.wait) return data;
+                setDetail(data.message ?? null);
+                await sleep(every);
+            }
+            throw new Error('Está tardando más de lo normal. Mira la Consola del servidor y vuelve a comprobarlo en unos minutos.');
+        };
+        try {
+            mark('prepare', 'running');
+            const { data: prep } = await post('prepare');
+            mark('prepare', 'done');
+            if (prep.skip_install) {
+                (['configure', 'reinstall', 'wait_install'] as StepKey[]).forEach((k) => mark(k, 'skipped'));
+            } else {
+                current = 'configure';
+                mark('configure', 'running');
+                await post('configure', { title: form.title });
+                mark('configure', 'done');
+                current = 'reinstall';
+                mark('reinstall', 'running');
+                await post('reinstall');
+                mark('reinstall', 'done');
+                current = 'wait_install';
+                mark('wait_install', 'running');
+                await poll('wait_install', 60, 2000);
+                setDetail(null);
+                mark('wait_install', 'done');
+            }
+            current = 'start';
+            mark('start', 'running');
+            await post('start');
+            mark('start', 'done');
+            current = 'wait_site';
+            mark('wait_site', 'running');
+            const result = await poll('wait_site', 120, 3000);
+            setDetail(null);
+            mark('wait_site', 'done');
+            setStatus(result);
+            setSelected(null);
+            toast.success(`${app.name} está en línea.`);
+        } catch (e) {
+            mark(current, 'error');
+            setDetail(null);
+            setError(e instanceof Error && !(e as { response?: unknown }).response ? e.message : errorOf(e));
+        } finally {
+            setRunning(false);
+        }
+    };
+
     const run = async (app: AppDef) => {
+        if (js) return runJs(app);
         if (app.auto && form.password.length < 10) return toast.error('La contraseña debe tener al menos 10 caracteres.');
         setRunning(true);
         setError(null);
@@ -324,7 +396,11 @@ export default function AppsPage({ server, site, available, demo, ownerEmail, ap
                                 </span>
                             </p>
                             <p className="text-sm text-neutral-500">
-                                {done
+                                {js
+                                    ? done
+                                        ? `Tu web ${installedApp.name} está en línea. Edita sus archivos en app/ desde Archivos y reinicia el servidor para publicar los cambios.`
+                                        : 'El proyecto está creado pero aún no se ha compilado. Arranca el servidor desde la Consola (la primera vez tarda 1-2 minutos).'
+                                    : done
                                     ? 'Tu web ya funciona. Entra al panel de administración para empezar.'
                                     : `Los archivos y la base de datos están listos. Abre el asistente de ${installedApp.name}, pega los datos de abajo y crea tu usuario administrador.`}
                             </p>
@@ -360,6 +436,11 @@ export default function AppsPage({ server, site, available, demo, ownerEmail, ap
                                 <ExternalLink className="h-4 w-4" /> Ver la web
                             </a>
                         )}
+                        {js && (
+                            <Link href={`/servers/${server.id}/files`} className={btnGhost}>
+                                <FolderOpen className="h-4 w-4" /> Editar archivos
+                            </Link>
+                        )}
                         {installedApp.db && (
                             <Link href={`/servers/${server.id}/databases`} className={btnGhost}>
                                 <Database className="h-4 w-4" /> Bases de datos
@@ -379,7 +460,7 @@ export default function AppsPage({ server, site, available, demo, ownerEmail, ap
                     <p className="flex items-start gap-2">
                         <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-yellow-400" />
                         <span>
-                            Tu web ya tiene archivos en <code className="text-cyan-500">webroot/</code> ({(status.files ?? []).join(', ')}). Para no borrar nada, las aplicaciones solo se
+                            Tu {js ? 'servidor' : 'web'} ya tiene archivos en <code className="text-cyan-500">{js ? 'app/' : 'webroot/'}</code> ({(status.files ?? []).join(', ')}). Para no borrar nada, las aplicaciones solo se
                             instalan en una web vacía.
                         </span>
                     </p>
@@ -428,7 +509,7 @@ export default function AppsPage({ server, site, available, demo, ownerEmail, ap
     };
 
     const installer = (app: AppDef) => {
-        const list = stepsFor(app);
+        const list = stepsFor(app, kind);
         const continuing = status?.state === 'installed';
         return (
             <div className="space-y-4">
@@ -446,7 +527,16 @@ export default function AppsPage({ server, site, available, demo, ownerEmail, ap
                                 <p className="text-xs text-neutral-500">{INFO[app.key]?.text}</p>
                             </div>
                         </div>
-                        {app.auto ? (
+                        {js ? (
+                            <>
+                                <Field label="Nombre del sitio" hint="Sale como título de tu web. Luego lo puedes cambiar en sus archivos.">
+                                    <input className={input} value={form.title} maxLength={60} disabled={running} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+                                </Field>
+                                <p className="text-xs text-neutral-500">
+                                    El servidor se reinstala (tus archivos no se borran), crea el proyecto, instala las dependencias y lo compila. La primera vez tarda 1-2 minutos.
+                                </p>
+                            </>
+                        ) : app.auto ? (
                             <>
                                 <Field label="Título del sitio">
                                     <input className={input} value={form.title} maxLength={80} disabled={running} onChange={(e) => setForm({ ...form, title: e.target.value })} />
@@ -499,7 +589,7 @@ export default function AppsPage({ server, site, available, demo, ownerEmail, ap
                         <button
                             type="button"
                             onClick={() => run(app)}
-                            disabled={running || (app.auto && (!form.title || !form.user || !form.email))}
+                            disabled={running || (js ? !form.title.trim() : app.auto && (!form.title || !form.user || !form.email))}
                             className={`${btnPrimary} w-full py-3`}
                         >
                             {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
@@ -556,7 +646,9 @@ export default function AppsPage({ server, site, available, demo, ownerEmail, ap
                     <div className="min-w-0">
                         <h1 className="text-xl font-bold text-neutral-900 sm:text-2xl dark:text-white">Aplicaciones</h1>
                         <p className="text-sm text-neutral-500 dark:text-neutral-400">
-                            Instala WordPress y otras aplicaciones en tu web con un clic: sin terminal, sin subir archivos y con la base de datos creada sola.
+                            {js
+                                ? 'Crea tu web con VitePress o Vite en un clic: el servidor crea el proyecto, instala, compila y lo publica en tu dirección.'
+                                : 'Instala WordPress y otras aplicaciones en tu web con un clic: sin terminal, sin subir archivos y con la base de datos creada sola.'}
                         </p>
                     </div>
                 </header>

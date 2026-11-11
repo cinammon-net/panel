@@ -74,6 +74,17 @@ class ServerAppsController extends Controller
         ],
     ];
 
+    /**
+     * Plantillas para el egg «Vite / Apps JavaScript»: el propio arranque del servidor crea el
+     * proyecto (variable TEMPLATE), instala dependencias y compila. El panel solo lo orquesta.
+     */
+    private const JS_APPS = [
+        'vitepress' => ['name' => 'VitePress'],
+        'vite' => ['name' => 'Vite'],
+    ];
+
+    private const JS_ROOT = 'app';
+
     private function authorizeServer(Request $request, Server $server): void
     {
         $user = $request->user();
@@ -84,7 +95,7 @@ class ServerAppsController extends Controller
             403,
             'No tienes permiso para gestionar este servidor.'
         );
-        abort_unless($server->supportsWebApps(), 404, 'Las aplicaciones solo están disponibles en el hosting web con PHP.');
+        abort_unless($server->supportsWebApps() || $server->supportsJsApps(), 404, 'Las aplicaciones solo están disponibles en el hosting web.');
     }
 
     /** Dirección pública de la web: el dominio propio activo o, si no, el subdominio de Cinammon. */
@@ -186,13 +197,18 @@ class ServerAppsController extends Controller
         $this->authorizeServer($request, $server);
         $host = $this->siteHost($server);
 
+        $js = $server->supportsJsApps();
+
         return Inertia::render('Servers/Apps', [
             'server' => ['id' => $server->id, 'name' => $server->name, 'owner_id' => $server->owner_id],
             'site' => $host ? "https://{$host}" : null,
-            'available' => ! Panel::demoMode() && DatabaseProvisioner::enabled() && $host !== null,
+            'kind' => $js ? 'js' : 'php',
+            'available' => ! Panel::demoMode() && $host !== null && ($js || DatabaseProvisioner::enabled()),
             'demo' => Panel::demoMode(),
             'ownerEmail' => $server->owner?->email,
-            'apps' => collect(self::APPS)->map(fn ($a, $k) => ['key' => $k, 'name' => $a['name'], 'db' => $a['db'], 'auto' => $k === 'wordpress'])->values(),
+            'apps' => $js
+                ? collect(self::JS_APPS)->map(fn ($a, $k) => ['key' => $k, 'name' => $a['name'], 'db' => false, 'auto' => true])->values()
+                : collect(self::APPS)->map(fn ($a, $k) => ['key' => $k, 'name' => $a['name'], 'db' => $a['db'], 'auto' => $k === 'wordpress'])->values(),
         ]);
     }
 
@@ -209,6 +225,9 @@ class ServerAppsController extends Controller
             return response()->json(['state' => 'empty', 'demo' => true]);
         }
         try {
+            if ($server->supportsJsApps()) {
+                return response()->json($this->jsState($this->client($wings, $server, 10), $server, $this->siteHost($server)));
+            }
             $state = $this->state($this->client($wings, $server, 10), $server);
 
             return response()->json($state['state'] === 'installed'
@@ -224,9 +243,12 @@ class ServerAppsController extends Controller
     {
         $this->authorizeServer($request, $server);
         abort_if(Panel::demoMode(), 403, 'La instalación de aplicaciones no está disponible en la demo.');
-        abort_unless(DatabaseProvisioner::enabled(), 503, 'Las bases de datos no están disponibles ahora mismo.');
         $host = $this->siteHost($server);
         abort_unless($host, 422, 'Este servidor no tiene dirección web.');
+        if ($server->supportsJsApps()) {
+            return $this->jsStep($request, $server, $wings, $host);
+        }
+        abort_unless(DatabaseProvisioner::enabled(), 503, 'Las bases de datos no están disponibles ahora mismo.');
 
         $data = $request->validate([
             'app' => 'required|in:'.implode(',', array_keys(self::APPS)),
@@ -556,5 +578,129 @@ PHP;
         }
 
         throw new \RuntimeException('No se pudo contactar con tu web para terminar la instalación. Comprueba que el servidor está encendido y vuelve a pulsar Instalar.');
+    }
+
+    // ───────────────────────── Apps JavaScript (VitePress, Vite) ─────────────────────────
+
+    /**
+     * Estado de app/: empty (vacío o la bienvenida), installed (proyecto de una plantilla;
+     * configured = ya compilado en dist/) u other (proyecto propio del cliente).
+     */
+    private function jsState(PendingRequest $client, Server $server, ?string $host): array
+    {
+        $names = $this->names($client, $server, self::JS_ROOT);
+        if ($names->isEmpty()) {
+            return ['state' => 'empty'];
+        }
+        if ($names->values()->all() === ['index.html']) {
+            $body = (string) $client->get("/servers/{$server->uuid}/files/contents", ['file' => '/'.self::JS_ROOT.'/index.html'])->body();
+            if (str_contains($body, 'Cinammon JS Apps')) {
+                return ['state' => 'empty', 'welcome' => true];
+            }
+        }
+        if ($names->contains('package.json')) {
+            $pkg = json_decode((string) $client->get("/servers/{$server->uuid}/files/contents", ['file' => '/'.self::JS_ROOT.'/package.json'])->body(), true) ?: [];
+            $deps = array_merge($pkg['dependencies'] ?? [], $pkg['devDependencies'] ?? []);
+            $app = isset($deps['vitepress']) ? 'vitepress' : (isset($deps['vite']) ? 'vite' : null);
+            if ($app) {
+                $built = $names->contains('dist') && $this->names($client, $server, self::JS_ROOT.'/dist')->contains('index.html');
+                $site = $host ? "https://{$host}" : null;
+
+                return ['state' => 'installed', 'app' => $app, 'configured' => $built, 'site' => $site, 'admin' => null, 'wizard' => null, 'database' => null];
+            }
+        }
+
+        return ['state' => 'other', 'files' => $names->take(8)->values()->all()];
+    }
+
+    private function jsStep(Request $request, Server $server, WingsClient $wings, string $host): JsonResponse
+    {
+        $data = $request->validate([
+            'app' => 'required|in:'.implode(',', array_keys(self::JS_APPS)),
+            'step' => 'required|in:prepare,configure,reinstall,wait_install,start,wait_site',
+        ]);
+        $app = $data['app'];
+        $name = self::JS_APPS[$app]['name'];
+        // Reinstalar reescribe el arranque: como en ServerController::reinstall, solo dueño o admin
+        $user = $request->user();
+        abort_unless($user->id === $server->owner_id || $user->hasAnyRole(['Owner', 'Admin']), 403, 'Solo el dueño del servidor puede instalar plantillas.');
+
+        try {
+            $client = $this->client($wings, $server);
+
+            switch ($data['step']) {
+                case 'prepare':
+                    $state = $this->jsState($client, $server, $host);
+                    if ($state['state'] === 'installed' && $state['app'] !== $app) {
+                        return response()->json(['message' => 'Tu servidor ya tiene un proyecto '.self::JS_APPS[$state['app']]['name'].'. Vacía app/ desde Archivos para cambiarlo.'], 409);
+                    }
+                    if ($state['state'] === 'other') {
+                        return response()->json(['message' => 'app/ ya tiene tu propio proyecto ('.implode(', ', $state['files']).'). Para no borrar nada, la plantilla solo se instala en un servidor vacío.'], 409);
+                    }
+
+                    return response()->json(['ok' => true, 'skip_install' => $state['state'] === 'installed']);
+
+                case 'configure':
+                    $vars = $request->validate(['title' => 'required|string|max:60'])['title'];
+                    $this->setVariable($server, 'TEMPLATE', $app);
+                    $this->setVariable($server, 'SITE_NAME', $vars);
+                    $this->setVariable($server, 'APP_MODE', 'static');
+
+                    return response()->json(['ok' => true]);
+
+                case 'reinstall':
+                    // Reinstalar no borra app/: regenera el arranque, que crea el proyecto al arrancar
+                    $wings->power($server, 'kill');
+                    $server->forceFill(['installed_at' => null, 'status' => false])->save();
+                    $wings->reinstall($server);
+
+                    return response()->json(['ok' => true]);
+
+                case 'wait_install':
+                    return response()->json($server->fresh()->installed_at ? ['ok' => true] : ['wait' => true, 'message' => 'Preparando el entorno…']);
+
+                case 'start':
+                    $state = $client->get("/servers/{$server->uuid}")->throw()->json('state');
+                    if ($state === 'running') {
+                        $wings->power($server, 'restart');
+                    } elseif ($state !== 'starting') {
+                        $wings->power($server, 'start');
+                    }
+
+                    return response()->json(['ok' => true]);
+
+                case 'wait_site':
+                    $state = $this->jsState($client, $server, $host);
+                    $power = $client->get("/servers/{$server->uuid}")->throw()->json('state');
+                    if ($state['state'] === 'installed' && $state['configured'] && $power === 'running') {
+                        return response()->json($state);
+                    }
+                    if ($power === 'offline') {
+                        return response()->json(['message' => "El servidor se detuvo mientras se creaba {$name}. Mira la Consola para ver el error y vuelve a pulsar Instalar."], 422);
+                    }
+
+                    return response()->json(['wait' => true, 'message' => $state['state'] === 'installed'
+                        ? 'Instalando dependencias y compilando… (la primera vez tarda 1-2 minutos)'
+                        : "Creando el proyecto {$name}…"]);
+            }
+        } catch (ConnectionException|RequestException) {
+            return response()->json(['message' => 'El nodo no respondió a tiempo. Vuelve a intentarlo.'], 502);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        abort(422);
+    }
+
+    private function setVariable(Server $server, string $env, string $value): void
+    {
+        $variable = \App\Models\EggVariable::where('egg_id', $server->egg_id)->where('env_variable', $env)->first();
+        if (! $variable) {
+            throw new \RuntimeException('Este servidor usa una versión antigua del egg. Pide a un administrador que lo actualice.');
+        }
+        \Illuminate\Support\Facades\DB::table('server_variables')->updateOrInsert(
+            ['server_id' => $server->id, 'variable_id' => $variable->id],
+            ['variable_value' => $value, 'updated_at' => now(), 'created_at' => now()]
+        );
     }
 }

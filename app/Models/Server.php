@@ -47,6 +47,13 @@ class Server extends Model
     }
 
     /** Web con PHP de Cinammon (WebHost o WordPress): admite las aplicaciones con un clic del panel. */
+    /** Egg «Vite / Apps JavaScript» (tiene la variable TEMPLATE): plantillas VitePress y Vite. */
+    public function supportsJsApps(): bool
+    {
+        return $this->isWebSite() && $this->egg !== null
+            && \App\Models\EggVariable::where('egg_id', $this->egg_id)->where('env_variable', 'TEMPLATE')->exists();
+    }
+
     public function supportsWebApps(): bool
     {
         return $this->isWebSite() && str_contains(str_replace('\\/', '/', (string) $this->egg?->docker_images), 'cinammon-net/webhost');
