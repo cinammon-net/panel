@@ -158,7 +158,7 @@ async function billing(route) {
 async function audit(text) {
     const ch = ctx.layout.channels.logs;
     if (!ch) return;
-    await discord('POST', `/channels/${ch}/messages`, { content: cut(text, 1900), allowed_mentions: { parse: [] } }).catch(() => {});
+    await discord('POST', `/channels/${ch}/messages`, msg(container(0x71717a, [{ type: 10, content: cut(text, 1900) }]))).catch(() => {});
 }
 
 /* --------------------------------------------- color de temporada (como la web) */
@@ -289,10 +289,19 @@ function staticPosts(season) {
     return [
         ...(ch.verify ? [['verify', ch.verify, verify.post()]] : []),
         ['welcome', ch.welcome, msg(container(accent, [
-            text('# Bienvenida a Cinammon Network\nHosting de servidores de juegos, bots, webs y aplicaciones, con panel propio.'),
+            text('# Bienvenida a Cinammon Network\nHosting de servidores de juegos, bots, webs y bases de datos, con panel propio y soporte en español. Puedes empezar **gratis**: gana monedas cada día y canjéalas por un servidor.'),
             sep(),
-            text(`### Vincula tu cuenta\nEn el panel, **Ajustes → Perfil → Código para el bot**, y escribe aquí \`/vincular codigo:\` con ese código. Recibirás tus roles: <@&${ctx.layout.roles.client}> si tienes un servicio activo y el de tu rango VIP si lo tienes.`),
-            text(`### Por dónde empezar\n<#${ch.rules}> · normas\n<#${ch.help}> · dudas rápidas\n<#${ch.tickets}> · temas de tu cuenta\n<#${ch.plans}> · planes y precios`),
+            text(`### Empieza en 3 pasos\n**1.** Crea tu cuenta gratis en el panel.\n**2.** Vincúlala con Discord: en el panel, **Ajustes → Perfil → Código para el bot**, y escribe aquí \`/vincular codigo:\` con ese código.\n**3.** Usa \`/diario\` cada día para sumar monedas y canjéalas por un servidor en la tienda.\n-# Al vincularla recibes <@&${ctx.layout.roles.client}> si tienes un servicio activo y el rol de tu rango VIP.`),
+            sep(),
+            text([
+                '### Mapa del servidor',
+                `<#${ch.rules}> normas · <#${ch.status}> estado de la red`,
+                `<#${ch.plans}> planes y precios · <#${ch.ranks}> rangos VIP`,
+                ch.guides ? `<#${ch.guides}> guías paso a paso · <#${ch.help}> dudas rápidas` : `<#${ch.help}> dudas rápidas`,
+                `<#${ch.tickets}> tu cuenta, pagos o un servidor caído`,
+                `<#${ch.commands}> el bot · <#${ch.general}> charla`,
+                ch.suggestions ? `<#${ch.suggestions}> ideas para mejorar Cinammon` : null,
+            ].filter(Boolean).join('\n')),
             promo && sep(),
             promo && text(promo),
             sep(2),
@@ -333,29 +342,37 @@ function staticPosts(season) {
         ['help', ch.help, msg(container(accent, [
             text('# Soporte\nPregunta aquí lo que quieras sobre Cinammon: servidores, la tienda, el panel o cómo empezar. La comunidad y el staff te echan una mano.'),
             sep(),
-            text(`**Antes de preguntar**\n- Mira si está en la web o en <#${ch.status}> (caídas y mantenimientos).\n- Nada de contraseñas, correos ni datos de pago aquí: es un canal público.\n- Si es algo de **tu cuenta, un pago o tu servidor**, abre un ticket en <#${ch.tickets}>.`),
+            text(`### Antes de preguntar\n- Mira <#${ch.status}>: si hay una caída o un mantenimiento, sale ahí.${ch.guides ? `\n- Busca en <#${ch.guides}>: Minecraft, bots, dominios, bases de datos y errores típicos.` : ''}\n- Nada de contraseñas, correos ni datos de pago aquí: es un canal público.`),
+            text(`### Cómo preguntar para que te ayuden rápido\n- Qué servicio es (juego, bot, web…) y qué intentabas hacer.\n- El error **exacto** o una captura de la consola.\n- Qué has probado ya.`),
+            text(`-# ¿Es de **tu cuenta, un pago o tu servidor** en concreto? Abre un ticket en <#${ch.tickets}>: lo ve solo el equipo.`),
             sep(2),
             row({ type: 2, style: 1, label: 'Abrir ticket', custom_id: 'ticket:open' }, linkBtn('Panel', PANEL_PUBLIC)),
         ]))],
         ['commands', ch.commands, msg(container(accent, [
-            text('# Comandos\nLo que haces en la web, desde aquí. Las respuestas de tu cuenta solo las ves tú.'),
+            text('# Comandos\nLo que haces en la web, desde aquí. Escribe `/` en este canal y elige. Las respuestas de tu cuenta solo las ves tú.'),
             sep(),
-            text('### Tu cuenta\n`/cuenta` resumen de todo\n`/perfil` cambiar nombre y foto de perfil de la web\n`/servidores` y `/servidor` encender, reiniciar, apagar, editar nombre e info y ajustes del juego\n`/consola` enviar un comando a tu servidor\n`/monedas` y `/diario` saldo, racha y premio diario\n`/facturas` facturas y pagos pendientes\n`/tickets` tus tickets de soporte'),
-            text('### Comunidad\n`/estado` · `/anuncios` · `/planes` · `/rangos` · `/invitaciones` · `/top-invitaciones` · `/ping` · `/ayuda`'),
+            text('### Primero: vincula tu cuenta\n`/vincular codigo:` con el código de **Ajustes → Perfil → Código para el bot** del panel. Solo hace falta una vez.'),
+            text('### Tus servidores\n`/servidores` lista con su estado\n`/servidor` encender, reiniciar, apagar, renombrar y ajustes del juego\n`/consola` enviar un comando a la consola'),
+            text('### Tu cuenta\n`/cuenta` resumen de todo · `/perfil` nombre y foto de la web\n`/monedas` saldo y enlace de invitación · `/diario` premio diario con racha\n`/facturas` pagos pendientes · `/tickets` tus tickets'),
+            text('### Comunidad\n`/estado` red y mantenimientos · `/anuncios` · `/planes` · `/rangos`\n`/invitaciones` · `/top-invitaciones` · `/ping` · `/ayuda`'),
             sep(),
-            text('-# Para usar los de tu cuenta, vincúlala primero: `/vincular`.'),
+            text('-# Si un comando dice que tu Discord no está vinculado, repite el paso de `/vincular`.'),
         ]))],
         ['staff', ch.staff, msg(container(accent, [
             text('# Staff\nCanal privado del equipo.'),
             sep(),
-            text(`**Desde Discord**\n\`/anuncio\` publica en la web y en <#${ch.announcements}> o <#${ch.offers}>\n\`/mantenimiento\` programa un mantenimiento (aviso en <#${ch.status}>)\n\`/sincronizar\` fuerza la sincronización con la web\n\n**Tickets**: cada ticket del panel es un hilo privado en <#${ch.tickets}>; lo que escribáis ahí le llega al cliente en la web.\n**Registro** de roles, anuncios y tickets en <#${ch.logs}>.`),
+            text(`### Web y avisos\n\`/anuncio\` publica en la web y en <#${ch.announcements}> o <#${ch.offers}>\n\`/mantenimiento\` programa un mantenimiento (aviso en <#${ch.status}>)\n\`/sorteo\` crea un sorteo${ch.giveaways ? ` en <#${ch.giveaways}>` : ''}\n\`/sincronizar\` fuerza la sincronización con la web`),
+            text('### Moderación\n`/advertir` (3 = 1 h silenciado, 5 = 1 día, 7 = expulsión) · `/sanciones` · `/perdonar`\n`/silenciar` · `/quitar-silencio` · `/expulsar` · `/ban` · `/desbanear`\n`/limpiar` · `/bloquear` · `/desbloquear` · `/modo-lento`\n`/automod` filtros automáticos y palabras bloqueadas\n-# No se puede sancionar a nadie con un rol igual o superior al tuyo.'),
+            text('### Administración (Owner y Admin)\n`/admin crear-servidor` · `/admin crear-nodo` · `/admin nodos` · `/admin servidor`\n`/amigo` rol Amigo de Cinammon (solo Owner)'),
+            text(`### Cómo funciona\n**Tickets:** cada ticket del panel es un hilo privado en <#${ch.tickets}>; lo que escribáis ahí le llega al cliente en la web.\n**Registro:** sanciones, AutoMod, roles, anuncios y tickets en <#${ch.logs}>.`),
             sep(2),
             row(linkBtn('Panel de administración', `${PANEL_PUBLIC}/admin`)),
         ]))],
         ['tickets', ch.tickets, msg(container(accent, [
             text('# Soporte por ticket\nPulsa **Abrir ticket** y se creará un hilo privado entre tú y el equipo.'),
             sep(),
-            text(`El ticket es el mismo que en el panel: responde aquí o en ${PANEL_PUBLIC}/tickets y verás los mensajes en los dos sitios.\n-# Necesitas tener tu cuenta del panel vinculada con Discord.`),
+            text(`### Cuándo abrir uno\nPagos y facturas, un servidor que no arranca, cambios en tu cuenta o cualquier cosa con datos privados.\n### Cómo funciona\nEl ticket es el mismo que en el panel: responde aquí o en ${PANEL_PUBLIC}/tickets y verás los mensajes en los dos sitios. Te avisamos cuando haya respuesta.`),
+            text('-# Necesitas tu cuenta vinculada: `/vincular codigo:` con el código de Ajustes → Perfil. No hace falta mencionar al staff: se responde por orden.'),
             sep(2),
             row({ type: 2, style: 1, label: 'Abrir ticket', custom_id: 'ticket:open' }, linkBtn('Mis tickets en el panel', `${PANEL_PUBLIC}/tickets`)),
         ]))],
@@ -394,14 +411,15 @@ async function catalogPosts(season) {
 
     try {
         const pm = await billing('/api/payment-methods');
-        const lines = pm.methods.map((m) => `**${m.label}**\n-# ${m.auto ? 'Se activa al momento' : 'El equipo confirma el pago'}`);
-        lines.push('**Monedas Cinammon**\n-# Servidores gratis canjeando monedas en la tienda');
+        const lines = pm.methods.map((m) => `**${m.label}**\n-# ${m.auto ? 'Se activa al momento' : 'El equipo lo confirma y se activa (normalmente en pocas horas)'}`);
+        lines.push('**Monedas Cinammon**\n-# Gratis: \`/diario\` cada día, invitaciones y sorteos. Se canjean por servidores en la tienda.');
+        if (!pm.methods.length) lines.push('-# Los pagos con dinero se activarán pronto: cuando estén disponibles aparecerán aquí solos.');
         posts.push(['payments', ch.payments, msg(container(accent, [
             text('# Métodos de pago'),
             sep(),
             text(lines.join('\n')),
             sep(),
-            text(`-# Los datos para pagar (IBAN, Bizum…) los ves en la factura, nunca por mensaje privado. Moneda: ${pm.currency}.`),
+            text(`-# Los datos para pagar solo aparecen en tu factura del panel. El staff **nunca** te pedirá un pago por mensaje privado. Moneda: ${pm.currency}.`),
             sep(2),
             row(linkBtn('Ir a la tienda', store)),
         ]))]);
@@ -506,7 +524,7 @@ async function syncStatus(data) {
         active.length && text(`### En curso\n${cut(active.map(fmt).join('\n\n'), 1000)}`),
         next.length && text(`### Programados\n${cut(next.map(fmt).join('\n\n'), 1000)}`),
         sep(),
-        text(`-# ${data.stats.servers} servidores alojados · se actualiza solo`),
+        text(`-# ${data.stats.servers ? `${data.stats.servers} servidores de clientes · ` : ''}Se actualiza solo cada minuto. Activa el aviso de **Alertas de red** en <#${ctx.layout.channels.welcome}> para enterarte de cada incidencia.`),
         row(linkBtn('Telemetría en vivo', 'https://nodo.cinammon.net')),
     ])), bannerFor('status'));
 
