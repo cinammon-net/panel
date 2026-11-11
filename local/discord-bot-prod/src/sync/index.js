@@ -21,6 +21,8 @@ const community = require('./community');
 const members = require('./members');
 const verify = require('./verify');
 const content = require('./content');
+const assistant = require('./assistant');
+const moderation = require('./moderation');
 
 const ART_VERSION = 1; // súbelo para volver a dibujar todos los banners
 
@@ -323,11 +325,11 @@ function staticPosts(season) {
             text('### 3 · Canales y soporte\n' + [
                 `**3.1** Cada canal tiene su tema: dudas rápidas en <#${ch.help}>, el bot en <#${ch.commands}>.`,
                 `**3.2** Pagos, servidores o tu cuenta van por ticket en <#${ch.tickets}>, nunca en público.`,
-                '**3.3** No menciones al staff para que te atienda antes: los tickets se responden por orden.',
+                '**3.3** No menciones al staff ni a sus roles para que te atiendan antes. La primera vez el bot te avisa; después cuenta como advertencia. Usa `/pregunta`, escribe en <#' + ch.help + '> o abre un ticket.',
             ].join('\n')),
             text('### 4 · Servicios alojados\n' + [
                 '**4.1** Tus servidores deben cumplir los Términos: nada de DDoS, minería, phishing, spam ni abuso de recursos.',
-                '**4.2** Un servicio que incumpla se suspende sin reembolso y puede suponer el cierre de la cuenta.',
+                '**4.2** Un servicio que incumpla se suspende sin reembolso (el staff puede suspender todos tus servidores) y puede suponer el cierre de la cuenta.',
             ].join('\n')),
             text('### 5 · Seguridad\n' + [
                 '**5.1** El staff nunca te pedirá tu contraseña, códigos ni que pagues por mensaje privado.',
@@ -335,16 +337,16 @@ function staticPosts(season) {
                 '**5.3** No compartas datos personales tuyos ni de otras personas.',
             ].join('\n')),
             sep(),
-            text('### Sanciones\nAviso → silencio temporal → expulsión → baneo. Según la gravedad se puede saltar directamente al baneo. Si no estás de acuerdo con una sanción, abre un ticket.'),
+            text('### Sanciones\nLas advertencias se acumulan y escalan solas:\n**3** → 1 hora silenciado · **5** → 1 día silenciado · **7** → expulsión\nSegún la gravedad se puede saltar directamente al baneo o a la **suspensión de tus servidores**. Te llega un privado con el motivo de cada sanción; si no estás de acuerdo, abre un ticket.'),
             sep(2),
             row(linkBtn('Términos de servicio', `${PANEL_PUBLIC}/terms`), linkBtn('Privacidad', `${PANEL_PUBLIC}/privacy`)),
         ]))],
         ['help', ch.help, msg(container(accent, [
-            text('# Soporte\nPregunta aquí lo que quieras sobre Cinammon: servidores, la tienda, el panel o cómo empezar. La comunidad y el staff te echan una mano.'),
+            text('# Soporte\nPregunta aquí lo que quieras sobre Cinammon: servidores, la tienda, el panel o cómo empezar. **El asistente te responde al momento**; si no sabe la respuesta, avisa él al equipo.'),
             sep(),
             text(`### Antes de preguntar\n- Mira <#${ch.status}>: si hay una caída o un mantenimiento, sale ahí.${ch.guides ? `\n- Busca en <#${ch.guides}>: Minecraft, bots, dominios, bases de datos y errores típicos.` : ''}\n- Nada de contraseñas, correos ni datos de pago aquí: es un canal público.`),
             text(`### Cómo preguntar para que te ayuden rápido\n- Qué servicio es (juego, bot, web…) y qué intentabas hacer.\n- El error **exacto** o una captura de la consola.\n- Qué has probado ya.`),
-            text(`-# ¿Es de **tu cuenta, un pago o tu servidor** en concreto? Abre un ticket en <#${ch.tickets}>: lo ve solo el equipo.`),
+            text(`-# No menciones al staff: el asistente ya les avisa si hace falta. ¿Es de **tu cuenta, un pago o tu servidor** en concreto? Abre un ticket: lo ve solo el equipo. También puedes usar \`/pregunta\` en cualquier canal.`),
             sep(2),
             row({ type: 2, style: 1, label: 'Abrir ticket', custom_id: 'ticket:open' }, linkBtn('Panel', PANEL_PUBLIC)),
         ]))],
@@ -362,17 +364,18 @@ function staticPosts(season) {
             text('# Staff\nCanal privado del equipo.'),
             sep(),
             text(`### Web y avisos\n\`/anuncio\` publica en la web y en <#${ch.announcements}> o <#${ch.offers}>\n\`/mantenimiento\` programa un mantenimiento (aviso en <#${ch.status}>)\n\`/sorteo\` crea un sorteo${ch.giveaways ? ` en <#${ch.giveaways}>` : ''}\n\`/sincronizar\` fuerza la sincronización con la web`),
-            text('### Moderación\n`/advertir` (3 = 1 h silenciado, 5 = 1 día, 7 = expulsión) · `/sanciones` · `/perdonar`\n`/silenciar` · `/quitar-silencio` · `/expulsar` · `/ban` · `/desbanear`\n`/limpiar` · `/bloquear` · `/desbloquear` · `/modo-lento`\n`/automod` filtros automáticos y palabras bloqueadas\n-# No se puede sancionar a nadie con un rol igual o superior al tuyo.'),
+            text('### Moderación\n`/advertir` (3 = 1 h silenciado, 5 = 1 día, 7 = expulsión) · `/sanciones` (con su cuenta y servidores del panel) · `/perdonar`\n`/suspender-servidores` (Moderador+) · `/reactivar-servidores` (Owner y Admin)\n`/silenciar` · `/quitar-silencio` · `/expulsar` · `/ban` · `/desbanear`\n`/limpiar` · `/bloquear` · `/desbloquear` · `/modo-lento`\n`/automod` filtros automáticos y palabras bloqueadas\n-# No se puede sancionar a nadie con un rol igual o superior al tuyo.'),
             text('### Administración (Owner y Admin)\n`/admin crear-servidor` · `/admin crear-nodo` · `/admin nodos` · `/admin servidor`\n`/amigo` rol Amigo de Cinammon (solo Owner)'),
-            text(`### Cómo funciona\n**Tickets:** cada ticket del panel es un hilo privado en <#${ch.tickets}>; lo que escribáis ahí le llega al cliente en la web.\n**Registro:** sanciones, AutoMod, roles, anuncios y tickets en <#${ch.logs}>.`),
+            text(`### Cómo funciona\n**Tickets:** cada ticket es un hilo privado en <#${ch.tickets}> con su tipo, servidor y prioridad VIP. Pulsa **Me encargo** para quedártelo; lo que escribáis le llega al cliente en la web. Al cerrar, el cliente lo valora del 1 al 5.\n**Asistente:** responde en <#${ch.help}> y con \`/pregunta\`; si no sabe, menciona a Helper y Moderador (como mucho una vez cada 10 min).\n**Menciones al staff:** quien no es del equipo y os menciona recibe un aviso y, la siguiente vez, una advertencia automática. Con 5 advertencias sale un aviso aquí para suspender sus servidores.\n**Registro:** sanciones, AutoMod, roles, anuncios y tickets en <#${ch.logs}>.`),
             sep(2),
             row(linkBtn('Panel de administración', `${PANEL_PUBLIC}/admin`)),
         ]))],
         ['tickets', ch.tickets, msg(container(accent, [
-            text('# Soporte por ticket\nPulsa **Abrir ticket** y se creará un hilo privado entre tú y el equipo.'),
+            text('# Soporte por ticket\nUn hilo privado entre tú y el equipo. Pulsa **Abrir ticket**, elige el tipo y rellena el formulario.'),
             sep(),
-            text(`### Cuándo abrir uno\nPagos y facturas, un servidor que no arranca, cambios en tu cuenta o cualquier cosa con datos privados.\n### Cómo funciona\nEl ticket es el mismo que en el panel: responde aquí o en ${PANEL_PUBLIC}/tickets y verás los mensajes en los dos sitios. Te avisamos cuando haya respuesta.`),
-            text('-# Necesitas tu cuenta vinculada: `/vincular codigo:` con el código de Ajustes → Perfil. No hace falta mencionar al staff: se responde por orden.'),
+            text(`### Tipos\n**Mi servidor:** no arranca, errores, lag, archivos (eliges cuál)\n**Pagos y facturas:** cobros, renovaciones, reembolsos\n**Cuenta y acceso:** correo, acceso al panel, vinculación\n**Reportar a un usuario:** alguien incumple las normas\n**Otra consulta:** cualquier otra cosa`),
+            text(`### Cómo funciona\nSe abre un hilo privado y avisamos al equipo. Mientras, el asistente te sugiere una solución si reconoce el problema. El ticket es el mismo que en el panel: responde aquí o en ${PANEL_PUBLIC}/tickets. Al cerrarlo puedes valorar la atención.`),
+            text('-# Necesitas tu cuenta vinculada (`/vincular codigo:`). Un ticket abierto por persona. No menciones al staff: se responde por orden, con prioridad para los VIP. ¿Duda rápida? `/pregunta`.'),
             sep(2),
             row({ type: 2, style: 1, label: 'Abrir ticket', custom_id: 'ticket:open' }, linkBtn('Mis tickets en el panel', `${PANEL_PUBLIC}/tickets`)),
         ]))],
@@ -604,12 +607,88 @@ async function syncRoles(members) {
 
 /* ---------------------------------------------------------------- tickets */
 
-const STATUS_ES = { open: 'Abierto', pending: 'Pendiente', closed: 'Cerrado' };
+const STATUS_ES = { open: 'Abierto', pending: 'Esperando respuesta', closed: 'Cerrado' };
+
+// Igual que App\Support\TicketCategories del panel. `extra`: tercer campo del formulario.
+const TICKET_CATS = {
+    servidor: {
+        label: 'Mi servidor', hint: 'No arranca, errores, lag, archivos o copias',
+        subject: 'Ej.: Mi servidor de Minecraft no arranca',
+        details: 'Qué pasa, desde cuándo y qué cambiaste antes.',
+        extra: { id: 'extra', label: 'Error de la consola (si lo hay)', style: 2, required: false, placeholder: 'Pega aquí las últimas líneas de la consola' },
+    },
+    pagos: {
+        label: 'Pagos y facturas', hint: 'Cobros, renovaciones, reembolsos',
+        subject: 'Ej.: He pagado y no se ha renovado',
+        details: 'Qué ha pasado: cobro duplicado, pago no reflejado, reembolso…',
+        extra: { id: 'extra', label: 'Número de factura o pedido', style: 1, required: false, placeholder: 'Ej.: 1234' },
+    },
+    cuenta: {
+        label: 'Cuenta y acceso', hint: 'Correo, acceso al panel, datos, vinculación',
+        subject: 'Ej.: No puedo entrar en el panel',
+        details: 'Qué necesitas cambiar o qué no te deja hacer. Nunca escribas tu contraseña.',
+    },
+    reporte: {
+        label: 'Reportar a un usuario', hint: 'Alguien incumple las normas o te ha estafado',
+        subject: 'Ej.: Spam por privado',
+        details: 'Qué ha hecho y dónde. Puedes añadir capturas en el hilo después.',
+        extra: { id: 'extra', label: '¿A quién reportas? (nombre o ID)', style: 1, required: true, placeholder: 'Nombre de Discord, ID o nombre en el panel' },
+    },
+    otro: {
+        label: 'Otra consulta', hint: 'Cualquier otra cosa',
+        subject: 'Resúmelo en una frase',
+        details: 'Cuéntanos qué necesitas con el mayor detalle posible.',
+    },
+};
+
+const staffRoleIds = () => ['owner', 'admin', 'moderator', 'helper'].map((k) => ctx.layout.roles?.[k]).filter(Boolean);
+const pingRoleIds = () => ['helper', 'moderator'].map((k) => ctx.layout.roles?.[k]).filter(Boolean);
+
+function isStaffMember(member) {
+    if (!member) return false;
+    try {
+        const p = BigInt(member.permissions || '0');
+        if (p & 8n || p & 32n) return true; // Administrador o Gestionar servidor
+    } catch {}
+    const staff = staffRoleIds();
+    return (member.roles || []).some((r) => staff.includes(r));
+}
+
+/** Ticket abierto de esta persona que ya tiene hilo, si lo hay. */
+function openTicketOf(discordId) {
+    const fromState = Object.entries(st.tickets || {}).find(([, t]) => t.user === discordId);
+    if (fromState) return { id: fromState[0], thread: fromState[1].thread };
+    const t = (lastData?.tickets || []).find((x) => x.user?.discord_id === discordId && x.status !== 'closed' && st.tickets?.[x.id]);
+    return t ? { id: t.id, thread: st.tickets[t.id].thread } : null;
+}
+
+function ticketCard(ticket, note) {
+    const who = ticket.user?.discord_id ? `<@${ticket.user.discord_id}>` : ticket.user?.name || 'Cliente';
+    const meta = [
+        `Abierto por ${who}`,
+        ticket.server ? `Servidor: **${ticket.server.name}**` : null,
+        ticket.priority ? '`PRIORIDAD VIP`' : null,
+        ticket.claimed_by ? `Lo lleva **${ticket.claimed_by}**` : null,
+    ].filter(Boolean).join(' · ');
+    return msg(container(accent, [
+        text(`-# Ticket #${ticket.id} · ${ticket.category_label || 'Consulta'} · ${STATUS_ES[ticket.status] || ticket.status}\n## ${cut(ticket.subject, 200)}`),
+        text(meta),
+        sep(),
+        text(cut(ticket.message || 'Sin descripción.', 3000)),
+        sep(),
+        text(note || '### Qué pasa ahora\nEl equipo te responde aquí, por orden de llegada (los VIP con prioridad). No hace falta mencionar a nadie.\n-# Puedes añadir capturas o el error de la consola. Todo lo que escribas aquí se guarda en el ticket del panel.'),
+        row(
+            { type: 2, style: 1, label: 'Me encargo', custom_id: `ticket:claim:${ticket.id}` },
+            { type: 2, style: 4, label: 'Cerrar ticket', custom_id: `ticket:close:${ticket.id}` },
+            linkBtn('Ver en el panel', ticket.url || `${PANEL_PUBLIC}/tickets/${ticket.id}`),
+        ),
+    ]));
+}
 
 async function createThread(ticket) {
     const parent = ctx.layout.channels.tickets;
     const thread = await discord('POST', `/channels/${parent}/threads`, {
-        name: cut(`#${ticket.id} ${ticket.subject}`, 100),
+        name: cut(`#${ticket.id} ${ticket.category_label ? `${ticket.category_label}: ` : ''}${ticket.subject}`, 100),
         type: 12, // hilo privado
         invitable: false,
         auto_archive_duration: 10080,
@@ -617,35 +696,57 @@ async function createThread(ticket) {
     if (ticket.user?.discord_id) {
         await discord('PUT', `/channels/${thread.id}/thread-members/${ticket.user.discord_id}`).catch(() => {});
     }
-    const who = ticket.user?.discord_id ? `<@${ticket.user.discord_id}>` : ticket.user?.name || 'Cliente';
-    await discord('POST', `/channels/${thread.id}/messages`, {
-        ...msg(container(accent, [
-            text(`-# Ticket #${ticket.id} · ${STATUS_ES[ticket.status] || ticket.status}\n## ${cut(ticket.subject, 200)}`),
-            text(`Abierto por ${who}`),
-            sep(),
-            text(cut(ticket.message || 'Sin descripción.', 3000)),
-            sep(),
-            text('-# Lo que escribas en este hilo se guarda en el ticket del panel.'),
-            row(
-                linkBtn('Ver en el panel', ticket.url || `${PANEL_PUBLIC}/tickets/${ticket.id}`),
-                { type: 2, style: 4, label: 'Cerrar ticket', custom_id: `ticket:close:${ticket.id}` },
-            ),
-        ])),
+    const intro = await discord('POST', `/channels/${thread.id}/messages`, {
+        ...ticketCard(ticket),
         allowed_mentions: { users: ticket.user?.discord_id ? [ticket.user.discord_id] : [] },
     });
-    st.tickets[ticket.id] = { thread: thread.id, last: 0, mine: [] };
+    st.tickets[ticket.id] = { thread: thread.id, intro: intro?.id, last: 0, mine: [], user: ticket.user?.discord_id || null, category: ticket.category || null };
     saveState();
-    await audit(`Ticket #${ticket.id} conectado con <#${thread.id}>`);
+
+    // Mencionar los roles del equipo los añade al hilo privado y les avisa.
+    const roles = pingRoleIds();
+    if (roles.length) {
+        await discord('POST', `/channels/${thread.id}/messages`, {
+            content: `${roles.map((r) => `<@&${r}>`).join(' ')} nuevo ticket${ticket.priority ? ' **VIP**' : ''}: ${ticket.category_label || 'consulta'}.`,
+            allowed_mentions: { roles },
+        }).catch(() => {});
+    }
+    // Mientras llega el equipo, el asistente sugiere algo si lo reconoce.
+    const hint = await assistant.ticketHint(ticket.subject, ticket.message).catch(() => null);
+    if (hint) {
+        await discord('POST', `/channels/${thread.id}/messages`, msg(container(0x71717a, [
+            text(`### Mientras te atienden: ${hint.title}\n${hint.body}`),
+            text('-# Sugerencia automática. Si se resuelve, puedes cerrar el ticket con el botón de arriba.'),
+        ]))).catch(() => {});
+    }
+    await audit(`Ticket #${ticket.id} (${ticket.category_label || 'consulta'}) abierto: <#${thread.id}>${ticket.priority ? ' · VIP' : ''}`);
     return thread.id;
 }
 
-async function closeThread(id, text) {
+/** Pide al cliente que valore la atención (por privado; si los tiene cerrados, en el hilo). */
+async function askRating(id, t) {
+    if (!t.user) return;
+    const payload = msg(container(accent, [
+        text(`### ¿Qué tal te hemos atendido?\nTu ticket #${id} se ha cerrado. Valóralo del 1 al 5: nos ayuda a mejorar.`),
+        row(...[1, 2, 3, 4, 5].map((n) => ({ type: 2, style: n >= 4 ? 3 : 2, label: `${n}`, custom_id: `ticket:rate:${id}:${n}` }))),
+    ]));
+    try {
+        const dm = await discord('POST', '/users/@me/channels', { recipient_id: t.user });
+        await discord('POST', `/channels/${dm.id}/messages`, payload);
+    } catch {
+        await discord('POST', `/channels/${t.thread}/messages`, payload).catch(() => {});
+    }
+}
+
+async function closeThread(id, note) {
     const t = st.tickets[id];
     if (!t) return;
-    await discord('POST', `/channels/${t.thread}/messages`, { content: text }).catch(() => {});
+    await discord('POST', `/channels/${t.thread}/messages`, { content: note, allowed_mentions: { parse: [] } }).catch(() => {});
+    await askRating(id, t);
     await discord('PATCH', `/channels/${t.thread}`, { archived: true, locked: true }).catch(() => {});
     delete st.tickets[id];
     saveState();
+    await audit(`Ticket #${id} cerrado. ${note}`);
 }
 
 async function pumpTicket(id) {
@@ -669,6 +770,7 @@ async function pumpTicket(id) {
         ])));
     }
     t.mine = t.mine.filter((x) => x > t.last - 1000).slice(-50);
+    if (!t.user && data.ticket.user?.discord_id) t.user = data.ticket.user.discord_id;
     saveState();
     if (data.ticket.status === 'closed') await closeThread(id, 'Ticket cerrado desde el panel.');
 }
@@ -943,6 +1045,16 @@ function start({ token, guildId, appId }) {
         ctx: () => ({ ...ctx, layout: ctx.layout }),
         accent: () => accent,
     });
+    assistant.init({
+        discord, log, saveState,
+        ui: { text, sep, row, container },
+        st: () => st,
+        ctx: () => ctx,
+        accent: () => accent,
+        PANEL: PANEL_PUBLIC,
+        BILLING,
+        matchTip: (t) => community.matchSupportTip(t),
+    });
     verify.init({
         discord, log, saveState, audit, members,
         st: () => st,
@@ -1018,14 +1130,23 @@ async function onEvent(t, d) {
 
 /* ------------------------------------------------ eventos de Discord (gateway) */
 
-/** Mensaje en un hilo de ticket -> se guarda en el panel; o auto-ayuda en #soporte. */
+/**
+ * Mensajes: guardia de menciones al staff, asistente en #soporte y
+ * mensajes de los hilos de ticket (se guardan en el panel).
+ */
 async function onMessage(message) {
     if (!ctx || message.author?.bot || message.webhook_id) return;
-    if (ctx.layout.channels?.help && message.channel_id === ctx.layout.channels.help) {
-        await community.maybeHelpInSupport(message);
+    const entry = Object.entries(st?.tickets || {}).find(([, t]) => t.thread === message.channel_id);
+    if (message.guild_id === ctx.guild) {
+        try {
+            if (await moderation.guardMentions(message, !!entry)) return;
+            if (ctx.layout.channels?.help && message.channel_id === ctx.layout.channels.help) {
+                await assistant.onSupportMessage(message, isStaffMember(message.member));
+            }
+        } catch (e) {
+            log(`[SYNC] mensaje: ${e.message}`);
+        }
     }
-    if (!st?.tickets) return;
-    const entry = Object.entries(st.tickets).find(([, t]) => t.thread === message.channel_id);
     if (!entry) return;
     const [id] = entry;
     const text = [message.content, ...(message.attachments || []).map((a) => a.url)].filter(Boolean).join('\n');
@@ -1057,9 +1178,48 @@ async function respond(interaction, body) {
     }).catch(() => {});
 }
 
-const ephemeral = (content) => ({ type: 4, data: { content, flags: 64, allowed_mentions: { parse: [] } } });
+const editOriginal = (interaction, body) => fetch(`${API}/webhooks/${interaction.application_id}/${interaction.token}/messages/@original`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    // Al editar no se puede tocar la marca de efímero
+    body: JSON.stringify(body.flags ? { ...body, flags: body.flags & ~64 } : body),
+}).catch(() => {});
 
-/** Botones y formularios de tickets. Devuelve true si la interacción era suya. */
+const ephemeral = (content) => ({ type: 4, data: { content, flags: 64, allowed_mentions: { parse: [] } } });
+const ephCard = (color, ...components) => ({ flags: 64 | V2, components: [container(color, components)], allowed_mentions: { parse: [] } });
+const NOT_LINKED = `Para abrir tickets desde Discord necesitas tu cuenta vinculada: en el panel ve a **Ajustes → Perfil → Código para el bot** y aquí escribe \`/vincular codigo:\`. También puedes abrirlo en ${PANEL_PUBLIC}/tickets.`;
+
+/** Paso 1: elegir el tipo de ticket. */
+function categoryPicker() {
+    return ephCard(accent,
+        text('## Abrir ticket\n**1.** Elige de qué trata · **2.** Rellena el formulario · **3.** Se abre un hilo privado con el equipo.'),
+        { type: 1, components: [{
+            type: 3, custom_id: 'ticket:cat', placeholder: 'Elige el tipo de consulta',
+            options: Object.entries(TICKET_CATS).map(([value, c]) => ({ value, label: c.label, description: c.hint })),
+        }] },
+        text('-# ¿Es una duda rápida? Prueba `/pregunta`: el asistente te responde al momento.'),
+    );
+}
+
+/** Paso 2: formulario según el tipo. */
+function ticketModal(cat, serverId = 0) {
+    const c = TICKET_CATS[cat] || TICKET_CATS.otro;
+    const input = (custom_id, label, style, extra) => ({ type: 1, components: [{ type: 4, custom_id, label, style, ...extra }] });
+    return {
+        type: 9,
+        data: {
+            custom_id: `ticket:modal:${cat}:${serverId}`,
+            title: cut(`Ticket: ${c.label}`, 45),
+            components: [
+                input('subject', 'Resúmelo en una frase', 1, { min_length: 3, max_length: 120, required: true, placeholder: c.subject }),
+                input('message', 'Cuéntanos los detalles', 2, { min_length: 10, max_length: 2500, required: true, placeholder: c.details }),
+                ...(c.extra ? [input(c.extra.id, c.extra.label, c.extra.style, { required: c.extra.required, max_length: c.extra.style === 2 ? 1200 : 100, placeholder: c.extra.placeholder })] : []),
+            ],
+        },
+    };
+}
+
+/** Botones, menús y formularios de tickets (y lo demás va a commands). */
 async function onInteraction(interaction) {
     const id = interaction.data?.custom_id || '';
     if (!ctx) return false;
@@ -1067,63 +1227,142 @@ async function onInteraction(interaction) {
     if (await community.handleInteraction(interaction, respond)) return true;
     if (!id.startsWith('ticket:')) return commands.handle(interaction);
     const user = interaction.member?.user || interaction.user;
+    const [, action, a1, a2] = id.split(':');
 
-    if (id === 'ticket:open' && interaction.type === 3) {
-        await respond(interaction, {
-            type: 9,
-            data: {
-                custom_id: 'ticket:modal',
-                title: 'Abrir ticket',
-                components: [
-                    { type: 1, components: [{ type: 4, custom_id: 'subject', label: 'Asunto', style: 1, min_length: 3, max_length: 120, required: true }] },
-                    { type: 1, components: [{ type: 4, custom_id: 'message', label: 'Cuéntanos qué pasa', style: 2, max_length: 3000, required: true }] },
-                ],
-            },
-        });
+    // Abrir: si ya tiene uno, se le manda allí
+    if ((action === 'open' || action === 'new') && interaction.type === 3) {
+        const existing = action === 'open' ? openTicketOf(user.id) : null;
+        if (existing) {
+            await respond(interaction, { type: 4, data: ephCard(accent,
+                text(`### Ya tienes un ticket abierto\nEscribe en <#${existing.thread}> (ticket #${existing.id}): el equipo lo verá. Si es de otro tema distinto, puedes abrir otro.`),
+                row({ type: 2, style: 2, label: 'Es otro tema: abrir otro', custom_id: 'ticket:new' }),
+            ) });
+        } else {
+            const data = categoryPicker();
+            await respond(interaction, action === 'new' ? { type: 7, data: { ...data, flags: V2 } } : { type: 4, data });
+        }
         return true;
     }
 
-    if (id === 'ticket:modal' && interaction.type === 5) {
-        const field = (k) => interaction.data.components.flatMap((r) => r.components).find((c) => c.custom_id === k)?.value || '';
+    // Tipo elegido: "Mi servidor" pide antes cuál; el resto va directo al formulario
+    if (action === 'cat' && interaction.type === 3) {
+        const cat = interaction.data.values?.[0] || 'otro';
+        if (cat !== 'servidor') {
+            await respond(interaction, ticketModal(cat));
+            return true;
+        }
+        await respond(interaction, { type: 6 });
+        let servers = [];
+        try {
+            servers = (await panel('GET', `/api/bot/discord/${user.id}/account`)).servers || [];
+        } catch (e) {
+            await editOriginal(interaction, ephCard(0xf59e0b, text(e.status === 404 ? NOT_LINKED : `No se pudo consultar tu cuenta. Prueba otra vez o ábrelo en ${PANEL_PUBLIC}/tickets`)));
+            return true;
+        }
+        await editOriginal(interaction, ephCard(accent,
+            text('## Abrir ticket · Mi servidor\n¿Con qué servidor necesitas ayuda?'),
+            { type: 1, components: [{
+                type: 3, custom_id: 'ticket:srv', placeholder: 'Elige el servidor',
+                options: [
+                    ...servers.slice(0, 24).map((s) => ({ value: String(s.id), label: cut(s.name || `Servidor ${s.id}`, 100), description: cut([s.egg?.name || s.egg, s.status].filter((x) => typeof x === 'string').join(' · '), 100) || undefined })),
+                    { value: '0', label: servers.length ? 'Otro / no aparece en la lista' : 'Aún no tengo servidor', description: 'Lo explicas en el formulario' },
+                ],
+            }] },
+        ));
+        return true;
+    }
+
+    if (action === 'srv' && interaction.type === 3) {
+        await respond(interaction, ticketModal('servidor', Number(interaction.data.values?.[0]) || 0));
+        return true;
+    }
+
+    // Formulario enviado (ticket:modal:<tipo>:<servidor>; "ticket:modal" a secas es el formulario antiguo)
+    if (action === 'modal' && interaction.type === 5) {
+        const field = (k) => interaction.data.components.flatMap((r) => r.components).find((c) => c.custom_id === k)?.value?.trim() || '';
+        const cat = TICKET_CATS[a1] ? a1 : 'otro';
+        const extra = TICKET_CATS[cat].extra && field('extra') ? `\n\n**${TICKET_CATS[cat].extra.label}:**\n${field('extra')}` : '';
         await respond(interaction, { type: 5, data: { flags: 64 } });
-        const edit = (content) => fetch(`${API}/webhooks/${interaction.application_id}/${interaction.token}/messages/@original`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content }),
-        }).catch(() => {});
         await serial(async () => {
             try {
-                const res = await panel('POST', '/api/bot/tickets', { discord_id: user.id, subject: field('subject'), message: field('message') });
+                const res = await panel('POST', '/api/bot/tickets', {
+                    discord_id: user.id,
+                    subject: field('subject'),
+                    message: cut(field('message') + extra, 4000),
+                    category: cat,
+                    server_id: Number(a2) || null,
+                });
                 const thread = await createThread(res.ticket);
-                await edit(`Ticket #${res.ticket.id} abierto: <#${thread}>`);
+                await editOriginal(interaction, ephCard(0x10b981,
+                    text(`### Ticket #${res.ticket.id} abierto\nSigue en <#${thread}>: es privado, solo lo ves tú y el equipo. Te responderemos allí y en el panel.`),
+                ));
             } catch (e) {
-                if (e.status === 404) {
-                    await edit(`Tu Discord no está vinculado con ninguna cuenta del panel. Saca un código en ${PANEL_PUBLIC}/settings/profile y usa \`/vincular codigo:\`.`);
-                } else {
+                if (e.status === 404) await editOriginal(interaction, ephCard(0xf59e0b, text(NOT_LINKED)));
+                else {
                     log(`[SYNC] abrir ticket: ${e.message}`);
-                    await edit(`No se pudo abrir el ticket. Puedes abrirlo en ${PANEL_PUBLIC}/tickets`);
+                    await editOriginal(interaction, ephCard(0xef4444, text(`No se pudo abrir el ticket. Puedes abrirlo en ${PANEL_PUBLIC}/tickets`)));
                 }
             }
         });
         return true;
     }
 
-    if (id.startsWith('ticket:close:') && interaction.type === 3) {
-        const ticketId = id.split(':')[2];
+    // "Me encargo": solo staff
+    if (action === 'claim' && interaction.type === 3) {
+        if (!isStaffMember(interaction.member)) {
+            await respond(interaction, ephemeral('Este botón es para el equipo. Escribe aquí y te responderán.'));
+            return true;
+        }
         await respond(interaction, { type: 5, data: { flags: 64 } });
+        const name = interaction.member?.nick || user.global_name || user.username;
+        try {
+            const { ticket } = await panel('POST', `/api/bot/tickets/${a1}/claim`, { name });
+            const t = st.tickets[a1];
+            if (t?.intro) await discord('PATCH', `/channels/${t.thread}/messages/${t.intro}`, ticketCard(ticket)).catch(() => {});
+            await discord('POST', `/channels/${interaction.channel_id}/messages`, { content: `**${name}** se encarga de este ticket.`, allowed_mentions: { parse: [] } }).catch(() => {});
+            await editOriginal(interaction, { content: 'Listo: el ticket es tuyo.' });
+        } catch (e) {
+            log(`[SYNC] reclamar ticket #${a1}: ${e.message}`);
+            await editOriginal(interaction, { content: 'No se pudo asignar el ticket.' });
+        }
+        return true;
+    }
+
+    // Cerrar: primero confirmación
+    if (action === 'close' && interaction.type === 3) {
+        await respond(interaction, { type: 4, data: ephCard(0xef4444,
+            text(`### ¿Cerrar el ticket #${a1}?\nEl hilo se archiva y ya no se podrá escribir. Si vuelve a pasar, abre otro.`),
+            row({ type: 2, style: 4, label: 'Sí, cerrar', custom_id: `ticket:closeok:${a1}` }),
+        ) });
+        return true;
+    }
+
+    if (action === 'closeok' && interaction.type === 3) {
+        await respond(interaction, { type: 6 });
         await serial(async () => {
             try {
-                await panel('POST', `/api/bot/tickets/${ticketId}/status`, { status: 'closed' });
-                await closeThread(ticketId, `Ticket cerrado por <@${user.id}>.`);
+                await panel('POST', `/api/bot/tickets/${a1}/status`, { status: 'closed' });
+                await closeThread(a1, `Ticket cerrado por <@${user.id}>.`);
+                await editOriginal(interaction, ephCard(0x10b981, text('Ticket cerrado.')));
             } catch (e) {
-                log(`[SYNC] cerrar ticket #${ticketId}: ${e.message}`);
+                log(`[SYNC] cerrar ticket #${a1}: ${e.message}`);
+                await editOriginal(interaction, ephCard(0xef4444, text('No se pudo cerrar. Prueba desde el panel.')));
             }
         });
-        await fetch(`${API}/webhooks/${interaction.application_id}/${interaction.token}/messages/@original`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: 'Ticket cerrado.' }),
-        }).catch(() => {});
+        return true;
+    }
+
+    // Valoración 1-5 (por privado o en el hilo)
+    if (action === 'rate' && interaction.type === 3) {
+        const n = Number(a2);
+        try {
+            await panel('POST', `/api/bot/tickets/${a1}/rating`, { discord_id: user.id, rating: n });
+        } catch (e) {
+            await respond(interaction, ephemeral(e.status === 403 ? 'Solo quien abrió el ticket puede valorarlo.' : 'No se pudo guardar la valoración.'));
+            return true;
+        }
+        await respond(interaction, { type: 7, data: { flags: V2, components: [container(0x10b981, [text(`### Gracias\nHas valorado el ticket #${a1} con **${n}/5**.${n <= 2 ? ' Sentimos que no haya ido bien: lo revisaremos.' : ''}`)])] } });
+        await audit(`Ticket #${a1} valorado con ${n}/5 por <@${user.id}>`);
         return true;
     }
 

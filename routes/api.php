@@ -36,6 +36,13 @@ Route::middleware('bot.secret')->group(function () {
     Route::get('/bot/tickets/{ticket}/messages', [App\Http\Controllers\BotSyncController::class, 'messages']);
     Route::post('/bot/tickets/{ticket}/messages', [App\Http\Controllers\BotSyncController::class, 'reply']);
     Route::post('/bot/tickets/{ticket}/status', [App\Http\Controllers\BotSyncController::class, 'status']);
+    Route::post('/bot/tickets/{ticket}/claim', [App\Http\Controllers\BotSyncController::class, 'claim']);
+    Route::post('/bot/tickets/{ticket}/rating', [App\Http\Controllers\BotSyncController::class, 'rate']);
+    // Sanciones sobre servidores desde Discord (staff vinculado)
+    Route::get('/bot/discord/{staffId}/moderation/{targetId}', [App\Http\Controllers\BotModerationController::class, 'show'])
+        ->where(['staffId' => '[0-9]{5,25}', 'targetId' => '[0-9]{5,25}']);
+    Route::post('/bot/discord/{staffId}/moderation/{targetId}/servers', [App\Http\Controllers\BotModerationController::class, 'servers'])
+        ->where(['staffId' => '[0-9]{5,25}', 'targetId' => '[0-9]{5,25}'])->middleware('throttle:20,1');
 
     // Lo que cada usuario puede hacer desde Discord (solo sobre su cuenta vinculada)
     Route::prefix('/bot/discord/{discordId}')->where(['discordId' => '[0-9]{5,25}'])->controller(App\Http\Controllers\BotAccountController::class)->group(function () {

@@ -39,6 +39,8 @@ function definitions() {
         { name: 'quitar-silencio', description: 'Quitar el silencio a alguien', default_member_permissions: perm(P.MODERATE), options: [user, reason] },
         { name: 'advertir', description: 'Advertir a alguien (3 = 1 h silenciado, 5 = 1 día, 7 = expulsión)', default_member_permissions: perm(P.MODERATE), options: [user, { ...reason, required: true }] },
         { name: 'sanciones', description: 'Historial de sanciones de alguien', default_member_permissions: perm(P.MODERATE), options: [user] },
+        { name: 'suspender-servidores', description: 'Suspender todos los servidores del panel de alguien por incumplir las normas', default_member_permissions: perm(P.MODERATE), options: [user, { ...reason, required: true }] },
+        { name: 'reactivar-servidores', description: 'Reactivar los servidores suspendidos de alguien (Owner y Admin)', default_member_permissions: perm(P.BAN), options: [user, reason] },
         { name: 'perdonar', description: 'Borrar las advertencias de alguien', default_member_permissions: perm(P.MODERATE), options: [user, reason] },
         { name: 'limpiar', description: 'Borrar los últimos mensajes del canal', default_member_permissions: perm(P.MANAGE_MESSAGES), options: [{ name: 'cantidad', description: 'Cuántos (1-100)', type: INT, required: true, min_value: 1, max_value: 100 }, { name: 'usuario', description: 'Solo los de esta persona', type: USER, required: false }] },
         { name: 'bloquear', description: 'Bloquear un canal (nadie puede escribir)', default_member_permissions: perm(P.MANAGE_CHANNELS), options: [{ name: 'canal', description: 'Canal (por defecto este)', type: CHANNEL, required: false, channel_types: [0, 5] }, reason] },
@@ -141,8 +143,129 @@ async function timeout(userId, minutes, reason) {
     await api.discord('PATCH', `/guilds/${api.ctx().guild}/members/${userId}`, { communication_disabled_until: until }, reason);
 }
 
-const LABEL = { warn: 'Advertencia', timeout: 'Silencio', kick: 'Expulsión', ban: 'Baneo', unban: 'Baneo retirado', untimeout: 'Silencio retirado', pardon: 'Advertencias borradas' };
+const LABEL = { suspend: 'Servidores suspendidos', unsuspend: 'Servidores reactivados', notice: 'Aviso por mencionar al staff', warn: 'Advertencia', timeout: 'Silencio', kick: 'Expulsión', ban: 'Baneo', unban: 'Baneo retirado', untimeout: 'Silencio retirado', pardon: 'Advertencias borradas' };
 const human = (m) => (m >= 1440 ? `${m / 1440} día(s)` : m >= 60 ? `${m / 60} h` : `${m} min`);
+
+const ESCALATION_TEXT = '3 = 1 h silenciado, 5 = 1 día, 7 = expulsión';
+const SUSPEND_ALERT_AT = 5; // con estas advertencias se propone al equipo suspender sus servidores
+
+/** Suma una advertencia y aplica la escalada. La usan /advertir y las automáticas. */
+async function addWarn(target, reason, by) {
+    const g = api.ctx().guild;
+    record(target, { type: 'warn', by, reason });
+    const count = warnings(target).length;
+    let extra = '';
+    const step = ESCALATION.find(([n]) => count === n);
+    if (step) {
+        if (step[1] === 'kick') {
+            await dm(target, `Has llegado a ${count} advertencias y has sido expulsado de Cinammon Network.`);
+            await api.discord('DELETE', `/guilds/${g}/members/${target}`, undefined, `${count} advertencias`).catch(() => {});
+            record(target, { type: 'kick', by: api.ctx().appId, reason: `${count} advertencias` });
+            extra = `\nCon ${count} advertencias, expulsado automáticamente.`;
+        } else {
+            await timeout(target, step[1], `${count} advertencias`).catch(() => {});
+            record(target, { type: 'timeout', by: api.ctx().appId, reason: `${count} advertencias`, minutes: step[1] });
+            extra = `\nCon ${count} advertencias, silenciado ${human(step[1])} automáticamente.`;
+        }
+    }
+    await dm(target, `Has recibido una advertencia en Cinammon Network (${count}).\n**Motivo:** ${reason}${extra}\n-# Escala: ${ESCALATION_TEXT}. Si no estás de acuerdo, abre un ticket de tipo Otra consulta.`);
+    if (count === SUSPEND_ALERT_AT) await suspendAlert(target, count);
+    return { count, extra };
+}
+
+function accountText(acc) {
+    if (!acc) return '### Cuenta del panel\nNo tiene su Discord vinculado: no se pueden tocar servidores desde aquí.';
+    const servers = acc.servers || [];
+    return `### Cuenta del panel\n**${acc.name}**${acc.roles?.length ? ` · ${acc.roles.join(', ')}` : ''}\n`
+        + (servers.length ? servers.slice(0, 15).map((x) => `${x.active ? '`ACTIVO`' : '`SUSPENDIDO`'} ${x.name}`).join('\n') : 'Sin servidores.');
+}
+
+/** Aviso en #registros cuando alguien acumula muchas advertencias, con botón para suspender. */
+async function suspendAlert(target, count) {
+    const ch = api.ctx().layout.channels.logs;
+    if (!ch) return;
+    await api.discord('POST', `/channels/${ch}/messages`, card(0xef4444,
+        text(`### ${count} advertencias: revisar servicios\n<@${target}> ha llegado a ${count} advertencias. Si también incumple las normas con sus servidores (abuso, spam, ataques…), se pueden suspender.`),
+        row(btn('Suspender sus servidores', `mod:susp:${target}`, 4), btn('Ver cuenta', `mod:acct:${target}`)),
+    )).catch(() => {});
+}
+
+/** Suspende o reactiva en el panel todos los servidores de `target`. */
+async function serverAction(staffId, target, suspend, reason, label) {
+    let res;
+    try {
+        res = await api.panel('POST', `/api/bot/discord/${staffId}/moderation/${target}/servers`, { action: suspend ? 'suspend' : 'unsuspend', reason });
+    } catch (e) {
+        if (e.status === 404 && e.body?.message === 'not_linked') return no('Tu Discord no está vinculado con el panel: usa `/vincular` para poder hacer esto.');
+        if (e.status === 403 || e.status === 404 || e.status === 422) return no(e.body?.message || 'No permitido.');
+        throw e;
+    }
+    const names = res.changed.map((x) => x.name);
+    record(target, { type: suspend ? 'suspend' : 'unsuspend', by: staffId, reason: `${reason}${names.length ? ` (${names.join(', ')})` : ''}` });
+    if (!names.length) return card(api.accent(), text(suspend ? 'No tenía servidores activos que suspender.' : 'No tenía servidores suspendidos.'), sep(), text(accountText(res.account)));
+    await log(suspend ? 'Servidores suspendidos' : 'Servidores reactivados', [
+        `**Usuario:** ${label || `<@${target}>`} · cuenta **${res.account.name}**`,
+        `**Servidores:** ${cut(names.join(', '), 800)}`,
+        `**Por:** <@${staffId}>`,
+        `**Motivo:** ${reason}`,
+    ], suspend ? 0xef4444 : 0x10b981);
+    await dm(target, suspend
+        ? `Tus servidores de Cinammon (${names.join(', ')}) se han **suspendido** por incumplir las normas.\n**Motivo:** ${reason}\nSi crees que es un error, abre un ticket.`
+        : `Tus servidores de Cinammon (${names.join(', ')}) se han **reactivado**. Ya puedes encenderlos desde el panel.`, suspend ? 0xef4444 : 0x10b981);
+    return card(suspend ? 0xef4444 : 0x10b981, text(`${suspend ? 'Suspendidos' : 'Reactivados'} ${names.length} servidor(es) de ${label || `<@${target}>`}: ${cut(names.join(', '), 800)}`), sep(), text(accountText(res.account)));
+}
+
+/* ------------------------------------------- menciones al staff (automático) */
+
+const mentionCooldown = new Map(); // userId -> timestamp: una ráfaga de menciones cuenta una vez
+const NOTICE_DAYS = 30;
+
+function staffRoleIds() {
+    const r = api.ctx().layout.roles || {};
+    return [r.owner, r.admin, r.moderator, r.helper].filter(Boolean);
+}
+
+/**
+ * Si alguien que no es del equipo menciona a propósito a un miembro del staff o a un rol del staff:
+ * la primera vez (en 30 días) un aviso; después, advertencia automática con la escalada normal.
+ * Responder a un mensaje del staff (mención de respuesta) no cuenta. `exempt` = hilos de ticket.
+ */
+async function guardMentions(message, exempt) {
+    if (!message.guild_id || exempt || !message.member) return false;
+    const staff = staffRoleIds();
+    if (!staff.length || (message.member.roles || []).some((r) => staff.includes(r))) return false;
+    const content = String(message.content || '');
+    const explicit = (id) => content.includes(`<@${id}>`) || content.includes(`<@!${id}>`);
+    const hitUsers = (message.mentions || []).filter((u) => !u.bot && (u.member?.roles || []).some((r) => staff.includes(r)) && explicit(u.id));
+    const hitRoles = (message.mention_roles || []).filter((r) => staff.includes(r));
+    if (!hitUsers.length && !hitRoles.length) return false;
+
+    const userId = message.author.id;
+    if (Date.now() - (mentionCooldown.get(userId) || 0) < 5 * 60_000) return true;
+    mentionCooldown.set(userId, Date.now());
+
+    const since = Date.now() - NOTICE_DAYS * 86400_000;
+    const noticed = (api.st().sanctions?.[userId] || []).some((s) => s.type === 'notice' && new Date(s.at).getTime() > since);
+    const ticketCh = api.ctx().layout.channels.tickets;
+    const who = [...hitUsers.map((u) => `<@${u.id}>`), ...hitRoles.map((r) => `<@&${r}>`)].join(', ');
+    const reply = (color, body) => api.discord('POST', `/channels/${message.channel_id}/messages`, {
+        ...card(color, text(body), row({ type: 2, style: 1, label: 'Abrir ticket', custom_id: 'ticket:open' })),
+        message_reference: { message_id: message.id, fail_if_not_exists: false },
+        allowed_mentions: { users: [userId], replied_user: false },
+    }).catch(() => {});
+
+    if (!noticed) {
+        record(userId, { type: 'notice', by: api.ctx().appId, reason: `Mencionó al staff (${who}) en <#${message.channel_id}>` });
+        await reply(0xf59e0b, `<@${userId}>, no se menciona al staff (norma 3.3): se atiende por orden. Para una duda usa \`/pregunta\` o escríbela aquí sin mencionar; para algo privado, abre un ticket${ticketCh ? ` en <#${ticketCh}>` : ''}.\n-# Esta vez es solo un aviso. La próxima contará como advertencia.`);
+        await log('Aviso: mención al staff', [`**Usuario:** <@${userId}>`, `**Mencionó a:** ${who}`, `**Canal:** <#${message.channel_id}>`], 0x71717a);
+        return true;
+    }
+    const reason = 'Mencionar al staff sin motivo (norma 3.3)';
+    const { count, extra } = await addWarn(userId, reason, api.ctx().appId);
+    await reply(0xef4444, `<@${userId}>, ya se te avisó de que no se menciona al staff: **advertencia ${count}**.${extra}\n-# Escala: ${ESCALATION_TEXT}.`);
+    await log('Advertencia automática', [`**Usuario:** <@${userId}> · ${count} en total`, `**Mencionó a:** ${who}`, `**Canal:** <#${message.channel_id}>`, `**Motivo:** ${reason}`, extra.trim()]);
+    return true;
+}
 
 /* ---------------------------------------------------------------- comandos */
 
@@ -204,32 +327,30 @@ async function run(i) {
         }
         case 'advertir': {
             const reason = reasonOf(i);
-            record(target, { type: 'warn', by: me.id, reason });
-            const count = warnings(target).length;
-            let extra = '';
-            const step = ESCALATION.find(([n]) => count === n);
-            if (step) {
-                if (step[1] === 'kick') {
-                    await dm(target, `Has llegado a ${count} advertencias y has sido expulsado de Cinammon Network.`);
-                    await api.discord('DELETE', `/guilds/${g}/members/${target}`, undefined, `${count} advertencias`).catch(() => {});
-                    record(target, { type: 'kick', by: api.ctx().appId, reason: `${count} advertencias` });
-                    extra = `\nCon ${count} advertencias, expulsado automáticamente.`;
-                } else {
-                    await timeout(target, step[1], `${count} advertencias`).catch(() => {});
-                    record(target, { type: 'timeout', by: api.ctx().appId, reason: `${count} advertencias`, minutes: step[1] });
-                    extra = `\nCon ${count} advertencias, silenciado ${human(step[1])} automáticamente.`;
-                }
-            }
-            await dm(target, `Has recibido una advertencia en Cinammon Network (${count}).\n**Motivo:** ${reason}${extra}`);
+            const { count, extra } = await addWarn(target, reason, me.id);
             await log('Advertencia', [`**Usuario:** ${tag(targetUser)} · ${count} en total`, `**Por:** <@${me.id}>`, `**Motivo:** ${reason}`, extra.trim()]);
             return ok(`${tag(targetUser)} advertido (${count}).${extra}`);
         }
+        case 'suspender-servidores':
+        case 'reactivar-servidores': {
+            const suspend = name === 'suspender-servidores';
+            if (suspend) {
+                const err = await checkTarget(i, target);
+                if (err) return no(err);
+            }
+            return serverAction(me.id, target, suspend, reasonOf(i), tag(targetUser));
+        }
         case 'sanciones': {
             const list = (api.st().sanctions?.[target] || []).slice(-15).reverse();
+            const acc = await api.panel('GET', `/api/bot/discord/${me.id}/moderation/${target}`).then((r) => r.account).catch(() => undefined);
             return card(api.accent(),
-                text(`## Sanciones de ${targetUser?.global_name || targetUser?.username || target}\n**Advertencias activas:** ${warnings(target).length}`),
+                text(`## Sanciones de ${targetUser?.global_name || targetUser?.username || target}\n**Advertencias activas:** ${warnings(target).length} · ${ESCALATION_TEXT}`),
                 sep(),
                 text(list.length ? list.map((s) => `${ts(s.at, 'd')} · **${LABEL[s.type] || s.type}**${s.minutes ? ` ${human(s.minutes)}` : ''}${s.cleared ? ' (borrada)' : ''} · <@${s.by}>\n-# ${cut(s.reason || '', 150)}`).join('\n') : 'Sin sanciones.'),
+                acc === undefined ? null : sep(),
+                acc === undefined ? null : text(accountText(acc)),
+                acc?.servers?.some((x) => x.active) ? row(btn('Suspender sus servidores', `mod:susp:${target}`, 4)) : null,
+                acc?.servers?.some((x) => !x.active) ? row(btn('Reactivar sus servidores', `mod:unsusp:${target}`, 3)) : null,
             );
         }
         case 'perdonar': {
@@ -380,6 +501,17 @@ async function automod(i, action) {
 /** Botones del panel de AutoMod (custom_id "mod:am:<regla|all|refresh>:<1|0>"). */
 async function component(i) {
     const perms = BigInt(i.member?.permissions || '0');
+    const [, kind, who] = i.data.custom_id.split(':');
+    if (['susp', 'unsusp', 'acct'].includes(kind)) {
+        if (!(perms & P.MODERATE) && !(perms & P.ADMIN)) return no('Necesitas el permiso Moderar miembros.');
+        const me = actor(i).id;
+        if (kind === 'acct') {
+            const acc = await api.panel('GET', `/api/bot/discord/${me}/moderation/${who}`).then((r) => r.account).catch((e) => (e.status === 404 ? null : Promise.reject(e)));
+            return card(api.accent(), text(`### <@${who}> · ${warnings(who).length} advertencias activas`), text(accountText(acc)),
+                acc?.servers?.some((x) => x.active) ? row(btn('Suspender sus servidores', `mod:susp:${who}`, 4)) : null);
+        }
+        return serverAction(me, who, kind === 'susp', `Desde Discord por acumulación de advertencias (${warnings(who).length})`, `<@${who}>`);
+    }
     if (!(perms & P.MANAGE_GUILD) && !(perms & P.ADMIN)) return no('Necesitas el permiso Gestionar servidor.');
     const [, , key, on] = i.data.custom_id.split(':');
     if (key === 'refresh') return automodView();
@@ -397,4 +529,4 @@ async function component(i) {
     return automodView(failed.length ? `No se pudo: ${cut(failed.join(' | '), 300)}` : 'Guardado.');
 }
 
-module.exports = { init, definitions, NAMES, run, component };
+module.exports = { init, definitions, NAMES, run, component, guardMentions, addWarn };

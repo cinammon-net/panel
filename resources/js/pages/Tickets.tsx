@@ -1,4 +1,4 @@
-import TicketFormModal from '@/components/TicketFormModal';
+import TicketFormModal, { TicketCategory } from '@/components/TicketFormModal';
 import AppLayout from '@/layouts/app-layout';
 import { BreadcrumbItem } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
@@ -14,10 +14,24 @@ type Ticket = {
     message: string;
     status: 'open' | 'pending' | 'closed';
     priority?: boolean;
+    category?: string | null;
+    category_label?: string | null;
+    server_id?: number | null;
+};
+
+const STATUS: Record<Ticket['status'], { label: string; cls: string }> = {
+    open: { label: 'Abierto', cls: 'border-emerald-500/50 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300' },
+    pending: { label: 'Esperando respuesta', cls: 'border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-300' },
+    closed: { label: 'Cerrado', cls: 'border-neutral-500/50 bg-neutral-500/10 text-neutral-500 dark:text-neutral-400' },
 };
 
 export default function Tickets() {
-    const { tickets, flash } = usePage<{ tickets: Ticket[]; flash?: { success?: string; error?: string } }>().props;
+    const { tickets, flash, categories = [], myServers = [] } = usePage<{
+        tickets: Ticket[];
+        flash?: { success?: string; error?: string };
+        categories?: TicketCategory[];
+        myServers?: { id: number; name: string }[];
+    }>().props;
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
 
@@ -68,6 +82,7 @@ export default function Tickets() {
                             <tr>
                                 <th className="px-4 py-3 text-left">ID</th>
                                 <th className="px-4 py-3 text-left">Asunto</th>
+                                <th className="hidden px-4 py-3 text-left md:table-cell">Tipo</th>
                                 <th className="hidden px-4 py-3 text-left sm:table-cell">Mensaje</th>
                                 <th className="px-4 py-3 text-left">Estado</th>
                                 <th className="px-4 py-3 text-right">Acciones</th>
@@ -89,10 +104,15 @@ export default function Tickets() {
                                             )}
                                             {ticket.subject}
                                         </td>
+                                        <td className="hidden px-4 py-3 text-xs text-yellow-700 md:table-cell dark:text-yellow-200">{ticket.category_label ?? '—'}</td>
                                         <td className="line-clamp-2 hidden max-w-xs px-4 py-3 text-yellow-700 sm:table-cell dark:text-yellow-200">
                                             {ticket.message || '—'}
                                         </td>
-                                        <td className="px-4 py-3 text-yellow-600 capitalize dark:text-yellow-400">{ticket.status}</td>
+                                        <td className="px-4 py-3">
+                                            <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap ${(STATUS[ticket.status] ?? STATUS.open).cls}`}>
+                                                {(STATUS[ticket.status] ?? STATUS.open).label}
+                                            </span>
+                                        </td>
                                         <td className="px-4 py-3 text-right">
                                             {/* Escritorio */}
                                             <div className="hidden justify-end gap-2 sm:flex">
@@ -142,8 +162,8 @@ export default function Tickets() {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={5} className="px-4 py-6 text-center text-yellow-500 dark:text-yellow-400">
-                                        No hay tickets disponibles.
+                                    <td colSpan={6} className="px-4 py-6 text-center text-yellow-500 dark:text-yellow-400">
+                                        No tienes tickets. Si necesitas ayuda, pulsa Crear Ticket.
                                     </td>
                                 </tr>
                             )}
@@ -152,7 +172,13 @@ export default function Tickets() {
                 </div>
             </div>
 
-            <TicketFormModal isOpen={isModalOpen} closeModal={() => setIsModalOpen(false)} ticket={selectedTicket} />
+            <TicketFormModal
+                isOpen={isModalOpen}
+                closeModal={() => setIsModalOpen(false)}
+                ticket={selectedTicket}
+                categories={categories}
+                servers={myServers}
+            />
         </AppLayout>
     );
 }

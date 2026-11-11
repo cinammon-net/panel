@@ -22,9 +22,13 @@ class TicketController extends Controller
             ->sortByDesc('priority')
             ->values();
         $tickets->each->unsetRelation('user');
+        $tickets->each(fn ($t) => $t->setAttribute('category_label', \App\Support\TicketCategories::label($t->category)));
 
         return inertia('Tickets', [
             'tickets' => $tickets,
+            'categories' => \App\Support\TicketCategories::options(),
+            // Para elegir de qué servidor va el ticket (solo los propios)
+            'myServers' => \App\Models\Server::where('owner_id', Auth::id())->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -33,13 +37,21 @@ class TicketController extends Controller
         $request->validate([
             'subject' => 'required|string|max:255',
             'message' => 'nullable|string',
+            'category' => 'nullable|in:'.implode(',', \App\Support\TicketCategories::keys()),
+            'server_id' => 'nullable|integer',
         ]);
+        // Solo se puede asociar un servidor propio
+        $serverId = $request->filled('server_id')
+            ? \App\Models\Server::where('owner_id', $request->user()->id)->whereKey($request->integer('server_id'))->value('id')
+            : null;
 
         $ticket = Ticket::create([
             'subject' => $request->input('subject'),
             'message' => $request->input('message', ''),
             'status' => 'open',
             'user_id' => $request->user()->id,
+            'category' => $request->input('category') ?: 'otro',
+            'server_id' => $serverId,
         ]);
 
         $this->notify($ticket, 'opened', $request->user()->name, $ticket->message);

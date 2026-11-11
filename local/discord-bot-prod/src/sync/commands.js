@@ -7,6 +7,7 @@
  */
 const moderation = require('./moderation');
 const admin = require('./admin');
+const assistant = require('./assistant');
 
 let api = null;
 const gameCache = new Map(); // serverId -> { at, fields }
@@ -24,7 +25,7 @@ function init(a) {
 const S = 3, INT = 4, BOOL = 5, USER = 6, FILE = 11;
 
 function definitions(categories = []) {
-    return [...base(categories), ...moderation.definitions(), ...admin.definitions()];
+    return [...base(categories), ...assistant.definitions(), ...moderation.definitions(), ...admin.definitions()];
 }
 
 function base(categories) {
@@ -328,6 +329,7 @@ function helpView() {
     return card(
         text('## Bot de Cinammon\nLo que haces en la web, también desde aquí. Las respuestas de tu cuenta solo las ves tú.'),
         sep(),
+        text('### ¿Tienes una duda?\n`/pregunta` te responde al momento. Si no lo sabe, avisa al equipo. Para algo privado (pagos, tu cuenta, un servidor), abre un ticket.'),
         text('### Tu cuenta\n`/cuenta` resumen · `/perfil` nombre y foto · `/servidores` y `/servidor` encender, apagar, ajustes · `/consola` comandos · `/monedas` y `/diario` · `/facturas` · `/tickets`'),
         text('### Comunidad\n`/estado` · `/anuncios` · `/planes` · `/rangos` · `/invitaciones` · `/top-invitaciones` · `/ping`'),
         text('### Staff\n`/anuncio` · `/mantenimiento` · `/sincronizar`'),
@@ -414,6 +416,16 @@ function topView() {
 
 async function slash(i) {
     const name = i.data.name;
+    if (assistant.NAMES.has(name)) {
+        await callback(i, { type: 5, data: { flags: EPH } });
+        try {
+            await edit(i, await assistant.ask(i));
+        } catch (e) {
+            api.log(`[CMD] /${name}: ${e.message}`);
+            await edit(i, errorCard(e));
+        }
+        return;
+    }
     if (moderation.NAMES.has(name) || name === 'admin') {
         await callback(i, { type: 5, data: { flags: EPH } });
         try {
@@ -693,6 +705,15 @@ async function handle(i) {
     if (i.type === 4) {
         const choices = i.data.name === 'admin' ? await admin.autocomplete(i) : [];
         await callback(i, { type: 8, data: { choices } });
+        return true;
+    }
+    if (i.type === 3 && (i.data?.custom_id || '').startsWith('ast:')) {
+        try {
+            await callback(i, await assistant.component(i));
+        } catch (e) {
+            api.log(`[CMD] ${i.data.custom_id}: ${e.message}`);
+            await callback(i, { type: 4, data: { flags: EPH, content: 'No se pudo completar. Inténtalo otra vez o abre un ticket.' } });
+        }
         return true;
     }
     if (i.type === 3 && /^(mod|adm):/.test(i.data?.custom_id || '')) {

@@ -144,6 +144,8 @@ class BotSyncController extends Controller
             'discord_id' => 'required|string|max:32',
             'subject' => 'required|string|max:255',
             'message' => 'nullable|string|max:4000',
+            'category' => 'nullable|in:'.implode(',', \App\Support\TicketCategories::keys()),
+            'server_id' => 'nullable|integer',
         ]);
 
         $user = User::where('discord_id', $data['discord_id'])->first();
@@ -156,6 +158,9 @@ class BotSyncController extends Controller
             'message' => $data['message'] ?? '',
             'status' => 'open',
             'user_id' => $user->id,
+            'category' => $data['category'] ?? 'otro',
+            // Solo un servidor propio
+            'server_id' => ! empty($data['server_id']) ? Server::where('owner_id', $user->id)->whereKey($data['server_id'])->value('id') : null,
         ]);
         $this->notify($ticket, 'opened', $user->name.' (Discord)', $ticket->message);
 
@@ -207,6 +212,25 @@ class BotSyncController extends Controller
         return response()->json(['ticket' => $this->ticket($ticket->load('user:id,name,discord_id'))]);
     }
 
+    /** Un miembro del staff se encarga del ticket (botón "Me encargo" en Discord). */
+    public function claim(Request $request, Ticket $ticket)
+    {
+        $data = $request->validate(['name' => 'required|string|max:100']);
+        $ticket->update(['claimed_by' => $data['name'], 'status' => $ticket->status === 'closed' ? 'closed' : 'pending']);
+
+        return response()->json(['ticket' => $this->ticket($ticket->fresh()->load('user:id,name,discord_id'))]);
+    }
+
+    /** Valoración del cliente al cerrar (1-5). Solo el dueño del ticket. */
+    public function rate(Request $request, Ticket $ticket)
+    {
+        $data = $request->validate(['discord_id' => 'required|string|max:32', 'rating' => 'required|integer|min:1|max:5']);
+        abort_unless($ticket->user && (string) $ticket->user->discord_id === $data['discord_id'], 403);
+        $ticket->update(['rating' => $data['rating']]);
+
+        return response()->json(['ok' => true]);
+    }
+
     private function ticket(Ticket $t): array
     {
         return [
@@ -214,6 +238,12 @@ class BotSyncController extends Controller
             'subject' => $t->subject,
             'message' => $t->message,
             'status' => $t->status,
+            'category' => $t->category,
+            'category_label' => \App\Support\TicketCategories::label($t->category),
+            'server' => $t->server_id ? Server::whereKey($t->server_id)->first(['id', 'name'])?->only(['id', 'name']) : null,
+            'claimed_by' => $t->claimed_by,
+            'rating' => $t->rating,
+            'priority' => (bool) (\App\Support\Ranks::perks($t->user)['priority'] ?? false),
             'user' => $t->user ? ['name' => $t->user->name, 'discord_id' => $t->user->discord_id ? (string) $t->user->discord_id : null] : null,
             'url' => url('/tickets/'.$t->id),
             'created_at' => $t->created_at?->toIso8601String(),
