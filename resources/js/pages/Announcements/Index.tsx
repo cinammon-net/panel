@@ -72,6 +72,21 @@ const emptyForm = (): Form => ({
 /** Plantillas rápidas para no empezar de cero. */
 const TEMPLATES: { name: string; data: Partial<Form>; days?: number }[] = [
     {
+        name: 'Black Friday 🛒',
+        days: 14,
+        data: {
+            type: 'offer',
+            title: '🛒 Black Friday: -30% en todos los servidores y rangos VIP',
+            highlight: '-30%',
+            coupon_code: '',
+            message: 'El mayor descuento del año ya está aplicado automáticamente en toda la tienda. ¡Aprovecha antes de que termine!',
+            cta_label: 'Ver ofertas Black Friday',
+            cta_url: 'https://billing.cinammon.net/store',
+            places: ['web', 'panel', 'store'],
+            popup: true,
+        },
+    },
+    {
         name: 'Calendario de Adviento 🎄',
         days: 24,
         data: {
@@ -79,9 +94,24 @@ const TEMPLATES: { name: string; data: Partial<Form>; days?: number }[] = [
             title: '🎄 ¡Calendario de Adviento activo! Abre tu regalo diario',
             highlight: 'REGALO',
             coupon_code: '',
-            message: 'Entra cada día, abre la casilla correspondiente y consigue hasta +1.500 monedas gratis y cofres especiales.',
+            message: 'Entra cada día del 1 al 24 de diciembre, abre la casilla correspondiente y consigue hasta +1.500 monedas gratis.',
             cta_label: 'Abrir casilla de hoy',
             cta_url: 'https://billing.cinammon.net/advent',
+            places: ['web', 'panel', 'store'],
+            popup: true,
+        },
+    },
+    {
+        name: 'Nochevieja y Año Nuevo 🥂',
+        days: 7,
+        data: {
+            type: 'offer',
+            title: '🥂 Especial Nochevieja y Año Nuevo: descuentos en toda la tienda',
+            highlight: '-20%',
+            coupon_code: '',
+            message: 'Despide el año y empieza el nuevo desplegando tu servidor de alto rendimiento al mejor precio.',
+            cta_label: 'Ver planes en oferta',
+            cta_url: 'https://billing.cinammon.net/store',
             places: ['web', 'panel', 'store'],
             popup: true,
         },
