@@ -32,6 +32,8 @@ class ServerLockController extends Controller
         }
 
         return Inertia::render('security/unlock', [
+            'demoMode' => \App\Support\Panel::demoMode(),
+            'demoCode' => \App\Support\Panel::demoMode() ? \App\Console\Commands\ResetDemoData::LOCK_CODE : null,
             'defaultRememberMinutes' => EnsureServerUnlocked::IDLE_MINUTES,
             'rememberOptions' => [
                 ['minutes' => 15, 'label' => '15 minutos'],

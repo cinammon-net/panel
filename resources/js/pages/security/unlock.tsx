@@ -13,6 +13,8 @@ interface RememberOption {
 }
 
 interface UnlockProps {
+    demoMode?: boolean;
+    demoCode?: string | null;
     defaultRememberMinutes?: number;
     rememberOptions?: RememberOption[];
 }
@@ -25,7 +27,7 @@ const FALLBACK_OPTIONS: RememberOption[] = [
     { minutes: 1440, label: '24 horas' },
 ];
 
-export default function Unlock({ defaultRememberMinutes = 30, rememberOptions = FALLBACK_OPTIONS }: UnlockProps) {
+export default function Unlock({ demoMode = false, demoCode = null, defaultRememberMinutes = 30, rememberOptions = FALLBACK_OPTIONS }: UnlockProps) {
     const [showCode, setShowCode] = useState(false);
     const { data, setData, post, processing, errors, reset } = useForm({
         code: '',
@@ -90,6 +92,21 @@ export default function Unlock({ defaultRememberMinutes = 30, rememberOptions = 
                         </div>
                         <InputError message={errors.code} />
                     </div>
+
+                    {demoMode && demoCode && (
+                        <div className="flex items-center justify-between gap-2 rounded-lg border border-pink-500/35 bg-pink-500/10 px-3 py-2 text-xs text-pink-200">
+                            <span>
+                                Código de la demo: <strong className="font-mono text-pink-300">{demoCode}</strong>
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setData('code', demoCode)}
+                                className="rounded border border-pink-500/40 bg-black/50 px-2.5 py-1 text-[11px] font-semibold text-pink-200 hover:bg-pink-500/20"
+                            >
+                                Rellenar
+                            </button>
+                        </div>
+                    )}
 
                     <div className="grid gap-1.5">
                         <Label htmlFor="remember_minutes" className="flex items-center gap-1.5 text-xs text-neutral-300">
