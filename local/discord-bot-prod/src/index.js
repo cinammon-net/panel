@@ -16,9 +16,9 @@ const sync = require('./sync');
 // Guilds, GuildMembers (privilegiado: entradas/salidas), GuildInvites, GuildMessages, MessageContent (privilegiado).
 // Si Discord rechaza alguno privilegiado (cierre 4014) se prueba con el siguiente juego, de más a menos.
 const INTENT_SETS = [
-    { bits: (1 << 0) | (1 << 1) | (1 << 6) | (1 << 9) | (1 << 15), missing: null },
-    { bits: (1 << 0) | (1 << 1) | (1 << 6) | (1 << 9), missing: 'Message Content Intent (respuestas en los hilos de tickets)' },
-    { bits: (1 << 0) | (1 << 6) | (1 << 9), missing: 'Server Members Intent y Message Content Intent (bienvenidas, despedidas, invitaciones y respuestas en tickets)' },
+    { bits: (1 << 0) | (1 << 1) | (1 << 6) | (1 << 7) | (1 << 9) | (1 << 15), missing: null },
+    { bits: (1 << 0) | (1 << 1) | (1 << 6) | (1 << 7) | (1 << 9), missing: 'Message Content Intent (respuestas en los hilos de tickets)' },
+    { bits: (1 << 0) | (1 << 6) | (1 << 7) | (1 << 9), missing: 'Server Members Intent y Message Content Intent (bienvenidas, despedidas, invitaciones y respuestas en tickets)' },
 ];
 let intentLevel = 0;
 let intents = INTENT_SETS[0].bits;
@@ -146,7 +146,7 @@ async function startBot() {
                     sync.onMessage(d).catch(() => {});
                 }
 
-                if (t === 'GUILD_MEMBER_ADD' || t === 'GUILD_MEMBER_REMOVE' || t === 'INVITE_CREATE' || t === 'INVITE_DELETE') {
+                if (t === 'GUILD_CREATE' || t === 'GUILD_MEMBER_ADD' || t === 'GUILD_MEMBER_REMOVE' || t === 'INVITE_CREATE' || t === 'INVITE_DELETE' || t === 'VOICE_STATE_UPDATE') {
                     sync.onEvent(t, d).catch(() => {});
                 }
             } catch (err) {

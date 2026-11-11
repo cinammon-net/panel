@@ -79,6 +79,16 @@ function base(categories) {
             ],
         },
         { name: 'sincronizar', description: 'Forzar la sincronización con la web (staff)', default_member_permissions: '32' },
+        {
+            name: 'sorteo',
+            description: 'Crear un sorteo en #sorteos (staff)',
+            default_member_permissions: '32',
+            options: [
+                { name: 'premio', description: 'Premio del sorteo (ej. 500 monedas o 1 mes VIP)', type: S, required: true, max_length: 120 },
+                { name: 'minutos', description: 'Duración en minutos', type: INT, required: true, min_value: 1, max_value: 20160 },
+                { name: 'ganadores', description: 'Número de ganadores (1-10)', type: INT, required: false, min_value: 1, max_value: 10 },
+            ],
+        },
     ];
 }
 
@@ -496,6 +506,16 @@ async function run(i, name) {
             if (!(perms & 8n) && !(perms & 32n)) return fail('Solo el staff puede forzar la sincronización.');
             await api.runNow();
             return card(text('Sincronización hecha.'));
+        }
+        case 'sorteo': {
+            const r = await api.createGiveaway({
+                interaction: i,
+                prize: opt(i, 'premio'),
+                minutes: opt(i, 'minutos'),
+                winners: opt(i, 'ganadores') || 1,
+            });
+            if (r?.error) return fail(r.error);
+            return card(text(`Sorteo publicado en <#${r.giveaway.channelId}>.`));
         }
         default: return fail('Este comando ya no existe. Usa `/ayuda`.');
     }

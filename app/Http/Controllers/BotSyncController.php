@@ -6,6 +6,7 @@ use App\Mail\TicketActivity;
 use App\Models\Announcement;
 use App\Models\Maintenance;
 use App\Models\Node;
+use App\Models\Review;
 use App\Models\Server;
 use App\Models\Ticket;
 use App\Models\User;
@@ -65,6 +66,17 @@ class BotSyncController extends Controller
                     'at' => $u->created_at?->toIso8601String(),
                 ])->values(),
             'purchases' => $this->purchases(),
+            'reviews' => Review::with('user:id,name,discord_id')
+                ->where('created_at', '>=', now()->subDays(30))
+                ->latest()->limit(20)->get()
+                ->map(fn (Review $r) => [
+                    'id' => $r->id,
+                    'rating' => (int) $r->rating,
+                    'comment' => (string) ($r->comment ?? ''),
+                    'author' => $r->user?->name ?? 'Cliente',
+                    'discord_id' => $r->user?->discord_id ? (string) $r->user->discord_id : null,
+                    'at' => $r->created_at?->toIso8601String(),
+                ])->values(),
         ]);
     }
 

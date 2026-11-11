@@ -17,6 +17,7 @@ const crypto = require('crypto');
 const { readConfig, discoverPanelUrl, log } = require('../api/panel');
 const art = require('./art');
 const commands = require('./commands');
+const community = require('./community');
 const members = require('./members');
 const verify = require('./verify');
 
@@ -459,6 +460,29 @@ async function syncAnnouncements(list) {
     }
 }
 
+const WEB_CHECKS = [
+    { name: 'Panel', url: PANEL_PUBLIC },
+    { name: 'Tienda', url: BILLING },
+    { name: 'Correo', url: 'https://mail.cinammon.net/health' },
+    { name: 'Web', url: 'https://cinammon.net' },
+];
+
+async function checkWebServices() {
+    return Promise.all(WEB_CHECKS.map(async ({ name, url }) => {
+        const started = Date.now();
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 4500);
+        try {
+            const res = await fetch(url, { method: 'GET', redirect: 'follow', signal: ctrl.signal });
+            return { name, ok: res.status < 500, ms: Date.now() - started };
+        } catch {
+            return { name, ok: false, ms: Date.now() - started };
+        } finally {
+            clearTimeout(timer);
+        }
+    }));
+}
+
 async function syncStatus(data) {
     const ch = ctx.layout.channels.status;
     const active = data.maintenances.filter((m) => m.active);
@@ -466,7 +490,9 @@ async function syncStatus(data) {
     const nodes = data.nodes.length
         ? data.nodes.map((n) => `${n.maintenance ? '`MANT`' : n.online ? '`OK`' : '`CAÍDO`'} **${n.name}**`).join('\n')
         : 'Sin nodos.';
-    const allOk = data.nodes.every((n) => n.online && !n.maintenance) && !active.length;
+    const web = await checkWebServices();
+    const webText = web.map((w) => `${w.ok ? '`OK`' : '`CAÍDO`'} **${w.name}** · ${w.ok ? `${w.ms} ms` : 'sin respuesta'}`).join('\n');
+    const allOk = data.nodes.every((n) => n.online && !n.maintenance) && web.every((w) => w.ok) && !active.length;
     const fmt = (m) => `**${m.title}**\n${ts(m.starts_at)}${m.ends_at ? ` – ${ts(m.ends_at, 't')}` : ''}${m.message ? `\n-# ${cut(m.message, 300)}` : ''}`;
 
     // El panel de estado se publica antes que los avisos para quedar arriba del canal.
@@ -474,6 +500,7 @@ async function syncStatus(data) {
         text(`# ${allOk ? 'Todos los servicios funcionan' : active.length ? 'Mantenimiento en curso' : 'Hay incidencias'}`),
         sep(),
         text(`### Nodos\n${cut(nodes, 1500)}`),
+        text(`### Servicios Web\n${webText}`),
         active.length && text(`### En curso\n${cut(active.map(fmt).join('\n\n'), 1000)}`),
         next.length && text(`### Programados\n${cut(next.map(fmt).join('\n\n'), 1000)}`),
         sep(),
@@ -659,6 +686,9 @@ async function tick() {
         ['roles', () => syncRoles(data.members)],
         ['tickets', () => syncTickets(data.tickets)],
         ['actividad', () => syncActivity(data)],
+        ['avisos', () => community.syncRolePicker()],
+        ['reseñas', () => community.syncReviews(data.reviews)],
+        ['sorteos', () => community.tickGiveaways()],
     ];
     if (Date.now() - lastCatalog > CATALOG_EVERY) {
         const season = await refreshSeason();
@@ -862,9 +892,26 @@ function start({ token, guildId, appId }) {
         lastData: () => lastData,
         layout: () => ctx.layout,
         members,
+        createGiveaway: (args) => community.createGiveaway(args),
         runNow, runSoon,
         PANEL: PANEL_PUBLIC,
         BILLING,
+    });
+    community.init({
+        discord, log, saveState, upsert,
+        ui: { text, sep, row, linkBtn, container, cut, ts },
+        layoutPath: LAYOUT_PATH,
+        st: () => st,
+        ctx: () => ctx,
+        accent: () => accent,
+        PANEL: PANEL_PUBLIC,
+        BILLING,
+        editOriginal: (i, payload) => fetch(`${API}/webhooks/${i.application_id}/${i.token}/messages/@original`, {
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+        }).catch(() => {}),
+        followup: (i, payload) => fetch(`${API}/webhooks/${i.application_id}/${i.token}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+        }).catch(() => {}),
     });
     commands.initModeration({
         discord, log, saveState, panel, runSoon, PANEL: PANEL_PUBLIC,
@@ -900,6 +947,8 @@ function start({ token, guildId, appId }) {
         await ensureArrivals().catch((e) => log(`[SYNC] #llegadas: ${e.message}`));
         await ensureFeedChannels().catch((e) => log(`[SYNC] canales de actividad: ${e.message}`));
         await ensureFriendRole().catch((e) => log(`[SYNC] rol Amigo: ${e.message}`));
+        await community.ensureNotificationRoles().catch((e) => log(`[SYNC] roles de avisos: ${e.message}`));
+        await community.ensureCommunityChannels().catch((e) => log(`[SYNC] canales comunitarios: ${e.message}`));
         // Primero el canal de verificación; después se cierra el resto (solo una vez)
         await verify.ensureChannel().then(() => verify.lockServer()).catch((e) => log(`[SYNC] verificación: ${e.message}`));
         await registerCommands().catch((e) => log(`[SYNC] comandos: ${e.message}`));
@@ -915,16 +964,19 @@ function start({ token, guildId, appId }) {
 
 /** Eventos del gateway que no son mensajes ni interacciones. */
 async function onEvent(t, d) {
-    if (!ctx || d?.guild_id !== ctx.guild) return;
+    const guildId = d?.guild_id || (t === 'GUILD_CREATE' ? d?.id : null);
+    if (!ctx || guildId !== ctx.guild) return;
     if (t === 'GUILD_MEMBER_ADD' || t === 'GUILD_MEMBER_REMOVE') {
         const u = d.user || {};
         log(`[SYNC] ${t === 'GUILD_MEMBER_ADD' ? 'Entra' : 'Sale'}: ${u.global_name || u.username} (${u.id})${u.bot ? ' [bot: sin bienvenida]' : ''}`);
     }
     try {
-        if (t === 'GUILD_MEMBER_ADD') await members.onJoin(d);
+        if (t === 'GUILD_CREATE') community.seedVoiceStates(d.voice_states);
+        else if (t === 'GUILD_MEMBER_ADD') await members.onJoin(d);
         else if (t === 'GUILD_MEMBER_REMOVE') await members.onLeave(d);
         else if (t === 'INVITE_CREATE') members.onInviteCreate(d);
         else if (t === 'INVITE_DELETE') members.onInviteDelete(d);
+        else if (t === 'VOICE_STATE_UPDATE') await community.onVoiceStateUpdate(d);
     } catch (e) {
         log(`[SYNC] ${t}: ${e.message}`);
     }
@@ -932,9 +984,13 @@ async function onEvent(t, d) {
 
 /* ------------------------------------------------ eventos de Discord (gateway) */
 
-/** Mensaje en un hilo de ticket -> se guarda en el panel. */
+/** Mensaje en un hilo de ticket -> se guarda en el panel; o auto-ayuda en #soporte. */
 async function onMessage(message) {
-    if (!ctx || !st?.tickets || message.author?.bot || message.webhook_id) return;
+    if (!ctx || message.author?.bot || message.webhook_id) return;
+    if (ctx.layout.channels?.help && message.channel_id === ctx.layout.channels.help) {
+        await community.maybeHelpInSupport(message);
+    }
+    if (!st?.tickets) return;
     const entry = Object.entries(st.tickets).find(([, t]) => t.thread === message.channel_id);
     if (!entry) return;
     const [id] = entry;
@@ -974,6 +1030,7 @@ async function onInteraction(interaction) {
     const id = interaction.data?.custom_id || '';
     if (!ctx) return false;
     if (await verify.handle(interaction, respond)) return true;
+    if (await community.handleInteraction(interaction, respond)) return true;
     if (!id.startsWith('ticket:')) return commands.handle(interaction);
     const user = interaction.member?.user || interaction.user;
 
