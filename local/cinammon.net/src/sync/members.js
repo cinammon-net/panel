@@ -6,7 +6,7 @@
  */
 const art = require('./art');
 
-let env = null; // { discord, sendFile, st, saveState, ctx, pal, audit, log, forgetRoles }
+let env = null; // { discord, panel, sendFile, st, saveState, ctx, pal, audit, log, forgetRoles }
 const invites = new Map(); // code -> { uses, inviter }
 
 function init(e) {
@@ -113,6 +113,61 @@ async function checkPermissions() {
     return result;
 }
 
+/* ------------------------------------------------ invitación → referido de la tienda */
+
+const FINAL = new Set(['linked', 'already', 'other', 'existing_customer', 'self']);
+const RETRY_DAYS = 30;
+
+/**
+ * Si a esta persona la trajo alguien al Discord, la apunta como referida de esa persona en la tienda
+ * (mismas monedas que el enlace de /monedas). Hace falta que las dos tengan la cuenta vinculada y
+ * que el invitado ya tenga cuenta en la tienda; si falta algo, se reintenta más tarde.
+ */
+async function claimReferral(userId) {
+    const I = env.st().invites;
+    const inviter = I?.members?.[userId];
+    if (!inviter) return null;
+    I.referrals ??= {};
+    const prev = I.referrals[userId];
+    if (prev && FINAL.has(prev.status)) return prev;
+
+    let joined = I.joined?.[userId];
+    if (!joined) {
+        const m = await env.discord('GET', `/guilds/${env.ctx().guild}/members/${userId}`).catch(() => null);
+        if (!m?.joined_at) return null;
+        joined = m.joined_at;
+        (I.joined ??= {})[userId] = joined;
+    }
+    let status;
+    try {
+        status = (await env.panel('POST', `/api/bot/discord/${userId}/referral`, { inviter, joined_at: joined })).status;
+    } catch (e) {
+        // 404: alguna de las dos cuentas sin vincular, o sin cuenta en la tienda todavía
+        status = e.status === 404 ? 'waiting' : 'error';
+        if (e.status !== 404) env.log(`[SYNC] referido ${userId}: ${e.message}`);
+    }
+    const expired = Date.now() - new Date(joined).getTime() > RETRY_DAYS * 86400_000;
+    I.referrals[userId] = { status: !FINAL.has(status) && expired ? 'expired' : status, at: Date.now() };
+    env.saveState();
+    if (status === 'linked') env.log(`[SYNC] ${userId} queda como referido de ${inviter} en la tienda.`);
+    return I.referrals[userId];
+}
+
+let lastRetry = 0;
+/** Reintenta, como mucho cada 30 min y cada persona cada 6 h, las que aún esperan. */
+async function retryReferrals() {
+    if (Date.now() - lastRetry < 30 * 60_000) return;
+    lastRetry = Date.now();
+    const I = env.st().invites;
+    for (const id of Object.keys(I?.members || {})) {
+        const r = I.referrals?.[id];
+        if (r && (FINAL.has(r.status) || r.status === 'expired' || Date.now() - r.at < 6 * 3600_000)) continue;
+        await claimReferral(id);
+    }
+}
+
+const inviterOf = (userId) => env.st().invites?.members?.[userId] || null;
+
 function stats(userId) {
     const s = env.st().invites?.counts?.[userId] || { joins: 0, leaves: 0 };
     return { ...s, total: Math.max(0, s.joins - s.leaves) };
@@ -143,6 +198,7 @@ async function onJoin(member) {
     const used = await detectInviter();
     if (used?.inviter && used.inviter !== u.id) {
         state.invites.members[u.id] = used.inviter;
+        (state.invites.joined ??= {})[u.id] = new Date().toISOString();
         const c = (state.invites.counts[used.inviter] ??= { joins: 0, leaves: 0 });
         c.joins++;
     }
@@ -196,4 +252,4 @@ function leaderboard(limit = 10) {
         .slice(0, limit);
 }
 
-module.exports = { init, loadInvites, checkPermissions, personalInvite, onInviteCreate, onInviteDelete, onJoin, onLeave, welcome, stats, leaderboard };
+module.exports = { init, loadInvites, checkPermissions, personalInvite, claimReferral, retryReferrals, inviterOf, onInviteCreate, onInviteDelete, onJoin, onLeave, welcome, stats, leaderboard };

@@ -303,6 +303,7 @@ function invitesPost() {
         text('# Invita a tus amigos\nPulsa **Conseguir mi enlace** y te damos tu invitación personal al servidor: no caduca y no tiene límite de usos. Cada persona que entre con ella cuenta para ti.'),
         sep(),
         text('### Cómo se cuenta\n- Cuenta en cuanto la persona entra con tu enlace.\n- Si se va del servidor, se resta.\n- Tus números, en cualquier momento, con `/invitaciones`.'),
+        text('### Y además, monedas\nSi quien invitas se crea cuenta en cinammon.net y la vincula con `/vincular`, queda como **tu referido en la tienda**, igual que con el enlace de `/monedas`: ganas monedas cuando empieza a usar la tienda y más con su primera compra, y a esa persona le llega un regalo de bienvenida.\n-# Tú también tienes que tener la cuenta vinculada. Solo vale para cuentas nuevas, creadas después de entrar al Discord.'),
         sep(),
         text(`### Ranking\n${top.length ? top.map((r, n) => `**${n + 1}.** <@${r.id}> · ${r.total} ${r.total === 1 ? 'invitación' : 'invitaciones'}`).join('\n') : 'Todavía nadie ha invitado a nadie. Puedes ser la primera persona.'}`),
         sep(2),
@@ -839,6 +840,7 @@ async function tick() {
         ['avisos', () => community.syncRolePicker()],
         ['reseñas', () => community.syncReviews(data.reviews)],
         ['sorteos', () => community.tickGiveaways()],
+        ['referidos', () => members.retryReferrals()],
         ['invitaciones', () => upsert('invites', ctx.layout.channels.invites, invitesPost(), bannerFor('invites'))],
     ];
     if (Date.now() - lastContent > CATALOG_EVERY) {
@@ -1139,7 +1141,7 @@ function start({ token, guildId, appId }) {
         editOriginal: (i, body) => editOriginal(i, body),
     });
     members.init({
-        discord, sendFile, log, saveState,
+        discord, panel, sendFile, log, saveState,
         st: () => st,
         ctx: () => ctx,
         pal: () => pal,

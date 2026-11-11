@@ -398,11 +398,16 @@ async function ranksView() {
     );
 }
 
-function invitesView(target) {
+function invitesView(target, store) {
     const s = api.members.stats(target.id);
+    const r = store?.referral;
     return card(
-        text(`## Invitaciones de ${target.global_name || target.username}\n**${s.total}** en el servidor · ${s.joins} entradas · ${s.leaves} salidas`),
-        text('-# Para ganar monedas invitando a la tienda, usa tu enlace de `/monedas`.'),
+        text(`## Invitaciones de ${target.global_name || target.username}\n**Discord:** ${s.total} en el servidor · ${s.joins} entradas · ${s.leaves} salidas`),
+        r ? text(`**Tienda:** ${r.invited} referido(s) · ${r.active} activo(s)${r.rewards ? `\n-# Ganas ${r.rewards.active} monedas cuando un referido empieza a usar la tienda y ${r.rewards.purchase} con su primera compra.` : ''}`) : null,
+        text(store === undefined
+            ? '-# Quien entra con tu enlace de `/invitar` y vincula su cuenta pasa a ser tu referido en la tienda.'
+            : store ? '-# Cuenta tanto quien entra con tu enlace de `/invitar` y vincula su cuenta como quien se registra con tu enlace de `/monedas`.'
+                : '-# Vincula tu cuenta con `/vincular` para que tus invitados cuenten también en la tienda y ganes monedas.'),
     );
 }
 
@@ -411,7 +416,7 @@ async function inviteView(user) {
     const url = `https://discord.gg/${code}`;
     const s = api.members.stats(user.id);
     return card(
-        text(`## Invita a tus amigos\nEste es tu enlace al servidor de Cinammon. Quien entre con él cuenta como invitación tuya.\n\n**${url}**`),
+        text(`## Invita a tus amigos\nEste es tu enlace al servidor de Cinammon. Quien entre con él cuenta como invitación tuya, y si se crea cuenta y la vincula, también como tu referido en la tienda (monedas para ti).\n\n**${url}**`),
         text(`-# Llevas **${s.total}** invitación(es). Mira el ranking con \`/top-invitaciones\`.`),
         row(linkBtn('Abrir invitación', url)),
     );
@@ -481,8 +486,9 @@ async function run(i, name) {
             if (code) {
                 const { user } = await me(i, 'POST', '/link', { code });
                 api.runSoon();
+                const ref = await api.members.claimReferral(userOf(i).id).catch(() => null);
                 return card(
-                    text(`## Cuenta vinculada\nEste Discord ya es **${user.name}** en el panel. Prueba \`/cuenta\`; tus roles llegan en un minuto.`),
+                    text(`## Cuenta vinculada\nEste Discord ya es **${user.name}** en el panel. Prueba \`/cuenta\`; tus roles llegan en un minuto.${ref?.status === 'linked' ? `\n-# Entraste con la invitación de <@${api.members.inviterOf(userOf(i).id)}>: ya eres su referido en la tienda.` : ''}`),
                     row(linkBtn('Abrir el panel', `${api.PANEL}/dashboard`)),
                 );
             }
@@ -510,7 +516,9 @@ async function run(i, name) {
         case 'invitaciones': {
             const id = opt(i, 'usuario');
             const target = id ? i.data.resolved?.users?.[id] : userOf(i);
-            return invitesView(target);
+            if (target.id !== userOf(i).id) return invitesView(target);
+            const acc = await me(i, 'GET', '/account').catch(() => null);
+            return invitesView(target, acc?.billing || null);
         }
         case 'top-invitaciones': return topView();
         case 'invitar': return inviteView(userOf(i));

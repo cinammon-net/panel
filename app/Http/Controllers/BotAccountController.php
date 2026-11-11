@@ -279,6 +279,29 @@ class BotAccountController extends Controller
         return response()->json(['user' => ['name' => $user->name, 'email' => $user->email]]);
     }
 
+    /**
+     * Quien entró al Discord con la invitación de otra persona y vincula su cuenta queda como
+     * referido de esa persona en la tienda (mismos premios que el enlace de /monedas).
+     */
+    public function referral(Request $request, string $discordId)
+    {
+        $data = $request->validate([
+            'inviter' => ['required', 'regex:/^[0-9]{5,25}$/'],
+            'joined_at' => ['required', 'date'],
+        ]);
+        $user = $this->user($discordId);
+        $inviter = User::where('discord_id', $data['inviter'])->first();
+        abort_unless($inviter, 404, 'inviter_not_linked');
+        if ($inviter->id === $user->id) {
+            return response()->json(['status' => 'self']);
+        }
+        $res = $this->billing('referral', $user, ['inviter_email' => $inviter->email, 'joined_at' => $data['joined_at']], true);
+        abort_unless($res !== null, 502, 'billing_unavailable');
+        abort_if(($res['status_code'] ?? 200) === 404, 404, $res['error'] ?? 'not_found');
+
+        return response()->json(['status' => $res['status'] ?? 'unknown', 'inviter' => $inviter->name]);
+    }
+
     private function user(string $discordId): User
     {
         $user = User::where('discord_id', $discordId)->first();
@@ -334,7 +357,7 @@ class BotAccountController extends Controller
         ];
     }
 
-    private function billing(string $action, User $user): ?array
+    private function billing(string $action, User $user, array $extra = [], bool $with404 = false): ?array
     {
         $base = rtrim((string) config('services.billing.url'), '/');
         $token = (string) config('services.billing.token');
@@ -347,7 +370,11 @@ class BotAccountController extends Controller
             $ca = (string) config('services.billing.ca');
             $res = Http::withHeaders(['X-Billing-Token' => $token])->acceptJson()->timeout(8)
                 ->when($ca !== '', fn ($h) => $h->withOptions(['verify' => $ca]))
-                ->post($base.'/api/panel/bot/'.$action, ['email' => $user->email]);
+                ->post($base.'/api/panel/bot/'.$action, ['email' => $user->email] + $extra);
+
+            if ($with404 && $res->status() === 404) {
+                return ['status_code' => 404, 'error' => $res->json('error') ?? 'not_found'];
+            }
 
             return $res->successful() ? $res->json() : null;
         } catch (\Throwable $e) {
