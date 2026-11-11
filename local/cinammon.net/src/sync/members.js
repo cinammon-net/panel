@@ -75,6 +75,44 @@ async function personalInvite(userId) {
     return inv.code;
 }
 
+/**
+ * Comprueba los permisos reales del bot para las invitaciones (roles + permisos del canal)
+ * y lo deja en el log: Gestionar servidor (ver usos) y Crear invitación (en el canal al que lleva).
+ */
+async function checkPermissions() {
+    const g = env.ctx().guild;
+    const app = env.ctx().appId;
+    const ch = env.ctx().layout.channels;
+    const target = ch.verify || ch.rules || ch.general;
+    const [guild, me, channel] = await Promise.all([
+        env.discord('GET', `/guilds/${g}`),
+        env.discord('GET', `/guilds/${g}/members/${app}`),
+        target ? env.discord('GET', `/channels/${target}`) : null,
+    ]);
+    const roles = new Map((guild.roles || []).map((r) => [r.id, BigInt(r.permissions)]));
+    let base = roles.get(g) || 0n;
+    for (const r of me.roles || []) base |= roles.get(r) || 0n;
+    const ADMIN = 1n << 3n, MANAGE_GUILD = 1n << 5n, CREATE_INVITE = 1n << 0n;
+    const admin = (base & ADMIN) === ADMIN || guild.owner_id === app;
+
+    // Permisos en el canal: @everyone, luego roles, luego el propio bot
+    let inChannel = base;
+    if (channel && !admin) {
+        const ow = channel.permission_overwrites || [];
+        const apply = (o) => { if (o) inChannel = (inChannel & ~BigInt(o.deny)) | BigInt(o.allow); };
+        apply(ow.find((o) => o.id === g));
+        let deny = 0n, allow = 0n;
+        for (const o of ow.filter((o) => o.type === 0 && o.id !== g && (me.roles || []).includes(o.id))) { deny |= BigInt(o.deny); allow |= BigInt(o.allow); }
+        inChannel = (inChannel & ~deny) | allow;
+        apply(ow.find((o) => o.type === 1 && o.id === app));
+    }
+    const manage = admin || (base & MANAGE_GUILD) === MANAGE_GUILD;
+    const create = admin || (inChannel & CREATE_INVITE) === CREATE_INVITE;
+    const result = { admin, manageGuild: manage, createInvite: create, channel: target };
+    env.log(`[SYNC] Permisos de invitaciones: ${admin ? 'Administrador (todo permitido)' : `Gestionar servidor ${manage ? 'sí' : 'NO'}, Crear invitación en #${channel?.name || '?'} ${create ? 'sí' : 'NO'}`}.`);
+    return result;
+}
+
 function stats(userId) {
     const s = env.st().invites?.counts?.[userId] || { joins: 0, leaves: 0 };
     return { ...s, total: Math.max(0, s.joins - s.leaves) };
@@ -158,4 +196,4 @@ function leaderboard(limit = 10) {
         .slice(0, limit);
 }
 
-module.exports = { init, loadInvites, personalInvite, onInviteCreate, onInviteDelete, onJoin, onLeave, welcome, stats, leaderboard };
+module.exports = { init, loadInvites, checkPermissions, personalInvite, onInviteCreate, onInviteDelete, onJoin, onLeave, welcome, stats, leaderboard };

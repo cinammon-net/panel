@@ -1159,6 +1159,7 @@ function start({ token, guildId, appId }) {
         await verify.ensureChannel().then(() => verify.lockServer()).catch((e) => log(`[SYNC] verificación: ${e.message}`));
         await registerCommands().catch((e) => log(`[SYNC] comandos: ${e.message}`));
         await members.loadInvites();
+        await members.checkPermissions().catch((e) => log(`[SYNC] permisos de invitaciones: ${e.message}`));
     });
     setTimeout(run, 5000);
     timer = setInterval(run, SYNC_EVERY);
