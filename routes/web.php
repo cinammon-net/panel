@@ -84,6 +84,9 @@ Route::get('/billing/redirect', function (Request $request) {
 Route::view('/terms', 'legal.terms')->name('terms');
 Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::view('/sponsors', 'legal.sponsors')->name('sponsors');
+// Botón "Copiar enlace" del bot de Discord: Discord no deja copiar al portapapeles, esta página sí.
+Route::get('/invitar/{code}', fn (string $code) => view('invite', ['code' => $code]))
+    ->where('code', '[A-Za-z0-9-]{2,32}')->middleware('throttle:60,1')->name('discord.invite');
 
 // El token de Wings solo lo ve (y rota) un administrador.
 Route::middleware(['auth', 'admin'])->group(function () {
