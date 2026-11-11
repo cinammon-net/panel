@@ -916,6 +916,10 @@ function start({ token, guildId, appId }) {
 /** Eventos del gateway que no son mensajes ni interacciones. */
 async function onEvent(t, d) {
     if (!ctx || d?.guild_id !== ctx.guild) return;
+    if (t === 'GUILD_MEMBER_ADD' || t === 'GUILD_MEMBER_REMOVE') {
+        const u = d.user || {};
+        log(`[SYNC] ${t === 'GUILD_MEMBER_ADD' ? 'Entra' : 'Sale'}: ${u.global_name || u.username} (${u.id})${u.bot ? ' [bot: sin bienvenida]' : ''}`);
+    }
     try {
         if (t === 'GUILD_MEMBER_ADD') await members.onJoin(d);
         else if (t === 'GUILD_MEMBER_REMOVE') await members.onLeave(d);
