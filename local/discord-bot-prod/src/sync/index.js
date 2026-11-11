@@ -16,6 +16,8 @@ const path = require('path');
 const crypto = require('crypto');
 const { readConfig, discoverPanelUrl, log } = require('../api/panel');
 const art = require('./art');
+const commands = require('./commands');
+const members = require('./members');
 
 const ART_VERSION = 1; // súbelo para volver a dibujar todos los banners
 
@@ -37,6 +39,8 @@ let pal = art.palette(null);
 let lastCatalog = 0;
 let timer = null;
 let queue = Promise.resolve();
+let lastData = null;
+let runTimer = null;
 
 /* ---------------------------------------------------------------- utilidades */
 
@@ -240,6 +244,10 @@ const BANNERS = {
     ranks: { title: 'RANGOS VIP', subtitle: 'Ventajas en la web y rol en Discord', icon: 'ranks' },
     payments: { title: 'PAGOS', subtitle: 'Métodos de pago aceptados', icon: 'payments' },
     status: { title: 'ESTADO', subtitle: 'Servicios y mantenimientos en directo', icon: 'status' },
+    help: { title: 'SOPORTE', subtitle: 'Dudas rápidas de la comunidad', icon: 'help' },
+    commands: { title: 'COMANDOS', subtitle: 'Todo lo de la web, desde Discord', icon: 'commands' },
+    staff: { title: 'STAFF', subtitle: 'Herramientas del equipo', icon: 'staff' },
+    arrivals: { title: 'LLEGADAS', subtitle: 'Bienvenidas y despedidas', icon: 'join' },
 };
 const bannerFor = (key) => (BANNERS[key] ? { name: key, ...BANNERS[key] } : undefined);
 
@@ -288,6 +296,28 @@ function staticPosts(season) {
             text('### Sanciones\nAviso → silencio temporal → expulsión → baneo. Según la gravedad se puede saltar directamente al baneo. Si no estás de acuerdo con una sanción, abre un ticket.'),
             sep(2),
             row(linkBtn('Términos de servicio', `${PANEL_PUBLIC}/terms`), linkBtn('Privacidad', `${PANEL_PUBLIC}/privacy`)),
+        ]))],
+        ['help', ch.help, msg(container(accent, [
+            text('# Soporte\nPregunta aquí lo que quieras sobre Cinammon: servidores, la tienda, el panel o cómo empezar. La comunidad y el staff te echan una mano.'),
+            sep(),
+            text(`**Antes de preguntar**\n- Mira si está en la web o en <#${ch.status}> (caídas y mantenimientos).\n- Nada de contraseñas, correos ni datos de pago aquí: es un canal público.\n- Si es algo de **tu cuenta, un pago o tu servidor**, abre un ticket en <#${ch.tickets}>.`),
+            sep(2),
+            row({ type: 2, style: 1, label: 'Abrir ticket', custom_id: 'ticket:open' }, linkBtn('Panel', PANEL_PUBLIC)),
+        ]))],
+        ['commands', ch.commands, msg(container(accent, [
+            text('# Comandos\nLo que haces en la web, desde aquí. Las respuestas de tu cuenta solo las ves tú.'),
+            sep(),
+            text('### Tu cuenta\n`/cuenta` resumen de todo\n`/perfil` cambiar nombre y foto de perfil de la web\n`/servidores` y `/servidor` encender, reiniciar, apagar, editar nombre e info y ajustes del juego\n`/consola` enviar un comando a tu servidor\n`/monedas` y `/diario` saldo, racha y premio diario\n`/facturas` facturas y pagos pendientes\n`/tickets` tus tickets de soporte'),
+            text('### Comunidad\n`/estado` · `/anuncios` · `/planes` · `/rangos` · `/invitaciones` · `/top-invitaciones` · `/ping` · `/ayuda`'),
+            sep(),
+            text('-# Para usar los de tu cuenta, vincúlala primero: `/vincular`.'),
+        ]))],
+        ['staff', ch.staff, msg(container(accent, [
+            text('# Staff\nCanal privado del equipo.'),
+            sep(),
+            text(`**Desde Discord**\n\`/anuncio\` publica en la web y en <#${ch.announcements}> o <#${ch.offers}>\n\`/mantenimiento\` programa un mantenimiento (aviso en <#${ch.status}>)\n\`/sincronizar\` fuerza la sincronización con la web\n\n**Tickets**: cada ticket del panel es un hilo privado en <#${ch.tickets}>; lo que escribáis ahí le llega al cliente en la web.\n**Registro** de roles, anuncios y tickets en <#${ch.logs}>.`),
+            sep(2),
+            row(linkBtn('Panel de administración', `${PANEL_PUBLIC}/admin`)),
         ]))],
         ['tickets', ch.tickets, msg(container(accent, [
             text('# Soporte por ticket\nPulsa **Abrir ticket** y se creará un hilo privado entre tú y el equipo.'),
@@ -592,6 +622,7 @@ async function syncTickets(open) {
 
 async function tick() {
     const data = await panel('GET', '/api/bot/sync');
+    lastData = data;
     const steps = [
         ['anuncios', () => syncAnnouncements(data.announcements)],
         ['estado', () => syncStatus(data)],
@@ -615,7 +646,63 @@ async function tick() {
     }
 }
 
-function start({ token, guildId }) {
+/** Crea #llegadas (bienvenidas y despedidas) si todavía no existe. */
+async function ensureArrivals() {
+    const L = ctx.layout;
+    if (L.channels.arrivals) {
+        const ok = await discord('GET', `/channels/${L.channels.arrivals}`).then(() => true).catch((e) => e.status !== 404);
+        if (ok) return;
+    }
+    const VIEW = 1n << 10n, SEND = 1n << 11n, THREADS = (1n << 35n) | (1n << 36n) | (1n << 38n);
+    const ch = await discord('POST', `/guilds/${ctx.guild}/channels`, {
+        name: 'llegadas',
+        type: 0,
+        parent_id: L.categories.community,
+        topic: 'Bienvenidas y despedidas. Se publican solas.',
+        permission_overwrites: [
+            { id: ctx.guild, type: 0, allow: String(VIEW), deny: String(SEND | THREADS) },
+            { id: ctx.appId, type: 1, allow: String(VIEW | SEND), deny: '0' },
+        ],
+    }, 'Canal de bienvenidas');
+    L.channels.arrivals = ch.id;
+    fs.writeFileSync(LAYOUT_PATH, JSON.stringify(L, null, 2));
+    log(`[SYNC] Canal #llegadas creado (${ch.id}).`);
+}
+
+async function registerCommands() {
+    let categories = [];
+    try {
+        categories = (await billing('/api/plans')).categories.filter((c) => c.key !== 'ranks');
+    } catch {}
+    const defs = commands.definitions(categories);
+    await discord('PUT', `/applications/${ctx.appId}/guilds/${ctx.guild}/commands`, defs);
+    await discord('PUT', `/applications/${ctx.appId}/commands`, []).catch(() => {}); // fuera los comandos globales antiguos
+    log(`[SYNC] ${defs.length} comandos registrados.`);
+}
+
+/** Mensaje V2 con una imagen adjunta (tarjetas de bienvenida). */
+async function sendFile(channel, filename, png, components, mentions, color) {
+    if (!channel) return;
+    const body = {
+        flags: 1 << 15,
+        components: [container(color ?? accent, [{ type: 12, items: [{ media: { url: `attachment://${filename}` } }] }, ...components])],
+        attachments: [{ id: 0, filename }],
+        allowed_mentions: { parse: [], ...(mentions || {}) },
+    };
+    const form = new FormData();
+    form.append('payload_json', JSON.stringify(body));
+    form.append('files[0]', new Blob([png], { type: 'image/png' }), filename);
+    const res = await fetch(`${API}/channels/${channel}/messages`, { method: 'POST', headers: { Authorization: `Bot ${ctx.token}` }, body: form });
+    if (!res.ok) log(`[SYNC] tarjeta: ${res.status} ${(await res.text()).slice(0, 200)}`);
+}
+
+const runNow = () => serial(tick);
+function runSoon() {
+    clearTimeout(runTimer);
+    runTimer = setTimeout(() => runNow().catch(() => {}), 3000);
+}
+
+function start({ token, guildId, appId }) {
     let layout;
     try {
         layout = JSON.parse(fs.readFileSync(LAYOUT_PATH, 'utf8'));
@@ -623,13 +710,52 @@ function start({ token, guildId }) {
         log('[SYNC] Falta discord-layout.json: sincronización con Discord desactivada.');
         return;
     }
-    ctx = { token, layout, guild: layout.guild_id || guildId };
+    ctx = { token, layout, guild: layout.guild_id || guildId, appId };
     st = loadState();
+
+    commands.init({
+        ui: { text, sep, row, linkBtn, container, cut, eur, ts },
+        panel, billing, log,
+        accent: () => accent,
+        lastData: () => lastData,
+        layout: () => ctx.layout,
+        members,
+        runNow, runSoon,
+        PANEL: PANEL_PUBLIC,
+        BILLING,
+    });
+    members.init({
+        discord, sendFile, log, saveState,
+        st: () => st,
+        ctx: () => ctx,
+        pal: () => pal,
+        accent: () => accent,
+        forgetRoles: (id) => { if (st.roles) delete st.roles[id]; },
+    });
+
     if (timer) clearInterval(timer);
     const run = () => serial(tick).catch((e) => log(`[SYNC] ${e.message}`));
+    serial(async () => {
+        await ensureArrivals().catch((e) => log(`[SYNC] #llegadas: ${e.message}`));
+        await registerCommands().catch((e) => log(`[SYNC] comandos: ${e.message}`));
+        await members.loadInvites();
+    });
     setTimeout(run, 5000);
     timer = setInterval(run, SYNC_EVERY);
     log(`[SYNC] Sincronización con el servidor ${ctx.guild} activa (cada ${SYNC_EVERY / 1000} s).`);
+}
+
+/** Eventos del gateway que no son mensajes ni interacciones. */
+async function onEvent(t, d) {
+    if (!ctx || d?.guild_id !== ctx.guild) return;
+    try {
+        if (t === 'GUILD_MEMBER_ADD') await members.onJoin(d);
+        else if (t === 'GUILD_MEMBER_REMOVE') await members.onLeave(d);
+        else if (t === 'INVITE_CREATE') members.onInviteCreate(d);
+        else if (t === 'INVITE_DELETE') members.onInviteDelete(d);
+    } catch (e) {
+        log(`[SYNC] ${t}: ${e.message}`);
+    }
 }
 
 /* ------------------------------------------------ eventos de Discord (gateway) */
@@ -674,7 +800,8 @@ const ephemeral = (content) => ({ type: 4, data: { content, flags: 64, allowed_m
 /** Botones y formularios de tickets. Devuelve true si la interacción era suya. */
 async function onInteraction(interaction) {
     const id = interaction.data?.custom_id || '';
-    if (!ctx || !id.startsWith('ticket:')) return false;
+    if (!ctx) return false;
+    if (!id.startsWith('ticket:')) return commands.handle(interaction);
     const user = interaction.member?.user || interaction.user;
 
     if (id === 'ticket:open' && interaction.type === 3) {
@@ -740,4 +867,4 @@ async function onInteraction(interaction) {
     return true;
 }
 
-module.exports = { start, onMessage, onInteraction, runNow: () => serial(tick) };
+module.exports = { start, onMessage, onInteraction, onEvent, runNow };

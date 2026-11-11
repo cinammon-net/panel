@@ -36,6 +36,22 @@ Route::middleware('bot.secret')->group(function () {
     Route::get('/bot/tickets/{ticket}/messages', [App\Http\Controllers\BotSyncController::class, 'messages']);
     Route::post('/bot/tickets/{ticket}/messages', [App\Http\Controllers\BotSyncController::class, 'reply']);
     Route::post('/bot/tickets/{ticket}/status', [App\Http\Controllers\BotSyncController::class, 'status']);
+
+    // Lo que cada usuario puede hacer desde Discord (solo sobre su cuenta vinculada)
+    Route::prefix('/bot/discord/{discordId}')->where(['discordId' => '[0-9]{5,25}'])->controller(App\Http\Controllers\BotAccountController::class)->group(function () {
+        Route::get('/account', 'account');
+        Route::post('/profile', 'profile');
+        Route::get('/tickets', 'tickets');
+        Route::post('/checkin', 'checkin');
+        Route::get('/servers/{server}', 'server');
+        Route::post('/servers/{server}/power', 'power');
+        Route::post('/servers/{server}/command', 'command');
+        Route::post('/servers/{server}/info', 'info');
+        Route::get('/servers/{server}/game', 'game');
+        Route::put('/servers/{server}/game', 'game');
+        Route::post('/announcements', 'announce');
+        Route::post('/maintenances', 'maintenance');
+    });
 });
 
 

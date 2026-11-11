@@ -294,4 +294,71 @@ async function profileBanner(pal) {
     return c.toBuffer('image/png');
 }
 
-module.exports = { palette, banner, avatar, profileBanner, hex };
+/**
+ * Tarjeta de bienvenida o despedida: avatar del miembro en un aro con el color de temporada.
+ * kind = 'join' | 'leave'
+ */
+async function memberCard({ avatarUrl, name, kind, line }, pal) {
+    const W = 1200, H = 420;
+    const c = createCanvas(W, H);
+    const x = c.getContext('2d');
+    background(x, W, H, pal);
+    const leave = kind === 'leave';
+    const ring = leave ? [161, 161, 170] : pal.primary;
+
+    // Avatar
+    const cx = 230, cy = H / 2, r = 120;
+    let img = null;
+    try {
+        const res = await fetch(avatarUrl, { signal: AbortSignal.timeout(8000) });
+        if (res.ok) img = await loadImage(Buffer.from(await res.arrayBuffer()));
+    } catch {}
+    x.save();
+    x.shadowColor = rgba(ring, 0.8);
+    x.shadowBlur = 40;
+    x.beginPath();
+    x.arc(cx, cy, r + 10, 0, Math.PI * 2);
+    x.fillStyle = hex(ring);
+    x.fill();
+    x.restore();
+    x.save();
+    x.beginPath();
+    x.arc(cx, cy, r, 0, Math.PI * 2);
+    x.clip();
+    if (img) {
+        if (leave) x.filter = 'grayscale(1)';
+        x.drawImage(img, cx - r, cy - r, r * 2, r * 2);
+    } else {
+        x.fillStyle = '#18181b';
+        x.fillRect(cx - r, cy - r, r * 2, r * 2);
+    }
+    x.restore();
+
+    // Textos
+    const wm = await tintedWordmark(pal);
+    x.drawImage(wm, 420, 70, (wm.width * 40) / wm.height, 40);
+    const title = leave ? 'HASTA PRONTO' : 'BIENVENIDA';
+    x.font = '900 64px Orbitron';
+    const g = x.createLinearGradient(420, 0, 420 + x.measureText(title).width, 0);
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(1, leave ? '#a1a1aa' : hex(pal.primary));
+    x.fillStyle = g;
+    x.fillText(title, 420, 190);
+
+    let size = 44;
+    const shown = String(name || '').slice(0, 32);
+    x.font = `700 ${size}px Orbitron`;
+    while (x.measureText(shown).width > 720 && size > 22) x.font = `700 ${(size -= 2)}px Orbitron`;
+    x.fillStyle = '#f4f4f5';
+    x.fillText(shown, 420, 258);
+    if (line) {
+        x.font = '500 24px Orbitron';
+        x.fillStyle = '#a1a1aa';
+        x.fillText(line, 422, 304);
+    }
+    speedLines(x, 420, 334, 300, leave ? '#52525b' : hex(pal.second), 8);
+    drawIcon(x, leave ? 'leave' : 'join', 1080, 110, 84, rgba(leave ? ring : pal.primary, 0.9));
+    return c.toBuffer('image/png');
+}
+
+module.exports = { palette, banner, avatar, profileBanner, memberCard, hex };

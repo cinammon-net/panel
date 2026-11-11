@@ -51,6 +51,8 @@ return [
     'billing' => [
         'token' => env('BILLING_API_TOKEN'),
         'url' => env('BILLING_URL', 'http://localhost:8001'),
+        // Certificado (o CA) para validar la conexión con la tienda cuando se sirve con uno propio.
+        'ca' => env('BILLING_CA_BUNDLE'),
     ],
     // Correo saliente: se manda al Worker cinammon-mail (mail/), que envía con Cloudflare Email Sending.
     'cloudflare_mail' => [

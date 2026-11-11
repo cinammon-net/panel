@@ -13,9 +13,15 @@ const sync = require('./sync');
 
 // Guilds + GuildMessages + MessageContent (este último es privilegiado: si no está activado en el
 // portal de desarrolladores Discord cierra con 4014 y se vuelve a conectar sin él).
-const FULL_INTENTS = (1 << 0) | (1 << 9) | (1 << 15);
-const BASIC_INTENTS = (1 << 0) | (1 << 9);
-let intents = FULL_INTENTS;
+// Guilds, GuildMembers (privilegiado: entradas/salidas), GuildInvites, GuildMessages, MessageContent (privilegiado).
+// Si Discord rechaza alguno privilegiado (cierre 4014) se prueba con el siguiente juego, de más a menos.
+const INTENT_SETS = [
+    { bits: (1 << 0) | (1 << 1) | (1 << 6) | (1 << 9) | (1 << 15), missing: null },
+    { bits: (1 << 0) | (1 << 1) | (1 << 6) | (1 << 9), missing: 'Message Content Intent (respuestas en los hilos de tickets)' },
+    { bits: (1 << 0) | (1 << 6) | (1 << 9), missing: 'Server Members Intent y Message Content Intent (bienvenidas, despedidas, invitaciones y respuestas en tickets)' },
+];
+let intentLevel = 0;
+let intents = INTENT_SETS[0].bits;
 
 let ws = null;
 let heartbeatTimer = null;
@@ -136,7 +142,9 @@ async function startBot() {
                 }
 
                 if (t === 'READY') {
-                    sync.start({ token: cfg.token, guildId: cfg.guild_id });
+                    sync.start({ token: cfg.token, guildId: cfg.guild_id, appId: d.user?.id || me.id });
+                    const missing = INTENT_SETS[intentLevel].missing;
+                    if (missing) log(`Aviso: activa en el portal de desarrolladores de Discord: ${missing}.`);
                 }
 
                 // Tickets (botones y formulario) los gestiona la sincronización
@@ -144,24 +152,14 @@ async function startBot() {
                     return;
                 }
 
-                // Interacciones (Slash commands y Botones)
-                if (t === 'INTERACTION_CREATE' && d) {
-                    await onInteraction({
-                        interaction: d,
-                        token: cfg.token,
-                        applicationId: me.id,
-                        log,
-                    });
-                }
-
-                // Mensajes de texto normales con Prefijo (!)
+                // Los comandos antiguos (prefijo ! y botones power:) no comprobaban de quién era cada
+                // servidor; ahora todo pasa por sync/commands.js, que pregunta al panel con el Discord de quien lo usa.
                 if (t === 'MESSAGE_CREATE' && d) {
                     sync.onMessage(d).catch(() => {});
-                    await onMessage({
-                        message: d,
-                        cfg,
-                        log,
-                    });
+                }
+
+                if (t === 'GUILD_MEMBER_ADD' || t === 'GUILD_MEMBER_REMOVE' || t === 'INVITE_CREATE' || t === 'INVITE_DELETE') {
+                    sync.onEvent(t, d).catch(() => {});
                 }
             } catch (err) {
                 // error en gateway
@@ -170,9 +168,9 @@ async function startBot() {
 
         ws.addEventListener('close', (event) => {
             if (heartbeatTimer) clearInterval(heartbeatTimer);
-            if (event.code === 4014 && intents !== BASIC_INTENTS) {
-                intents = BASIC_INTENTS;
-                log('Discord rechazó el intent Message Content: activa "Message Content Intent" en el portal de desarrolladores para que las respuestas en los hilos de tickets lleguen al panel. Reconectando sin él...');
+            if (event.code === 4014 && intentLevel < INTENT_SETS.length - 1) {
+                intents = INTENT_SETS[++intentLevel].bits;
+                log(`Discord rechazó un intent privilegiado. Reconectando sin: ${INTENT_SETS[intentLevel].missing}...`);
                 setTimeout(() => void startBot(), 2000);
                 return;
             }
