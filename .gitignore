@@ -28,4 +28,4 @@ database/migrations/db/*
 /local/config.yml
 /database/*.sqlite*
 
-/local/discord-bot/node_modules/
+node_modules/
