@@ -1,10 +1,12 @@
+import { BlurredLockOverlay, ServerConsolePreview } from '@/components/server-lock-preview';
 import { Head, Link } from '@inertiajs/react';
-import { Crown, Hammer, KeyRound, Lock, LockOpen, ShieldAlert, ShieldCheck, Terminal, User, Users } from 'lucide-react';
-import { FormEvent, useState } from 'react';
+import { Clock, Crown, Hammer, KeyRound, Lock, LockOpen, ShieldCheck, User, Users } from 'lucide-react';
+import { FormEvent, useEffect, useState } from 'react';
 
 const DEMO_CODE = 'demo1234';
 const LOCK_DAYS = 30;
 const MAX_ATTEMPTS = 5;
+const STORAGE_KEY = 'cinammon_demo_security_unlock_until';
 
 type Actor = 'owner' | 'subuser' | 'admin' | 'other';
 type Access = 'open' | 'needs-code' | 'protected' | 'forbidden';
@@ -16,6 +18,12 @@ const ACTORS: { key: Actor; label: string; icon: typeof User }[] = [
     { key: 'other', label: 'Otro cliente', icon: User },
 ];
 
+const REMEMBER_OPTIONS = [
+    { minutes: 1, label: '1 minuto (prueba rápida)' },
+    { minutes: 5, label: '5 minutos' },
+    { minutes: 30, label: '30 minutos (por defecto)' },
+];
+
 // Reglas reales de EnsureServerUnlocked + authorizeServer del panel.
 function resolveAccess(actor: Actor, lockActive: boolean, unlocked: boolean): Access {
     if (actor === 'subuser') return 'open';
@@ -24,57 +32,61 @@ function resolveAccess(actor: Actor, lockActive: boolean, unlocked: boolean): Ac
     return lockActive ? 'protected' : 'forbidden';
 }
 
-const LOG_LINES = [
-    '[12:13:12 INFO]: Done (8.230s)! For help, type "help"',
-    '[12:13:21 INFO]: [Server] Hola',
-    '[12:14:02 INFO]: Steve joined the game',
-    '[12:14:40 INFO]: Steve: bienvenido a mi servidor',
-];
-
-function FakeConsole() {
-    return (
-        <div className="overflow-hidden rounded-lg border border-emerald-500/30 bg-black/80">
-            <div className="flex items-center justify-between border-b border-neutral-800 px-3 py-2 text-xs">
-                <span className="flex items-center gap-2 text-neutral-300">
-                    <Terminal className="h-3.5 w-3.5 text-emerald-400" /> mi-servidor · Consola
-                </span>
-                <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-300">EN LÍNEA</span>
-            </div>
-            <div className="space-y-1 p-3 font-mono text-[11px] text-emerald-200/90">
-                {LOG_LINES.map((line) => (
-                    <p key={line}>{line}</p>
-                ))}
-            </div>
-            <p className="border-t border-neutral-800 px-3 py-2 text-[11px] text-emerald-300">✔ Acceso concedido: consola, archivos y ajustes disponibles.</p>
-        </div>
-    );
+function readStoredUnlockUntil(): number {
+    if (typeof window === 'undefined') return 0;
+    try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        const until = raw ? Number(raw) : 0;
+        return Number.isFinite(until) && until > Date.now() ? until : 0;
+    } catch {
+        return 0;
+    }
 }
 
-function Blocked({ status, message, note }: { status: number; message: string; note?: string }) {
-    return (
-        <div className="rounded-lg border border-rose-500/40 bg-rose-950/30 p-4 text-center">
-            <ShieldAlert className="mx-auto h-8 w-8 text-rose-400" />
-            <p className="mt-2 font-mono text-2xl font-black text-rose-300">{status}</p>
-            <p className="mt-1 text-sm text-rose-200">{message}</p>
-            {note && <p className="mt-2 text-[11px] text-neutral-400">{note}</p>}
-        </div>
-    );
+function writeStoredUnlockUntil(until: number): void {
+    if (typeof window === 'undefined') return;
+    try {
+        if (until > Date.now()) {
+            window.localStorage.setItem(STORAGE_KEY, String(until));
+        } else {
+            window.localStorage.removeItem(STORAGE_KEY);
+        }
+    } catch {
+        // Ignorar si el almacenamiento local está restringido.
+    }
 }
 
-function CodeForm({ onSubmit, label, error, disabled }: { onSubmit: (code: string) => void; label: string; error: string | null; disabled?: boolean }) {
+function formatRemaining(ms: number): string {
+    const totalSec = Math.max(0, Math.ceil(ms / 1000));
+    const min = Math.floor(totalSec / 60);
+    const sec = totalSec % 60;
+    return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+}
+
+function CodeForm({
+    onSubmit,
+    label,
+    error,
+    disabled,
+    showRemember = false,
+}: {
+    onSubmit: (code: string, rememberMinutes: number) => void;
+    label: string;
+    error: string | null;
+    disabled?: boolean;
+    showRemember?: boolean;
+}) {
     const [code, setCode] = useState('');
+    const [rememberMinutes, setRememberMinutes] = useState(30);
+
     const submit = (e: FormEvent) => {
         e.preventDefault();
-        onSubmit(code);
+        onSubmit(code, rememberMinutes);
         setCode('');
     };
+
     return (
-        <form onSubmit={submit} className="space-y-3 rounded-lg border border-pink-500/30 bg-black/70 p-4">
-            <div className="flex items-center gap-2 text-pink-300">
-                <Lock className="h-5 w-5" />
-                <span className="font-bold">Servidor protegido</span>
-            </div>
-            <p className="text-xs text-neutral-300">Introduce tu código de seguridad para acceder a tus servidores.</p>
+        <form onSubmit={submit} className="space-y-3 rounded-lg border border-pink-500/35 bg-neutral-950/85 p-4 text-left">
             <input
                 type="password"
                 value={code}
@@ -84,12 +96,31 @@ function CodeForm({ onSubmit, label, error, disabled }: { onSubmit: (code: strin
                 disabled={disabled}
                 className="w-full rounded border border-neutral-700 bg-black px-3 py-2 font-mono text-sm text-white outline-none focus:border-pink-500 disabled:opacity-50"
             />
-            {error && <p className="text-xs text-rose-400">{error}</p>}
+            {showRemember && (
+                <label className="flex items-center justify-between gap-2 text-[11px] text-neutral-300">
+                    <span className="inline-flex items-center gap-1 text-neutral-400">
+                        <Clock className="h-3 w-3 text-pink-300" />
+                        Guardar acceso:
+                    </span>
+                    <select
+                        value={rememberMinutes}
+                        onChange={(e) => setRememberMinutes(Number(e.target.value))}
+                        className="rounded border border-neutral-700 bg-black px-2 py-1 text-[11px] text-neutral-200 focus:border-pink-500 focus:outline-none"
+                    >
+                        {REMEMBER_OPTIONS.map((opt) => (
+                            <option key={opt.minutes} value={opt.minutes}>
+                                {opt.label}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+            )}
+            {error && <p className="text-xs text-amber-300">{error}</p>}
             <button type="submit" disabled={disabled} className="w-full rounded bg-pink-600 px-3 py-2 text-xs font-bold text-white hover:bg-pink-500 disabled:opacity-50">
                 {label}
             </button>
             <p className="text-center text-[11px] text-neutral-400">
-                Código de la demo: <span className="font-mono font-bold text-cyan-300">{DEMO_CODE}</span>
+                Código de la demo: <span className="font-mono font-bold text-pink-300">{DEMO_CODE}</span>
             </p>
         </form>
     );
@@ -101,25 +132,33 @@ function Scenario({
     tone,
     actor,
     lockActive,
+    unlockedUntil,
+    nowMs,
+    onUnlock,
+    onRelock,
     banner,
 }: {
     title: string;
     subtitle: string;
-    tone: 'pink' | 'cyan';
+    tone: 'pink' | 'amber';
     actor: Actor;
     lockActive: boolean;
+    unlockedUntil: number;
+    nowMs: number;
+    onUnlock: (minutes: number) => void;
+    onRelock: () => void;
     banner?: string;
 }) {
-    const [unlocked, setUnlocked] = useState(false);
     const [attempts, setAttempts] = useState(0);
     const [error, setError] = useState<string | null>(null);
+    const unlocked = unlockedUntil > nowMs;
     const access = resolveAccess(actor, lockActive, unlocked);
     const blockedByAttempts = attempts >= MAX_ATTEMPTS;
 
-    const tryCode = (code: string) => {
+    const tryCode = (code: string, rememberMinutes: number) => {
         if (blockedByAttempts) return;
         if (code === DEMO_CODE) {
-            setUnlocked(true);
+            onUnlock(rememberMinutes);
             setError(null);
             setAttempts(0);
             return;
@@ -129,8 +168,8 @@ function Scenario({
         setError(next >= MAX_ATTEMPTS ? 'Demasiados intentos. Vuelve a probar en 15 min.' : `El código no es correcto. (${next}/${MAX_ATTEMPTS})`);
     };
 
-    const border = tone === 'pink' ? 'border-pink-500/40' : 'border-cyan-500/40';
-    const accent = tone === 'pink' ? 'text-pink-300' : 'text-cyan-300';
+    const border = tone === 'pink' ? 'border-pink-500/40' : 'border-amber-500/35';
+    const accent = tone === 'pink' ? 'text-pink-300' : 'text-amber-300';
 
     return (
         <section className={`space-y-4 rounded-2xl border ${border} bg-neutral-950/80 p-5`}>
@@ -144,25 +183,54 @@ function Scenario({
 
             {banner && <p className="rounded border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-xs text-yellow-200">{banner}</p>}
 
-            {access === 'open' && <FakeConsole />}
-            {access === 'needs-code' && <CodeForm onSubmit={tryCode} label="Desbloquear" error={error} disabled={blockedByAttempts} />}
+            {access === 'open' && <ServerConsolePreview />}
+            {access === 'needs-code' && (
+                <BlurredLockOverlay
+                    badge="Código requerido"
+                    title="Servidor protegido"
+                    message="La consola está lista detrás del candado. Introduce tu código para abrirla."
+                    minHeightClass="min-h-[260px]"
+                >
+                    <CodeForm onSubmit={tryCode} label="Desbloquear" error={error} disabled={blockedByAttempts} showRemember />
+                </BlurredLockOverlay>
+            )}
             {access === 'protected' && (
-                <Blocked
-                    status={403}
+                <BlurredLockOverlay
+                    badge="Protegido con código"
+                    title="Servidor bloqueado"
                     message="Este servidor está protegido por su propietario."
-                    note={actor === 'admin' ? 'Los administradores solo pueden gestionar el servidor desde la lista (reinstalar, suspender, borrar), no abrir su consola ni sus archivos.' : undefined}
+                    note={
+                        actor === 'admin'
+                            ? 'Los administradores solo pueden gestionar el servidor desde la lista (reinstalar, suspender, borrar), no abrir su consola ni sus archivos.'
+                            : undefined
+                    }
                 />
             )}
-            {access === 'forbidden' && <Blocked status={403} message="No tienes permiso para acceder a este servidor." />}
+            {access === 'forbidden' && (
+                <BlurredLockOverlay
+                    badge="Acceso restringido"
+                    title="Servidor bloqueado"
+                    message="No tienes permiso para acceder a este servidor."
+                />
+            )}
 
             {lockActive && unlocked && actor === 'owner' && (
-                <button
-                    type="button"
-                    onClick={() => setUnlocked(false)}
-                    className="w-full rounded border border-neutral-700 px-3 py-2 text-xs text-neutral-300 hover:border-pink-500"
-                >
-                    Volver a bloquear esta sesión (si no, se cierra sola a los 30 min sin actividad)
-                </button>
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+                        <span className="inline-flex items-center gap-1.5">
+                            <Clock className="h-3.5 w-3.5" />
+                            Contraseña guardada mientras no pase el tiempo límite
+                        </span>
+                        <span className="font-mono font-bold">{formatRemaining(unlockedUntil - nowMs)}</span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onRelock}
+                        className="w-full rounded border border-neutral-700 px-3 py-2 text-xs text-neutral-300 hover:border-pink-500"
+                    >
+                        Volver a bloquear ahora
+                    </button>
+                </div>
             )}
         </section>
     );
@@ -175,22 +243,51 @@ const COMPARISON: { row: string; without: string; with: string }[] = [
     { row: 'Quién pone el código', without: '—', with: 'El cliente, al abrir su primer servidor' },
     { row: 'Duración', without: '—', with: '1 mes; después se apaga solo y el cliente lo reactiva con su código' },
     { row: 'Intentos fallidos', without: '—', with: 'Máximo 5 cada 15 minutos' },
-    { row: 'Sesión desbloqueada', without: '—', with: 'Se cierra tras 30 minutos sin actividad' },
-    { row: 'Si olvida el código', without: '—', with: 'Soporte lo restablece y el cliente crea uno nuevo' },
+    { row: 'Contraseña guardada', without: '—', with: 'Se mantiene guardada el tiempo elegido (ej. 30 min) sin volver a pedirla' },
+    { row: 'Si no funciona o la olvida', without: '—', with: 'El Owner del panel puede cambiarla o restablecerla desde Usuarios' },
 ];
 
 export default function DemoSecurity() {
     const [actor, setActor] = useState<Actor>('owner');
     const [day, setDay] = useState(0);
     const [reactivateError, setReactivateError] = useState<string | null>(null);
-    const [resetKey, setResetKey] = useState(0);
+    const [unlockedUntil, setUnlockedUntil] = useState<number>(() => readStoredUnlockUntil());
+    const [nowMs, setNowMs] = useState<number>(() => Date.now());
     const expired = day >= LOCK_DAYS;
+
+    useEffect(() => {
+        if (unlockedUntil <= Date.now()) {
+            writeStoredUnlockUntil(0);
+            return;
+        }
+        const timer = window.setInterval(() => {
+            const current = Date.now();
+            setNowMs(current);
+            if (current >= unlockedUntil) {
+                setUnlockedUntil(0);
+                writeStoredUnlockUntil(0);
+            }
+        }, 1000);
+        return () => window.clearInterval(timer);
+    }, [unlockedUntil]);
+
+    const handleUnlock = (minutes: number) => {
+        const until = Date.now() + minutes * 60_000;
+        setNowMs(Date.now());
+        setUnlockedUntil(until);
+        writeStoredUnlockUntil(until);
+    };
+
+    const handleRelock = () => {
+        setUnlockedUntil(0);
+        writeStoredUnlockUntil(0);
+    };
 
     const reactivate = (code: string) => {
         if (code === DEMO_CODE) {
             setDay(0);
             setReactivateError(null);
-            setResetKey((k) => k + 1);
+            handleRelock();
         } else {
             setReactivateError('El código no es correcto.');
         }
@@ -225,7 +322,7 @@ export default function DemoSecurity() {
                                 onClick={() => setActor(a.key)}
                                 className={`inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 text-xs font-bold transition ${
                                     actor === a.key
-                                        ? 'border-cyan-400 bg-cyan-400/10 text-cyan-300'
+                                        ? 'border-pink-400 bg-pink-500/15 text-pink-200'
                                         : 'border-neutral-700 bg-black/40 text-neutral-300 hover:border-pink-500/60'
                                 }`}
                             >
@@ -238,20 +335,26 @@ export default function DemoSecurity() {
 
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                     <Scenario
-                        key={`without-${actor}`}
                         title="Sin código"
                         subtitle="Bloqueo desactivado: el cliente no lo usa o se apagó solo al terminar el mes."
-                        tone="cyan"
+                        tone="amber"
                         actor={actor}
                         lockActive={false}
+                        unlockedUntil={unlockedUntil}
+                        nowMs={nowMs}
+                        onUnlock={handleUnlock}
+                        onRelock={handleRelock}
                     />
                     <Scenario
-                        key={`with-${actor}-${resetKey}-${expired}`}
                         title="Con código"
                         subtitle={expired ? 'El bloqueo se apagó solo al cumplirse el mes.' : 'Bloqueo activo: solo entra quien tiene el código.'}
                         tone="pink"
                         actor={actor}
                         lockActive={!expired}
+                        unlockedUntil={unlockedUntil}
+                        nowMs={nowMs}
+                        onUnlock={handleUnlock}
+                        onRelock={handleRelock}
                         banner={expired ? 'Han pasado 30 días: el bloqueo automático se desactivó y el servidor vuelve a funcionar como el de la izquierda.' : undefined}
                     />
                 </div>
@@ -277,7 +380,7 @@ export default function DemoSecurity() {
                         <thead className="border-b border-neutral-800 text-[11px] tracking-wider text-neutral-400 uppercase">
                             <tr>
                                 <th className="px-4 py-3" />
-                                <th className="px-4 py-3 text-cyan-300">Sin código</th>
+                                <th className="px-4 py-3 text-amber-300">Sin código</th>
                                 <th className="px-4 py-3 text-pink-300">Con código</th>
                             </tr>
                         </thead>

@@ -34,10 +34,13 @@ type LoginLog = {
     created_at: string;
 };
 
-type ServerLock = { has_code: boolean; active: boolean; until: string | null; unlocked: boolean };
+type ServerLock = { has_code: boolean; active: boolean; until: string | null; unlocked: boolean; unlocked_until?: string | null };
 
 const formatUntil = (value: string | null) =>
     value ? new Date(value).toLocaleString('es-ES', { dateStyle: 'long', timeStyle: 'short' }) : '';
+
+const formatUnlockTime = (value?: string | null) =>
+    value ? new Date(value).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '';
 
 function CodeField({ id, label, value, onChange, error }: { id: string; label: string; value: string; onChange: (v: string) => void; error?: string }) {
     return (
@@ -103,9 +106,16 @@ function ServerLockSection() {
                             </div>
                         </div>
                         {serverLock.active && serverLock.unlocked && (
-                            <Button type="button" variant="outline" size="sm" disabled={relock.processing} onClick={() => relock.post(route('server-lock.relock'), { preserveScroll: true })}>
-                                Bloquear ahora
-                            </Button>
+                            <div className="flex flex-col items-end gap-1">
+                                <Button type="button" variant="outline" size="sm" disabled={relock.processing} onClick={() => relock.post(route('server-lock.relock'), { preserveScroll: true })}>
+                                    Bloquear ahora
+                                </Button>
+                                {serverLock.unlocked_until && (
+                                    <span className="text-[11px] text-emerald-300">
+                                        Código guardado hasta las {formatUnlockTime(serverLock.unlocked_until)}
+                                    </span>
+                                )}
+                            </div>
                         )}
                     </div>
 

@@ -27,19 +27,32 @@ class ServerLockController extends Controller
     {
         $user = $request->user();
 
-        if (! $user->securityLockActive() || EnsureServerUnlocked::isUnlocked($request->session())) {
+        if (! $user->securityLockActive() || EnsureServerUnlocked::isUnlocked($request->session(), $request, $user)) {
             return redirect()->to($request->session()->pull(EnsureServerUnlocked::INTENDED_KEY, '/servers'));
         }
 
-        return Inertia::render('security/unlock');
+        return Inertia::render('security/unlock', [
+            'defaultRememberMinutes' => EnsureServerUnlocked::IDLE_MINUTES,
+            'rememberOptions' => [
+                ['minutes' => 15, 'label' => '15 minutos'],
+                ['minutes' => 30, 'label' => '30 minutos (recomendado)'],
+                ['minutes' => 120, 'label' => '2 horas'],
+                ['minutes' => 720, 'label' => '12 horas'],
+                ['minutes' => 1440, 'label' => '24 horas'],
+            ],
+        ]);
     }
 
     public function unlock(Request $request): RedirectResponse
     {
-        $request->validate(['code' => ['required', 'string']]);
+        $validated = $request->validate([
+            'code' => ['required', 'string'],
+            'remember_minutes' => ['nullable', 'integer', 'in:'.implode(',', EnsureServerUnlocked::ALLOWED_REMEMBER_MINUTES)],
+        ]);
         $this->verifyCode($request, $request->user(), 'code');
 
-        EnsureServerUnlocked::markUnlocked($request->session());
+        $minutes = (int) ($validated['remember_minutes'] ?? EnsureServerUnlocked::IDLE_MINUTES);
+        EnsureServerUnlocked::markUnlocked($request->session(), $request->user(), $minutes);
 
         return redirect()->to($request->session()->pull(EnsureServerUnlocked::INTENDED_KEY, '/servers'));
     }
@@ -61,7 +74,7 @@ class ServerLockController extends Controller
             'lock_enabled_until' => now()->addMonth(),
         ])->save();
 
-        EnsureServerUnlocked::markUnlocked($request->session());
+        EnsureServerUnlocked::markUnlocked($request->session(), $user);
 
         return redirect()->to($request->session()->pull(EnsureServerUnlocked::INTENDED_KEY, route('security.edit')))
             ->with('status', 'server-lock-created');
@@ -75,7 +88,7 @@ class ServerLockController extends Controller
         $this->verifyCode($request, $user, 'code');
 
         $user->forceFill(['lock_enabled_until' => now()->addMonth()])->save();
-        EnsureServerUnlocked::markUnlocked($request->session());
+        EnsureServerUnlocked::markUnlocked($request->session(), $user);
 
         return back()->with('status', 'server-lock-enabled');
     }
@@ -87,7 +100,7 @@ class ServerLockController extends Controller
         $this->verifyCode($request, $user, 'code');
 
         $user->forceFill(['lock_enabled_until' => null])->save();
-        $request->session()->forget(EnsureServerUnlocked::SESSION_KEY);
+        EnsureServerUnlocked::forgetUnlocked($request->session());
 
         return back()->with('status', 'server-lock-disabled');
     }
@@ -102,6 +115,7 @@ class ServerLockController extends Controller
         $this->verifyCode($request, $user, 'current_code');
 
         $user->forceFill(['lock_code' => Hash::make($data['code']), 'lock_code_set_at' => now()])->save();
+        EnsureServerUnlocked::markUnlocked($request->session(), $user);
 
         return back()->with('status', 'server-lock-code-changed');
     }
@@ -109,7 +123,7 @@ class ServerLockController extends Controller
     /** Cierra el desbloqueo de esta sesión sin esperar a que caduque. */
     public function relock(Request $request): RedirectResponse
     {
-        $request->session()->forget(EnsureServerUnlocked::SESSION_KEY);
+        EnsureServerUnlocked::forgetUnlocked($request->session());
 
         return back()->with('status', 'server-lock-relocked');
     }

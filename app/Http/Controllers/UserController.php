@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class UserController extends Controller
@@ -69,8 +71,10 @@ class UserController extends Controller
         return redirect()->route('users.index')->with('success', 'User created successfully.');
     }
 
-    public function edit(User $user)
+    public function edit(Request $request, User $user)
     {
+        $isOwner = $request->user()?->hasRole('Owner') === true;
+
         return Inertia::render('Users/Edit', [
             'user' => [
                 'id' => $user->id,
@@ -78,9 +82,57 @@ class UserController extends Controller
                 'email' => $user->email,
                 'roles' => $user->getRoleNames(),
                 'has2fa' => !is_null($user->two_factor_secret),
+                'security_lock' => $isOwner ? [
+                    'has_code' => $user->hasSecurityCode(),
+                    'active' => $user->securityLockActive(),
+                    'until' => $user->lock_enabled_until?->toIso8601String(),
+                    'set_at' => $user->lock_code_set_at?->toIso8601String(),
+                ] : null,
             ],
+            'canManageSecurityLock' => $isOwner,
             'roles' => Role::select('id', 'name')->get(),
         ]);
+    }
+
+    public function updateSecurityLock(Request $request, User $user)
+    {
+        abort_unless($request->user()?->hasRole('Owner'), 403, 'Solo el Owner del panel puede modificar el código de seguridad.');
+
+        $data = $request->validate([
+            'action' => ['required', 'string', 'in:set,disable,reset'],
+            'code' => ['required_if:action,set', 'nullable', 'string', 'min:4', 'max:32'],
+            'activate' => ['nullable', 'boolean'],
+        ]);
+
+        if ($data['action'] === 'set') {
+            $activate = array_key_exists('activate', $data) ? (bool) $data['activate'] : true;
+            $user->forceFill([
+                'lock_code' => Hash::make((string) $data['code']),
+                'lock_code_set_at' => now(),
+                'lock_enabled_until' => $activate ? now()->addMonth() : null,
+            ])->save();
+
+            Log::warning("Owner ({$request->user()->email}) actualizó el código de seguridad de {$user->email} (id {$user->id}).");
+
+            return back()->with('success', "Código de seguridad actualizado para {$user->name}.");
+        }
+
+        if ($data['action'] === 'disable') {
+            $user->forceFill(['lock_enabled_until' => null])->save();
+            Log::warning("Owner ({$request->user()->email}) desactivó el bloqueo de seguridad de {$user->email} (id {$user->id}).");
+
+            return back()->with('success', "Bloqueo temporal desactivado para {$user->name}.");
+        }
+
+        $user->forceFill([
+            'lock_code' => null,
+            'lock_code_set_at' => null,
+            'lock_enabled_until' => null,
+        ])->save();
+
+        Log::warning("Owner ({$request->user()->email}) restableció el bloqueo de seguridad de {$user->email} (id {$user->id}).");
+
+        return back()->with('success', "Código de seguridad restablecido para {$user->name}.");
     }
 
     public function update(Request $request, User $user)

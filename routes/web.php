@@ -552,7 +552,7 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
         }
 
         Auth::login($targetUser);
-        $request->session()->forget(\App\Http\Middleware\EnsureServerUnlocked::SESSION_KEY);
+        \App\Http\Middleware\EnsureServerUnlocked::forgetUnlocked($request->session());
         $request->session()->regenerate();
 
         return back()->with('success', "Has cambiado a la cuenta de {$targetUser->name}.");
@@ -618,6 +618,7 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
     Route::get('/users', [UserController::class, 'index'])->middleware('admin:Moderator,Helper')->name('users.index');
     Route::middleware('admin')->group(function () {
         Route::resource('users', UserController::class)->except(['show', 'index']);
+        Route::put('/users/{user}/security-lock', [UserController::class, 'updateSecurityLock'])->name('users.security-lock');
     });
 
     // Roles
