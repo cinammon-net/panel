@@ -650,9 +650,26 @@ PHP;
 
                 case 'reinstall':
                     // Reinstalar no borra app/: regenera el arranque, que crea el proyecto al arrancar
-                    $wings->power($server, 'kill');
+                    // Wings rechaza reinstalar mientras el servidor se apaga: se espera a que esté parado
+                    for ($i = 0; $i < 20; $i++) {
+                        $power = $client->get("/servers/{$server->uuid}")->throw()->json('state');
+                        if ($power === 'offline') {
+                            break;
+                        }
+                        if ($i === 0) {
+                            $wings->power($server, 'kill');
+                        }
+                        usleep(500_000);
+                    }
+                    // Antes de pedirlo: Wings marca «instalado» al terminar y no hay que pisarlo
+                    $installedAt = $server->installed_at;
                     $server->forceFill(['installed_at' => null, 'status' => false])->save();
-                    $wings->reinstall($server);
+                    try {
+                        $wings->reinstall($server);
+                    } catch (\Throwable $e) {
+                        $server->forceFill(['installed_at' => $installedAt])->save();
+                        throw $e;
+                    }
 
                     return response()->json(['ok' => true]);
 
