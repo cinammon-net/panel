@@ -95,6 +95,7 @@ if [ "$TARGET" = "panel" ]; then
     run rsync -a --delete --stats \
       --exclude .env --exclude storage --exclude bootstrap/cache \
       --exclude node_modules --exclude .git \
+      --exclude /local --exclude /public/storage --exclude '/database/*.sqlite' \
       "$SRC/" "$DIR/"
     run chown -R "$OWNER":"$OWNER" "$DIR"
     # fijar la versión instalada en .env
@@ -141,6 +142,7 @@ elif [ "$TARGET" = "billing" ]; then
   run rsync -a --delete --stats \
     --exclude .env --exclude storage --exclude bootstrap/cache \
     --exclude node_modules --exclude .git \
+    --exclude /local --exclude /public/storage --exclude '/database/*.sqlite' \
     "$SRC/" "$BILLING_DIR/"
   run chown -R www-data:www-data "$BILLING_DIR"
   if grep -q '^BILLING_VERSION=' "$BILLING_DIR/.env"; then

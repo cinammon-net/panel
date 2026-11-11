@@ -9,12 +9,16 @@ El usuario no tiene que tocar nada: descarga, aplica, migra y reinicia solo.
 - **Panel** (`cinammon-net/panel`): release con tag `vX.Y.Z` y un asset
   `panel.tar.gz` que contenga la aplicación ya construida (incluye
   `public/build` de Vite; sin `node_modules`, sin `.env`, sin `storage`).
+  **Solo archivos del repo** (`git archive`): nunca la carpeta entera, porque
+  `local/` y otros archivos sin versionar pueden tener credenciales y los repos
+  son públicos. El updater no toca `local/`, `public/storage` ni `database/*.sqlite`.
   Cómo generarlo en local:
 
   ```bash
   npm run build
-  tar -czf panel.tar.gz --exclude .env --exclude storage --exclude node_modules \
-      --exclude .git --exclude bootstrap/cache -C . .
+  mkdir -p /tmp/rel && git archive HEAD | tar -x -C /tmp/rel
+  cp -R public/build /tmp/rel/public/build && cp -R vendor /tmp/rel/vendor   # vendor: composer install --no-dev
+  tar -czf panel.tar.gz -C /tmp/rel .
   gh release create vX.Y.Z panel.tar.gz --title "vX.Y.Z" --notes "..."
   ```
 
