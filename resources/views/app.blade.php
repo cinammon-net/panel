@@ -66,19 +66,7 @@
         $cinSub = explode('.', request()->getHost())[0];
         $cinLogo = in_array($cinSub, ['panel', 'demo', 'store', 'billing'], true) ? "/logos/cinammon-{$cinSub}.png" : '/favicon.ico';
     @endphp
-    @php
-        // Favicon ya coloreado con la temporada/festivo del visitante (lo sirve el billing según el país).
-        // En *.cinammon.net se sirve desde el mismo origen (/season-favicon.png) para que Safari y Chrome lo muestren igual que en store.
-        $cinFavBase = config('services.billing.url') ?: (config('panel.demo') ? 'https://billing.cinammon.net' : null);
-        $cinFavSite = in_array($cinSub, ['panel', 'demo', 'store', 'billing'], true) ? $cinSub : 'net';
-        $cinFavVer = 'v=bf2&d='.now()->format('Ymd');
-        $cinFavicon = str_ends_with(request()->getHost(), 'cinammon.net')
-            ? "/season-favicon.png?{$cinFavVer}"
-            : ($cinFavBase ? rtrim($cinFavBase, '/')."/api/season-favicon/{$cinFavSite}.png?{$cinFavVer}" : $cinLogo);
-    @endphp
-    <link rel="icon" type="image/png" href="{{ $cinFavicon }}">
-    <link rel="shortcut icon" type="image/png" href="{{ $cinFavicon }}">
-    <link rel="apple-touch-icon" href="{{ $cinFavicon }}">
+    @include('partials.favicon')
 
     <!-- 🔤 Fuente Orbitron y tipografía global personalizada -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

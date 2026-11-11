@@ -11,6 +11,7 @@
       font-family: 'Orbitron', sans-serif;
     }
   </style>
+    @include('partials.favicon')
 </head>
 
 <body class="flex items-center justify-center min-h-screen p-6">

@@ -40,6 +40,7 @@
                 padding: 20px;
             }
         </style>
+            @include('partials.favicon')
     </head>
     <body>
         <div class="flex-center position-ref full-height">
