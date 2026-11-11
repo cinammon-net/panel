@@ -127,6 +127,11 @@ const notLinked = () => linkHelp('Tu Discord no está vinculado');
 
 /** Errores de Discord en moderación (403 = el rol del bot está por debajo). */
 function modError(name, e) {
+    // Errores del panel (llevan body): su mensaje es el bueno ("Solo el Owner...", "no vinculado"...)
+    if (e.body) {
+        if (e.status === 403) return fail(cut(e.body.message || 'No tienes permiso para hacer eso.', 300));
+        return errorCard(e);
+    }
     if (name !== 'admin' && e.status === 403) return fail('Discord no me deja: mi rol tiene que estar por encima del de esa persona y tener el permiso necesario.');
     if (name !== 'admin' && e.status === 404) return fail('No encuentro a esa persona o ese canal en el servidor.');
     return errorCard(e);

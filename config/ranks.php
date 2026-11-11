@@ -38,4 +38,9 @@ return [
         'coleccionista' => ['name' => 'Coleccionista', 'color' => '#fb923c', 'icon' => 'layers', 'hint' => 'Tener 3 o más servicios a la vez'],
         'veterano' => ['name' => 'Veterano', 'color' => '#e879f9', 'icon' => 'medal', 'hint' => 'Ser cliente desde hace más de 6 meses'],
     ],
+
+    // Reconocimientos que solo concede el Owner. Sin ventajas: no compiten con los rangos de pago.
+    'special' => [
+        'amigo' => ['name' => 'Amigo de Cinammon', 'color' => '#38bdf8', 'icon' => 'amigo', 'hint' => 'Lo concede el Owner', 'max' => 25],
+    ],
 ];

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Allocation;
 use App\Models\Egg;
 use App\Models\Node;
+use App\Models\RoleGrant;
 use App\Models\Server;
 use App\Models\User;
 use App\Services\Daemon\WingsClient;
@@ -198,6 +199,70 @@ class BotAdminController extends Controller
         }
 
         return response()->json(['server' => ['id' => $server->id, 'name' => $server->name, 'active' => (int) $server->active]]);
+    }
+
+    /* ------------------------------------------------ rol Amigo (solo Owner) */
+
+    public function friends(string $discordId)
+    {
+        $this->owner($discordId);
+        $role = $this->friendRole();
+
+        return response()->json([
+            'max' => (int) config('ranks.special.amigo.max', 25),
+            'friends' => RoleGrant::with('user:id,name,discord_id')->where('source', 'friend')->where('role', $role['name'])
+                ->active()->orderBy('created_at')->get()
+                ->map(fn (RoleGrant $g) => [
+                    'name' => $g->user?->name,
+                    'discord_id' => $g->user?->discord_id ? (string) $g->user->discord_id : null,
+                    'since' => $g->created_at?->toIso8601String(),
+                    'expires_at' => $g->expires_at?->toIso8601String(),
+                ])->values(),
+        ]);
+    }
+
+    public function friend(Request $request, string $discordId)
+    {
+        $owner = $this->owner($discordId);
+        $data = $request->validate([
+            'action' => 'required|in:give,remove',
+            'target_discord_id' => 'required|string|max:32',
+            'days' => 'nullable|integer|in:30,90',
+        ]);
+        $role = $this->friendRole();
+        $target = User::where('discord_id', $data['target_discord_id'])->first();
+        abort_unless($target, 422, 'Esa persona no tiene su Discord vinculado con el panel. Tiene que vincularlo primero (Ajustes → Perfil → Código para el bot).');
+        abort_if($target->id === $owner->id, 422, 'El Owner ya tiene el rango más alto.');
+
+        if ($data['action'] === 'remove') {
+            $deleted = RoleGrant::where('user_id', $target->id)->where('source', 'friend')->where('role', $role['name'])->delete();
+            abort_unless($deleted, 422, 'Esa persona no tiene el rol '.$role['name'].'.');
+        } else {
+            $current = RoleGrant::where('source', 'friend')->where('role', $role['name'])->active()
+                ->where('user_id', '!=', $target->id)->count();
+            abort_if($current >= (int) ($role['max'] ?? 25), 422, 'Ya hay '.$current.' amigos (el máximo es '.($role['max'] ?? 25).'). Quita a alguien antes.');
+            RoleGrant::updateOrCreate(
+                ['user_id' => $target->id, 'source' => 'friend', 'role' => $role['name']],
+                ['expires_at' => ! empty($data['days']) ? now()->addDays((int) $data['days']) : null, 'perks' => null]
+            );
+        }
+        \App\Support\Ranks::apply($target);
+
+        return response()->json(['user' => ['name' => $target->name, 'discord_id' => (string) $target->discord_id], 'role' => $role['name']]);
+    }
+
+    private function friendRole(): array
+    {
+        return config('ranks.special.amigo') ?? ['name' => 'Amigo de Cinammon', 'max' => 25];
+    }
+
+    private function owner(string $discordId): User
+    {
+        $user = User::where('discord_id', $discordId)->first();
+        abort_unless($user, 404, 'not_linked');
+        abort_unless($user->hasRole('Owner'), 403, 'Solo el Owner puede dar o quitar este rol.');
+
+        return $user;
     }
 
     private function admin(string $discordId): User

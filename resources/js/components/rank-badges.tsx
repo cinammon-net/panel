@@ -3,7 +3,7 @@ import { useId } from 'react';
 
 export interface Badge {
     name: string;
-    kind: 'rank' | 'auto' | 'staff';
+    kind: 'rank' | 'auto' | 'staff' | 'special';
     color: string;
     icon: string;
     hint: string | null;
@@ -13,7 +13,7 @@ export interface Badge {
 export interface RoleMeta {
     key: string;
     name: string;
-    kind: 'rank' | 'auto' | 'staff' | 'default';
+    kind: 'rank' | 'auto' | 'staff' | 'special' | 'default';
     color: string;
     secondary: string;
     icon: string;
@@ -44,6 +44,9 @@ export const ROLE_META_LIST: RoleMeta[] = [
     { key: 'software', name: 'Tecnomante', kind: 'auto', color: '#818cf8', secondary: '#c084fc', icon: 'app-window', label: 'Insignia Automática' },
     { key: 'coleccionista', name: 'Coleccionista', kind: 'auto', color: '#fb923c', secondary: '#fde047', icon: 'layers', label: 'Insignia Automática' },
     { key: 'veterano', name: 'Veterano', kind: 'auto', color: '#e879f9', secondary: '#facc15', icon: 'medal', label: 'Insignia Automática' },
+
+    // Reconocimiento que solo concede el Owner
+    { key: 'amigo', name: 'Amigo de Cinammon', kind: 'special', color: '#38bdf8', secondary: '#f472b6', icon: 'amigo', label: 'Amigo de Cinammon' },
 
     // Staff y sistema
     { key: 'owner', name: 'Owner', kind: 'staff', color: '#facc15', secondary: '#f43f5e', icon: 'owner', label: 'Staff' },
@@ -301,6 +304,18 @@ export function RankIcon({
                     <path d="M4 16L16 22L28 16M4 21.5L16 27.5L28 21.5" stroke={c2} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
                 </>
             )}
+            {(key === 'amigo' || key === 'heart-handshake') && (
+                <>
+                    <path
+                        d="M16 27.5C16 27.5 4 20.6 4 12.4C4 8.3 7.1 5 11 5C13.2 5 15 6.1 16 7.8C17 6.1 18.8 5 21 5C24.9 5 28 8.3 28 12.4C28 20.6 16 27.5 16 27.5Z"
+                        fill={`url(#rg-${uid})`}
+                        stroke="#ffffff"
+                        strokeWidth="1"
+                        strokeLinejoin="round"
+                    />
+                    <path d="M16 11.5L17.3 14.7L20.5 16L17.3 17.3L16 20.5L14.7 17.3L11.5 16L14.7 14.7Z" fill="#ffffff" />
+                </>
+            )}
             {key === 'medal' && (
                 <>
                     <path d="M10 3L14 11H18L22 3" stroke={c2} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
@@ -370,10 +385,11 @@ export default function RankBadges({ max = 6 }: { max?: number }) {
     return (
         <div className="flex flex-wrap items-center gap-1.5 px-2 pb-2 group-data-[collapsible=icon]:hidden" aria-label="Tus rangos e insignias">
             {shown.map((b) => {
-                const isRank = b.kind === 'rank';
-                const title = isRank
-                    ? `Rango VIP ${b.name}${b.expires_at ? ` · hasta ${new Date(b.expires_at).toLocaleDateString('es-ES')}` : ''}`
-                    : `${b.name} · ${b.hint ?? 'insignia automática'}`;
+                // Los rangos VIP y el rol Amigo llevan brillo; las insignias automáticas no.
+                const isRank = b.kind === 'rank' || b.kind === 'special';
+                const until = b.expires_at ? ` · hasta ${new Date(b.expires_at).toLocaleDateString('es-ES')}` : '';
+                const title =
+                    b.kind === 'rank' ? `Rango VIP ${b.name}${until}` : b.kind === 'special' ? `${b.name} · ${b.hint ?? 'lo concede el Owner'}${until}` : `${b.name} · ${b.hint ?? 'insignia automática'}`;
                 return (
                     <span
                         key={b.name}

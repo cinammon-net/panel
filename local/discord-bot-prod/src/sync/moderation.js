@@ -45,6 +45,13 @@ function definitions() {
         { name: 'desbloquear', description: 'Desbloquear un canal', default_member_permissions: perm(P.MANAGE_CHANNELS), options: [{ name: 'canal', description: 'Canal (por defecto este)', type: CHANNEL, required: false, channel_types: [0, 5] }] },
         { name: 'modo-lento', description: 'Tiempo mínimo entre mensajes en este canal', default_member_permissions: perm(P.MANAGE_CHANNELS), options: [{ name: 'segundos', description: '0 para quitarlo', type: INT, required: true, min_value: 0, max_value: 21600 }] },
         {
+            name: 'amigo', description: 'Rol Amigo de Cinammon (solo lo da el Owner)', default_member_permissions: perm(P.ADMIN), options: [
+                { name: 'dar', description: 'Dar el rol Amigo a alguien', type: 1, options: [{ ...user, type: USER }, { name: 'motivo', description: 'Por qué (queda en el registro y se le dice)', type: S, required: true, max_length: 300 }, { name: 'duracion', description: 'Por defecto, permanente', type: INT, required: false, choices: [{ name: 'Permanente', value: 0 }, { name: '30 días', value: 30 }, { name: '90 días', value: 90 }] }] },
+                { name: 'quitar', description: 'Quitar el rol Amigo', type: 1, options: [{ ...user, type: USER }, { name: 'motivo', description: 'Por qué', type: S, required: false, max_length: 300 }] },
+                { name: 'lista', description: 'Quién tiene el rol Amigo', type: 1 },
+            ],
+        },
+        {
             name: 'automod', description: 'Filtros automáticos de Discord para el servidor', default_member_permissions: perm(P.MANAGE_GUILD), options: [
                 { name: 'estado', description: 'Ver y activar o desactivar los filtros', type: 1 },
                 { name: 'añadir-palabra', description: 'Bloquear una palabra o frase', type: 1, options: [{ name: 'palabra', description: 'Usa * como comodín (ej. *spam*)', type: S, required: true, max_length: 60 }] },
@@ -112,10 +119,10 @@ async function log(title, lines, color = 0xf59e0b) {
 }
 
 /** Aviso por privado a la persona sancionada (si tiene los MD cerrados, se ignora). */
-async function dm(userId, msg) {
+async function dm(userId, msg, color = 0xef4444) {
     try {
         const ch = await api.discord('POST', '/users/@me/channels', { recipient_id: userId });
-        await api.discord('POST', `/channels/${ch.id}/messages`, card(0xef4444, text(msg)));
+        await api.discord('POST', `/channels/${ch.id}/messages`, card(color, text(msg)));
     } catch {}
 }
 
@@ -261,8 +268,38 @@ async function run(i) {
             return ok(s ? `Modo lento: un mensaje cada ${s} s.` : 'Modo lento desactivado.');
         }
         case 'automod': return automod(i, sub(i));
+        case 'amigo': return friend(i, sub(i));
         default: return no('Comando desconocido.');
     }
+}
+
+/* ----------------------------------------------------- rol Amigo (Owner) */
+
+const FRIEND_COLOR = 0x38bdf8;
+
+async function friend(i, action) {
+    const me = actor(i);
+    const route = `/api/bot/discord/${me.id}/admin/friends`;
+    if (action === 'lista') {
+        const { friends, max } = await api.panel('GET', route);
+        return card(FRIEND_COLOR,
+            text(`## Amigos de Cinammon\n${friends.length} de ${max}. Solo los da el Owner; es un reconocimiento, sin ventajas de pago.`),
+            sep(),
+            text(friends.length ? friends.map((f) => `${f.discord_id ? `<@${f.discord_id}>` : `**${f.name}**`} · desde ${ts(f.since, 'd')}${f.expires_at ? ` · hasta ${ts(f.expires_at, 'd')}` : ''}`).join('\n') : 'Todavía no hay nadie.'),
+        );
+    }
+    const target = opt(i, 'usuario');
+    const reason = cut(opt(i, 'motivo') || 'Sin motivo', 300);
+    const days = opt(i, 'duracion') || null;
+    const { user, role } = await api.panel('POST', route, { action: action === 'dar' ? 'give' : 'remove', target_discord_id: target, days });
+    api.runSoon(); // el rol de Discord llega con la siguiente sincronización
+    if (action === 'dar') {
+        await dm(target, `Ahora eres **${role}**: el Owner te ha dado este reconocimiento.\n**Motivo:** ${reason}`, FRIEND_COLOR);
+        await log('Rol Amigo concedido', [`**Usuario:** <@${target}> (${user.name})`, `**Por:** <@${me.id}>`, `**Duración:** ${days ? `${days} días` : 'permanente'}`, `**Motivo:** ${reason}`], FRIEND_COLOR);
+        return ok(`<@${target}> ahora es **${role}**${days ? ` durante ${days} días` : ''}. El rol de Discord llega en un minuto.`);
+    }
+    await log('Rol Amigo retirado', [`**Usuario:** <@${target}> (${user.name})`, `**Por:** <@${me.id}>`, `**Motivo:** ${reason}`], 0x71717a);
+    return ok(`<@${target}> ya no es ${role}.`);
 }
 
 /* ----------------------------------------------------------------- AutoMod */

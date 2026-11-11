@@ -710,6 +710,21 @@ async function syncActivity(data) {
     if (changed) saveState();
 }
 
+/** Rol "Amigo de Cinammon" (lo da el Owner con /amigo): justo debajo de los rangos VIP. */
+async function ensureFriendRole() {
+    const L = ctx.layout;
+    const key = 'rank:Amigo de Cinammon';
+    const roles = await discord('GET', `/guilds/${ctx.guild}/roles`);
+    if (L.roles[key] && roles.some((r) => r.id === L.roles[key])) return;
+    const role = await discord('POST', `/guilds/${ctx.guild}/roles`, { name: 'Amigo de Cinammon', color: 0x38bdf8, hoist: true, mentionable: false, permissions: '0' }, 'Rol Amigo (lo concede el Owner)');
+    const vip = Object.entries(L.roles).filter(([k]) => k.startsWith('rank:') && k !== key).map(([, id]) => roles.find((r) => r.id === id)).filter(Boolean);
+    const lowest = Math.min(...vip.map((r) => r.position));
+    if (Number.isFinite(lowest)) await discord('PATCH', `/guilds/${ctx.guild}/roles`, [{ id: role.id, position: lowest }]).catch((e) => log(`[SYNC] posición del rol Amigo: ${e.message}`));
+    L.roles[key] = role.id;
+    fs.writeFileSync(LAYOUT_PATH, JSON.stringify(L, null, 2));
+    log(`[SYNC] Rol Amigo de Cinammon creado (${role.id}).`);
+}
+
 /** Crea #nuevas-cuentas y #compras (solo lectura) justo debajo de #llegadas. */
 async function ensureFeedChannels() {
     const L = ctx.layout;
@@ -822,7 +837,7 @@ function start({ token, guildId, appId }) {
         BILLING,
     });
     commands.initModeration({
-        discord, log, saveState,
+        discord, log, saveState, panel, runSoon, PANEL: PANEL_PUBLIC,
         ui: { text, sep, row, container, cut, ts },
         st: () => st,
         ctx: () => ({ ...ctx, layout: ctx.layout }),
@@ -842,6 +857,7 @@ function start({ token, guildId, appId }) {
     serial(async () => {
         await ensureArrivals().catch((e) => log(`[SYNC] #llegadas: ${e.message}`));
         await ensureFeedChannels().catch((e) => log(`[SYNC] canales de actividad: ${e.message}`));
+        await ensureFriendRole().catch((e) => log(`[SYNC] rol Amigo: ${e.message}`));
         await registerCommands().catch((e) => log(`[SYNC] comandos: ${e.message}`));
         await members.loadInvites();
     });

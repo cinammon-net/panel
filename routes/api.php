@@ -55,6 +55,8 @@ Route::middleware('bot.secret')->group(function () {
     });
     // Administración desde Discord (Owner/Admin)
     Route::prefix('/bot/discord/{discordId}/admin')->where(['discordId' => '[0-9]{5,25}'])->controller(App\Http\Controllers\BotAdminController::class)->group(function () {
+        Route::get('/friends', 'friends');
+        Route::post('/friends', 'friend');
         Route::get('/eggs', 'eggs');
         Route::get('/nodes', 'nodes');
         Route::post('/nodes', 'createNode');

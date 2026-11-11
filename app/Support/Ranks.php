@@ -24,6 +24,7 @@ class Ranks
         return array_values(array_unique([
             ...array_column(config('ranks.purchasable'), 'name'),
             ...array_column(config('ranks.auto'), 'name'),
+            ...array_column(config('ranks.special', []), 'name'),
         ]));
     }
 
@@ -180,13 +181,16 @@ class Ranks
     /** Insignias para la interfaz: rangos comprados primero, luego los automáticos. */
     public static function badges(User $user): array
     {
-        $grants = RoleGrant::where('user_id', $user->id)->active()->orderByRaw("source in ('staff', 'billing') desc")->get();
+        $grants = RoleGrant::where('user_id', $user->id)->active()->orderByRaw("case when source in ('staff', 'billing') then 0 when source = 'friend' then 1 else 2 end")->get();
         $meta = [];
         foreach (config('ranks.purchasable') as $r) {
             $meta[$r['name']] = $r + ['kind' => 'rank'];
         }
         foreach (config('ranks.auto') as $r) {
             $meta[$r['name']] = $r + ['kind' => 'auto'];
+        }
+        foreach (config('ranks.special', []) as $r) {
+            $meta[$r['name']] = $r + ['kind' => 'special'];
         }
 
         return $grants->unique('role')->filter(fn ($g) => isset($meta[$g->role]))->map(fn ($g) => [
