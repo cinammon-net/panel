@@ -31,6 +31,11 @@ Route::get('/gallery/list', function () {
 Route::middleware('bot.secret')->group(function () {
     Route::get('/bot/overview', [App\Http\Controllers\BotApiController::class, 'overview']);
     Route::post('/servers/{server}/power', [App\Http\Controllers\BotApiController::class, 'power']);
+    Route::get('/bot/sync', [App\Http\Controllers\BotSyncController::class, 'sync']);
+    Route::post('/bot/tickets', [App\Http\Controllers\BotSyncController::class, 'open']);
+    Route::get('/bot/tickets/{ticket}/messages', [App\Http\Controllers\BotSyncController::class, 'messages']);
+    Route::post('/bot/tickets/{ticket}/messages', [App\Http\Controllers\BotSyncController::class, 'reply']);
+    Route::post('/bot/tickets/{ticket}/status', [App\Http\Controllers\BotSyncController::class, 'status']);
 });
 
 
