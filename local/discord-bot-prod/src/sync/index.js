@@ -20,6 +20,7 @@ const commands = require('./commands');
 const community = require('./community');
 const members = require('./members');
 const verify = require('./verify');
+const content = require('./content');
 
 const ART_VERSION = 1; // súbelo para volver a dibujar todos los banners
 
@@ -39,6 +40,7 @@ let st = null;
 let accent = 0xec4899;
 let pal = art.palette(null);
 let lastCatalog = 0;
+let lastContent = 0;
 let timer = null;
 let queue = Promise.resolve();
 let lastData = null;
@@ -690,6 +692,9 @@ async function tick() {
         ['reseñas', () => community.syncReviews(data.reviews)],
         ['sorteos', () => community.tickGiveaways()],
     ];
+    if (Date.now() - lastContent > CATALOG_EVERY) {
+        steps.push(['canales', async () => { await content.sync(data); lastContent = Date.now(); }]);
+    }
     if (Date.now() - lastCatalog > CATALOG_EVERY) {
         const season = await refreshSeason();
         await refreshIdentity().catch((e) => log(`[SYNC] avatar: ${e.message}`));
@@ -931,6 +936,17 @@ function start({ token, guildId, appId }) {
         editOriginal: (i, payload) => fetch(`${API}/webhooks/${i.application_id}/${i.token}/messages/@original`, {
             method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
         }).catch(() => {}),
+    });
+    content.init({
+        discord, log, saveState, upsert,
+        ui: { text, sep, row, linkBtn, container, cut, ts },
+        st: () => st,
+        ctx: () => ctx,
+        accent: () => accent,
+        PANEL: PANEL_PUBLIC,
+        BILLING,
+        signupPost, purchasePost,
+        reviewCard: (r) => community.reviewCard(r),
     });
     members.init({
         discord, sendFile, log, saveState,

@@ -46,7 +46,7 @@ const STARTER_GUIDES = [
             '- Minecraft 1.20.5+ y 1.21+: **Java 21**',
             '- Minecraft 1.18 – 1.20.4: **Java 17**',
             '- Minecraft 1.12 – 1.16.5: **Java 8 u 11**',
-            'Puedes cambiarla en **Panel → Tu servidor → Startup → Docker Image**.',
+            'Puedes cambiarla en **Panel → tu servidor → Inicio → Imagen de Docker**.',
             '',
             '**3. Evita tirones de TPS**',
             '- Baja `simulation-distance` a `6` o `8` y `view-distance` a `8` o `10` en `server.properties`.',
@@ -59,7 +59,7 @@ const STARTER_GUIDES = [
         title: 'Desplegar un bot de Discord, WhatsApp o Telegram 24/7',
         body: [
             '**1. Variables y tokens seguros**',
-            'Nunca subas tu token a GitHub ni lo pegues en chat público. Guárdalo en `.env` o en la pestaña **Startup** del panel.',
+            'Nunca subas tu token a GitHub ni lo pegues en chat público. Guárdalo en `.env` o en la pestaña **Inicio** del panel.',
             '',
             '**2. Puerto e IP para webhooks / Express**',
             'Si tu bot levanta un servidor web o webhook, escucha siempre en `0.0.0.0` y usa `process.env.SERVER_PORT` (o la variable `PORT` asignada).',
@@ -85,7 +85,7 @@ const STARTER_GUIDES = [
         title: 'Cómo conectar tu aplicación o plugin a MySQL / MariaDB',
         body: [
             '**1. Crea la base de datos en el panel**',
-            'Entra a **Tu servidor → Databases → New Database** para generar host, puerto, usuario, contraseña y nombre de esquema.',
+            'Entra a **tu servidor → Bases de Datos → Nueva Base de Datos** para generar host, puerto, usuario, contraseña y nombre de esquema.',
             '',
             '**2. No uses `localhost` si es externa**',
             'Usa siempre el **Endpoint (Host)** que aparece en la tarjeta de la base de datos en el panel, junto con el puerto `3306`.',
@@ -101,7 +101,7 @@ const SUPPORT_TIPS = [
         key: 'java_version',
         match: /UnsupportedClassVersionError|compiled by a more recent version of the Java Runtime|class file version \d+/i,
         title: 'Error de versión de Java detectado',
-        body: 'El `.jar` del servidor o un plugin está compilado con una versión de Java superior a la actual.\n\n**Solución:** entra en **Panel → Tu servidor → Startup → Docker Image**, selecciona **Java 21** (para 1.20.5+ / 1.21+) o **Java 17** (para 1.18-1.20.4) y reinicia.',
+        body: 'El `.jar` del servidor o un plugin está compilado con una versión de Java superior a la actual.\n\n**Solución:** entra en **Panel → tu servidor → Inicio → Imagen de Docker**, selecciona **Java 21** (para 1.20.5+ / 1.21+) o **Java 17** (para 1.18-1.20.4) y reinicia.',
     },
     {
         key: 'oom',
@@ -113,19 +113,19 @@ const SUPPORT_TIPS = [
         key: 'port_bind',
         match: /EADDRINUSE|FAILED TO BIND TO PORT|Address already in use/i,
         title: 'Conflicto de puerto al iniciar',
-        body: 'Tu servidor o aplicación intenta usar un puerto ocupado o distinto al asignado.\n\n**Solución:**\n- Usa `0.0.0.0` como host y el puerto asignado en tu pestaña **Network / Allocations** (en bots web suele ser `process.env.SERVER_PORT`).\n- En Minecraft, deja `server-ip=` vacío en `server.properties`.',
+        body: 'Tu servidor o aplicación intenta usar un puerto ocupado o distinto al asignado.\n\n**Solución:**\n- Usa `0.0.0.0` como host y el puerto asignado en la pestaña **Red y Puertos** (en bots web suele ser `process.env.SERVER_PORT`).\n- En Minecraft, deja `server-ip=` vacío en `server.properties`.',
     },
     {
         key: 'discord_token_intents',
         match: /Used disallowed intents|DisallowedIntent|Improper token has been passed|TOKEN_INVALID/i,
         title: 'Error de token o Intents de Discord',
-        body: 'Discord rechazó la conexión del bot por token inválido o Intents desactivados.\n\n**Solución:** entra en **Discord Developer Portal → tu app → Bot**, activa **Server Members Intent** y **Message Content Intent**, y si regeneraste el token actualiza la variable en **Startup** o `.env`.',
+        body: 'Discord rechazó la conexión del bot por token inválido o Intents desactivados.\n\n**Solución:** entra en **Discord Developer Portal → tu app → Bot**, activa **Server Members Intent** y **Message Content Intent**, y si regeneraste el token actualiza la variable en **Inicio** o en tu `.env`.',
     },
     {
         key: 'db_conn',
         match: /ECONNREFUSED.*3306|Access denied for user|Communications link failure|Unknown database/i,
         title: 'Error de conexión con la base de datos',
-        body: 'Tu servidor no logra conectar con MySQL/MariaDB con esos datos.\n\n**Solución:** verifica en **Panel → Databases** que el **Host/Endpoint**, usuario, contraseña y nombre exacto de base de datos coincidan (evita `localhost` si conectas a la base de datos del panel).',
+        body: 'Tu servidor no logra conectar con MySQL/MariaDB con esos datos.\n\n**Solución:** verifica en **Panel → tu servidor → Bases de Datos** que el **Host/Endpoint**, usuario, contraseña y nombre exacto de base de datos coincidan (evita `localhost` si conectas a la base de datos del panel).',
     },
 ];
 
@@ -795,6 +795,7 @@ module.exports = {
     ensureCommunityChannels,
     syncRolePicker,
     syncReviews,
+    reviewCard,
     seedVoiceStates,
     onVoiceStateUpdate,
     maybeHelpInSupport,
