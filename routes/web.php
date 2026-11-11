@@ -507,11 +507,11 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
     // Crear, configurar y borrar servidores (nodo, propietario, recursos): solo Owner/Admin.
     Route::get('/servers', [ServerController::class, 'index'])->name('servers.index');
     Route::middleware('admin')->group(function () {
-        Route::resource('servers', ServerController::class)->except(['show', 'index']);
+        // Sin nombres repetidos (si no, `php artisan route:cache` falla). Son las mismas rutas que respondían antes.
+        Route::resource('servers', ServerController::class)->only(['create', 'destroy']);
         Route::get('/servers/{server}/edit', [ServerController::class, 'edit'])->name('servers.edit');
         Route::post('/servers', [ServerController::class, 'store'])->name('servers.store');
-        Route::put('/servers/{server}', [ServerController::class, 'update'])->name('servers.update');
-        Route::delete('/servers/{uuid}', [ServerController::class, 'destroy'])->name('servers.destroy');
+        Route::match(['put', 'patch'], '/servers/{server}', [ServerController::class, 'update'])->name('servers.update');
     });
     Route::post('/servers/{server}/transfer-owner', [App\Http\Controllers\ServerSubusersController::class, 'transferOwner'])->name('servers.transfer_owner');
 
