@@ -14,6 +14,7 @@ use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -683,6 +684,8 @@ PHP;
                     } elseif ($state !== 'starting') {
                         $wings->power($server, 'start');
                     }
+                    // Un reinicio pasa un momento por «offline»: wait_site no debe tomarlo como un fallo
+                    Cache::put("apps-js-start:{$server->id}", time(), 120);
 
                     return response()->json(['ok' => true]);
 
@@ -692,7 +695,8 @@ PHP;
                     if ($state['state'] === 'installed' && $state['configured'] && $power === 'running') {
                         return response()->json($state);
                     }
-                    if ($power === 'offline') {
+                    $startedAt = (int) Cache::get("apps-js-start:{$server->id}", 0);
+                    if ($power === 'offline' && time() - $startedAt > 20) {
                         return response()->json(['message' => "El servidor se detuvo mientras se creaba {$name}. Mira la Consola para ver el error y vuelve a pulsar Instalar."], 422);
                     }
 
