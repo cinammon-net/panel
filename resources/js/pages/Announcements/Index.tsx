@@ -72,6 +72,35 @@ const emptyForm = (): Form => ({
 /** Plantillas rápidas para no empezar de cero. */
 const TEMPLATES: { name: string; data: Partial<Form>; days?: number }[] = [
     {
+        name: 'Calendario de Adviento 🎄',
+        days: 24,
+        data: {
+            type: 'event',
+            title: '🎄 ¡Calendario de Adviento activo! Abre tu regalo diario',
+            highlight: 'REGALO',
+            coupon_code: '',
+            message: 'Entra cada día, abre la casilla correspondiente y consigue hasta +1.500 monedas gratis y cofres especiales.',
+            cta_label: 'Abrir casilla de hoy',
+            cta_url: 'https://billing.cinammon.net/advent',
+            places: ['web', 'panel', 'store'],
+            popup: true,
+        },
+    },
+    {
+        name: 'Servidor gratis con monedas',
+        data: {
+            type: 'offer',
+            title: '¡Consigue tu servidor 100% gratis con monedas!',
+            highlight: 'GRATIS',
+            coupon_code: '',
+            message: 'Juegos, bots de Discord, webs y más: gana monedas completando misiones diarias e invitando amigos y despliega tu servidor sin pagar nada.',
+            cta_label: 'Conseguir servidor gratis',
+            cta_url: 'https://billing.cinammon.net/coins',
+            places: ['web', 'panel', 'store'],
+            popup: true,
+        },
+    },
+    {
         name: 'Descuento por tiempo limitado',
         days: 3,
         data: { type: 'offer', title: 'Descuento en todos los planes', highlight: '-30%', coupon_code: 'CINAMMON30', message: 'Solo durante unos días. ¡Aprovecha y despliega tu servidor hoy!', cta_label: 'Ver planes', popup: true },
