@@ -26,7 +26,7 @@ return new class extends Migration
                     'Nodejs 20' => 'ghcr.io/parkervcp/yolks:nodejs_20',
                     'Python 3.12' => 'ghcr.io/parkervcp/yolks:python_3.12',
                 ]),
-                'startup' => "if [[ -d .git ]] && [[ \"{{AUTO_UPDATE}}\" == \"1\" ]]; then git pull; fi; if [ -f /home/container/package.json ]; then npm install --production; fi; if [ -f /home/container/requirements.txt ]; then pip install -r requirements.txt; fi; if [[ -f /home/container/${MAIN_FILE} ]]; then if [[ \"${MAIN_FILE}\" == *.py ]]; then python /home/container/${MAIN_FILE}; elif [[ \"${MAIN_FILE}\" == *.ts ]]; then npx ts-node /home/container/${MAIN_FILE}; else node /home/container/${MAIN_FILE}; fi; else node index.js; fi",
+                'startup' => 'if [[ -d .git ]] && [[ "{{AUTO_UPDATE}}" == "1" ]]; then git pull; fi; if [ -f /home/container/package.json ]; then npm install --production; fi; if [ -f /home/container/requirements.txt ]; then pip install -r requirements.txt; fi; if [[ -f /home/container/{{MAIN_FILE}} ]]; then if [[ "{{MAIN_FILE}}" == *.py ]]; then python /home/container/{{MAIN_FILE}}; elif [[ "{{MAIN_FILE}}" == *.ts ]]; then npx ts-node /home/container/{{MAIN_FILE}}; else node /home/container/{{MAIN_FILE}}; fi; else node index.js; fi',
                 'config_stop' => '^C',
                 'features' => json_encode(['eula']),
             ]
@@ -71,7 +71,7 @@ return new class extends Migration
                     'Nodejs 22 (LTS)' => 'ghcr.io/parkervcp/yolks:nodejs_22',
                     'Nodejs 20' => 'ghcr.io/parkervcp/yolks:nodejs_20',
                 ]),
-                'startup' => "if [[ -d .git ]] && [[ \"{{AUTO_UPDATE}}\" == \"1\" ]]; then git pull; fi; if [ -f /home/container/requirements.txt ]; then pip install -r requirements.txt; fi; if [ -f /home/container/package.json ]; then npm install --production; fi; if [[ -f /home/container/${MAIN_FILE} ]]; then if [[ \"${MAIN_FILE}\" == *.py ]]; then python /home/container/${MAIN_FILE}; elif [[ \"${MAIN_FILE}\" == *.ts ]]; then npx ts-node /home/container/${MAIN_FILE}; else node /home/container/${MAIN_FILE}; fi; else python bot.py; fi",
+                'startup' => 'if [[ -d .git ]] && [[ "{{AUTO_UPDATE}}" == "1" ]]; then git pull; fi; if [ -f /home/container/requirements.txt ]; then pip install -r requirements.txt; fi; if [ -f /home/container/package.json ]; then npm install --production; fi; if [[ -f /home/container/{{MAIN_FILE}} ]]; then if [[ "{{MAIN_FILE}}" == *.py ]]; then python /home/container/{{MAIN_FILE}}; elif [[ "{{MAIN_FILE}}" == *.ts ]]; then npx ts-node /home/container/{{MAIN_FILE}}; else node /home/container/{{MAIN_FILE}}; fi; else python bot.py; fi',
                 'config_stop' => '^C',
                 'features' => json_encode(['eula']),
             ]
