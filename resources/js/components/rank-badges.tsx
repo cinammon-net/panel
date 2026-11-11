@@ -361,6 +361,8 @@ export function RoleBadge({ role, size = 'sm' }: { role: string; size?: 'xs' | '
 export default function RankBadges({ max = 6 }: { max?: number }) {
     const { badges = [], billingUrl } = usePage<{ badges?: Badge[]; billingUrl?: string }>().props;
     const hasRank = badges.some((b) => b.kind === 'rank');
+    // Con el rango más alto (el Owner lo tiene siempre) no hay nada que mejorar.
+    const isTop = badges.some((b) => b.name === 'Leyenda Cinammon');
 
     const shown = badges.slice(0, max);
     const rest = badges.length - shown.length;
@@ -392,7 +394,7 @@ export default function RankBadges({ max = 6 }: { max?: number }) {
                 );
             })}
             {rest > 0 && <span className="px-1 text-[9px] text-neutral-500">+{rest}</span>}
-            {billingUrl && (
+            {billingUrl && !isTop && (
                 <a
                     href={`${billingUrl}/store/ranks`}
                     target="_blank"

@@ -102,7 +102,22 @@ class Ranks
             RoleGrant::firstOrCreate(['user_id' => $user->id, 'source' => 'auto', 'role' => $role]);
         }
 
+        self::ownerRank($user);
         self::apply($user);
+    }
+
+    /** El Owner siempre tiene el rango más alto (Leyenda Cinammon), sin caducidad y con las ventajas al máximo. */
+    private static function ownerRank(User $user): void
+    {
+        $top = config('ranks.purchasable.leyenda.name', 'Leyenda Cinammon');
+        if ($user->hasRole('Owner')) {
+            RoleGrant::updateOrCreate(
+                ['user_id' => $user->id, 'source' => 'staff', 'role' => $top],
+                ['perks' => ['backups' => 50, 'databases' => 50, 'allocations' => 50, 'priority' => true], 'expires_at' => null]
+            );
+        } else {
+            RoleGrant::where('user_id', $user->id)->where('source', 'staff')->delete();
+        }
     }
 
     /** Igual que sync() pero como mucho una vez cada 10 min por usuario (se llama en cada página). */
@@ -143,7 +158,7 @@ class Ranks
         }
 
         return Cache::remember("ranks:perks:{$user->id}", 300, function () use ($user, $base) {
-            foreach (RoleGrant::where('user_id', $user->id)->where('source', 'billing')->active()->get() as $grant) {
+            foreach (RoleGrant::where('user_id', $user->id)->whereIn('source', ['billing', 'staff'])->active()->get() as $grant) {
                 foreach ($grant->perks ?? [] as $key => $value) {
                     if ($key === 'priority') {
                         $base['priority'] = $base['priority'] || (bool) $value;
@@ -165,7 +180,7 @@ class Ranks
     /** Insignias para la interfaz: rangos comprados primero, luego los automáticos. */
     public static function badges(User $user): array
     {
-        $grants = RoleGrant::where('user_id', $user->id)->active()->orderByRaw("source = 'billing' desc")->get();
+        $grants = RoleGrant::where('user_id', $user->id)->active()->orderByRaw("source in ('staff', 'billing') desc")->get();
         $meta = [];
         foreach (config('ranks.purchasable') as $r) {
             $meta[$r['name']] = $r + ['kind' => 'rank'];

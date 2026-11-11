@@ -628,6 +628,7 @@ async function tick() {
         ['estado', () => syncStatus(data)],
         ['roles', () => syncRoles(data.members)],
         ['tickets', () => syncTickets(data.tickets)],
+        ['actividad', () => syncActivity(data)],
     ];
     if (Date.now() - lastCatalog > CATALOG_EVERY) {
         const season = await refreshSeason();
@@ -644,6 +645,102 @@ async function tick() {
             log(`[SYNC] ${name}: ${e.message}`);
         }
     }
+}
+
+/* ------------------------------------------- #nuevas-cuentas y #compras */
+
+const CYCLE = { hourly: 'hora', daily: 'día', weekly: 'semana', monthly: 'mes', quarterly: 'trimestre', semiannual: 'semestre', yearly: 'año' };
+const CATEGORY = { minecraft: 'Minecraft', games: 'Juegos', bots: 'Bots', database: 'Base de datos', databases: 'Base de datos', web: 'Hosting web', voice: 'Voz', software: 'Aplicaciones', ranks: 'Rango VIP' };
+
+function signupPost(u, total) {
+    return msg(container(accent, [
+        text(`### Nueva cuenta\n**${cut(u.name, 60)}**${u.discord_id ? ` (<@${u.discord_id}>)` : ''} acaba de unirse a Cinammon Network.`),
+        text(`-# ${ts(u.at, 'R')}${total ? ` · ya somos ${total} usuarios` : ''}`),
+        row(linkBtn('Crear mi cuenta', `${PANEL_PUBLIC}/register`)),
+    ]));
+}
+
+function purchasePost(e) {
+    const who = `**${cut(e.user || 'Alguien', 60)}**${e.discord_id ? ` (<@${e.discord_id}>)` : ''}`;
+    const what = `**${cut(e.plan || CATEGORY[e.category] || 'un servicio', 80)}**`;
+    const details = [
+        CATEGORY[e.category] && e.plan ? CATEGORY[e.category] : null,
+        e.ram_mb ? `${e.ram_mb >= 1024 ? `${+(e.ram_mb / 1024).toFixed(1)} GB` : `${e.ram_mb} MB`} RAM` : null,
+        e.type !== 'free' && e.amount != null ? `${eur(e.amount)}${CYCLE[e.cycle] ? ` / ${CYCLE[e.cycle]}` : ''}` : null,
+    ].filter(Boolean).join(' · ');
+    const view = {
+        free: [0x10b981, 'Nuevo servidor gratuito', `${who} ha creado su servidor gratis: ${what}.`, linkBtn('Crear el mío gratis', `${BILLING}/coins`)],
+        purchase: [accent, 'Nueva compra', `${who} ha contratado ${what}.`, linkBtn('Ver planes', `${BILLING}/store`)],
+        renewal: [0x6366f1, 'Renovación', `${who} ha renovado ${what}.`, linkBtn('Ver planes', `${BILLING}/store`)],
+    }[e.type] || [accent, 'Compra', `${who}: ${what}.`, linkBtn('Ver planes', `${BILLING}/store`)];
+    return msg(container(view[0], [
+        text(`### ${view[1]}\n${view[2]}`),
+        details ? text(details) : null,
+        text(`-# ${ts(e.at, 'R')}`),
+        row(view[3]),
+    ].filter(Boolean)));
+}
+
+/** Publica cuentas nuevas y compras. La primera vez solo memoriza lo que ya había (no inunda el canal). */
+async function syncActivity(data) {
+    const ch = ctx.layout.channels;
+    const first = !st.activity;
+    st.activity ??= { users: [], events: [] };
+    const A = st.activity;
+    let changed = first;
+
+    for (const u of [...(data.signups || [])].reverse()) {
+        if (A.users.includes(u.id)) continue;
+        if (!first && ch.signups) await discord('POST', `/channels/${ch.signups}/messages`, signupPost(u, data.stats?.users));
+        A.users.push(u.id);
+        changed = true;
+    }
+    if (Array.isArray(data.purchases)) {
+        const seed = !A.purchasesSeeded;
+        if (seed) { A.purchasesSeeded = true; changed = true; }
+        for (const e of data.purchases) {
+            if (A.events.includes(e.key)) continue;
+            if (!seed && ch.purchases) await discord('POST', `/channels/${ch.purchases}/messages`, purchasePost(e));
+            A.events.push(e.key);
+            changed = true;
+        }
+    }
+    A.users = A.users.slice(-300);
+    A.events = A.events.slice(-500);
+    if (changed) saveState();
+}
+
+/** Crea #nuevas-cuentas y #compras (solo lectura) justo debajo de #llegadas. */
+async function ensureFeedChannels() {
+    const L = ctx.layout;
+    const VIEW = 1n << 10n, SEND = 1n << 11n, THREADS = (1n << 35n) | (1n << 36n) | (1n << 38n);
+    let created = false;
+    for (const [key, name, topic] of [
+        ['signups', '├・nuevas-cuentas', 'Cada cuenta nueva en cinammon.net. Se publica sola.'],
+        ['purchases', '├・compras', 'Compras, renovaciones y servidores gratuitos. Se publica solo.'],
+    ]) {
+        if (L.channels[key] && (await discord('GET', `/channels/${L.channels[key]}`).then(() => true).catch((e) => e.status !== 404))) continue;
+        const c = await discord('POST', `/guilds/${ctx.guild}/channels`, {
+            name, type: 0, parent_id: L.categories.community, topic,
+            permission_overwrites: [
+                { id: ctx.guild, type: 0, allow: String(VIEW), deny: String(SEND | THREADS) },
+                { id: ctx.appId, type: 1, allow: String(VIEW | SEND), deny: '0' },
+            ],
+        }, 'Canales de actividad');
+        L.channels[key] = c.id;
+        created = true;
+        log(`[SYNC] Canal ${name} creado (${c.id}).`);
+    }
+    if (!created) return;
+    fs.writeFileSync(LAYOUT_PATH, JSON.stringify(L, null, 2));
+    // Orden en COMUNIDAD: ... #llegadas, #nuevas-cuentas, #compras, y después el resto (voz incluida)
+    const all = (await discord('GET', `/guilds/${ctx.guild}/channels`)).filter((c) => c.parent_id === L.categories.community).sort((a, b) => a.position - b.position);
+    const feed = [L.channels.signups, L.channels.purchases];
+    const rest = all.filter((c) => !feed.includes(c.id));
+    const at = rest.findIndex((c) => c.id === L.channels.arrivals) + 1 || rest.length;
+    const ordered = [...rest.slice(0, at).map((c) => c.id), ...feed, ...rest.slice(at).map((c) => c.id)];
+    const base = Math.min(...all.map((c) => c.position));
+    await discord('PATCH', `/guilds/${ctx.guild}/channels`, ordered.map((id, i) => ({ id, position: base + i })));
 }
 
 /** Crea #llegadas (bienvenidas y despedidas) si todavía no existe. */
@@ -744,6 +841,7 @@ function start({ token, guildId, appId }) {
     const run = () => serial(tick).catch((e) => log(`[SYNC] ${e.message}`));
     serial(async () => {
         await ensureArrivals().catch((e) => log(`[SYNC] #llegadas: ${e.message}`));
+        await ensureFeedChannels().catch((e) => log(`[SYNC] canales de actividad: ${e.message}`));
         await registerCommands().catch((e) => log(`[SYNC] comandos: ${e.message}`));
         await members.loadInvites();
     });

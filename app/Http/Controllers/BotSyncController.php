@@ -10,6 +10,8 @@ use App\Models\Server;
 use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 
 /**
@@ -53,7 +55,54 @@ class BotSyncController extends Controller
             ],
             'members' => $members,
             'tickets' => $tickets,
+            // Canales #nuevas-cuentas y #compras (últimos 7 días; el bot publica solo lo nuevo)
+            'signups' => User::visible()->where('created_at', '>=', now()->subDays(7))
+                ->latest()->limit(30)->get(['id', 'name', 'discord_id', 'created_at'])
+                ->map(fn (User $u) => [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'discord_id' => $u->discord_id ? (string) $u->discord_id : null,
+                    'at' => $u->created_at?->toIso8601String(),
+                ])->values(),
+            'purchases' => $this->purchases(),
         ]);
+    }
+
+    /** Compras, renovaciones y servidores gratuitos de la tienda, sin correos (solo el Discord vinculado). */
+    private function purchases(): ?array
+    {
+        $events = Cache::remember('bot:billing-feed', 45, function () {
+            $base = rtrim((string) config('services.billing.url'), '/');
+            $token = (string) config('services.billing.token');
+            if ($base === '' || $token === '') {
+                return null;
+            }
+            try {
+                $ca = (string) config('services.billing.ca');
+                $res = Http::withHeaders(['X-Billing-Token' => $token])->acceptJson()->timeout(8)
+                    ->when($ca !== '', fn ($h) => $h->withOptions(['verify' => $ca]))
+                    ->post($base.'/api/panel/bot/feed');
+
+                return $res->successful() ? ($res->json('events') ?? []) : null;
+            } catch (\Throwable $e) {
+                report($e);
+
+                return null;
+            }
+        });
+        if ($events === null) {
+            return null; // la tienda no responde: el bot no toca nada
+        }
+        $emails = collect($events)->pluck('email')->filter()->map(fn ($e) => strtolower($e))->unique();
+        $discord = User::whereIn(\DB::raw('LOWER(email)'), $emails)->whereNotNull('discord_id')
+            ->get(['email', 'discord_id'])->mapWithKeys(fn ($u) => [strtolower($u->email) => (string) $u->discord_id]);
+
+        return collect($events)->map(function ($e) use ($discord) {
+            $e['discord_id'] = $discord[strtolower((string) ($e['email'] ?? ''))] ?? null;
+            unset($e['email']);
+
+            return $e;
+        })->values()->all();
     }
 
     /** Mensajes de un ticket posteriores a ?after=ID (para llevarlos al hilo de Discord). */
