@@ -12,10 +12,11 @@ class PostController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): Response 
+    public function index(Request $request): Response
     {
         return Inertia::render('Posts', [
-            'posts' => Post::all(),
+            'posts' => Post::latest()->get(),
+            'canManage' => (bool) $request->user()?->hasAnyRole(['Owner', 'Admin']),
         ]);
     }
 

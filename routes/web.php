@@ -332,10 +332,12 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
     // Reviews
     Route::resource('reviews', ReviewController::class)->except(['show']);
 
-    // Posts: solo Owner/Admin
+    // Posts: lectura para usuarios autenticados; creación/edición/borrado solo Owner/Admin
+    Route::get('/posts', [PostController::class, 'index'])->name('posts.index');
     Route::middleware('admin')->group(function () {
-        Route::resource('posts', PostController::class);
+        Route::resource('posts', PostController::class)->except(['index', 'show']);
     });
+    Route::get('/posts/{post}', [PostController::class, 'show'])->whereNumber('post')->name('posts.show');
 
     // Tickets
     Route::resource('tickets', TicketController::class)->except(['create']);
