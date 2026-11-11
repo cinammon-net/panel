@@ -24,7 +24,7 @@ $script = <<<'SH'
 #!/bin/sh
 set -eu
 cd /mnt/server
-for item in package.json package-lock.json src node_modules; do
+for item in package.json package-lock.json index.js src assets node_modules; do
     if [ ! -e "$item" ]; then cp -R "/opt/bot/$item" .; fi
 done
 if [ ! -f bot-config.json ]; then
