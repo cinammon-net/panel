@@ -38,10 +38,48 @@ const handleSystemThemeChange = () => {
     applyTheme(currentAppearance || 'system');
 };
 
+export function applyFont(font: string) {
+    if (!font) return;
+    document.documentElement.style.setProperty('--app-font', `'${font}', sans-serif`);
+    try {
+        localStorage.setItem('app-font', font);
+    } catch {}
+
+    const systemFonts = [
+        'Arial', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Times New Roman',
+        'Georgia', 'Courier New', 'Lucida Console', 'Segoe UI',
+        'Palatino Linotype', 'Impact', 'Gill Sans', 'Franklin Gothic Medium',
+        'Calibri', 'Cambria'
+    ];
+
+    let link = document.getElementById('cinammon-font-link') as HTMLLinkElement | null;
+    if (!systemFonts.includes(font) && font !== 'Orbitron') {
+        if (!link) {
+            link = document.createElement('link');
+            link.id = 'cinammon-font-link';
+            link.rel = 'stylesheet';
+            document.head.appendChild(link);
+        }
+        link.href = `https://fonts.googleapis.com/css2?family=${font.replaceAll(' ', '+')}:wght@400;600;700&display=swap`;
+    } else if (link && link.parentNode) {
+        link.parentNode.removeChild(link);
+    }
+}
+
+export function initializeFont() {
+    try {
+        const savedFont = localStorage.getItem('app-font');
+        if (savedFont) {
+            applyFont(savedFont);
+        }
+    } catch {}
+}
+
 export function initializeTheme() {
     const savedAppearance = (localStorage.getItem('appearance') as Appearance) || 'system';
 
     applyTheme(savedAppearance);
+    initializeFont();
 
     // Add the event listener for system theme changes...
     mediaQuery()?.addEventListener('change', handleSystemThemeChange);

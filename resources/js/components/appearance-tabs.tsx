@@ -1,4 +1,4 @@
-import { Appearance, useAppearance } from '@/hooks/use-appearance';
+import { Appearance, applyFont, useAppearance } from '@/hooks/use-appearance';
 import { cn } from '@/lib/utils';
 import { usePage } from '@inertiajs/react';
 import { LucideIcon, Monitor, Moon, Sun } from 'lucide-react';
@@ -12,41 +12,7 @@ export default function AppearanceToggleTab({ className = '', ...props }: HTMLAt
     const [font, setFont] = useState(() => localStorage.getItem('app-font') || availableFonts[0]);
 
     useEffect(() => {
-        if (!font) return;
-
-        document.documentElement.style.setProperty('--app-font', `'${font}', sans-serif`);
-        localStorage.setItem('app-font', font);
-
-        const systemFonts = [
-            'Arial',
-            'Verdana',
-            'Tahoma',
-            'Trebuchet MS',
-            'Times New Roman',
-            'Georgia',
-            'Courier New',
-            'Lucida Console',
-            'Segoe UI',
-            'Palatino Linotype',
-            'Impact',
-            'Gill Sans',
-            'Franklin Gothic Medium',
-            'Calibri',
-            'Cambria',
-        ];
-
-        if (!systemFonts.includes(font)) {
-            const link = document.createElement('link');
-            link.href = `https://fonts.googleapis.com/css2?family=${font.replaceAll(' ', '+')}&display=swap`;
-            link.rel = 'stylesheet';
-            document.head.appendChild(link);
-
-            return () => {
-                if (link.parentNode) {
-                    link.parentNode.removeChild(link);
-                }
-            };
-        }
+        applyFont(font);
     }, [font]);
     
 

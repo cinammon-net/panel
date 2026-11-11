@@ -80,10 +80,26 @@
     <link rel="shortcut icon" type="image/png" href="{{ $cinFavicon }}">
     <link rel="apple-touch-icon" href="{{ $cinFavicon }}">
 
-    <!-- 🔤 Fuente Orbitron -->
+    <!-- 🔤 Fuente Orbitron y tipografía global personalizada -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        try {
+            const f = localStorage.getItem('app-font');
+            if (f) {
+                document.documentElement.style.setProperty('--app-font', `'${f}', sans-serif`);
+                const sys = ['Arial', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Times New Roman', 'Georgia', 'Courier New', 'Lucida Console', 'Segoe UI', 'Palatino Linotype', 'Impact', 'Gill Sans', 'Franklin Gothic Medium', 'Calibri', 'Cambria', 'Orbitron'];
+                if (!sys.includes(f)) {
+                    const l = document.createElement('link');
+                    l.id = 'cinammon-font-link';
+                    l.rel = 'stylesheet';
+                    l.href = `https://fonts.googleapis.com/css2?family=${f.replaceAll(' ', '+')}:wght@400;600;700&display=swap`;
+                    document.head.appendChild(l);
+                }
+            }
+        } catch (e) {}
+    </script>
 
     <!-- 🔗 Laravel + Inertia + React -->
     @routes
