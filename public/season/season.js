@@ -64,7 +64,7 @@
     // Colores de las part\u00edculas: los tonos de la paleta de la temporada (o los de marca si no hay paleta).
     function particleColors() {
         var pal = paletteKey && PALETTES[paletteKey];
-        if (!pal || !fxOn) return CONFETTI;
+        if (!pal) return CONFETTI;
         return [0, 1, 3, 6].filter(function (i) { return pal[i] != null; }).map(function (i) { return 'oklch(0.78 0.15 ' + pal[i] + ')'; });
     }
     var cfg = THEMES[theme] || THEMES.stars;
@@ -637,15 +637,15 @@
 
         var fx = document.createElement('button');
         fx.type = 'button';
-        fx.title = 'Efectos y colores de temporada';
-        fx.setAttribute('aria-label', 'Activar o desactivar efectos de temporada');
+        fx.title = 'Part\u00edculas de temporada';
+        fx.setAttribute('aria-label', 'Activar o desactivar las part\u00edculas de temporada');
         fx.style.cssText = 'flex-shrink:0;width:24px;height:24px;display:grid;place-items:center;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:transparent;color:' + ACC + ';cursor:pointer;padding:0';
         fx.innerHTML = icon('fx', 13);
         var paint = function () { fx.style.opacity = fxOn ? '1' : '.4'; fx.setAttribute('aria-pressed', fxOn ? 'true' : 'false'); };
         paint();
         fx.onclick = function () {
+            // Solo enciende o apaga las part\u00edculas: los colores siguen siempre la temporada o la fiesta.
             fxOn = !fxOn; store.set(FX_KEY, fxOn ? 'on' : 'off'); paint();
-            applyColors(fxOn);
             if (fxOn) startFx(); else stopFx();
         };
         el.appendChild(fx);
@@ -695,8 +695,8 @@
         pill();
         if (fxOn) startFx();
     }
-    // Los colores se aplican cuanto antes (antes de pintar) para evitar el parpadeo.
-    applyColors(fxOn);
+    // Los colores de la temporada se aplican siempre y cuanto antes (antes de pintar) para evitar el parpadeo.
+    applyColors(true);
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
     }
 })();
