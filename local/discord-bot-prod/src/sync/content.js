@@ -361,30 +361,84 @@ const GUIDES = [
     },
 ];
 
-function guideText(g) {
-    const body = g.body().join('\n');
-    const foot = `\n\n-# ¿Dudas con esta guía? Responde aquí abajo. Para algo de tu cuenta, ticket en <#${env.ctx().layout.channels.tickets}>.`;
-    return (body + foot).slice(0, 2000);
+const TAG_COLOR = {
+    'Empieza aquí': 0xec4899, Minecraft: 0x22c55e, Bots: 0x5865f2,
+    'Web y Dominios': 0xf59e0b, 'Bases de Datos': 0x06b6d4, 'Archivos y copias': 0xa855f7,
+};
+const threadUrl = (id) => `https://discord.com/channels/${env.ctx().guild}/${id}`;
+
+/** Parte el texto de una guía en bloques por cada "## Título". */
+function sections(lines) {
+    const out = [];
+    for (const line of lines) {
+        if (line.startsWith('## ') || !out.length) out.push([]);
+        out[out.length - 1].push(line.startsWith('## ') ? `### ${line.slice(3)}` : line);
+    }
+    return out.map((b) => b.join('\n').trim()).filter(Boolean);
 }
 
-function indexText(threads) {
-    const byTag = new Map();
-    for (const g of GUIDES) {
-        if (!threads[g.key]) continue;
-        if (!byTag.has(g.tag)) byTag.set(g.tag, []);
-        byTag.get(g.tag).push(`- <#${threads[g.key]}>`);
+/** Guía como tarjeta: cabecera, bloques separados y botones (panel, duda, ticket, anterior/siguiente). */
+function guidePayload(g, threads) {
+    const { text, sep, row, container } = env.ui;
+    const L = env.ctx().layout;
+    const lines = g.body();
+    const blocks = sections(lines);
+    const minutes = Math.max(1, Math.round(lines.join(' ').split(/\s+/).length / 180));
+    const i = GUIDES.indexOf(g);
+    const prev = GUIDES.slice(0, i).reverse().find((x) => threads[x.key]);
+    const next = GUIDES.slice(i + 1).find((x) => threads[x.key]);
+    const nav = [
+        prev ? { type: 2, style: 5, label: `Anterior: ${prev.title}`.slice(0, 80), url: threadUrl(threads[prev.key]) } : null,
+        next ? { type: 2, style: 5, label: `Siguiente: ${next.title}`.slice(0, 80), url: threadUrl(threads[next.key]) } : null,
+        threads.__index ? { type: 2, style: 5, label: 'Índice', url: threadUrl(threads.__index) } : null,
+    ].filter(Boolean);
+    const comps = [
+        text(`-# GUÍA OFICIAL · ${g.tag.toUpperCase()} · ${minutes} min de lectura\n# ${g.title}`),
+        sep(2),
+    ];
+    blocks.forEach((b, n) => {
+        if (n) comps.push(sep(1, false));
+        comps.push(text(b));
+    });
+    comps.push(sep(2));
+    comps.push(text(`-# ¿Te has atascado? Pulsa **Tengo una duda** y se abre tu pregunta en <#${L.channels.help}>. Si es de tu cuenta o un pago, abre un ticket.`));
+    comps.push(row(
+        { type: 2, style: 5, label: 'Abrir el panel', url: env.PANEL },
+        { type: 2, style: 1, label: 'Tengo una duda', custom_id: 'sup:ask' },
+        { type: 2, style: 2, label: 'Abrir ticket', custom_id: 'ticket:open' },
+    ));
+    if (nav.length) comps.push(row(...nav));
+    return { flags: V2, components: [container(TAG_COLOR[g.tag] ?? env.accent(), comps)], allowed_mentions: { parse: [] } };
+}
+
+/** Índice fijado: una fila por guía con su botón, agrupadas por etiqueta. */
+function indexPayload(threads) {
+    const { text, sep, row, container } = env.ui;
+    const L = env.ctx().layout;
+    const comps = [
+        text('-# GUÍAS OFICIALES DE CINAMMON\n# Empieza aquí\nGuías escritas por el equipo con los nombres reales de las pestañas del panel. Elige la tuya y pulsa **Abrir**; también puedes usar la barra de búsqueda o filtrar por etiqueta.'),
+    ];
+    for (const tag of GUIDE_TAGS) {
+        const list = GUIDES.filter((g) => g.tag === tag && threads[g.key]);
+        if (!list.length) continue;
+        // Discord admite 40 componentes por mensaje: el título de la etiqueta va dentro de su primera guía
+        comps.push(sep(1));
+        list.forEach((g, n) => {
+            const words = g.body().join(' ').split(/\s+/).length;
+            comps.push({
+                type: 9,
+                components: [text(`${n ? '' : `### ${tag}\n`}**${g.title}**\n-# ${Math.max(1, Math.round(words / 180))} min de lectura`)],
+                accessory: { type: 2, style: 5, label: 'Abrir', url: threadUrl(threads[g.key]) },
+            });
+        });
     }
-    const sections = [...byTag].map(([tag, lines]) => `**${tag}**\n${lines.join('\n')}`).join('\n\n');
-    return [
-        '## Guías de Cinammon',
-        'Guías oficiales escritas por el equipo con los nombres reales de las pestañas del panel. Usa la **barra de búsqueda** de arriba o filtra por etiqueta.',
-        '',
-        sections,
-        '',
-        '**¿No encuentras lo tuyo?**',
-        `- Pregunta en <#${env.ctx().layout.channels.help}>; si sale mucho, lo convertimos en guía.`,
-        `- Propón una guía nueva en <#${env.ctx().layout.channels.suggestions || env.ctx().layout.channels.help}>.`,
-    ].join('\n').slice(0, 2000);
+    comps.push(sep(2));
+    comps.push(text(`### ¿No encuentras lo tuyo?\nPregunta en <#${L.channels.help}>: si sale mucho, lo convertimos en guía.${L.channels.suggestions ? ` Para proponer una guía nueva, usa <#${L.channels.suggestions}>.` : ''}`));
+    comps.push(row(
+        { type: 2, style: 1, label: 'Hacer una pregunta', custom_id: 'sup:ask' },
+        { type: 2, style: 5, label: 'Abrir el panel', url: env.PANEL },
+    ));
+    return { flags: V2, components: [container(env.accent(), comps)], allowed_mentions: { parse: [] } };
 }
 
 /** Etiquetas de un foro: añade las que falten sin tocar las que ya hay; `moderated` para las de estado. */
@@ -407,30 +461,41 @@ async function allThreads(forumId) {
     return [...active.filter((t) => t.parent_id === forumId), ...archived];
 }
 
-/** Crea o actualiza una publicación del bot en un foro. Devuelve el id del hilo. */
-async function upsertThread(forum, slot, { name, content, tagIds }, known) {
-    const h = hash([name, content, tagIds]);
+/**
+ * Crea o actualiza una publicación del bot en un foro. Devuelve el id del hilo.
+ * `payload` = mensaje con tarjeta (Components V2); si no, `content` en texto.
+ */
+async function upsertThread(forum, slot, { name, content, payload, tagIds }, known) {
+    const message = payload || { content, allowed_mentions: { parse: [] } };
+    const h = hash([name, message, tagIds]);
     let prev = slot.get();
     if (!prev && known) prev = { thread: known.id, hash: null };
     if (prev) {
         const exists = await env.discord('GET', `/channels/${prev.thread}`).then(() => true).catch((e) => e.status !== 404);
+        if (exists && prev.hash === h) return prev.thread;
         if (exists) {
-            if (prev.hash !== h) {
-                await env.discord('PATCH', `/channels/${prev.thread}`, { archived: false, name: name.slice(0, 100), applied_tags: tagIds }).catch((e) => env.log(`[SYNC] guía ${name}: ${e.message}`));
-                await env.discord('PATCH', `/channels/${prev.thread}/messages/${prev.thread}`, { content, allowed_mentions: { parse: [] } });
-                slot.set({ thread: prev.thread, hash: h });
+            await env.discord('PATCH', `/channels/${prev.thread}`, { archived: false, name: name.slice(0, 100), applied_tags: tagIds }).catch((e) => env.log(`[SYNC] guía ${name}: ${e.message}`));
+            try {
+                // De texto a tarjeta: se vacía el texto en la misma edición
+                await env.discord('PATCH', `/channels/${prev.thread}/messages/${prev.thread}`, payload && !prev.v2 ? { content: '', embeds: [], ...message } : message);
+                slot.set({ thread: prev.thread, hash: h, v2: !!payload });
                 env.saveState();
+                return prev.thread;
+            } catch (e) {
+                if (!payload || prev.v2) throw e;
+                // Discord no deja convertir ese mensaje: se rehace la publicación
+                env.log(`[SYNC] ${name}: se vuelve a publicar como tarjeta (${e.message})`);
+                await env.discord('DELETE', `/channels/${prev.thread}`, undefined, 'Publicación rehecha como tarjeta').catch(() => {});
             }
-            return prev.thread;
         }
     }
     const t = await env.discord('POST', `/channels/${forum.id}/threads`, {
         name: name.slice(0, 100),
         auto_archive_duration: 10080,
         applied_tags: tagIds,
-        message: { content, allowed_mentions: { parse: [] } },
+        message,
     }, 'Guía oficial');
-    slot.set({ thread: t.id, hash: h });
+    slot.set({ thread: t.id, hash: h, v2: !!payload });
     env.saveState();
     return t.id;
 }
@@ -459,17 +524,23 @@ async function syncGuides() {
     }
 
     const existing = await allThreads(forum.id);
-    const threads = {};
+    // Enlaces conocidos (para los botones de navegación); si se crea alguna guía, segunda pasada.
+    const threads = Object.fromEntries(GUIDES.filter((g) => S.guides[g.key]?.thread).map((g) => [g.key, S.guides[g.key].thread]));
+    if (S.pins.guides?.thread) threads.__index = S.pins.guides.thread;
+    const before = JSON.stringify(threads);
+    for (const pass of [1, 2]) {
+    if (pass === 2 && JSON.stringify(threads) === before) break;
     for (const g of GUIDES) {
         const known = g.legacy && !S.guides[g.key] ? existing.find((t) => t.name === g.legacy) : null;
         try {
             threads[g.key] = await upsertThread(forum, {
                 get: () => S.guides[g.key],
                 set: (v) => { S.guides[g.key] = v; },
-            }, { name: g.title, content: guideText(g), tagIds: tagId.get(g.tag) ? [tagId.get(g.tag)] : [] }, known);
+            }, { name: g.title, payload: guidePayload(g, threads), tagIds: tagId.get(g.tag) ? [tagId.get(g.tag)] : [] }, known);
         } catch (e) {
             env.log(`[SYNC] guía ${g.key}: ${e.message}`);
         }
+    }
     }
 
     // Índice fijado (un foro solo admite una publicación fijada)
@@ -477,7 +548,7 @@ async function syncGuides() {
         const idx = await upsertThread(forum, {
             get: () => S.pins.guides,
             set: (v) => { S.pins.guides = v; },
-        }, { name: 'Empieza aquí: índice de guías', content: indexText(threads), tagIds: tagId.get('Empieza aquí') ? [tagId.get('Empieza aquí')] : [] });
+        }, { name: 'Empieza aquí: índice de guías', payload: indexPayload(threads), tagIds: tagId.get('Empieza aquí') ? [tagId.get('Empieza aquí')] : [] });
         if (!S.pins.guidesPinned) {
             await env.discord('PATCH', `/channels/${idx}`, { flags: 2 }, 'Fijar índice');
             S.pins.guidesPinned = true;
