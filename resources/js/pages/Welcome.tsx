@@ -173,7 +173,7 @@ export default function WelcomePanel() {
                     <nav className="flex shrink-0 gap-2 sm:gap-3" data-aos="fade-left">
                         <a
                             href="#planes"
-                            className="hidden items-center rounded-md border border-[#00f7ff]/60 px-4 py-2 font-semibold text-[#00f7ff] transition hover:bg-[#00f7ff] hover:text-black sm:flex"
+                            className="hidden items-center rounded-md border border-amber-400/60 px-4 py-2 font-semibold text-amber-300 transition hover:bg-amber-400 hover:text-black sm:flex"
                         >
                             Planes
                         </a>
@@ -217,7 +217,7 @@ export default function WelcomePanel() {
                         data-aos="zoom-in"
                     >
                         <h1 className="mb-4 break-words text-3xl font-extrabold tracking-wider text-pink-400 sm:text-5xl sm:tracking-widest" data-aos="fade-up">
-                            <span className="text-[#00f7ff]">cinammon</span>.net
+                            <span className="text-fuchsia-400">cinammon</span>.net
                         </h1>
                         <p className="text-xl font-semibold text-pink-300 sm:text-2xl" data-aos="fade-up" data-aos-delay="100">
                             Tu red. Tu dominio. Tu juego.
@@ -259,7 +259,7 @@ export default function WelcomePanel() {
                                 <Zap className="h-3.5 w-3.5" aria-hidden /> INFRAESTRUCTURA CLOUD & GAME SERVERS
                             </div>
                             <h2 className="text-3xl font-extrabold text-white sm:text-5xl tracking-wide">
-                                Planes y <span className="bg-gradient-to-r from-pink-400 via-fuchsia-400 to-[#00f7ff] bg-clip-text text-transparent">Precios</span>
+                                Planes y <span className="bg-gradient-to-r from-pink-400 via-fuchsia-400 to-amber-300 bg-clip-text text-transparent">Precios</span>
                             </h2>
                             <p className="mx-auto max-w-2xl text-sm text-neutral-400 sm:text-base">
                                 Contrata tu servidor y gestiona tus pagos desde nuestra área de clientes, totalmente integrada con el panel.
@@ -273,28 +273,28 @@ export default function WelcomePanel() {
                                 return (
                                     <div
                                         key={cat.key}
-                                        className="flex flex-col justify-between rounded-2xl border border-pink-500/30 bg-black/75 p-6 text-left shadow-[0_0_20px_rgba(255,0,150,0.15)] backdrop-blur-md transition duration-300 hover:border-[#00f7ff] hover:shadow-[0_0_30px_rgba(0,247,255,0.25)] group"
+                                        className="flex flex-col justify-between rounded-2xl border border-pink-500/30 bg-black/75 p-6 text-left shadow-[0_0_20px_rgba(255,0,150,0.15)] backdrop-blur-md transition duration-300 hover:border-amber-400 hover:shadow-[0_0_30px_rgba(251,191,36,0.25)] group"
                                         data-aos="fade-up"
                                         data-aos-delay={index * 100}
                                     >
                                         <div>
                                             <div className="flex items-start justify-between gap-2">
-                                                <h3 className="min-w-0 text-lg font-bold tracking-wide text-pink-400 group-hover:text-[#00f7ff] transition">{cat.title}</h3>
-                                                <span className="mt-1 shrink-0 whitespace-nowrap font-mono text-[11px] rounded bg-neutral-900 px-2 py-0.5 border border-neutral-700 text-[#00f7ff]">{cat.plans.length} planes</span>
+                                                <h3 className="min-w-0 text-lg font-bold tracking-wide text-pink-400 group-hover:text-amber-300 transition">{cat.title}</h3>
+                                                <span className="mt-1 shrink-0 whitespace-nowrap font-mono text-[11px] rounded bg-neutral-900 px-2 py-0.5 border border-neutral-700 text-amber-300">{cat.plans.length} planes</span>
                                             </div>
                                             <p className="mt-1.5 text-xs text-neutral-400 line-clamp-2">{cat.tagline}</p>
 
                                             {featured && (
-                                                <div className="mt-4 rounded-xl border border-[#00f7ff]/30 bg-black/60 p-3.5 shadow-inner">
+                                                <div className="mt-4 rounded-xl border border-amber-400/30 bg-black/60 p-3.5 shadow-inner">
                                                     <div className="flex items-center justify-between gap-2">
                                                         <span className="min-w-0 truncate text-xs font-semibold text-white">{featured.name}</span>
                                                         {featured.popular && (
-                                                            <span className="shrink-0 whitespace-nowrap rounded-full bg-[#00f7ff] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-black">
+                                                            <span className="shrink-0 whitespace-nowrap rounded-full bg-amber-400 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-black">
                                                                 Popular
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <p className="mt-1 whitespace-nowrap text-2xl font-black text-[#00f7ff]">
+                                                    <p className="mt-1 whitespace-nowrap text-2xl font-black text-amber-300">
                                                         {featured.price.toFixed(2)} €<span className="text-xs font-normal text-neutral-400">/mes</span>
                                                     </p>
                                                     {featured.role ? (
@@ -343,11 +343,11 @@ export default function WelcomePanel() {
                                 return (
                                     <a
                                         href={`${billingUrl}/store`}
-                                        className={`${cls} group flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-[#00f7ff]/40 bg-black/50 p-8 text-center backdrop-blur-md transition duration-300 hover:border-[#00f7ff] hover:bg-black/70 hover:shadow-[0_0_30px_rgba(0,247,255,0.2)]`}
+                                        className={`${cls} group flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-amber-400/40 bg-black/50 p-8 text-center backdrop-blur-md transition duration-300 hover:border-amber-400 hover:bg-black/70 hover:shadow-[0_0_30px_rgba(251,191,36,0.2)]`}
                                         data-aos="fade-up"
                                     >
                                         <span className="font-mono text-[11px] tracking-widest text-neutral-400">// CATÁLOGO COMPLETO</span>
-                                        <span className="text-xl font-bold text-pink-400 transition group-hover:text-[#00f7ff]">¿No ves lo que buscas?</span>
+                                        <span className="text-xl font-bold text-pink-400 transition group-hover:text-amber-300">¿No ves lo que buscas?</span>
                                         <span className="max-w-md text-sm text-neutral-400">
                                             {billingCategories.reduce((t, c) => t + c.plans.length, 0)} planes en {n} categorías, rangos VIP y servidores gratis con monedas.
                                         </span>
@@ -361,7 +361,7 @@ export default function WelcomePanel() {
 
                         <a
                             href={`${billingUrl}/store`}
-                            className="rounded-xl border border-[#00f7ff]/60 px-6 py-3 font-semibold text-[#00f7ff] transition hover:bg-[#00f7ff] hover:text-black shadow-[0_0_15px_rgba(0,247,255,0.2)]"
+                            className="rounded-xl border border-amber-400/60 px-6 py-3 font-semibold text-amber-300 transition hover:bg-amber-400 hover:text-black shadow-[0_0_15px_rgba(251,191,36,0.2)]"
                             data-aos="fade-up"
                         >
                             Ir a la tienda completa de Cinammon Billing →
