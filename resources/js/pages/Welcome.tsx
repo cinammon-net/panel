@@ -566,16 +566,16 @@ export default function WelcomePanel() {
                 {discord?.url && (
                     <section id="discord" className="relative z-10 px-6 py-20 text-white sm:px-10">
                         <div
-                            className="mx-auto grid max-w-6xl items-center gap-10 overflow-hidden rounded-2xl border border-[#5865F2]/50 bg-gradient-to-br from-[#5865F2]/20 via-black to-pink-600/10 p-8 shadow-[0_0_40px_rgba(88,101,242,0.25)] sm:p-12 lg:grid-cols-[1.2fr_1fr]"
+                            className="mx-auto grid max-w-6xl items-center gap-10 overflow-hidden rounded-2xl border border-pink-500/40 bg-gradient-to-br from-pink-500/15 via-black to-fuchsia-600/10 p-8 shadow-[0_0_40px_rgba(236,72,153,0.2)] sm:p-12 lg:grid-cols-[1.2fr_1fr]"
                             data-aos="fade-up"
                         >
                             <div className="text-center lg:text-left">
-                                <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#5865F2]/60 bg-[#5865F2]/15 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-200">
-                                    <BrandIcon provider="discord" className="h-4 w-4" />
+                                <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-pink-500/50 bg-pink-500/15 px-3 py-1 text-xs font-bold uppercase tracking-widest text-pink-200">
+                                    <BrandIcon provider="discord" className="h-4 w-4 text-pink-300" />
                                     Comunidad
                                 </p>
                                 <h2 className="text-2xl font-bold sm:text-4xl">
-                                    Únete a nuestro <span className="text-[#8b95ff]">Discord</span>
+                                    Únete a nuestro <span className="text-pink-400">Discord</span>
                                 </h2>
                                 <p className="mt-4 text-sm text-neutral-300 sm:text-base">
                                     Soporte de tú a tú, anuncios y ofertas antes que nadie, y tu cuenta del panel conectada: tus servidores, monedas y tickets también desde Discord.
@@ -585,7 +585,7 @@ export default function WelcomePanel() {
                                         href={discord.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-3 rounded-xl bg-[#5865F2] px-6 py-3 text-sm font-bold text-white shadow-[0_0_20px_rgba(88,101,242,0.5)] transition hover:scale-105 hover:bg-[#4752c4]"
+                                        className="inline-flex items-center gap-3 rounded-xl bg-gradient-to-r from-pink-500 to-fuchsia-600 px-6 py-3 text-sm font-bold text-white shadow-[0_0_20px_rgba(236,72,153,0.35)] transition hover:scale-105 hover:from-pink-600 hover:to-fuchsia-700"
                                     >
                                         <BrandIcon provider="discord" className="h-5 w-5" />
                                         Unirme al Discord
@@ -615,8 +615,8 @@ export default function WelcomePanel() {
                                     { icon: Bot, title: 'Tu panel en el bot', text: 'Enciende servidores, mira tus monedas y facturas con comandos.' },
                                     { icon: Ticket, title: 'Roles y rangos', text: 'Vincula tu cuenta y recibe tu rango VIP y tus insignias.' },
                                 ].map(({ icon: Icon, title, text }) => (
-                                    <li key={title} className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/40 p-4">
-                                        <Icon className="mt-0.5 h-5 w-5 shrink-0 text-[#8b95ff]" aria-hidden />
+                                    <li key={title} className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/40 p-4 transition hover:border-pink-500/40">
+                                        <Icon className="mt-0.5 h-5 w-5 shrink-0 text-pink-400" aria-hidden />
                                         <div>
                                             <p className="font-bold text-white">{title}</p>
                                             <p className="mt-0.5 text-xs text-neutral-400">{text}</p>
@@ -809,7 +809,7 @@ export default function WelcomePanel() {
                     rel="noopener noreferrer"
                     target="_blank"
                     aria-label="Discord"
-                    className="fixed bottom-4 left-4 z-50 rounded-full bg-[#5865F2] p-2.5 shadow-lg transition hover:scale-110 sm:bottom-6 sm:left-6 sm:p-3"
+                    className="fixed bottom-4 left-4 z-50 rounded-full border border-pink-400/50 bg-gradient-to-br from-pink-500 to-fuchsia-600 p-2.5 shadow-[0_0_18px_rgba(236,72,153,0.4)] transition hover:scale-110 sm:bottom-6 sm:left-6 sm:p-3"
                     data-aos="fade-left"
                 >
                     <BrandIcon provider="discord" className="h-6 w-6 text-white sm:h-8 sm:w-8" />
