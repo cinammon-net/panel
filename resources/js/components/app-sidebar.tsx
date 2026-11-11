@@ -1,4 +1,5 @@
 import { NavFooter } from '@/components/nav-footer';
+import { BrandIcon } from '@/components/social-login';
 import { NavMain, NavItem } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -10,7 +11,8 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
+import { type LucideIcon } from 'lucide-react';
 import {
     Activity,
     BadgeInfo,
@@ -228,6 +230,9 @@ const mainNavItems: NavItem[] = [
     },
 ];
 
+// Logo de Discord con la misma firma que un icono de Lucide (solo usa className).
+const DiscordLogo = (({ className }: { className?: string }) => <BrandIcon provider="discord" className={className} />) as unknown as LucideIcon;
+
 const footerNavItems: NavItem[] = [
     {
         title: 'Repository',
@@ -246,6 +251,11 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    const { discordInvite } = usePage<{ discordInvite?: string }>().props;
+    const footerItems: NavItem[] = discordInvite
+        ? [{ title: 'Discord', href: discordInvite, icon: DiscordLogo, group: 'extra', groupColor: 'text-yellow-400' }, ...footerNavItems]
+        : footerNavItems;
+
     return (
         <Sidebar
             collapsible="icon"
@@ -274,7 +284,7 @@ export function AppSidebar() {
 
             <SidebarFooter className="mt-auto border-t border-neutral-300 dark:border-pink-500">
                 <div className="space-y-2 [&_a]:flex [&_a]:items-center [&_a]:gap-3 [&_a]:rounded-md [&_a]:px-3 [&_a]:py-2 [&_a]:transition-all [&_a]:hover:bg-neutral-100 [&_a]:hover:text-black dark:[&_a]:hover:bg-pink-500/10 dark:[&_a]:hover:text-pink-400">
-                    <NavFooter items={footerNavItems} />
+                    <NavFooter items={footerItems} />
                 </div>
                 <NavUser />
             </SidebarFooter>

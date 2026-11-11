@@ -110,6 +110,7 @@ class WelcomeController extends Controller
 
                 return ['active' => (clone $free)->count(), 'people' => (clone $free)->distinct('owner_id')->count('owner_id')];
             }),
+            'discord' => ['url' => \App\Support\Discord::invite(), ...(\App\Support\Discord::stats() ?? [])],
             'stats' => [
                 'users' => User::visible()->count(),
                 'servers' => Server::count(),

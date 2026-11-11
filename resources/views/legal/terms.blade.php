@@ -118,7 +118,7 @@
             <div class="flex justify-center gap-6">
                 <a href="https://www.facebook.com/Cinammon" target="_blank" rel="noopener noreferrer" class="text-[#7F1DFF] hover:text-[#30D5F6] transition">Facebook</a>
                 <a href="https://twitter.com/Cinammon" target="_blank" rel="noopener noreferrer" class="text-[#7F1DFF] hover:text-[#30D5F6] transition">Twitter</a>
-                <a href="https://discord.gg/Hikarinet" target="_blank" rel="noopener noreferrer" class="text-[#7F1DFF] hover:text-[#30D5F6] transition">Discord</a>
+                <a href="https://discord.gg/U5EaDJerhZ" target="_blank" rel="noopener noreferrer" class="text-[#7F1DFF] hover:text-[#30D5F6] transition">Discord</a>
                 <a href="https://www.instagram.com/Cinammon" target="_blank" rel="noopener noreferrer" class="text-[#7F1DFF] hover:text-[#30D5F6] transition">Instagram</a>
             </div>
             <p class="text-gray-400 text-xs">

@@ -60,6 +60,7 @@ export default function Dashboard() {
         stats: serverStats = {},
         weeklyActivity,
     } = usePage<DashboardProps>().props;
+    const { discordInvite } = usePage<{ discordInvite?: string }>().props;
 
     const [version, setVersion] = useState('1.0.0');
 
@@ -441,7 +442,7 @@ export default function Dashboard() {
                             Documentación
                         </a>
                         <a
-                            href="https://discord.gg/hikarinet"
+                            href={discordInvite}
                             className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 transition shadow-[0_0_12px_rgba(99,102,241,0.3)]"
                             target="_blank"
                             rel="noopener noreferrer"

@@ -21,6 +21,7 @@ return [
     ],
 
     'discord' => [
+        'invite' => env('DISCORD_INVITE_URL', 'https://discord.gg/U5EaDJerhZ'),
         'client_id' => env('DISCORD_CLIENT_ID'), 
         'client_secret' => env('DISCORD_CLIENT_SECRET'),
         'redirect' => env('DISCORD_REDIRECT_URI'),

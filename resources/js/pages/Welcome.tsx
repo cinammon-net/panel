@@ -8,10 +8,11 @@ import 'aos/dist/aos.css';
 import 'aos/dist/aos.js';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Activity, BarChart3, Gauge, Heart, Images, MessageSquareQuote, Newspaper, Palette, SlidersHorizontal, Zap } from 'lucide-react';
+import { Activity, BarChart3, Bot, Gauge, Heart, Images, LifeBuoy, Megaphone, MessageSquareQuote, Newspaper, Palette, SlidersHorizontal, Ticket, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { cinLogo } from '@/lib/brand';
 import NewsletterForm from '@/components/newsletter-form';
+import { BrandIcon } from '@/components/social-login';
 
 const CookieBanner: React.FC = () => {
     const [cookiesAccepted, setCookiesAccepted] = useState<boolean>(false);
@@ -76,7 +77,7 @@ type BillingCategory = {
 };
 
 export default function WelcomePanel() {
-    const { auth, reviews, posts, galleryImages, stats, billingUrl, billingCategories, freeStats } = usePage<
+    const { auth, reviews, posts, galleryImages, stats, billingUrl, billingCategories, freeStats, discord } = usePage<
         SharedData & {
             reviews: { comment: string; rating: number; user: { name: string; avatar_url?: string | null } }[];
             posts: { id: number; title: string; content: string; picture?: string; created_at: string }[];
@@ -85,6 +86,7 @@ export default function WelcomePanel() {
             billingUrl?: string;
             billingCategories?: BillingCategory[];
             freeStats?: { active: number; people: number } | null;
+            discord?: { url: string; members?: number; online?: number };
         }
     >().props;
 
@@ -560,6 +562,72 @@ export default function WelcomePanel() {
                     </div>
                 </section>
 
+                {/* SECCIÓN COMUNIDAD DE DISCORD */}
+                {discord?.url && (
+                    <section id="discord" className="relative z-10 px-6 py-20 text-white sm:px-10">
+                        <div
+                            className="mx-auto grid max-w-6xl items-center gap-10 overflow-hidden rounded-2xl border border-[#5865F2]/50 bg-gradient-to-br from-[#5865F2]/20 via-black to-pink-600/10 p-8 shadow-[0_0_40px_rgba(88,101,242,0.25)] sm:p-12 lg:grid-cols-[1.2fr_1fr]"
+                            data-aos="fade-up"
+                        >
+                            <div className="text-center lg:text-left">
+                                <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#5865F2]/60 bg-[#5865F2]/15 px-3 py-1 text-xs font-bold uppercase tracking-widest text-indigo-200">
+                                    <BrandIcon provider="discord" className="h-4 w-4" />
+                                    Comunidad
+                                </p>
+                                <h2 className="text-2xl font-bold sm:text-4xl">
+                                    Únete a nuestro <span className="text-[#8b95ff]">Discord</span>
+                                </h2>
+                                <p className="mt-4 text-sm text-neutral-300 sm:text-base">
+                                    Soporte de tú a tú, anuncios y ofertas antes que nadie, y tu cuenta del panel conectada: tus servidores, monedas y tickets también desde Discord.
+                                </p>
+                                <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row lg:justify-start">
+                                    <a
+                                        href={discord.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-3 rounded-xl bg-[#5865F2] px-6 py-3 text-sm font-bold text-white shadow-[0_0_20px_rgba(88,101,242,0.5)] transition hover:scale-105 hover:bg-[#4752c4]"
+                                    >
+                                        <BrandIcon provider="discord" className="h-5 w-5" />
+                                        Unirme al Discord
+                                    </a>
+                                    {!!discord.members && (
+                                        <div className="flex items-center gap-5 text-sm">
+                                            <span className="text-neutral-300">
+                                                <strong className="text-white">{discord.members.toLocaleString('es-ES')}</strong> miembros
+                                            </span>
+                                            {!!discord.online && (
+                                                <span className="flex items-center gap-2 text-neutral-300">
+                                                    <span className="relative flex h-2.5 w-2.5">
+                                                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                                                        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
+                                                    </span>
+                                                    <strong className="text-white">{discord.online.toLocaleString('es-ES')}</strong> conectados
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <ul className="grid gap-3 text-left text-sm">
+                                {[
+                                    { icon: LifeBuoy, title: 'Soporte directo', text: 'Abre un ticket y te responde el equipo en el mismo hilo.' },
+                                    { icon: Megaphone, title: 'Anuncios y ofertas', text: 'Novedades, mantenimientos y descuentos en cuanto salen.' },
+                                    { icon: Bot, title: 'Tu panel en el bot', text: 'Enciende servidores, mira tus monedas y facturas con comandos.' },
+                                    { icon: Ticket, title: 'Roles y rangos', text: 'Vincula tu cuenta y recibe tu rango VIP y tus insignias.' },
+                                ].map(({ icon: Icon, title, text }) => (
+                                    <li key={title} className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/40 p-4">
+                                        <Icon className="mt-0.5 h-5 w-5 shrink-0 text-[#8b95ff]" aria-hidden />
+                                        <div>
+                                            <p className="font-bold text-white">{title}</p>
+                                            <p className="mt-0.5 text-xs text-neutral-400">{text}</p>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </section>
+                )}
+
                 {/* SECCIÓN TESTIMONIOS */}
                 <section className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
                     <h2 className="flex items-center justify-center gap-3 text-2xl font-bold text-pink-400 sm:text-4xl" data-aos="fade-up">
@@ -737,13 +805,14 @@ export default function WelcomePanel() {
                     © {new Date().getFullYear()} cinammon.net — Todos los derechos reservados.
                 </div>
                 <a
-                    href="https://discord.gg/hikarinet"
+                    href={discord?.url ?? 'https://discord.gg/U5EaDJerhZ'}
+                    rel="noopener noreferrer"
                     target="_blank"
                     aria-label="Discord"
                     className="fixed bottom-4 left-4 z-50 rounded-full bg-[#5865F2] p-2.5 shadow-lg transition hover:scale-110 sm:bottom-6 sm:left-6 sm:p-3"
                     data-aos="fade-left"
                 >
-                    <img src="https://img.icons8.com/?size=100&id=30998&format=png&color=ffffff" alt="Discord" className="h-6 w-6 sm:h-8 sm:w-8" />
+                    <BrandIcon provider="discord" className="h-6 w-6 text-white sm:h-8 sm:w-8" />
                 </a>
             </footer>
         </>

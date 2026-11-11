@@ -33,6 +33,7 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'flash' => fn(): array => ['success' => $request->session()->get('success'), 'discordCode' => $request->session()->get('discordCode')],
             // Botones de "Entrar con ..." (solo los proveedores configurados en el .env)
+            'discordInvite' => \App\Support\Discord::invite(),
             'socialProviders' => fn (): array => \App\Http\Controllers\Auth\SocialAuthController::enabled(),
             // Mantenimiento activo o próximo: aviso global para todos (también sin sesión)
             'maintenance' => fn () => \App\Models\Maintenance::current(),
