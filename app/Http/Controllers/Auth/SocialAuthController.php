@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
 use Throwable;
@@ -23,7 +24,7 @@ class SocialAuthController extends Controller
 {
     /** proveedor => [nombre, permisos] */
     public const PROVIDERS = [
-        'discord' => ['Discord', ['identify', 'email']],
+        'discord' => ['Discord', ['identify', 'email', 'guilds.members.read']],
         'google' => ['Google', ['openid', 'profile', 'email']],
         'microsoft' => ['Microsoft', ['User.Read']],
         'github' => ['GitHub', ['read:user', 'user:email']],
@@ -64,6 +65,10 @@ class SocialAuthController extends Controller
             report($e);
 
             return redirect($back)->withErrors(['social' => 'No se pudo completar el acceso con '.self::PROVIDERS[$provider][0].'. Inténtalo de nuevo.']);
+        }
+
+        if ($provider === 'discord' && ($problem = $this->discordGate($social))) {
+            return redirect($back)->withErrors(['social' => $problem]);
         }
 
         $column = $provider.'_id';
@@ -147,6 +152,39 @@ class SocialAuthController extends Controller
             $user->avatar = $social->getAvatar();
         }
         $user->save();
+    }
+
+    /**
+     * Discord: solo quien está en el servidor de la comunidad y se ha verificado (rol Miembro).
+     * Devuelve el motivo si no puede entrar, o null si todo está bien.
+     */
+    private function discordGate($social): ?string
+    {
+        $guild = (string) config('services.discord.guild_id');
+        if ($guild === '') {
+            return null;
+        }
+        $invite = \App\Support\Discord::invite();
+        try {
+            $res = Http::withToken((string) $social->token)->acceptJson()->timeout(6)
+                ->get("https://discord.com/api/v10/users/@me/guilds/{$guild}/member");
+        } catch (Throwable $e) {
+            report($e);
+
+            return 'No se pudo comprobar tu cuenta de Discord. Inténtalo de nuevo en un momento.';
+        }
+        if ($res->status() === 404) {
+            return "Primero entra en nuestro Discord ({$invite}) y verifícate en #verificación; después podrás entrar con Discord.";
+        }
+        if (! $res->successful()) {
+            return 'No se pudo comprobar tu cuenta de Discord. Inténtalo de nuevo en un momento.';
+        }
+        $role = (string) config('services.discord.verified_role');
+        if ($role !== '' && ! in_array($role, (array) $res->json('roles', []), true)) {
+            return 'Ya estás en nuestro Discord, pero aún no te has verificado. Pulsa "Verificarme" en #verificación y vuelve a intentarlo.';
+        }
+
+        return null;
     }
 
     /** Solo se une a una cuenta existente por correo si el proveedor confirma que el correo es suyo. */

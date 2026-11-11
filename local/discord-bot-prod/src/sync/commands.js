@@ -438,6 +438,10 @@ async function run(i, name) {
         case 'rangos': return ranksView();
         case 'vincular': {
             const code = opt(i, 'codigo');
+            const verified = api.layout().roles.member;
+            if (code && verified && !(i.member?.roles || []).includes(verified)) {
+                return fail(`Primero verifícate en <#${api.layout().channels.verify}> (botón Verificarme) y vuelve a usar \`/vincular\`.`);
+            }
             if (code) {
                 const { user } = await me(i, 'POST', '/link', { code });
                 api.runSoon();

@@ -22,6 +22,9 @@ return [
 
     'discord' => [
         'invite' => env('DISCORD_INVITE_URL', 'https://discord.gg/U5EaDJerhZ'),
+        // Para entrar o vincular con Discord hay que estar en el servidor y verificado (rol Miembro)
+        'guild_id' => env('DISCORD_GUILD_ID', '1190032384096206909'),
+        'verified_role' => env('DISCORD_VERIFIED_ROLE_ID', '1570101278581723157'),
         'client_id' => env('DISCORD_CLIENT_ID'), 
         'client_secret' => env('DISCORD_CLIENT_SECRET'),
         'redirect' => env('DISCORD_REDIRECT_URI'),

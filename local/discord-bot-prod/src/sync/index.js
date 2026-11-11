@@ -18,6 +18,7 @@ const { readConfig, discoverPanelUrl, log } = require('../api/panel');
 const art = require('./art');
 const commands = require('./commands');
 const members = require('./members');
+const verify = require('./verify');
 
 const ART_VERSION = 1; // súbelo para volver a dibujar todos los banners
 
@@ -244,6 +245,7 @@ const BANNERS = {
     ranks: { title: 'RANGOS VIP', subtitle: 'Ventajas en la web y rol en Discord', icon: 'ranks' },
     payments: { title: 'PAGOS', subtitle: 'Métodos de pago aceptados', icon: 'payments' },
     status: { title: 'ESTADO', subtitle: 'Servicios y mantenimientos en directo', icon: 'status' },
+    verify: { title: 'VERIFICACIÓN', subtitle: 'Un clic y ves todo el servidor', icon: 'staff' },
     help: { title: 'SOPORTE', subtitle: 'Dudas rápidas de la comunidad', icon: 'help' },
     commands: { title: 'COMANDOS', subtitle: 'Todo lo de la web, desde Discord', icon: 'commands' },
     staff: { title: 'STAFF', subtitle: 'Herramientas del equipo', icon: 'staff' },
@@ -255,6 +257,7 @@ function staticPosts(season) {
     const ch = ctx.layout.channels;
     const promo = season?.promotion && season?.discount ? `**${season.promotion}:** ${season.discount}% de descuento en la tienda ahora mismo.` : null;
     return [
+        ...(ch.verify ? [['verify', ch.verify, verify.post()]] : []),
         ['welcome', ch.welcome, msg(container(accent, [
             text('# Bienvenida a Cinammon Network\nHosting de servidores de juegos, bots, webs y aplicaciones, con panel propio.'),
             sep(),
@@ -843,6 +846,18 @@ function start({ token, guildId, appId }) {
         ctx: () => ({ ...ctx, layout: ctx.layout }),
         accent: () => accent,
     });
+    verify.init({
+        discord, log, saveState, audit, members,
+        st: () => st,
+        ctx: () => ctx,
+        accent: () => accent,
+        ui: { text, sep, row, container },
+        layoutSave: () => fs.writeFileSync(LAYOUT_PATH, JSON.stringify(ctx.layout, null, 2)),
+        backupPath: path.join(ROOT, 'permisos-antes-de-verificacion.json'),
+        editOriginal: (i, payload) => fetch(`${API}/webhooks/${i.application_id}/${i.token}/messages/@original`, {
+            method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+        }).catch(() => {}),
+    });
     members.init({
         discord, sendFile, log, saveState,
         st: () => st,
@@ -858,6 +873,8 @@ function start({ token, guildId, appId }) {
         await ensureArrivals().catch((e) => log(`[SYNC] #llegadas: ${e.message}`));
         await ensureFeedChannels().catch((e) => log(`[SYNC] canales de actividad: ${e.message}`));
         await ensureFriendRole().catch((e) => log(`[SYNC] rol Amigo: ${e.message}`));
+        // Primero el canal de verificación; después se cierra el resto (solo una vez)
+        await verify.ensureChannel().then(() => verify.lockServer()).catch((e) => log(`[SYNC] verificación: ${e.message}`));
         await registerCommands().catch((e) => log(`[SYNC] comandos: ${e.message}`));
         await members.loadInvites();
     });
@@ -922,6 +939,7 @@ const ephemeral = (content) => ({ type: 4, data: { content, flags: 64, allowed_m
 async function onInteraction(interaction) {
     const id = interaction.data?.custom_id || '';
     if (!ctx) return false;
+    if (await verify.handle(interaction, respond)) return true;
     if (!id.startsWith('ticket:')) return commands.handle(interaction);
     const user = interaction.member?.user || interaction.user;
 

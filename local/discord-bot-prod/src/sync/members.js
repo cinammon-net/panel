@@ -69,10 +69,8 @@ async function onJoin(member) {
     const state = st();
     state.invites ??= { counts: {}, members: {} };
 
-    // Rol Miembro al entrar; si tiene la cuenta vinculada, la próxima sincronización le da el resto.
-    if (layout.roles.member) {
-        await env.discord('PUT', `/guilds/${ctx().guild}/members/${u.id}/roles/${layout.roles.member}`, undefined, 'Nuevo miembro').catch(() => {});
-    }
+    // El rol Miembro (acceso a los canales) ya no se da al entrar: se consigue verificándose en #verificación.
+    // La tarjeta de bienvenida también sale al verificarse (welcome()).
     env.forgetRoles(u.id);
 
     const used = await detectInviter();
@@ -82,7 +80,13 @@ async function onJoin(member) {
         c.joins++;
     }
     saveState();
+}
 
+/** Tarjeta de bienvenida en #llegadas (se llama al verificarse). */
+async function welcome(u) {
+    const layout = env.ctx().layout;
+    const state = env.st();
+    state.invites ??= { counts: {}, members: {} };
     const count = await memberCount();
     const inviter = state.invites.members[u.id];
     const inviterUser = inviter ? await env.discord('GET', `/users/${inviter}`).catch(() => null) : null;
@@ -125,4 +129,4 @@ function leaderboard(limit = 10) {
         .slice(0, limit);
 }
 
-module.exports = { init, loadInvites, onInviteCreate, onInviteDelete, onJoin, onLeave, stats, leaderboard };
+module.exports = { init, loadInvites, onInviteCreate, onInviteDelete, onJoin, onLeave, welcome, stats, leaderboard };
