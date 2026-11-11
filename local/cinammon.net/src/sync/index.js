@@ -320,7 +320,14 @@ function invitesPost() {
         text([
             '### 2 · Se crea cuenta y la vincula',
             `- Si esa persona se registra en cinammon.net y usa \`/vincular\`, pasa a ser **tu referido en la tienda**, igual que si hubiera usado tu enlace de \`/monedas\`.`,
-            '- Solo cuenta si su cuenta es nueva (creada después de entrar al Discord) y si tú también tienes la cuenta vinculada.',
+        ].join('\n')),
+        text([
+            '**Para que cuente hacen falta dos cosas:**',
+            '**a) Que se cree la cuenta después de entrar con tu enlace.** Así sabemos que la has traído tú.',
+            '> Luis no conocía Cinammon, entra con tu enlace el lunes y el martes se crea la cuenta: **cuenta**.',
+            '> Marta ya era clienta desde hace meses y un día entra con tu enlace: **no cuenta**, porque ya estaba antes.',
+            `**b) Que los dos tengáis la cuenta vinculada con \`/vincular\`.** Las monedas van a tu cuenta de la tienda, no a Discord: sin vincular, el bot no sabe a qué cuenta dárselas.`,
+            '-# Si aún no la tienes vinculada, no pasa nada: tienes 30 días para hacerlo y la invitación se apunta igual.',
         ].join('\n')),
         text([
             '### 3 · Ganáis monedas los dos',
