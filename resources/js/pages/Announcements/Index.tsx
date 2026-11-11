@@ -69,91 +69,94 @@ const emptyForm = (): Form => ({
     ends_at: '',
 });
 
-/** Plantillas rápidas para no empezar de cero. */
+/** Plantillas rápidas ultra-visuales (poco texto, máximo impacto). */
 const TEMPLATES: { name: string; data: Partial<Form>; days?: number }[] = [
     {
-        name: 'Black Friday 🛒',
+        name: '🎮 Servidor Gratis (Fijo)',
+        data: {
+            type: 'new',
+            title: '¡CREA TU SERVIDOR 100% GRATIS!',
+            highlight: '0,00 €',
+            coupon_code: '',
+            message: 'Sin tarjeta · Gana monedas en 1 clic y despliega al instante.',
+            cta_label: '🚀 Crear servidor gratis',
+            cta_url: 'https://billing.cinammon.net/free',
+            places: ['web', 'panel', 'store'],
+            popup: true,
+        },
+    },
+    {
+        name: '🛒 Black Friday (-30%)',
         days: 14,
         data: {
             type: 'offer',
-            title: '🛒 Black Friday: -30% en todos los servidores y rangos VIP',
+            title: 'BLACK FRIDAY · TODO AL -30%',
             highlight: '-30%',
             coupon_code: '',
-            message: 'El mayor descuento del año ya está aplicado automáticamente en toda la tienda. ¡Aprovecha antes de que termine!',
-            cta_label: 'Ver ofertas Black Friday',
+            message: 'Servidores, Bots, Web y Rangos VIP rebajados automáticamente.',
+            cta_label: '🔥 Ver ofertas -30%',
             cta_url: 'https://billing.cinammon.net/store',
             places: ['web', 'panel', 'store'],
             popup: true,
         },
     },
     {
-        name: 'Calendario de Adviento 🎄',
+        name: '🎄 Calendario de Adviento',
         days: 24,
         data: {
             type: 'event',
-            title: '🎄 ¡Calendario de Adviento activo! Abre tu regalo diario',
-            highlight: 'REGALO',
+            title: 'CALENDARIO DE ADVIENTO · 24 REGALOS',
+            highlight: '24 🎁',
             coupon_code: '',
-            message: 'Entra cada día del 1 al 24 de diciembre, abre la casilla correspondiente y consigue hasta +1.500 monedas gratis.',
-            cta_label: 'Abrir casilla de hoy',
+            message: 'Abre 1 regalo al día: monedas gratis y hasta +13 días en tu servidor.',
+            cta_label: '🎄 Abrir regalo de hoy',
             cta_url: 'https://billing.cinammon.net/advent',
             places: ['web', 'panel', 'store'],
             popup: true,
         },
     },
     {
-        name: 'Nochevieja y Año Nuevo 🥂',
-        days: 7,
+        name: '🎅 Especial Navidad (-25%)',
+        days: 11,
         data: {
             type: 'offer',
-            title: '🥂 Especial Nochevieja y Año Nuevo: descuentos en toda la tienda',
-            highlight: '-20%',
+            title: 'ESPECIAL NAVIDAD · -25% EN TODO',
+            highlight: '-25%',
             coupon_code: '',
-            message: 'Despide el año y empieza el nuevo desplegando tu servidor de alto rendimiento al mejor precio.',
-            cta_label: 'Ver planes en oferta',
+            message: 'Descuento directo en toda la tienda + 2x recompensas VIP en Adviento.',
+            cta_label: '🎅 Aprovechar -25%',
             cta_url: 'https://billing.cinammon.net/store',
             places: ['web', 'panel', 'store'],
             popup: true,
         },
     },
     {
-        name: 'Servidor gratis con monedas',
+        name: '🥂 Nochevieja y Año Nuevo (-20%)',
+        days: 7,
         data: {
             type: 'offer',
-            title: '¡Consigue tu servidor 100% gratis con monedas!',
-            highlight: 'GRATIS',
+            title: 'ESPECIAL FIN DE AÑO · -20% EN TODO',
+            highlight: '-20%',
             coupon_code: '',
-            message: 'Juegos, bots de Discord, webs y más: gana monedas completando misiones diarias e invitando amigos y despliega tu servidor sin pagar nada.',
-            cta_label: 'Conseguir servidor gratis',
-            cta_url: 'https://billing.cinammon.net/coins',
+            message: 'Despide el año y empieza el nuevo estrenando servidor al mejor precio.',
+            cta_label: '🥂 Ver planes en oferta',
+            cta_url: 'https://billing.cinammon.net/store',
             places: ['web', 'panel', 'store'],
             popup: true,
         },
     },
     {
-        name: 'Descuento por tiempo limitado',
+        name: '⚡ Oferta Flash con cupón',
         days: 3,
-        data: { type: 'offer', title: 'Descuento en todos los planes', highlight: '-30%', coupon_code: 'CINAMMON30', message: 'Solo durante unos días. ¡Aprovecha y despliega tu servidor hoy!', cta_label: 'Ver planes', popup: true },
-    },
-    {
-        name: 'Primer mes gratis / barato',
-        days: 7,
-        data: { type: 'offer', title: 'Tu primer mes a mitad de precio', highlight: '-50%', coupon_code: 'BIENVENIDA', message: 'Para nuevos clientes. Sin permanencia.', cta_label: 'Empezar ahora', popup: true },
-    },
-    {
-        name: 'Nuevo juego disponible',
-        days: 14,
-        data: { type: 'new', title: 'Nuevo juego disponible en Cinammon', highlight: 'NUEVO', message: 'Ya puedes crear servidores con un clic.', cta_label: 'Crear servidor', coupon_code: '', popup: false },
-    },
-    {
-        name: 'Nueva función en el panel',
-        days: 14,
-        data: { type: 'new', title: 'Nueva función en el panel', highlight: '', message: '', cta_label: 'Probar ahora', cta_url: 'https://panel.cinammon.net/servers', coupon_code: '', places: ['panel'] },
-    },
-    {
-        name: 'Evento / sorteo',
-        days: 7,
-        data: { type: 'event', title: 'Sorteo de un servidor gratis', highlight: 'GRATIS', message: 'Participa en nuestro Discord antes de que acabe.', cta_label: 'Participar', coupon_code: '' },
+        data: {
+            type: 'offer',
+            title: 'OFERTA FLASH EN TODOS LOS PLANES',
+            highlight: '-30%',
+            coupon_code: 'CINAMMON30',
+            message: 'Solo por tiempo limitado. ¡Despliega en 60 segundos!',
+            cta_label: '🔥 Usar descuento',
+            popup: true,
+        },
     },
 ];
 
@@ -362,9 +365,9 @@ export default function AnnouncementsIndex() {
                     <label className="flex items-start gap-3 rounded-lg border border-pink-900/60 bg-pink-950/20 p-3">
                         <input type="checkbox" className="mt-0.5" checked={form.popup} onChange={(e) => set('popup', e.target.checked)} />
                         <span className="text-xs">
-                            <strong className="text-pink-300">Ventana emergente en la web</strong>
+                            <strong className="text-pink-300">Cartel en grande (Ventana emergente multi-anuncio)</strong>
                             <span className="block font-sans text-[11px] text-neutral-400">
-                                A los visitantes de cinammon.net les aparece en grande a los pocos segundos (una sola vez por persona). Ideal para ofertas.
+                                Puedes tener varios activos a la vez (por ejemplo, el anuncio fijo de <strong>Servidores Gratis</strong> + la <strong>Oferta esporádica</strong> del momento). El cartel grande muestra ambos de forma visual y directa.
                             </span>
                         </span>
                     </label>

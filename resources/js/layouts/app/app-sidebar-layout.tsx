@@ -2,7 +2,7 @@ import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
-import AnnouncementBar from '@/components/announcement-bar';
+import AnnouncementBar, { AnnouncementPopup } from '@/components/announcement-bar';
 import MaintenanceBanner from '@/components/maintenance-banner';
 import UpdateBanner from '@/components/update-banner';
 import { type BreadcrumbItem } from '@/types';
@@ -17,6 +17,7 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: PropsWi
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 <MaintenanceBanner />
                 <AnnouncementBar place="panel" />
+                <AnnouncementPopup place="panel" />
                 <UpdateBanner />
                 {children}
                 <footer>

@@ -1,5 +1,5 @@
 import { usePage } from '@inertiajs/react';
-import { CalendarDays, Check, Clock, Copy, Gift, Megaphone, Sparkles, Tag, X } from 'lucide-react';
+import { CalendarDays, Check, ChevronLeft, ChevronRight, Clock, Copy, Flame, Gift, Megaphone, Rocket, ShieldCheck, Sparkles, Tag, X, Zap } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 export type AnnouncementType = 'offer' | 'new' | 'event' | 'news';
@@ -20,35 +20,51 @@ export interface AnnouncementInfo {
     ends_at: string | null;
 }
 
-export const TYPE_STYLES: Record<AnnouncementType, { label: string; icon: typeof Tag; bar: string; chip: string }> = {
+export const TYPE_STYLES: Record<
+    AnnouncementType,
+    { label: string; icon: typeof Tag; bar: string; chip: string; glow: string; border: string; cta: string }
+> = {
     offer: {
-        label: 'Oferta',
-        icon: Tag,
+        label: 'Oferta Flash',
+        icon: Flame,
         bar: 'border-pink-500/60 from-pink-950/95 via-fuchsia-950/95 to-pink-950/95 text-pink-50',
-        chip: 'bg-pink-500 text-white',
+        chip: 'bg-gradient-to-r from-pink-500 to-rose-500 text-white',
+        glow: 'from-pink-500/35 via-fuchsia-500/20 to-amber-500/30',
+        border: 'border-pink-500 shadow-[0_0_60px_rgba(236,72,153,0.45)]',
+        cta: 'from-pink-500 via-fuchsia-500 to-amber-500 text-white shadow-[0_0_30px_rgba(236,72,153,0.55)]',
     },
     new: {
-        label: 'Novedad',
+        label: '100% Gratis',
         icon: Sparkles,
-        bar: 'border-cyan-500/60 from-cyan-950/95 via-sky-950/95 to-cyan-950/95 text-cyan-50',
-        chip: 'bg-cyan-400 text-black',
+        bar: 'border-cyan-500/60 from-cyan-950/95 via-emerald-950/95 to-cyan-950/95 text-cyan-50',
+        chip: 'bg-gradient-to-r from-emerald-400 to-cyan-400 text-black',
+        glow: 'from-emerald-500/35 via-cyan-500/25 to-teal-500/30',
+        border: 'border-emerald-400 shadow-[0_0_60px_rgba(16,185,129,0.45)]',
+        cta: 'from-emerald-400 via-teal-400 to-cyan-400 text-black shadow-[0_0_30px_rgba(16,185,129,0.55)]',
     },
     event: {
-        label: 'Evento',
+        label: 'Evento Especial',
         icon: CalendarDays,
         bar: 'border-violet-500/60 from-violet-950/95 via-purple-950/95 to-violet-950/95 text-violet-50',
-        chip: 'bg-violet-500 text-white',
+        chip: 'bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white',
+        glow: 'from-violet-500/35 via-fuchsia-500/25 to-amber-500/25',
+        border: 'border-violet-400 shadow-[0_0_60px_rgba(167,139,250,0.45)]',
+        cta: 'from-violet-500 via-fuchsia-500 to-pink-500 text-white shadow-[0_0_30px_rgba(167,139,250,0.55)]',
     },
     news: {
         label: 'Noticia',
         icon: Megaphone,
         bar: 'border-emerald-500/60 from-emerald-950/95 via-teal-950/95 to-emerald-950/95 text-emerald-50',
-        chip: 'bg-emerald-500 text-black',
+        chip: 'bg-emerald-400 text-black',
+        glow: 'from-emerald-500/30 via-teal-500/20 to-cyan-500/25',
+        border: 'border-emerald-400 shadow-[0_0_50px_rgba(16,185,129,0.4)]',
+        cta: 'from-emerald-400 to-cyan-400 text-black shadow-[0_0_25px_rgba(16,185,129,0.45)]',
     },
 };
 
 const DISMISS_KEY = 'announcements-dismissed';
-const POPUP_KEY = 'announcements-popup-seen';
+const POPUP_KEY = 'announcements-popup-seen-v2';
+const OPEN_EVENT = 'cinammon:open-announcement-popup';
 
 function readIds(key: string): number[] {
     try {
@@ -61,7 +77,7 @@ function readIds(key: string): number[] {
 
 function writeIds(key: string, ids: number[]) {
     try {
-        localStorage.setItem(key, JSON.stringify(ids.slice(-50)));
+        localStorage.setItem(key, JSON.stringify(Array.from(new Set(ids)).slice(-50)));
     } catch {
         /* sin almacenamiento: solo se oculta en esta vista */
     }
@@ -76,8 +92,8 @@ export function endsIn(iso: string | null, now: number): string | null {
     const d = Math.floor(mins / 1440);
     const h = Math.floor((mins % 1440) / 60);
     const m = mins % 60;
-    if (d > 0) return `${d} d ${h} h`;
-    if (h > 0) return `${h} h ${m} min`;
+    if (d > 0) return `${d}d ${h}h`;
+    if (h > 0) return `${h}h ${m}m`;
     return `${m} min`;
 }
 
@@ -88,6 +104,26 @@ export function trackClick(id: number) {
     } catch {
         /* métrica opcional */
     }
+}
+
+/** Detecta si un anuncio es el de Servidores Gratis para darle estética verde/neón ultra atractiva. */
+function isFreeServerAnnouncement(a: AnnouncementInfo): boolean {
+    const text = `${a.highlight || ''} ${a.title || ''} ${a.cta_url || ''}`.toLowerCase();
+    return text.includes('gratis') || text.includes('0,00') || text.includes('0€') || text.includes('/free') || text.includes('/coins');
+}
+
+/** Píldoras visuales ultra-cortas para no saturar con texto. */
+function visualPills(a: AnnouncementInfo): string[] {
+    if (isFreeServerAnnouncement(a)) {
+        return ['⚡ Activo en 60s', '🪙 0 € con monedas', '🕹️ Juegos, Bots y Web'];
+    }
+    if (a.type === 'event') {
+        return ['🎁 1 Regalo diario', '👑 2x Clientes VIP', '⏳ +13 días gratis'];
+    }
+    if (a.type === 'offer') {
+        return ['⚡ Descuento directo', '🛡️ Anti-DDoS Pro', '🚀 Activación al instante'];
+    }
+    return ['⚡ Alto rendimiento', '🛡️ DDoS incluido', '🚀 Panel inmediato'];
 }
 
 /** Anuncios publicados para una ubicación, sin los caducados en el navegador. */
@@ -113,7 +149,8 @@ function useLive(place: AnnouncementPlace) {
 
 function CouponChip({ code }: { code: string }) {
     const [copied, setCopied] = useState(false);
-    const copy = () => {
+    const copy = (e: React.MouseEvent) => {
+        e.stopPropagation();
         navigator.clipboard?.writeText(code).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 1800);
@@ -124,10 +161,10 @@ function CouponChip({ code }: { code: string }) {
             type="button"
             onClick={copy}
             title="Copiar cupón"
-            className="inline-flex items-center gap-1 rounded border border-dashed border-white/50 bg-black/30 px-2 py-0.5 font-mono text-[11px] font-bold tracking-wider hover:bg-white/10"
+            className="inline-flex items-center gap-1 rounded-lg border border-dashed border-yellow-300/70 bg-yellow-400/15 px-2.5 py-1 font-mono text-xs font-extrabold tracking-wider text-yellow-200 hover:bg-yellow-400/25"
         >
-            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-            {copied ? '¡Copiado!' : code}
+            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? '¡COPIADO!' : code}
         </button>
     );
 }
@@ -143,14 +180,13 @@ function Cta({ a, className }: { a: AnnouncementInfo; className: string }) {
             rel={external ? 'noopener noreferrer' : undefined}
             className={className}
         >
-            {a.cta_label || 'Ver más'} →
+            {a.cta_label || 'Entrar ahora'} →
         </a>
     );
 }
 
 /**
- * Barra de anuncios (ofertas, novedades, eventos). Si hay varios, rota cada 7 s.
- * Cada anuncio se puede ocultar y no vuelve a salir en ese navegador.
+ * Barra superior compacta. Rota entre anuncios cada 6 s y permite abrir el cartel grande con 1 clic.
  */
 export default function AnnouncementBar({ place }: { place: AnnouncementPlace }) {
     const { items: live, now } = useLive(place);
@@ -159,16 +195,18 @@ export default function AnnouncementBar({ place }: { place: AnnouncementPlace })
     const [paused, setPaused] = useState(false);
 
     const items = live.filter((a) => !dismissed.includes(a.id));
+    const hasPopups = live.some((a) => a.popup);
 
     useEffect(() => {
         if (items.length < 2 || paused) return;
-        const t = setInterval(() => setIndex((i) => (i + 1) % items.length), 7000);
+        const t = setInterval(() => setIndex((i) => (i + 1) % items.length), 6000);
         return () => clearInterval(t);
     }, [items.length, paused]);
 
     if (items.length === 0) return null;
     const a = items[index % items.length];
-    const style = TYPE_STYLES[a.type] ?? TYPE_STYLES.news;
+    const isFree = isFreeServerAnnouncement(a);
+    const style = isFree ? TYPE_STYLES.new : (TYPE_STYLES[a.type] ?? TYPE_STYLES.news);
     const Icon = style.icon;
     const left = endsIn(a.ends_at, now);
 
@@ -176,6 +214,10 @@ export default function AnnouncementBar({ place }: { place: AnnouncementPlace })
         const next = [...dismissed, a.id];
         setDismissed(next);
         writeIds(DISMISS_KEY, next);
+    };
+
+    const openBigPoster = () => {
+        window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: { id: a.id } }));
     };
 
     return (
@@ -187,15 +229,34 @@ export default function AnnouncementBar({ place }: { place: AnnouncementPlace })
             className={`relative flex items-center justify-center gap-3 border-b bg-gradient-to-r px-10 py-2 font-[Orbitron] text-xs ${style.bar}`}
         >
             <div key={a.id} className="animate-in fade-in flex min-w-0 flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-center duration-500">
-                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-extrabold tracking-wider uppercase ${style.chip}`}>
-                    <Icon className="h-3 w-3" /> {style.label}
+                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-extrabold tracking-wider uppercase ${style.chip}`}>
+                    <Icon className="h-3 w-3" /> {isFree ? '100% GRATIS' : style.label}
                 </span>
-                {a.highlight && <span className="text-sm font-extrabold tracking-wide text-yellow-300 drop-shadow-[0_0_6px_rgba(253,224,71,0.6)]">{a.highlight}</span>}
-                <strong className="tracking-wide">{a.title}</strong>
-                {a.message && <span className="hidden font-sans text-[11px] opacity-80 md:inline">{a.message}</span>}
+                {a.highlight && (
+                    <span className="rounded bg-yellow-400/20 px-1.5 py-0.5 text-sm font-black tracking-wide text-yellow-300 drop-shadow-[0_0_8px_rgba(253,224,71,0.7)]">
+                        {a.highlight}
+                    </span>
+                )}
+                <strong className="tracking-wide text-white">{a.title}</strong>
                 {a.coupon_code && <CouponChip code={a.coupon_code} />}
-                {left && <span className="inline-flex items-center gap-1 font-sans text-[11px] font-semibold text-yellow-200"><Clock className="h-3 w-3" /> quedan {left}</span>}
-                <Cta a={a} className="rounded-md border border-white/40 bg-white/10 px-2.5 py-0.5 font-bold whitespace-nowrap transition hover:bg-white hover:text-black" />
+                {left && (
+                    <span className="inline-flex items-center gap-1 font-sans text-[11px] font-bold text-yellow-200">
+                        <Clock className="h-3 w-3" /> {left}
+                    </span>
+                )}
+                <Cta
+                    a={a}
+                    className="rounded-lg bg-white px-3 py-1 font-extrabold whitespace-nowrap text-black shadow transition hover:scale-105 hover:bg-yellow-300"
+                />
+                {hasPopups && (
+                    <button
+                        type="button"
+                        onClick={openBigPoster}
+                        className="hidden items-center gap-1 rounded-lg border border-white/25 bg-black/30 px-2 py-0.5 font-sans text-[11px] text-white/85 transition hover:border-white hover:text-white sm:inline-flex"
+                    >
+                        <Sparkles className="h-3 w-3 text-yellow-300" /> Ver cartel
+                    </button>
+                )}
             </div>
             {items.length > 1 && (
                 <div className="absolute bottom-0.5 left-1/2 flex -translate-x-1/2 gap-1">
@@ -205,7 +266,7 @@ export default function AnnouncementBar({ place }: { place: AnnouncementPlace })
                             type="button"
                             aria-label={`Anuncio ${i + 1}`}
                             onClick={() => setIndex(i)}
-                            className={`h-1 rounded-full transition-all ${i === index % items.length ? 'w-4 bg-white/80' : 'w-1.5 bg-white/30'}`}
+                            className={`h-1 rounded-full transition-all ${i === index % items.length ? 'w-4 bg-white/90' : 'w-1.5 bg-white/35'}`}
                         />
                     ))}
                 </div>
@@ -218,78 +279,284 @@ export default function AnnouncementBar({ place }: { place: AnnouncementPlace })
 }
 
 /**
- * Ventana emergente para el anuncio destacado (popup = true). Sale una sola vez
- * por anuncio y navegador, unos segundos después de entrar en la página.
+ * Cartel en grande (Popup) multi-anuncio:
+ * - Soporta el anuncio fijo ("Servidores Gratis") + los anuncios esporádicos (Black Friday, Adviento, Navidad, etc.) a la vez.
+ * - Si hay algún anuncio con `popup = true` no visto todavía, abre el cartel mostrando todos los `popup = true` activos.
+ * - Diseño ultra-visual con poquísimo texto: cifra gigante, 3 insignias rápidas y botón directo para entrar en 1 clic.
  */
-export function AnnouncementPopup({ place, delayMs = 2500 }: { place: AnnouncementPlace; delayMs?: number }) {
+export function AnnouncementPopup({ place, delayMs = 1200 }: { place: AnnouncementPlace; delayMs?: number }) {
     const { items, now } = useLive(place);
-    const [open, setOpen] = useState<AnnouncementInfo | null>(null);
+    const [visible, setVisible] = useState(false);
+    const [activeIdx, setActiveIdx] = useState(0);
+    const [paused, setPaused] = useState(false);
 
-    const candidate = items.find((a) => a.popup);
-    const candidateId = candidate?.id;
+    // Todos los anuncios en grande activos (tanto los esporádicos de oferta como el fijo de servidores gratis)
+    const popups = useMemo(() => items.filter((a) => a.popup), [items]);
+    const popupIdsKey = popups.map((p) => p.id).join(',');
 
     useEffect(() => {
-        if (!candidateId || readIds(POPUP_KEY).includes(candidateId)) return;
-        const t = setTimeout(() => setOpen(items.find((a) => a.id === candidateId) ?? null), delayMs);
+        if (popups.length === 0) return;
+        const seen = readIds(POPUP_KEY);
+        const firstUnseenIdx = popups.findIndex((p) => !seen.includes(p.id));
+        if (firstUnseenIdx === -1) return;
+
+        const t = setTimeout(() => {
+            setActiveIdx(firstUnseenIdx);
+            setVisible(true);
+        }, delayMs);
         return () => clearTimeout(t);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [candidateId, delayMs]);
+    }, [popupIdsKey, delayMs]);
+
+    // Permite reabrir el cartel grande desde la barra superior
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const detail = (e as CustomEvent<{ id?: number }>).detail;
+            if (popups.length === 0) return;
+            const idx = detail?.id ? popups.findIndex((p) => p.id === detail.id) : 0;
+            setActiveIdx(idx >= 0 ? idx : 0);
+            setVisible(true);
+        };
+        window.addEventListener(OPEN_EVENT, handler);
+        return () => window.removeEventListener(OPEN_EVENT, handler);
+    }, [popups]);
+
+    // Rotación suave entre el anuncio esporádico y el fijo de Servidores Gratis si hay más de 1
+    useEffect(() => {
+        if (!visible || popups.length < 2 || paused) return;
+        const t = setInterval(() => {
+            setActiveIdx((i) => (i + 1) % popups.length);
+        }, 5500);
+        return () => clearInterval(t);
+    }, [visible, popups.length, paused]);
 
     useEffect(() => {
-        if (!open) return;
-        const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
+        if (!visible) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') closeAll();
+            if (e.key === 'ArrowRight' && popups.length > 1) setActiveIdx((i) => (i + 1) % popups.length);
+            if (e.key === 'ArrowLeft' && popups.length > 1) setActiveIdx((i) => (i - 1 + popups.length) % popups.length);
+        };
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [open]);
+    }, [visible, popups.length]);
 
-    if (!open) return null;
-    const style = TYPE_STYLES[open.type] ?? TYPE_STYLES.news;
-    const Icon = open.type === 'offer' ? Gift : style.icon;
-    const left = endsIn(open.ends_at, now);
+    if (!visible || popups.length === 0) return null;
 
-    function close() {
-        if (open) writeIds(POPUP_KEY, [...readIds(POPUP_KEY), open.id]);
-        setOpen(null);
+    const current = popups[activeIdx % popups.length] ?? popups[0];
+    const others = popups.filter((p) => p.id !== current.id);
+    const isFree = isFreeServerAnnouncement(current);
+    const style = isFree ? TYPE_STYLES.new : (TYPE_STYLES[current.type] ?? TYPE_STYLES.offer);
+    const Icon = isFree ? Gift : current.type === 'offer' ? Flame : style.icon;
+    const left = endsIn(current.ends_at, now);
+    const pills = visualPills(current);
+
+    function closeAll() {
+        writeIds(POPUP_KEY, [...readIds(POPUP_KEY), ...popups.map((p) => p.id)]);
+        setVisible(false);
+    }
+
+    function goTo(a: AnnouncementInfo) {
+        if (!a.cta_url) return;
+        trackClick(a.id);
+        writeIds(POPUP_KEY, [...readIds(POPUP_KEY), a.id]);
+        window.location.href = a.cta_url;
     }
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={close} role="dialog" aria-modal="true" aria-label={open.title}>
+        <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
+            onClick={closeAll}
+            role="dialog"
+            aria-modal="true"
+            aria-label={current.title}
+        >
             <div
                 onClick={(e) => e.stopPropagation()}
-                className="animate-in zoom-in-95 fade-in relative w-full max-w-md overflow-hidden rounded-2xl border-2 border-pink-500 bg-black/95 p-7 text-center font-[Orbitron] text-white shadow-[0_0_40px_8px_rgba(255,0,150,0.35)] duration-300"
+                onMouseEnter={() => setPaused(true)}
+                onMouseLeave={() => setPaused(false)}
+                className={`animate-in zoom-in-95 fade-in relative w-full max-w-lg overflow-hidden rounded-3xl border-2 bg-[#060913]/95 p-6 sm:p-8 text-center font-[Orbitron] text-white duration-300 ${style.border}`}
             >
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,#ff44cc33_1px,transparent_1px)] bg-[length:18px_18px] opacity-30" />
-                <button onClick={close} className="absolute top-3 right-3 z-10 opacity-60 hover:opacity-100" aria-label="Cerrar">
-                    <X className="h-5 w-5" />
+                {/* Resplandor neón de fondo */}
+                <div className={`pointer-events-none absolute -top-24 left-1/2 h-64 w-80 -translate-x-1/2 rounded-full bg-gradient-to-r ${style.glow} blur-3xl`} />
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,#ffffff15_1px,transparent_1px)] bg-[length:20px_20px] opacity-35" />
+
+                {/* Botón cerrar */}
+                <button
+                    type="button"
+                    onClick={closeAll}
+                    className="absolute top-4 right-4 z-20 flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white/80 transition hover:bg-white/20 hover:text-white"
+                    aria-label="Cerrar"
+                >
+                    <X className="h-4 w-4" />
                 </button>
-                <div className="relative space-y-4">
-                    <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-extrabold tracking-widest uppercase ${style.chip}`}>
-                        <Icon className="h-3.5 w-3.5" /> {style.label}
-                    </span>
-                    {open.highlight && (
-                        <p className="text-5xl font-extrabold tracking-wider text-yellow-300 drop-shadow-[0_0_14px_rgba(253,224,71,0.6)]">{open.highlight}</p>
+
+                {/* Selector superior cuando hay varios anuncios en grande (ej. Oferta + Servidor Gratis fijo) */}
+                {popups.length > 1 && (
+                    <div className="relative z-10 mb-5 flex flex-wrap items-center justify-center gap-2 pr-6">
+                        {popups.map((p, idx) => {
+                            const active = idx === activeIdx % popups.length;
+                            const freeTab = isFreeServerAnnouncement(p);
+                            return (
+                                <button
+                                    key={p.id}
+                                    type="button"
+                                    onClick={() => setActiveIdx(idx)}
+                                    className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-extrabold tracking-wider uppercase transition ${
+                                        active
+                                            ? freeTab
+                                                ? 'border-emerald-300 bg-emerald-400 text-black shadow-[0_0_15px_rgba(16,185,129,0.6)]'
+                                                : 'border-pink-300 bg-pink-500 text-white shadow-[0_0_15px_rgba(236,72,153,0.6)]'
+                                            : 'border-white/15 bg-white/5 text-neutral-300 hover:border-white/40 hover:text-white'
+                                    }`}
+                                >
+                                    <span>{freeTab ? '🎮' : '🔥'}</span>
+                                    <span>{p.highlight || (freeTab ? 'GRATIS' : 'OFERTA')}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {/* Cuerpo principal ultra-visual (clicable para ir directo) */}
+                <div
+                    onClick={() => current.cta_url && goTo(current)}
+                    className={`relative z-10 space-y-4 ${current.cta_url ? 'cursor-pointer' : ''}`}
+                >
+                    <div className="inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-[11px] font-black tracking-widest uppercase shadow-lg ${style.chip}">
+                        <span className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-[11px] font-black tracking-widest uppercase ${style.chip}`}>
+                            <Icon className="h-3.5 w-3.5" /> {isFree ? 'SERVIDORES 100% GRATIS' : style.label}
+                            {left && <span className="ml-1 rounded bg-black/25 px-1.5 py-0.5 text-[10px]">⏳ {left}</span>}
+                        </span>
+                    </div>
+
+                    {/* Reclamo GIGANTE para captar la vista al instante */}
+                    <div className="py-1">
+                        <p className="text-6xl font-black tracking-tight text-yellow-300 drop-shadow-[0_0_25px_rgba(253,224,71,0.65)] sm:text-7xl">
+                            {current.highlight || (isFree ? '0,00 €' : 'OFERTA')}
+                        </p>
+                    </div>
+
+                    {/* Título directo y corto */}
+                    <h2 className="mx-auto max-w-md text-xl leading-tight font-black tracking-wide text-white uppercase sm:text-2xl">
+                        {current.title}
+                    </h2>
+
+                    {/* 3 Píldoras visuales rápidas en lugar de párrafos largos */}
+                    <div className="flex flex-wrap items-center justify-center gap-2 pt-1 font-sans text-xs font-bold">
+                        {pills.map((pill) => (
+                            <span
+                                key={pill}
+                                className="rounded-xl border border-white/15 bg-white/[0.07] px-3 py-1.5 text-neutral-100 shadow-inner"
+                            >
+                                {pill}
+                            </span>
+                        ))}
+                    </div>
+
+                    {/* Mensaje breve (máximo 1-2 líneas) */}
+                    {current.message && (
+                        <p className="mx-auto max-w-sm line-clamp-2 font-sans text-xs leading-relaxed text-neutral-300 sm:text-sm">
+                            {current.message}
+                        </p>
                     )}
-                    <h2 className="text-xl font-bold tracking-wide text-pink-300">{open.title}</h2>
-                    {open.message && <p className="font-sans text-sm whitespace-pre-line text-neutral-300">{open.message}</p>}
-                    {open.coupon_code && (
-                        <div className="space-y-1">
-                            <p className="font-sans text-[11px] text-neutral-400">Usa este cupón al pagar:</p>
-                            <div className="text-base">
-                                <CouponChip code={open.coupon_code} />
-                            </div>
+
+                    {/* Cupón si existe */}
+                    {current.coupon_code && (
+                        <div className="pt-1">
+                            <CouponChip code={current.coupon_code} />
                         </div>
                     )}
-                    {left && <p className="inline-flex items-center justify-center gap-1.5 font-sans text-xs font-semibold text-yellow-200"><Clock className="h-3.5 w-3.5" /> La oferta termina en {left}</p>}
-                    <div className="flex flex-col gap-2 pt-1">
-                        <Cta
-                            a={open}
-                            className="rounded-md bg-gradient-to-r from-pink-500 to-fuchsia-600 px-6 py-3 text-sm font-bold tracking-wider text-white shadow-[0_0_20px_rgba(255,0,128,0.4)] transition hover:from-pink-600 hover:to-fuchsia-700"
-                        />
-                        <button onClick={close} className="font-sans text-xs text-neutral-500 hover:text-neutral-300">
-                            Ahora no
-                        </button>
+
+                    {/* Botón CTA gigante de acceso directo */}
+                    <div className="pt-2" onClick={(e) => e.stopPropagation()}>
+                        {current.cta_url && (
+                            <a
+                                href={current.cta_url}
+                                onClick={() => {
+                                    trackClick(current.id);
+                                    writeIds(POPUP_KEY, [...readIds(POPUP_KEY), current.id]);
+                                }}
+                                className={`group flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r py-4 text-sm font-black tracking-wider uppercase transition duration-200 hover:scale-[1.02] hover:brightness-110 active:scale-95 sm:text-base ${style.cta}`}
+                            >
+                                <Rocket className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
+                                <span>{current.cta_label || (isFree ? '¡Crear servidor gratis!' : '¡Aprovechar ahora!')}</span>
+                                <span>→</span>
+                            </a>
+                        )}
                     </div>
+                </div>
+
+                {/* Tarjeta secundaria integrada: muestra el otro anuncio en grande (ej. Servidor Gratis fijo o la Oferta activa) sin tener que esperar */}
+                {others.length > 0 && (
+                    <div className="relative z-10 mt-5 space-y-2 border-t border-white/10 pt-4 text-left">
+                        {others.slice(0, 2).map((other) => {
+                            const otherFree = isFreeServerAnnouncement(other);
+                            return (
+                                <div
+                                    key={other.id}
+                                    onClick={() => (other.cta_url ? goTo(other) : setActiveIdx(popups.findIndex((p) => p.id === other.id)))}
+                                    className={`group flex cursor-pointer items-center justify-between gap-3 rounded-2xl border p-3 transition hover:scale-[1.01] ${
+                                        otherFree
+                                            ? 'border-emerald-400/40 bg-emerald-500/10 hover:border-emerald-400 hover:bg-emerald-500/20'
+                                            : 'border-pink-400/40 bg-pink-500/10 hover:border-pink-400 hover:bg-pink-500/20'
+                                    }`}
+                                >
+                                    <div className="flex min-w-0 items-center gap-3">
+                                        <span
+                                            className={`shrink-0 rounded-xl px-2.5 py-1.5 text-xs font-black ${
+                                                otherFree ? 'bg-emerald-400 text-black' : 'bg-pink-500 text-white'
+                                            }`}
+                                        >
+                                            {other.highlight || (otherFree ? '0,00 €' : 'OFERTA')}
+                                        </span>
+                                        <div className="min-w-0">
+                                            <p className="truncate text-xs font-extrabold text-white">{other.title}</p>
+                                            <p className="truncate font-sans text-[11px] text-neutral-300">
+                                                {otherFree ? '⚡ Siempre disponible · Gana monedas y crea gratis' : other.message || 'Pulsa para acceder ahora'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <span className="shrink-0 rounded-xl bg-white/15 px-3 py-1.5 text-[11px] font-extrabold text-white transition group-hover:bg-white group-hover:text-black">
+                                        {other.cta_label || 'Ir'} →
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {/* Controles inferiores discretos */}
+                <div className="relative z-10 mt-4 flex items-center justify-between font-sans text-xs text-neutral-400">
+                    {popups.length > 1 ? (
+                        <div className="flex items-center gap-1.5">
+                            <button
+                                type="button"
+                                onClick={() => setActiveIdx((i) => (i - 1 + popups.length) % popups.length)}
+                                className="rounded-lg border border-white/10 bg-white/5 p-1 hover:bg-white/15 hover:text-white"
+                                aria-label="Anterior"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </button>
+                            <span className="px-1 font-mono text-[11px]">
+                                {(activeIdx % popups.length) + 1} / {popups.length}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setActiveIdx((i) => (i + 1) % popups.length)}
+                                className="rounded-lg border border-white/10 bg-white/5 p-1 hover:bg-white/15 hover:text-white"
+                                aria-label="Siguiente"
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </button>
+                        </div>
+                    ) : (
+                        <span />
+                    )}
+                    <button type="button" onClick={closeAll} className="hover:text-white">
+                        Cerrar ventana
+                    </button>
                 </div>
             </div>
         </div>
