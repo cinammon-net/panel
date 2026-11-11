@@ -296,16 +296,41 @@ function supportTop() {
     return text(`### Ayudantes del mes\n${top.map((h, n) => `**${n + 1}.** <@${h.id}> · ${h.points} ${h.points === 1 ? 'ayuda' : 'ayudas'}`).join('\n')}`);
 }
 
+/** Premios de invitación de la tienda (se leen cada 30 min; si falla, se usan los últimos). */
+let referralRewards = null, rewardsAt = 0;
+async function refreshReferralRewards() {
+    if (Date.now() - rewardsAt < 30 * 60_000) return;
+    rewardsAt = Date.now();
+    referralRewards = (await billing('/api/free-stats').catch(() => null))?.referral || referralRewards;
+}
+
 /** Panel de #invitaciones: cómo funciona, botón para el enlace propio y ranking en directo. */
 function invitesPost() {
     const top = members.leaderboard(10);
+    const r = referralRewards;
+    const coins = (n, fallback) => (r ? `**${n} monedas**` : fallback);
     return msg(container(accent, [
-        text('# Invita a tus amigos\nPulsa **Conseguir mi enlace** y te damos tu invitación personal al servidor: no caduca y no tiene límite de usos. Cada persona que entre con ella cuenta para ti.'),
+        text('# Invita a tus amigos\nPulsa **Conseguir mi enlace** y te damos tu invitación personal al servidor. No caduca, no tiene límite de usos y todo lo que pase con ella cuenta para ti.'),
         sep(),
-        text('### Cómo se cuenta\n- Cuenta en cuanto la persona entra con tu enlace.\n- Si se va del servidor, se resta.\n- Tus números, en cualquier momento, con `/invitaciones`.'),
-        text('### Y además, monedas\nSi quien invitas se crea cuenta en cinammon.net y la vincula con `/vincular`, queda como **tu referido en la tienda**, igual que con el enlace de `/monedas`: ganas monedas cuando empieza a usar la tienda y más con su primera compra, y a esa persona le llega un regalo de bienvenida.\n-# Tú también tienes que tener la cuenta vinculada. Solo vale para cuentas nuevas, creadas después de entrar al Discord.'),
+        text([
+            '### 1 · Invitas al Discord',
+            '- Comparte tu enlace. Cada persona que entre con él suma **1 invitación** en el ranking.',
+            '- Si se va del servidor, se resta. Así no vale meter cuentas y sacarlas.',
+        ].join('\n')),
+        text([
+            '### 2 · Se crea cuenta y la vincula',
+            `- Si esa persona se registra en cinammon.net y usa \`/vincular\`, pasa a ser **tu referido en la tienda**, igual que si hubiera usado tu enlace de \`/monedas\`.`,
+            '- Solo cuenta si su cuenta es nueva (creada después de entrar al Discord) y si tú también tienes la cuenta vinculada.',
+        ].join('\n')),
+        text([
+            '### 3 · Ganáis monedas los dos',
+            `- Cuando empieza a usar la tienda${r ? ` (gana sus primeras ${r.threshold} monedas con \`/diario\` o los minijuegos)` : ''}: tú ganas ${coins(r?.active, 'monedas')} y esa persona ${coins(r?.welcome, 'un regalo de bienvenida')}.`,
+            `- Con su primera compra: tú ganas ${coins(r?.purchase, 'más monedas')}.`,
+            '-# Las monedas se canjean por servidores en la tienda.',
+        ].join('\n')),
         sep(),
-        text(`### Ranking\n${top.length ? top.map((r, n) => `**${n + 1}.** <@${r.id}> · ${r.total} ${r.total === 1 ? 'invitación' : 'invitaciones'}`).join('\n') : 'Todavía nadie ha invitado a nadie. Puedes ser la primera persona.'}`),
+        text(`### Ranking\n${top.length ? top.map((x, n) => `**${n + 1}.** <@${x.id}> · ${x.total} ${x.total === 1 ? 'invitación' : 'invitaciones'}`).join('\n') : 'Todavía nadie ha invitado a nadie. Puedes ser la primera persona.'}`),
+        text('-# Tus números (Discord y tienda) con `/invitaciones`.'),
         sep(2),
         row({ type: 2, style: 1, label: 'Conseguir mi enlace', custom_id: 'c:invite' }),
     ]));
@@ -841,7 +866,7 @@ async function tick() {
         ['reseñas', () => community.syncReviews(data.reviews)],
         ['sorteos', () => community.tickGiveaways()],
         ['referidos', () => members.retryReferrals()],
-        ['invitaciones', () => upsert('invites', ctx.layout.channels.invites, invitesPost(), bannerFor('invites'))],
+        ['invitaciones', async () => { await refreshReferralRewards(); await upsert('invites', ctx.layout.channels.invites, invitesPost(), bannerFor('invites')); }],
     ];
     if (Date.now() - lastContent > CATALOG_EVERY) {
         steps.push(['canales', async () => { await content.sync(data); lastContent = Date.now(); }]);

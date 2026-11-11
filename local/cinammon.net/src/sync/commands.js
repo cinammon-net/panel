@@ -416,9 +416,10 @@ async function inviteView(user) {
     const url = `https://discord.gg/${code}`;
     const s = api.members.stats(user.id);
     return card(
-        text(`## Invita a tus amigos\nEste es tu enlace al servidor de Cinammon. Quien entre con él cuenta como invitación tuya, y si se crea cuenta y la vincula, también como tu referido en la tienda (monedas para ti).\n\n**${url}**`),
-        text(`-# Llevas **${s.total}** invitación(es). Mira el ranking con \`/top-invitaciones\`.`),
-        row(linkBtn('Abrir invitación', url)),
+        text(`## Tu enlace de invitación\n\`\`\`\n${url}\n\`\`\``),
+        text('Quien entre con él suma una invitación para ti. Si además se crea cuenta y la vincula, es tu referido en la tienda y ganáis monedas los dos (lo tienes explicado en el canal de invitaciones).'),
+        text(`-# Llevas **${s.total}** invitación(es). Ranking: \`/top-invitaciones\`.`),
+        row(btn('Copiar enlace', `c:invite:copy`, 1)),
     );
 }
 
@@ -755,6 +756,18 @@ async function handle(i) {
         return true;
     }
     const id = i.data?.custom_id || '';
+    if (i.type === 3 && id === 'c:invite:copy') {
+        // Discord no deja copiar al portapapeles desde un botón: se manda el enlace solo, listo para
+        // mantener pulsado (móvil) o seleccionar (ordenador).
+        try {
+            const code = await api.members.personalInvite(userOf(i).id);
+            await callback(i, { type: 4, data: { flags: EPH, content: `https://discord.gg/${code}` } });
+        } catch (e) {
+            api.log(`[CMD] c:invite:copy: ${e.message}`);
+            await callback(i, { type: 4, data: { flags: EPH, content: 'No se pudo obtener tu enlace. Inténtalo otra vez.' } });
+        }
+        return true;
+    }
     if (i.type === 3 && id === 'c:invite') {
         await callback(i, { type: 5, data: { flags: EPH } });
         try {
