@@ -23,6 +23,7 @@ const verify = require('./verify');
 const content = require('./content');
 const assistant = require('./assistant');
 const birthdays = require('./birthdays');
+const support = require('./support');
 const moderation = require('./moderation');
 
 const ART_VERSION = 1; // súbelo para volver a dibujar todos los banners
@@ -286,6 +287,13 @@ const BANNERS = {
 };
 const bannerFor = (key) => (BANNERS[key] ? { name: key, ...BANNERS[key] } : undefined);
 
+/** Ranking del mes de quienes más ayudan en #soporte (o nada si aún no hay). */
+function supportTop() {
+    const top = support.topHelpers(5);
+    if (!top.length) return text('### Ayudantes del mes\nTodavía nadie. Responde dudas en los hilos y, cuando las marquen como resueltas, aparecerás aquí.');
+    return text(`### Ayudantes del mes\n${top.map((h, n) => `**${n + 1}.** <@${h.id}> · ${h.points} ${h.points === 1 ? 'ayuda' : 'ayudas'}`).join('\n')}`);
+}
+
 function staticPosts(season) {
     const ch = ctx.layout.channels;
     const promo = season?.promotion && season?.discount ? `**${season.promotion}:** ${season.discount}% de descuento en la tienda ahora mismo.` : null;
@@ -343,13 +351,14 @@ function staticPosts(season) {
             row(linkBtn('Términos de servicio', `${PANEL_PUBLIC}/terms`), linkBtn('Privacidad', `${PANEL_PUBLIC}/privacy`)),
         ]))],
         ['help', ch.help, msg(container(accent, [
-            text('# Soporte\nPregunta aquí lo que quieras sobre Cinammon: servidores, la tienda, el panel o cómo empezar. **El asistente te responde al momento**; si no sabe la respuesta, avisa él al equipo.'),
+            text('# Soporte de la comunidad\nPreguntas **públicas** sobre cómo hacer algo: Minecraft, bots, el panel, dominios, bases de datos… Responden el asistente, la comunidad y el equipo.'),
             sep(),
-            text(`### Antes de preguntar\n- Mira <#${ch.status}>: si hay una caída o un mantenimiento, sale ahí.${ch.guides ? `\n- Busca en <#${ch.guides}>: Minecraft, bots, dominios, bases de datos y errores típicos.` : ''}\n- Nada de contraseñas, correos ni datos de pago aquí: es un canal público.`),
-            text(`### Cómo preguntar para que te ayuden rápido\n- Qué servicio es (juego, bot, web…) y qué intentabas hacer.\n- El error **exacto** o una captura de la consola.\n- Qué has probado ya.`),
-            text(`-# No menciones al staff: el asistente ya les avisa si hace falta. ¿Es de **tu cuenta, un pago o tu servidor** en concreto? Abre un ticket: lo ve solo el equipo. También puedes usar \`/pregunta\` en cualquier canal.`),
-            sep(2),
-            row({ type: 2, style: 1, label: 'Abrir ticket', custom_id: 'ticket:open' }, linkBtn('Panel', PANEL_PUBLIC)),
+            text('### Cómo funciona\n**1.** Escribe tu pregunta en el canal (o pulsa **Hacer una pregunta**).\n**2.** Se abre un **hilo solo para tu pregunta** y el asistente responde al momento.\n**3.** Si no lo resuelve, la comunidad y el equipo siguen en el hilo.\n**4.** Pulsa **Resuelto** y elige quién te ayudó: se lleva un punto de ayuda.'),
+            text(`### Escribe bien tu pregunta\n- Qué servicio es (juego, bot, web…) y la versión.\n- El error **exacto** de la consola o una captura.\n- Qué has probado ya.${ch.status ? `\n-# ¿Se ha caído todo? Mira antes <#${ch.status}>.` : ''}`),
+            supportTop(),
+            sep(),
+            text(`-# Es público: nada de contraseñas, correos ni facturas. Lo de **tu cuenta, un pago o una sanción** va por ticket privado en <#${ch.tickets}>.`),
+            row({ type: 2, style: 1, label: 'Hacer una pregunta', custom_id: 'sup:ask' }, ...[ch.guides ? linkBtn('Guías', `https://discord.com/channels/${ctx.guild}/${ch.guides}`) : null].filter(Boolean)),
         ]))],
         ['commands', ch.commands, msg(container(accent, [
             text('# Comandos\nLo que haces en la web, desde aquí. Escribe `/` en este canal y elige. Las respuestas de tu cuenta solo las ves tú.'),
@@ -372,13 +381,13 @@ function staticPosts(season) {
             row(linkBtn('Panel de administración', `${PANEL_PUBLIC}/admin`)),
         ]))],
         ['tickets', ch.tickets, msg(container(accent, [
-            text('# Soporte por ticket\nUn hilo privado entre tú y el equipo. Pulsa **Abrir ticket**, elige el tipo y rellena el formulario.'),
+            text('# Atención privada\nPara lo que no se puede contar en público: **tu cuenta, tus pagos o un servidor concreto**. Se abre un hilo privado que solo ves tú y el equipo, conectado con tu cuenta del panel.'),
             sep(),
-            text(`### Tipos\n**Mi servidor:** no arranca, errores, lag, archivos (eliges cuál)\n**Pagos y facturas:** cobros, renovaciones, reembolsos\n**Cuenta y acceso:** correo, acceso al panel, vinculación\n**Reportar a un usuario:** alguien incumple las normas\n**Otra consulta:** cualquier otra cosa`),
-            text(`### Cómo funciona\nSe abre un hilo privado y avisamos al equipo. Mientras, el asistente te sugiere una solución si reconoce el problema. El ticket es el mismo que en el panel: responde aquí o en ${PANEL_PUBLIC}/tickets. Al cerrarlo puedes valorar la atención.`),
-            text('-# Necesitas tu cuenta vinculada (`/vincular codigo:`). Un ticket abierto por persona. No menciones al staff: se responde por orden, con prioridad para los VIP. ¿Duda rápida? `/pregunta`.'),
-            sep(2),
-            row({ type: 2, style: 1, label: 'Abrir ticket', custom_id: 'ticket:open' }, linkBtn('Mis tickets en el panel', `${PANEL_PUBLIC}/tickets`)),
+            text('### Tipos\n**Mi servidor:** no arranca, errores, archivos (eliges cuál y el equipo lo puede revisar)\n**Pagos y facturas:** cobros, renovaciones, reembolsos\n**Cuenta y acceso:** correo, acceso al panel, vinculación\n**Reportar a un usuario:** alguien incumple las normas\n**Otra consulta:** cualquier otra cosa privada'),
+            text(`### Qué tiene un ticket\n- Lo atiende el equipo (prioridad para VIP) y queda guardado en ${PANEL_PUBLIC}/tickets: puedes responder aquí o en la web.\n- Avisos cuando te responden y valoración al cerrarlo.\n- Un ticket abierto por persona.`),
+            sep(),
+            text(`-# ¿Es una duda de cómo hacer algo? Pregúntala en <#${ch.help}>: allí responden al momento el asistente y la comunidad. Para abrir tickets necesitas la cuenta vinculada (\`/vincular\`).`),
+            row({ type: 2, style: 1, label: 'Abrir ticket', custom_id: 'ticket:open' }, { type: 2, style: 2, label: 'Mis tickets', custom_id: 'ticket:mine' }, linkBtn('Panel', `${PANEL_PUBLIC}/tickets`)),
         ]))],
     ];
 }
@@ -1057,6 +1066,15 @@ function start({ token, guildId, appId }) {
         BILLING,
         matchTip: (t) => community.matchSupportTip(t),
     });
+    support.init({
+        discord, log, saveState, assistant,
+        ui: { text, sep, row, container },
+        st: () => st,
+        ctx: () => ctx,
+        accent: () => accent,
+        isStaff: (m) => isStaffMember(m),
+        editOriginal: (i, body) => editOriginal(i, body),
+    });
     birthdays.init({
         discord, sendV2, panel, log, saveState,
         ui: { text, sep, row, container },
@@ -1156,7 +1174,9 @@ async function onMessage(message) {
         try {
             if (await moderation.guardMentions(message, !!entry)) return;
             if (ctx.layout.channels?.help && message.channel_id === ctx.layout.channels.help) {
-                await assistant.onSupportMessage(message, isStaffMember(message.member));
+                await support.onChannelMessage(message, isStaffMember(message.member));
+            } else if (support.isSupportThread(message.channel_id)) {
+                support.onThreadMessage(message);
             }
         } catch (e) {
             log(`[SYNC] mensaje: ${e.message}`);
@@ -1240,6 +1260,16 @@ async function onInteraction(interaction) {
     if (!ctx) return false;
     if (await verify.handle(interaction, respond)) return true;
     if (await community.handleInteraction(interaction, respond)) return true;
+    if (id.startsWith('sup:')) {
+        try {
+            const r = await support.component(interaction, respond);
+            if (r) await respond(interaction, r);
+        } catch (e) {
+            log(`[SOPORTE] ${id}: ${e.message}`);
+            await respond(interaction, ephemeral('No se pudo completar. Inténtalo otra vez.'));
+        }
+        return true;
+    }
     if (!id.startsWith('ticket:')) return commands.handle(interaction);
     const user = interaction.member?.user || interaction.user;
     const [, action, a1, a2] = id.split(':');
@@ -1255,6 +1285,26 @@ async function onInteraction(interaction) {
         } else {
             const data = categoryPicker();
             await respond(interaction, action === 'new' ? { type: 7, data: { ...data, flags: V2 } } : { type: 4, data });
+        }
+        return true;
+    }
+
+    // Mis tickets: lista privada con enlace a cada hilo
+    if (action === 'mine' && interaction.type === 3) {
+        await respond(interaction, { type: 5, data: { flags: 64 } });
+        try {
+            const { tickets } = await panel('GET', `/api/bot/discord/${user.id}/tickets`);
+            const line = (t) => {
+                const thread = st.tickets?.[t.id]?.thread;
+                return `**#${t.id}** ${cut(t.subject, 60)} · \`${(STATUS_ES[t.status] || t.status).toUpperCase()}\` · ${thread ? `<#${thread}>` : `[ver en el panel](${t.url})`}`;
+            };
+            await editOriginal(interaction, ephCard(accent,
+                text(`## Mis tickets\n${tickets.length ? tickets.map(line).join('\n') : 'No has abierto ningún ticket todavía.'}`),
+                text('-# Los abiertos tienen su hilo privado aquí; los cerrados se quedan en el panel.'),
+                row({ type: 2, style: 1, label: 'Abrir ticket', custom_id: 'ticket:open' }, linkBtn('Todos en el panel', `${PANEL_PUBLIC}/tickets`)),
+            ));
+        } catch (e) {
+            await editOriginal(interaction, ephCard(0xf59e0b, text(e.status === 404 ? NOT_LINKED : 'No se pudieron cargar tus tickets.')));
         }
         return true;
     }
