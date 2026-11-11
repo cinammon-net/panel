@@ -747,9 +747,16 @@ class ServerController extends Controller
         return back()->with('success', 'Transferencia iniciada correctamente.');
     }
 
-    public function reinstall($uuid)
+    public function reinstall(Request $request, $uuid)
     {
         $server = Server::where('uuid', $uuid)->orWhere('id', $uuid)->firstOrFail();
+        // Reinstalar reescribe archivos: solo el dueño del servidor o un administrador
+        $user = $request->user();
+        abort_unless(
+            $user->id === $server->owner_id || $user->hasAnyRole(['Owner', 'Admin']),
+            403,
+            'No tienes permiso para reinstalar este servidor.'
+        );
         $server->installed_at = null;
         $server->status = 0;
         $server->save();
