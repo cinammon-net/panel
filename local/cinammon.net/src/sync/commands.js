@@ -62,6 +62,7 @@ function base(categories) {
         { name: 'tickets', description: 'Tus tickets de soporte' },
         { name: 'invitaciones', description: 'Cuánta gente ha entrado con tus invitaciones', options: [{ name: 'usuario', description: 'Ver las de otra persona', type: USER, required: false }] },
         { name: 'top-invitaciones', description: 'Quién ha invitado a más gente' },
+        { name: 'invitar', description: 'Tu enlace para invitar a gente al servidor de Discord' },
         {
             name: 'anuncio', description: 'Publicar un anuncio en la web y en Discord (staff)', default_member_permissions: '32', options: [
                 { name: 'tipo', description: 'Tipo', type: S, required: true, choices: [{ name: 'Oferta', value: 'offer' }, { name: 'Novedad', value: 'new' }, { name: 'Evento', value: 'event' }, { name: 'Noticia', value: 'news' }] },
@@ -332,7 +333,7 @@ function helpView() {
         sep(),
         text('### ¿Tienes una duda?\n`/pregunta` te responde al momento. Si no lo sabe, avisa al equipo. Para algo privado (pagos, tu cuenta, un servidor), abre un ticket.'),
         text('### Tu cuenta\n`/cuenta` resumen · `/perfil` nombre y foto · `/servidores` y `/servidor` encender, apagar, ajustes · `/consola` comandos · `/monedas` y `/diario` · `/facturas` · `/tickets`'),
-        text('### Comunidad\n`/cumpleaños` guarda tu fecha y recibe un set de regalo ese día\n`/estado` · `/anuncios` · `/planes` · `/rangos` · `/invitaciones` · `/top-invitaciones` · `/ping`'),
+        text('### Comunidad\n`/cumpleaños` guarda tu fecha y recibe un set de regalo ese día\n`/estado` · `/anuncios` · `/planes` · `/rangos` · `/invitar` · `/invitaciones` · `/top-invitaciones` · `/ping`'),
         text('### Staff\n`/anuncio` · `/mantenimiento` · `/sincronizar`'),
         sep(),
         text('-# ¿Aún no lo has hecho? `/vincular` explica cómo conectar tu cuenta.'),
@@ -401,6 +402,17 @@ function invitesView(target) {
     return card(
         text(`## Invitaciones de ${target.global_name || target.username}\n**${s.total}** en el servidor · ${s.joins} entradas · ${s.leaves} salidas`),
         text('-# Para ganar monedas invitando a la tienda, usa tu enlace de `/monedas`.'),
+    );
+}
+
+async function inviteView(user) {
+    const code = await api.members.personalInvite(user.id);
+    const url = `https://discord.gg/${code}`;
+    const s = api.members.stats(user.id);
+    return card(
+        text(`## Invita a tus amigos\nEste es tu enlace al servidor de Cinammon. Quien entre con él cuenta como invitación tuya.\n\n**${url}**`),
+        text(`-# Llevas **${s.total}** invitación(es). Mira el ranking con \`/top-invitaciones\`.`),
+        row(linkBtn('Abrir invitación', url)),
     );
 }
 
@@ -500,6 +512,7 @@ async function run(i, name) {
             return invitesView(target);
         }
         case 'top-invitaciones': return topView();
+        case 'invitar': return inviteView(userOf(i));
         case 'anuncio': {
             const r = await me(i, 'POST', '/announcements', {
                 type: opt(i, 'tipo'), title: opt(i, 'titulo'), message: opt(i, 'mensaje') || '', coupon_code: opt(i, 'cupon') || null, days: opt(i, 'dias') || null,

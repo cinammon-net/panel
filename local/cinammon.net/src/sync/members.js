@@ -37,13 +37,42 @@ async function detectInviter() {
     await loadInvites();
     for (const [code, now] of invites) {
         const prev = before.get(code);
-        if ((prev?.uses || 0) < now.uses) return { code, inviter: now.inviter };
+        if ((prev?.uses || 0) < now.uses) return { code, inviter: ownerOf(code, now.inviter) };
     }
     // Invitación de un solo uso: desaparece al usarse.
     for (const [code, prev] of before) {
-        if (!invites.has(code) && prev.inviter) return { code, inviter: prev.inviter };
+        if (!invites.has(code) && prev.inviter) return { code, inviter: ownerOf(code, prev.inviter) };
     }
     return null;
+}
+
+/** Las invitaciones de /invitar las crea el bot: cuentan para quien las pidió. */
+function ownerOf(code, inviter) {
+    return env.st().invites?.owners?.[code] || inviter;
+}
+
+/**
+ * Enlace permanente y personal al servidor (sin caducidad ni límite de usos).
+ * Se reutiliza mientras siga existiendo; si alguien lo borra, se crea otro.
+ */
+async function personalInvite(userId) {
+    const state = env.st();
+    state.invites ??= { counts: {}, members: {} };
+    state.invites.links ??= {};
+    state.invites.owners ??= {};
+    if (!invites.size) await loadInvites();
+    const known = state.invites.links[userId];
+    if (known && invites.has(known)) return known;
+
+    const ch = env.ctx().layout.channels;
+    const channel = ch.verify || ch.rules || ch.general;
+    const inv = await env.discord('POST', `/channels/${channel}/invites`, { max_age: 0, max_uses: 0, unique: true });
+    if (known) delete state.invites.owners[known];
+    state.invites.links[userId] = inv.code;
+    state.invites.owners[inv.code] = userId;
+    invites.set(inv.code, { uses: inv.uses || 0, inviter: inv.inviter?.id || null });
+    env.saveState();
+    return inv.code;
 }
 
 function stats(userId) {
@@ -129,4 +158,4 @@ function leaderboard(limit = 10) {
         .slice(0, limit);
 }
 
-module.exports = { init, loadInvites, onInviteCreate, onInviteDelete, onJoin, onLeave, welcome, stats, leaderboard };
+module.exports = { init, loadInvites, personalInvite, onInviteCreate, onInviteDelete, onJoin, onLeave, welcome, stats, leaderboard };
