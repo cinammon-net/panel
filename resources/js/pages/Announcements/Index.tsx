@@ -69,24 +69,26 @@ const emptyForm = (): Form => ({
     ends_at: '',
 });
 
-/** Plantillas rápidas ultra-visuales (poco texto, máximo impacto). */
-const TEMPLATES: { name: string; data: Partial<Form>; days?: number }[] = [
+const isDecember = new Date().getMonth() === 11;
+
+/** Plantillas rápidas ultra-visuales (sin emojis, poco texto, máximo impacto). */
+const TEMPLATES: { name: string; data: Partial<Form>; days?: number; onlyDecember?: boolean }[] = [
     {
-        name: '🎮 Servidor Gratis (Fijo)',
+        name: 'Servidor Gratis (Fijo)',
         data: {
             type: 'new',
-            title: '¡CREA TU SERVIDOR 100% GRATIS!',
+            title: 'CREA TU SERVIDOR 100% GRATIS',
             highlight: '0,00 €',
             coupon_code: '',
             message: 'Sin tarjeta · Gana monedas en 1 clic y despliega al instante.',
-            cta_label: '🚀 Crear servidor gratis',
+            cta_label: 'Crear servidor gratis',
             cta_url: 'https://billing.cinammon.net/free',
             places: ['web', 'panel', 'store'],
             popup: true,
         },
     },
     {
-        name: '🛒 Black Friday (-30%)',
+        name: 'Black Friday (-30%)',
         days: 14,
         data: {
             type: 'offer',
@@ -94,77 +96,84 @@ const TEMPLATES: { name: string; data: Partial<Form>; days?: number }[] = [
             highlight: '-30%',
             coupon_code: '',
             message: 'Servidores, Bots, Web y Rangos VIP rebajados automáticamente.',
-            cta_label: '🔥 Ver ofertas -30%',
+            cta_label: 'Ver ofertas -30%',
             cta_url: 'https://billing.cinammon.net/store',
             places: ['web', 'panel', 'store'],
             popup: true,
         },
     },
     {
-        name: '🎄 Calendario de Adviento',
+        name: 'Calendario de Adviento',
         days: 24,
+        onlyDecember: true,
         data: {
             type: 'event',
             title: 'CALENDARIO DE ADVIENTO · 24 REGALOS',
-            highlight: '24 🎁',
+            highlight: '24 DIAS',
             coupon_code: '',
             message: 'Abre 1 regalo al día: monedas gratis y hasta +13 días en tu servidor.',
-            cta_label: '🎄 Abrir regalo de hoy',
+            cta_label: 'Abrir regalo de hoy',
             cta_url: 'https://billing.cinammon.net/advent',
             places: ['web', 'panel', 'store'],
             popup: true,
         },
     },
     {
-        name: '🎅 Especial Navidad (-25%)',
+        name: 'Especial Navidad (-25%)',
         days: 11,
+        onlyDecember: true,
         data: {
             type: 'offer',
             title: 'ESPECIAL NAVIDAD · -25% EN TODO',
             highlight: '-25%',
             coupon_code: '',
             message: 'Descuento directo en toda la tienda + 2x recompensas VIP en Adviento.',
-            cta_label: '🎅 Aprovechar -25%',
+            cta_label: 'Aprovechar -25%',
             cta_url: 'https://billing.cinammon.net/store',
             places: ['web', 'panel', 'store'],
             popup: true,
         },
     },
     {
-        name: '🥂 Nochevieja y Año Nuevo (-20%)',
+        name: 'Nochevieja y Año Nuevo (-20%)',
         days: 7,
+        onlyDecember: true,
         data: {
             type: 'offer',
             title: 'ESPECIAL FIN DE AÑO · -20% EN TODO',
             highlight: '-20%',
             coupon_code: '',
             message: 'Despide el año y empieza el nuevo estrenando servidor al mejor precio.',
-            cta_label: '🥂 Ver planes en oferta',
+            cta_label: 'Ver planes en oferta',
             cta_url: 'https://billing.cinammon.net/store',
             places: ['web', 'panel', 'store'],
             popup: true,
         },
     },
     {
-        name: '⚡ Oferta Flash con cupón',
+        name: 'Oferta Flash con cupón',
         days: 3,
         data: {
             type: 'offer',
             title: 'OFERTA FLASH EN TODOS LOS PLANES',
             highlight: '-30%',
             coupon_code: 'CINAMMON30',
-            message: 'Solo por tiempo limitado. ¡Despliega en 60 segundos!',
-            cta_label: '🔥 Usar descuento',
+            message: 'Solo por tiempo limitado. Despliega en 60 segundos.',
+            cta_label: 'Usar descuento',
             popup: true,
         },
     },
-];
+].filter((t) => !t.onlyDecember || isDecember);
 
 export default function AnnouncementsIndex() {
     const { announcements } = usePage<Props>().props;
     const [form, setForm] = useState<Form>(emptyForm);
     const [editing, setEditing] = useState<number | null>(null);
     const [busy, setBusy] = useState(false);
+    const [showScheduled, setShowScheduled] = useState(false);
+
+    const visibleAnnouncements = announcements.filter((a) => showScheduled || a.status !== 'scheduled');
+    const scheduledCount = announcements.filter((a) => a.status === 'scheduled').length;
 
     const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -412,19 +421,30 @@ export default function AnnouncementsIndex() {
                 </form>
 
                 <div className="space-y-3">
-                    {announcements.length === 0 && <p className="font-sans text-sm text-neutral-500">Todavía no hay anuncios. Usa una plantilla para crear el primero.</p>}
-                    {announcements.map((a) => {
+                    {scheduledCount > 0 && (
+                        <div className="flex justify-end">
+                            <button
+                                type="button"
+                                onClick={() => setShowScheduled((v) => !v)}
+                                className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 font-sans text-xs font-semibold text-amber-300 transition hover:bg-amber-500/20"
+                            >
+                                {showScheduled ? 'Ocultar anuncios programados para próximas fechas' : `Ver anuncios programados para próximas fechas (${scheduledCount})`}
+                            </button>
+                        </div>
+                    )}
+                    {visibleAnnouncements.length === 0 && <p className="font-sans text-sm text-neutral-500">Todavía no hay anuncios activos. Usa una plantilla para crear el primero.</p>}
+                    {visibleAnnouncements.map((a) => {
                         const s = TYPE_STYLES[a.type] ?? TYPE_STYLES.news;
                         return (
                             <div key={a.id} className="rounded-xl border border-neutral-800 bg-black/40 p-4">
                                 <div className="flex flex-wrap items-center gap-2.5">
                                     <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${STATUS[a.status].cls}`}>{STATUS[a.status].label}</span>
                                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${s.chip}`}>{s.label}</span>
-                                    {a.highlight && <span className="text-sm font-extrabold text-yellow-300">{a.highlight}</span>}
+                                    {a.highlight && <span className="text-sm font-extrabold text-amber-300">{a.highlight}</span>}
                                     <span className="text-sm font-bold">{a.title}</span>
                                     {a.coupon_code && <span className="rounded border border-dashed border-neutral-600 px-1.5 font-mono text-[10px] text-neutral-300">{a.coupon_code}</span>}
-                                    {a.popup && <span className="rounded bg-pink-500/15 px-1.5 py-0.5 text-[10px] text-pink-300">emergente</span>}
-                                    <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-cyan-300" title="Clics en el botón">
+                                    {a.popup && <span className="rounded bg-pink-500/15 px-1.5 py-0.5 text-[10px] text-pink-300">cartel grande</span>}
+                                    <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-pink-300" title="Clics en el botón">
                                         <MousePointerClick className="h-3.5 w-3.5" /> {a.clicks}
                                     </span>
                                 </div>
@@ -434,7 +454,7 @@ export default function AnnouncementsIndex() {
                                 </p>
                                 {a.message && <p className="mt-2 font-sans text-xs text-neutral-300">{a.message}</p>}
                                 <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
-                                    <button onClick={() => edit(a)} className="inline-flex items-center gap-1 rounded border border-cyan-700 px-2.5 py-1 text-cyan-300 hover:bg-cyan-900/40">
+                                    <button onClick={() => edit(a)} className="inline-flex items-center gap-1 rounded border border-pink-500/50 px-2.5 py-1 text-pink-300 hover:bg-pink-950/40">
                                         <Pencil className="h-3 w-3" /> Editar
                                     </button>
                                     {a.status !== 'finished' && (

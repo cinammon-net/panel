@@ -90,7 +90,7 @@
 </head>
 
 <body class="font-sans antialiased">
-    @include('partials.loader', ['a' => 'var(--color-pink-500, #ec4899)', 'b' => 'var(--color-cyan-400, #22d3ee)', 'logo' => $cinLogo])
+    @include('partials.loader', ['a' => 'var(--color-pink-500, #ec4899)', 'b' => 'var(--color-amber-400, #fbbf24)', 'logo' => $cinLogo])
     @inertia
 </body>
 
