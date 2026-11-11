@@ -74,6 +74,8 @@ class User extends Authenticatable
             'password' => 'hashed',
             'lock_code_set_at' => 'datetime',
             'lock_enabled_until' => 'datetime',
+            'birthday_set_at' => 'datetime',
+            'birthday_public' => 'boolean',
         ];
     }
 

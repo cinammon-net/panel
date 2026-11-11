@@ -8,3 +8,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 \Illuminate\Support\Facades\Schedule::command('nodes:check-status')->everyMinute()->withoutOverlapping();
+\Illuminate\Support\Facades\Schedule::command('birthdays:celebrate')->hourlyAt(1)->withoutOverlapping();

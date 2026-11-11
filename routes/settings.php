@@ -15,6 +15,8 @@ Route::middleware('auth')->group(function () {
     Route::post('settings/profile/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
     Route::delete('settings/profile/avatar', [ProfileController::class, 'destroyAvatar'])->name('profile.avatar.destroy');
     Route::delete('settings/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::put('settings/profile/birthday', [ProfileController::class, 'birthday'])->middleware('throttle:10,1')->name('profile.birthday');
+    Route::post('birthday/seen', [ProfileController::class, 'birthdaySeen'])->name('birthday.seen');
     Route::post('settings/profile/discord-code', [ProfileController::class, 'discordCode'])->middleware('throttle:10,1')->name('profile.discord-code');
 
     Route::get('settings/password', [PasswordController::class, 'edit'])->name('password.edit');

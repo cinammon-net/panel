@@ -42,6 +42,7 @@ class BotSyncController extends Controller
             ->map(fn (Ticket $t) => $this->ticket($t));
 
         return response()->json([
+            'birthdays' => BotBirthdayController::today(),
             'announcements' => Announcement::live()->latest('starts_at')->limit(20)->get()->map->toPublic(),
             'maintenances' => Maintenance::visible()->orderBy('starts_at')->get()->map->toPublic(),
             'nodes' => Node::orderBy('id')->get(['id', 'name', 'online', 'maintenance_mode'])->map(fn ($n) => [

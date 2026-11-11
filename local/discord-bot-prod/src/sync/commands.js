@@ -8,6 +8,7 @@
 const moderation = require('./moderation');
 const admin = require('./admin');
 const assistant = require('./assistant');
+const birthdays = require('./birthdays');
 
 let api = null;
 const gameCache = new Map(); // serverId -> { at, fields }
@@ -25,7 +26,7 @@ function init(a) {
 const S = 3, INT = 4, BOOL = 5, USER = 6, FILE = 11;
 
 function definitions(categories = []) {
-    return [...base(categories), ...assistant.definitions(), ...moderation.definitions(), ...admin.definitions()];
+    return [...base(categories), ...assistant.definitions(), ...birthdays.definitions(), ...moderation.definitions(), ...admin.definitions()];
 }
 
 function base(categories) {
@@ -331,7 +332,7 @@ function helpView() {
         sep(),
         text('### ¿Tienes una duda?\n`/pregunta` te responde al momento. Si no lo sabe, avisa al equipo. Para algo privado (pagos, tu cuenta, un servidor), abre un ticket.'),
         text('### Tu cuenta\n`/cuenta` resumen · `/perfil` nombre y foto · `/servidores` y `/servidor` encender, apagar, ajustes · `/consola` comandos · `/monedas` y `/diario` · `/facturas` · `/tickets`'),
-        text('### Comunidad\n`/estado` · `/anuncios` · `/planes` · `/rangos` · `/invitaciones` · `/top-invitaciones` · `/ping`'),
+        text('### Comunidad\n`/cumpleaños` guarda tu fecha y recibe un set de regalo ese día\n`/estado` · `/anuncios` · `/planes` · `/rangos` · `/invitaciones` · `/top-invitaciones` · `/ping`'),
         text('### Staff\n`/anuncio` · `/mantenimiento` · `/sincronizar`'),
         sep(),
         text('-# ¿Aún no lo has hecho? `/vincular` explica cómo conectar tu cuenta.'),
@@ -416,10 +417,10 @@ function topView() {
 
 async function slash(i) {
     const name = i.data.name;
-    if (assistant.NAMES.has(name)) {
+    if (assistant.NAMES.has(name) || birthdays.NAMES.has(name)) {
         await callback(i, { type: 5, data: { flags: EPH } });
         try {
-            await edit(i, await assistant.ask(i));
+            await edit(i, await (birthdays.NAMES.has(name) ? birthdays.run(i) : assistant.ask(i)));
         } catch (e) {
             api.log(`[CMD] /${name}: ${e.message}`);
             await edit(i, errorCard(e));
@@ -707,9 +708,9 @@ async function handle(i) {
         await callback(i, { type: 8, data: { choices } });
         return true;
     }
-    if (i.type === 3 && (i.data?.custom_id || '').startsWith('ast:')) {
+    if (i.type === 3 && /^(ast|bday):/.test(i.data?.custom_id || '')) {
         try {
-            await callback(i, await assistant.component(i));
+            await callback(i, await (i.data.custom_id.startsWith('bday:') ? birthdays.component(i) : assistant.component(i)));
         } catch (e) {
             api.log(`[CMD] ${i.data.custom_id}: ${e.message}`);
             await callback(i, { type: 4, data: { flags: EPH, content: 'No se pudo completar. Inténtalo otra vez o abre un ticket.' } });

@@ -4,6 +4,7 @@ import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { Camera, Trash2 } from 'lucide-react';
 import { ChangeEvent, FormEventHandler, useRef, useState } from 'react';
 
+import BirthdaySettings, { type BirthdayInfo } from '@/components/birthday-settings';
 import DeleteUser from '@/components/delete-user';
 import { LinkedAccounts } from '@/components/social-login';
 import HeadingSmall from '@/components/heading-small';
@@ -26,7 +27,7 @@ type ProfileForm = {
     email: string;
 }
 
-export default function Profile({ mustVerifyEmail, status, connections = {} }: { mustVerifyEmail: boolean; status?: string; connections?: Record<string, boolean> }) {
+export default function Profile({ mustVerifyEmail, status, connections = {}, birthday }: { mustVerifyEmail: boolean; status?: string; connections?: Record<string, boolean>; birthday?: BirthdayInfo }) {
     const { auth } = usePage<SharedData>().props;
 
     const { data, setData, patch, errors, processing, recentlySuccessful } = useForm<Required<ProfileForm>>({
@@ -200,6 +201,8 @@ export default function Profile({ mustVerifyEmail, status, connections = {} }: {
                         </div>
                     </form>
                 </div>
+
+                {birthday && <BirthdaySettings birthday={birthday} />}
 
                 <LinkedAccounts connections={connections} />
 

@@ -38,6 +38,10 @@ Route::middleware('bot.secret')->group(function () {
     Route::post('/bot/tickets/{ticket}/status', [App\Http\Controllers\BotSyncController::class, 'status']);
     Route::post('/bot/tickets/{ticket}/claim', [App\Http\Controllers\BotSyncController::class, 'claim']);
     Route::post('/bot/tickets/{ticket}/rating', [App\Http\Controllers\BotSyncController::class, 'rate']);
+    Route::post('/bot/birthdays/{celebration}/wish', [App\Http\Controllers\BotBirthdayController::class, 'wish'])->middleware('throttle:120,1');
+    Route::get('/bot/birthdays/upcoming', [App\Http\Controllers\BotBirthdayController::class, 'upcoming']);
+    Route::get('/bot/discord/{discordId}/birthday', [App\Http\Controllers\BotBirthdayController::class, 'show'])->where('discordId', '[0-9]{5,25}');
+    Route::put('/bot/discord/{discordId}/birthday', [App\Http\Controllers\BotBirthdayController::class, 'update'])->where('discordId', '[0-9]{5,25}')->middleware('throttle:10,1');
     // Sanciones sobre servidores desde Discord (staff vinculado)
     Route::get('/bot/discord/{staffId}/moderation/{targetId}', [App\Http\Controllers\BotModerationController::class, 'show'])
         ->where(['staffId' => '[0-9]{5,25}', 'targetId' => '[0-9]{5,25}']);

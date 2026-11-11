@@ -25,7 +25,48 @@ class ProfileController extends Controller
             // Cuentas vinculadas para entrar (proveedor => vinculado o no)
             'connections' => collect(\App\Http\Controllers\Auth\SocialAuthController::PROVIDERS)
                 ->mapWithKeys(fn ($p, $key) => [$key => filled($request->user()->getAttributes()[$key.'_id'] ?? null)]),
+            'birthday' => self::birthdayInfo($request->user()),
         ]);
+    }
+
+    public static function birthdayInfo(\App\Models\User $user): array
+    {
+        return [
+            'day' => $user->birthday_day,
+            'month' => $user->birthday_month,
+            'public' => (bool) ($user->birthday_public ?? true),
+            'label' => \App\Support\Birthday::label($user),
+            'days_until' => \App\Support\Birthday::daysUntil($user),
+            'gift' => \App\Support\Birthday::giftStatus($user),
+            'preview' => \App\Support\Birthday::preview($user),
+            'min_days' => \App\Support\Birthday::MIN_DAYS,
+        ];
+    }
+
+    /** Guarda (o borra) el cumpleaños. */
+    public function birthday(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'day' => 'nullable|integer|min:1|max:31',
+            'month' => 'nullable|integer|min:1|max:12',
+            'public' => 'boolean',
+        ]);
+        $day = $data['day'] ?? null;
+        $month = $data['month'] ?? null;
+        if (($day xor $month) || ($day && ! \App\Support\Birthday::valid($day, $month))) {
+            return back()->withErrors(['birthday' => 'Esa fecha no existe.']);
+        }
+        \App\Support\Birthday::set($request->user(), $day, $month, (bool) ($data['public'] ?? true));
+
+        return back()->with('success', $day ? 'Cumpleaños guardado.' : 'Cumpleaños borrado.');
+    }
+
+    /** El usuario ha abierto la sorpresa del día. */
+    public function birthdaySeen(Request $request): RedirectResponse
+    {
+        \App\Support\Birthday::today($request->user())?->update(['seen_at' => now()]);
+
+        return back();
     }
 
     /**

@@ -1,3 +1,4 @@
+import BirthdaySurprise, { type BirthdayToday } from '@/components/birthday-surprise';
 import UpdateManager, { type UpdateStatus } from '@/components/update-manager';
 import AppLayout from '@/layouts/app-layout';
 import { Head, Link, usePage } from '@inertiajs/react';
@@ -38,6 +39,7 @@ interface DashboardProps {
     updates?: { pending: string[]; panel_latest: string | null; wings_latest: string | null } | null;
     roleScope?: 'admin' | 'moderator' | 'client';
     userRole?: string;
+    birthday?: BirthdayToday | null;
     stats?: Record<string, number>;
     weeklyActivity?: {
         labels: string[];
@@ -53,6 +55,7 @@ interface DashboardProps {
 export default function Dashboard() {
     const {
         liveNodes,
+        birthday,
         updateStatus,
         updates,
         roleScope = 'client',
@@ -237,6 +240,8 @@ export default function Dashboard() {
             <div className="min-h-screen w-full max-w-7xl mx-auto space-y-8 px-4 sm:px-6 lg:px-8 py-8 font-[Orbitron,sans-serif] text-white">
                 <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-br from-black via-[#080210] to-black" />
                 <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle,#751aff11_1px,transparent_1px)] bg-[length:18px_18px]" />
+
+                {birthday && <BirthdaySurprise birthday={birthday} />}
 
                 {/* Cabecera */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-cyan-950/80 pb-6">

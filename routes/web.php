@@ -239,6 +239,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         }
 
         return Inertia::render('dashboard', [
+            'birthday' => \App\Support\Birthday::forPanel($request->user()),
             'roleScope' => $roleScope,
             'stats' => $stats,
             'weeklyActivity' => $weeklyActivity,

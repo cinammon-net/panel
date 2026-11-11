@@ -22,6 +22,7 @@ const members = require('./members');
 const verify = require('./verify');
 const content = require('./content');
 const assistant = require('./assistant');
+const birthdays = require('./birthdays');
 const moderation = require('./moderation');
 
 const ART_VERSION = 1; // súbelo para volver a dibujar todos los banners
@@ -356,7 +357,7 @@ function staticPosts(season) {
             text('### Primero: vincula tu cuenta\n`/vincular codigo:` con el código de **Ajustes → Perfil → Código para el bot** del panel. Solo hace falta una vez.'),
             text('### Tus servidores\n`/servidores` lista con su estado\n`/servidor` encender, reiniciar, apagar, renombrar y ajustes del juego\n`/consola` enviar un comando a la consola'),
             text('### Tu cuenta\n`/cuenta` resumen de todo · `/perfil` nombre y foto de la web\n`/monedas` saldo y enlace de invitación · `/diario` premio diario con racha\n`/facturas` pagos pendientes · `/tickets` tus tickets'),
-            text('### Comunidad\n`/estado` red y mantenimientos · `/anuncios` · `/planes` · `/rangos`\n`/invitaciones` · `/top-invitaciones` · `/ping` · `/ayuda`'),
+            text('### Comunidad\n`/cumpleaños` guarda tu fecha: ese día te felicitamos y te llega un set de regalo\n`/estado` red y mantenimientos · `/anuncios` · `/planes` · `/rangos`\n`/invitaciones` · `/top-invitaciones` · `/ping` · `/ayuda`'),
             sep(),
             text('-# Si un comando dice que tu Discord no está vinculado, repite el paso de `/vincular`.'),
         ]))],
@@ -807,6 +808,7 @@ async function tick() {
         ['estado', () => syncStatus(data)],
         ['roles', () => syncRoles(data.members)],
         ['tickets', () => syncTickets(data.tickets)],
+        ['cumpleaños', () => birthdays.sync(data.birthdays || [])],
         ['actividad', () => syncActivity(data)],
         ['avisos', () => community.syncRolePicker()],
         ['reseñas', () => community.syncReviews(data.reviews)],
@@ -1054,6 +1056,19 @@ function start({ token, guildId, appId }) {
         PANEL: PANEL_PUBLIC,
         BILLING,
         matchTip: (t) => community.matchSupportTip(t),
+    });
+    birthdays.init({
+        discord, sendV2, panel, log, saveState,
+        ui: { text, sep, row, container },
+        st: () => st,
+        ctx: () => ctx,
+        accent: () => accent,
+        saveLayout: () => fs.writeFileSync(LAYOUT_PATH, JSON.stringify(ctx.layout, null, 2)),
+        PANEL: PANEL_PUBLIC,
+        BILLING,
+        followup: (i, payload) => fetch(`${API}/webhooks/${i.application_id}/${i.token}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+        }).catch(() => {}),
     });
     verify.init({
         discord, log, saveState, audit, members,
