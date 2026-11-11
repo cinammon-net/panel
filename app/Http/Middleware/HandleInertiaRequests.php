@@ -34,6 +34,8 @@ class HandleInertiaRequests extends Middleware
             'flash' => fn(): array => ['success' => $request->session()->get('success')],
             // Mantenimiento activo o próximo: aviso global para todos (también sin sesión)
             'maintenance' => fn () => \App\Models\Maintenance::current(),
+            // Ofertas y novedades publicadas (cada vista filtra por su ubicación)
+            'announcements' => fn () => \App\Models\Announcement::liveList(),
             // Enlace a la tienda (no en la demo, que no tiene billing)
             'billingUrl' => \App\Support\Panel::demoMode() ? null : rtrim((string) config('services.billing.url'), '/'),
             // Rangos comprados y roles automáticos del usuario (recalculados como mucho cada 10 min)
@@ -79,7 +81,7 @@ class HandleInertiaRequests extends Middleware
                     'egg' => $server->egg?->name,
                     'egg_icon' => $server->egg?->image_url,
                     'category' => $server->egg?->category,
-                    'wordpress' => $server->supportsWordpress(),
+                    'apps' => $server->supportsWebApps(),
                     // Solo si es una URL: un banner subido (data:) pesa demasiado para ir en cada página.
                     'banner' => $server->banner && ! str_starts_with($server->banner, 'data:') ? $server->banner : null,
                 ] : null;

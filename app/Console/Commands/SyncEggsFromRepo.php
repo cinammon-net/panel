@@ -50,7 +50,7 @@ class SyncEggsFromRepo extends Command
 
         $this->info("Iniciando sincronización desde: {$repoPath}");
 
-        $categories = ['minecraft', 'games', 'bots', 'database', 'generic', 'software', 'voice'];
+        $categories = ['minecraft', 'games', 'bots', 'database', 'generic', 'software', 'voice', 'web'];
         $syncedEggs = 0;
         $syncedVars = 0;
 
@@ -99,6 +99,11 @@ class SyncEggsFromRepo extends Command
                     ['uuid' => $data['uuid']],
                     $eggAttributes
                 );
+
+                // Icono del repositorio solo si el egg no tiene uno (no pisa los subidos desde el panel)
+                if (empty($egg->getRawOriginal('image')) && is_string($data['image'] ?? null) && str_starts_with($data['image'], 'data:image/')) {
+                    $egg->forceFill(['image' => $data['image']])->save();
+                }
 
                 $syncedEggs++;
 

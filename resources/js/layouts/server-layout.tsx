@@ -1,6 +1,7 @@
 import { AppContent } from '@/components/app-content';
 import { AppShell } from '@/components/app-shell';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
+import AnnouncementBar from '@/components/announcement-bar';
 import MaintenanceBanner from '@/components/maintenance-banner';
 import ServerSidebar from '@/components/server/server-sidebar';
 import { type BreadcrumbItem } from '@/types';
@@ -19,7 +20,7 @@ export type ServerSection =
     | 'gta-players'
     | 'gta-mods'
     | 'sftp'
-    | 'wordpress'
+    | 'apps'
     | 'wingslog'
     | 'databases'
     | 'network'
@@ -57,6 +58,7 @@ export default function ServerLayout({
         'gta-players': 'Jugadores',
         'gta-mods': currentServer?.gta === 'samp' ? 'Scripts y plugins' : currentServer?.gta === 'ragemp' ? 'Packages' : 'Resources',
         addons: currentServer?.addons === 'plugins' ? 'Plugins' : currentServer?.addons === 'mods' ? 'Mods' : 'Plugins y mods',
+        apps: 'Aplicaciones',
         sftp: 'Acceso SFTP',
         wingslog: 'Registro de Wings',
         databases: 'Bases de Datos',
@@ -88,6 +90,7 @@ export default function ServerLayout({
             <AppContent variant="sidebar">
                 <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 <MaintenanceBanner />
+                <AnnouncementBar place="panel" />
                 {showLockNotice && (
                     <Link
                         href="/settings/security"

@@ -46,8 +46,8 @@ class Server extends Model
         return $this->egg?->category === 'web';
     }
 
-    /** Web con PHP de Cinammon (WebHost o WordPress): admite el instalador de WordPress del panel. */
-    public function supportsWordpress(): bool
+    /** Web con PHP de Cinammon (WebHost o WordPress): admite las aplicaciones con un clic del panel. */
+    public function supportsWebApps(): bool
     {
         return $this->isWebSite() && str_contains(str_replace('\\/', '/', (string) $this->egg?->docker_images), 'cinammon-net/webhost');
     }
