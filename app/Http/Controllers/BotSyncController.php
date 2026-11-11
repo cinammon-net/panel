@@ -51,8 +51,8 @@ class BotSyncController extends Controller
                 'maintenance' => (bool) $n->maintenance_mode,
             ]),
             'stats' => [
-                'servers' => Server::count(),
-                'users' => User::visible()->count(),
+                'servers' => Server::ofMembers()->count(),
+                'users' => User::members()->count(),
             ],
             'members' => $members,
             'tickets' => $tickets,

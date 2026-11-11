@@ -119,9 +119,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $hasTickets = Schema::hasTable('tickets');
 
         // Las estadísticas solo cuentan a los miembros: fuera los Owner y sus servidores.
-        $ownerIds = User::whereHas('roles', fn ($q) => $q->where('name', 'Owner'))->pluck('id');
-        $members = fn () => User::visible()->whereNotIn('id', $ownerIds);
-        $memberServers = fn () => Server::whereNotIn('owner_id', $ownerIds);
+        $members = fn () => User::members();
+        $memberServers = fn () => Server::ofMembers();
 
         if ($isAdmin) {
             $roleScope = 'admin';

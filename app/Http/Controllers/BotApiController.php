@@ -35,9 +35,9 @@ class BotApiController extends Controller
 
         return response()->json([
             'stats' => [
-                'servers' => Server::count(),
+                'servers' => Server::ofMembers()->count(),
                 'nodes' => max(1, Node::count()),
-                'users' => max(1, User::visible()->count()),
+                'users' => User::members()->count(),
             ],
             'servers' => $servers,
             'plans' => [

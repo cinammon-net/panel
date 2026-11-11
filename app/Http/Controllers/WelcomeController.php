@@ -112,8 +112,8 @@ class WelcomeController extends Controller
             }),
             'discord' => ['url' => \App\Support\Discord::invite(), ...(\App\Support\Discord::stats() ?? [])],
             'stats' => [
-                'users' => User::visible()->count(),
-                'servers' => Server::count(),
+                'users' => User::members()->count(),
+                'servers' => Server::ofMembers()->count(),
                 'nodes' => Node::count(),
                 'eggs' => Egg::count(),
             ],

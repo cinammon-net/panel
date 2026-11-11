@@ -51,6 +51,12 @@ class User extends Authenticatable
      * Personas reales: fuera de la demo se excluyen las cuentas de demostración/prueba
      * (config panel.demo_emails); dentro de la demo solo existen esas.
      */
+    /** Miembros para las estadísticas: cuentas visibles que no son Owner. */
+    public function scopeMembers($query)
+    {
+        return $query->visible()->whereDoesntHave('roles', fn ($q) => $q->where('name', 'Owner'));
+    }
+
     public function scopeVisible($query)
     {
         return $query->when(! \App\Support\Panel::demoMode(), fn ($q) => $q->whereNotIn('email', config('panel.demo_emails', [])));

@@ -7,6 +7,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Server extends Model
 {
+    /** Servidores de miembros (sin los de cuentas Owner), para las estadísticas públicas. */
+    public function scopeOfMembers($query)
+    {
+        return $query->whereNotIn('owner_id', User::whereHas('roles', fn ($q) => $q->where('name', 'Owner'))->select('id'));
+    }
+
     use HasFactory;
 
     protected $table = 'servers';
