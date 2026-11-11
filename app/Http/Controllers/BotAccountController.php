@@ -260,6 +260,25 @@ class BotAccountController extends Controller
 
     /* ------------------------------------------------------------------ */
 
+    /** /vincular <código>: el código sale en Ajustes → Perfil del panel. */
+    public function link(Request $request, string $discordId)
+    {
+        $code = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string) $request->input('code')));
+        $uid = $code !== '' ? \Illuminate\Support\Facades\Cache::pull('discord-link:'.$code) : null;
+        abort_unless($uid && ($user = User::find($uid)), 422, 'Código no válido o caducado. Genera uno nuevo en Ajustes → Perfil.');
+        \Illuminate\Support\Facades\Cache::forget('discord-link-user:'.$uid);
+
+        $other = User::where('discord_id', $discordId)->where('id', '!=', $user->id)->first();
+        abort_if($other, 409, 'Este Discord ya está vinculado a otra cuenta del panel. Desvincúlalo allí primero (Ajustes → Perfil).');
+
+        $user->forceFill(['discord_id' => $discordId])->save();
+        if (class_exists(\App\Support\Ranks::class)) {
+            \App\Support\Ranks::sync($user);
+        }
+
+        return response()->json(['user' => ['name' => $user->name, 'email' => $user->email]]);
+    }
+
     private function user(string $discordId): User
     {
         $user = User::where('discord_id', $discordId)->first();

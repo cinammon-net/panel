@@ -1,5 +1,5 @@
 import { router, usePage } from '@inertiajs/react';
-import { Link2, Unlink } from 'lucide-react';
+import { KeyRound, Link2, Unlink } from 'lucide-react';
 
 // Logos de marca de bootstrap-icons (MIT), en un solo color como el resto de iconos de línea.
 const PATHS: Record<string, string[]> = {
@@ -66,12 +66,13 @@ export function SocialLogin({ label = 'O entra con' }: { label?: string }) {
 
 /** Ajustes → Perfil: vincular o desvincular proveedores. */
 export function LinkedAccounts({ connections }: { connections: Record<string, boolean> }) {
-    const { socialProviders = [], errors } = usePage<{ socialProviders?: Provider[]; errors: Record<string, string> }>().props;
+    const { socialProviders = [], errors, flash } = usePage<{ socialProviders?: Provider[]; errors: Record<string, string>; flash?: { discordCode?: string } }>().props;
     const names: Record<string, string> = { discord: 'Discord', google: 'Google', microsoft: 'Microsoft', github: 'GitHub', gitlab: 'GitLab', twitch: 'Twitch' };
     const enabled = new Set(socialProviders.map((p) => p.key));
     // Se muestran los configurados y los que ya tenías vinculados aunque se hayan desactivado.
-    const keys = Object.keys(names).filter((k) => enabled.has(k) || connections[k]);
-    if (!keys.length) return null;
+    // Discord siempre: se puede vincular con un código y /vincular aunque no haya OAuth.
+    const keys = Object.keys(names).filter((k) => k === 'discord' || enabled.has(k) || connections[k]);
+    const code = flash?.discordCode;
 
     return (
         <div className="space-y-4">
@@ -99,16 +100,36 @@ export function LinkedAccounts({ connections }: { connections: Record<string, bo
                                 Desvincular
                             </button>
                         ) : (
-                            enabled.has(k) && (
-                                <a href={`/auth/${k}/redirect`} className="flex items-center gap-1.5 rounded border border-pink-500/40 px-3 py-1.5 text-xs text-pink-200 hover:bg-pink-500/10">
-                                    <Link2 className="h-3.5 w-3.5" />
-                                    Vincular
-                                </a>
-                            )
+                            <div className="flex items-center gap-2">
+                                {k === 'discord' && (
+                                    <button
+                                        type="button"
+                                        onClick={() => router.post('/settings/profile/discord-code', {}, { preserveScroll: true })}
+                                        className="flex items-center gap-1.5 rounded border border-pink-500/40 px-3 py-1.5 text-xs text-pink-200 hover:bg-pink-500/10"
+                                    >
+                                        <KeyRound className="h-3.5 w-3.5" />
+                                        Código para el bot
+                                    </button>
+                                )}
+                                {enabled.has(k) && (
+                                    <a href={`/auth/${k}/redirect`} className="flex items-center gap-1.5 rounded border border-pink-500/40 px-3 py-1.5 text-xs text-pink-200 hover:bg-pink-500/10">
+                                        <Link2 className="h-3.5 w-3.5" />
+                                        Vincular
+                                    </a>
+                                )}
+                            </div>
                         )}
                     </div>
                 ))}
             </div>
+            {code && !connections.discord && (
+                <div className="rounded-lg border border-pink-500/40 bg-pink-500/5 px-4 py-3 text-sm">
+                    <p>
+                        Escribe esto en cualquier canal del Discord de Cinammon (caduca en 15 minutos):
+                    </p>
+                    <p className="mt-2 select-all font-mono text-base tracking-wider text-pink-200">/vincular codigo:{code}</p>
+                </div>
+            )}
             {errors?.social && <p className="text-sm text-red-400">{errors.social}</p>}
         </div>
     );

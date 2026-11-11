@@ -8,6 +8,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -98,5 +99,23 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/');
+    }
+
+    /** Código de un solo uso para vincular Discord con /vincular (no necesita OAuth). */
+    public function discordCode(Request $request): RedirectResponse
+    {
+        $uid = $request->user()->id;
+        if ($old = Cache::pull('discord-link-user:'.$uid)) {
+            Cache::forget('discord-link:'.$old);
+        }
+        $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        $code = '';
+        for ($k = 0; $k < 8; $k++) {
+            $code .= $alphabet[random_int(0, strlen($alphabet) - 1)];
+        }
+        Cache::put('discord-link:'.$code, $uid, now()->addMinutes(15));
+        Cache::put('discord-link-user:'.$uid, $code, now()->addMinutes(15));
+
+        return back()->with('discordCode', $code);
     }
 }

@@ -355,7 +355,8 @@ async function component(i) {
             failed.push(`${RULES[k].label}: ${e.message.replace(/^.*?-> /, '')}`);
         }
     }
-    await log('AutoMod', [`**${on === '1' ? 'Activado' : 'Apagado'}:** ${keys.map((k) => RULES[k].label).join(', ')}`, `**Por:** <@${actor(i).id}>`], 0x71717a);
+    const done = keys.filter((k) => !failed.some((f) => f.startsWith(RULES[k].label)));
+    if (done.length) await log('AutoMod', [`**${on === '1' ? 'Activado' : 'Apagado'}:** ${done.map((k) => RULES[k].label).join(', ')}`, `**Por:** <@${actor(i).id}>`], 0x71717a);
     return automodView(failed.length ? `No se pudo: ${cut(failed.join(' | '), 300)}` : 'Guardado.');
 }
 

@@ -43,6 +43,7 @@ Route::middleware('bot.secret')->group(function () {
         Route::post('/profile', 'profile');
         Route::get('/tickets', 'tickets');
         Route::post('/checkin', 'checkin');
+        Route::post('/link', 'link')->middleware('throttle:10,1');
         Route::get('/servers/{server}', 'server');
         Route::post('/servers/{server}/power', 'power');
         Route::post('/servers/{server}/command', 'command');

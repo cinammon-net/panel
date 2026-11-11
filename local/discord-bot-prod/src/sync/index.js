@@ -258,7 +258,7 @@ function staticPosts(season) {
         ['welcome', ch.welcome, msg(container(accent, [
             text('# Bienvenida a Cinammon Network\nHosting de servidores de juegos, bots, webs y aplicaciones, con panel propio.'),
             sep(),
-            text(`### Vincula tu cuenta\nEntra en el panel con **Iniciar sesión con Discord** y recibirás aquí tus roles: <@&${ctx.layout.roles.client}> si tienes un servicio activo y el de tu rango VIP si lo tienes.`),
+            text(`### Vincula tu cuenta\nEn el panel, **Ajustes → Perfil → Código para el bot**, y escribe aquí \`/vincular codigo:\` con ese código. Recibirás tus roles: <@&${ctx.layout.roles.client}> si tienes un servicio activo y el de tu rango VIP si lo tienes.`),
             text(`### Por dónde empezar\n<#${ch.rules}> · normas\n<#${ch.help}> · dudas rápidas\n<#${ch.tickets}> · temas de tu cuenta\n<#${ch.plans}> · planes y precios`),
             promo && sep(),
             promo && text(promo),
@@ -841,7 +841,7 @@ async function onInteraction(interaction) {
                 await edit(`Ticket #${res.ticket.id} abierto: <#${thread}>`);
             } catch (e) {
                 if (e.status === 404) {
-                    await edit(`Tu Discord no está vinculado con ninguna cuenta del panel. Entra en ${PANEL_PUBLIC}/login con **Iniciar sesión con Discord** y vuelve a intentarlo.`);
+                    await edit(`Tu Discord no está vinculado con ninguna cuenta del panel. Saca un código en ${PANEL_PUBLIC}/settings/profile y usa \`/vincular codigo:\`.`);
                 } else {
                     log(`[SYNC] abrir ticket: ${e.message}`);
                     await edit(`No se pudo abrir el ticket. Puedes abrirlo en ${PANEL_PUBLIC}/tickets`);

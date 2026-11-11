@@ -36,7 +36,7 @@ function base(categories) {
         { name: 'anuncios', description: 'Anuncios y ofertas publicados ahora mismo' },
         { name: 'planes', description: 'Planes y precios de la tienda', options: catChoices.length ? [{ name: 'categoria', description: 'Tipo de servicio', type: S, required: false, choices: catChoices }] : [] },
         { name: 'rangos', description: 'Rangos VIP y sus ventajas' },
-        { name: 'vincular', description: 'Cómo vincular tu cuenta de cinammon.net con Discord' },
+        { name: 'vincular', description: 'Vincular tu cuenta de cinammon.net con este Discord', options: [{ name: 'codigo', description: 'El código de Ajustes → Perfil en el panel', type: S, required: false, max_length: 20 }] },
         { name: 'cuenta', description: 'Tu cuenta: servidores, monedas, facturas y tickets' },
         {
             name: 'perfil', description: 'Ver o cambiar tu perfil de la web (nombre y foto)', options: [
@@ -119,10 +119,11 @@ function me(i, method, route, body) {
     return api.panel(method, `/api/bot/discord/${userOf(i).id}${route}`, body);
 }
 
-const notLinked = () => card(
-    text('## Tu Discord no está vinculado\nEntra en el panel con **Iniciar sesión con Discord** (o vincúlalo desde tu perfil) y vuelve a probar. Así el bot sabe cuál es tu cuenta.'),
-    row(linkBtn('Vincular en el panel', `${api.PANEL}/login`)),
+const linkHelp = (title = 'Vincular tu cuenta') => card(
+    text(`## ${title}\n1. Entra en el panel y ve a **Ajustes → Perfil → Cuentas vinculadas**.\n2. Pulsa **Código para el bot** en Discord.\n3. Escribe aquí \`/vincular codigo:\` con ese código.\n-# El código caduca en 15 minutos y solo sirve una vez.`),
+    row(linkBtn('Obtener el código', `${api.PANEL}/settings/profile`)),
 );
+const notLinked = () => linkHelp('Tu Discord no está vinculado');
 
 /** Errores de Discord en moderación (403 = el rol del bot está por debajo). */
 function modError(name, e) {
@@ -430,10 +431,18 @@ async function run(i, name) {
         case 'anuncios': return announcementsView();
         case 'planes': return plansView(opt(i, 'categoria'));
         case 'rangos': return ranksView();
-        case 'vincular': return card(
-            text('## Vincular tu cuenta\n1. Entra en el panel.\n2. Pulsa **Iniciar sesión con Discord** con esta misma cuenta de Discord.\n3. Vuelve aquí: `/cuenta` ya te reconocerá y recibirás tus roles en unos minutos.'),
-            row(linkBtn('Ir al panel', `${api.PANEL}/login`)),
-        );
+        case 'vincular': {
+            const code = opt(i, 'codigo');
+            if (code) {
+                const { user } = await me(i, 'POST', '/link', { code });
+                api.runSoon();
+                return card(
+                    text(`## Cuenta vinculada\nEste Discord ya es **${user.name}** en el panel. Prueba \`/cuenta\`; tus roles llegan en un minuto.`),
+                    row(linkBtn('Abrir el panel', `${api.PANEL}/dashboard`)),
+                );
+            }
+            return linkHelp();
+        }
         case 'cuenta': return accountView(await me(i, 'GET', '/account'));
         case 'perfil': return profileCommand(i);
         case 'servidores': return serversView(await me(i, 'GET', '/account'));
