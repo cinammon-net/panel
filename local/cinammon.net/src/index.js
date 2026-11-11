@@ -146,7 +146,7 @@ async function startBot() {
                     sync.onMessage(d).catch(() => {});
                 }
 
-                if (t === 'GUILD_CREATE' || t === 'GUILD_MEMBER_ADD' || t === 'GUILD_MEMBER_REMOVE' || t === 'INVITE_CREATE' || t === 'INVITE_DELETE' || t === 'VOICE_STATE_UPDATE') {
+                if (t === 'GUILD_CREATE' || t === 'GUILD_MEMBER_ADD' || t === 'GUILD_MEMBER_REMOVE' || t === 'INVITE_CREATE' || t === 'INVITE_DELETE' || t === 'VOICE_STATE_UPDATE' || t === 'THREAD_CREATE') {
                     sync.onEvent(t, d).catch(() => {});
                 }
             } catch (err) {

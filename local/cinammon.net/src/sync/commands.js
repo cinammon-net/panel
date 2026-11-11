@@ -63,6 +63,7 @@ function base(categories) {
         { name: 'invitaciones', description: 'Cuánta gente ha entrado con tus invitaciones', options: [{ name: 'usuario', description: 'Ver las de otra persona', type: USER, required: false }] },
         { name: 'top-invitaciones', description: 'Quién ha invitado a más gente' },
         { name: 'invitar', description: 'Tu enlace para invitar a gente al servidor de Discord' },
+        { name: 'sugerir', description: 'Proponer una idea para mejorar Cinammon' },
         {
             name: 'anuncio', description: 'Publicar un anuncio en la web y en Discord (staff)', default_member_permissions: '32', options: [
                 { name: 'tipo', description: 'Tipo', type: S, required: true, choices: [{ name: 'Oferta', value: 'offer' }, { name: 'Novedad', value: 'new' }, { name: 'Evento', value: 'event' }, { name: 'Noticia', value: 'news' }] },
@@ -333,7 +334,7 @@ function helpView() {
         sep(),
         text('### ¿Tienes una duda?\n`/pregunta` te responde al momento. Si no lo sabe, avisa al equipo. Para algo privado (pagos, tu cuenta, un servidor), abre un ticket.'),
         text('### Tu cuenta\n`/cuenta` resumen · `/perfil` nombre y foto · `/servidores` y `/servidor` encender, apagar, ajustes · `/consola` comandos · `/monedas` y `/diario` · `/facturas` · `/tickets`'),
-        text('### Comunidad\n`/cumpleaños` guarda tu fecha y recibe un set de regalo ese día\n`/estado` · `/anuncios` · `/planes` · `/rangos` · `/invitar` · `/invitaciones` · `/top-invitaciones` · `/ping`'),
+        text('### Comunidad\n`/cumpleaños` guarda tu fecha y recibe un set de regalo ese día\n`/estado` · `/anuncios` · `/planes` · `/rangos` · `/sugerir` · `/invitar` · `/invitaciones` · `/top-invitaciones` · `/ping`'),
         text('### Staff\n`/anuncio` · `/mantenimiento` · `/sincronizar`'),
         sep(),
         text('-# ¿Aún no lo has hecho? `/vincular` explica cómo conectar tu cuenta.'),
@@ -746,6 +747,16 @@ async function handle(i) {
         return true;
     }
     const id = i.data?.custom_id || '';
+    if (i.type === 3 && id === 'c:invite') {
+        await callback(i, { type: 5, data: { flags: EPH } });
+        try {
+            await edit(i, await inviteView(userOf(i)));
+        } catch (e) {
+            api.log(`[CMD] c:invite: ${e.message}`);
+            await edit(i, errorCard(e));
+        }
+        return true;
+    }
     if (i.type === 5 && id.startsWith('c:m:')) {
         await modal(i);
         return true;

@@ -364,6 +364,14 @@ async function ensureCommunityChannels() {
             topic: 'Sorteos activos de monedas, mejoras y servidores gratuitos. Participa en un clic.',
         },
         {
+            key: 'invites',
+            name: '├・invitaciones',
+            type: 0,
+            parentKey: 'community',
+            mode: 'readonly',
+            topic: 'Consigue tu enlace personal, invita a tus amigos y sube en el ranking.',
+        },
+        {
             key: 'voiceCreator',
             name: 'Crear sala +',
             type: 2,

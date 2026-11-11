@@ -19,6 +19,7 @@ const art = require('./art');
 const commands = require('./commands');
 const community = require('./community');
 const members = require('./members');
+const suggestions = require('./suggestions');
 const verify = require('./verify');
 const content = require('./content');
 const assistant = require('./assistant');
@@ -283,6 +284,7 @@ const BANNERS = {
     help: { title: 'SOPORTE', subtitle: 'Dudas rápidas de la comunidad', icon: 'help' },
     commands: { title: 'COMANDOS', subtitle: 'Todo lo de la web, desde Discord', icon: 'commands' },
     staff: { title: 'STAFF', subtitle: 'Herramientas del equipo', icon: 'staff' },
+    invites: { title: 'INVITACIONES', subtitle: 'Trae a tus amigos y sube en el ranking', icon: 'join' },
     arrivals: { title: 'LLEGADAS', subtitle: 'Bienvenidas y despedidas', icon: 'join' },
 };
 const bannerFor = (key) => (BANNERS[key] ? { name: key, ...BANNERS[key] } : undefined);
@@ -292,6 +294,20 @@ function supportTop() {
     const top = support.topHelpers(5);
     if (!top.length) return text('### Ayudantes del mes\nTodavía nadie. Responde dudas en los hilos y, cuando las marquen como resueltas, aparecerás aquí.');
     return text(`### Ayudantes del mes\n${top.map((h, n) => `**${n + 1}.** <@${h.id}> · ${h.points} ${h.points === 1 ? 'ayuda' : 'ayudas'}`).join('\n')}`);
+}
+
+/** Panel de #invitaciones: cómo funciona, botón para el enlace propio y ranking en directo. */
+function invitesPost() {
+    const top = members.leaderboard(10);
+    return msg(container(accent, [
+        text('# Invita a tus amigos\nPulsa **Conseguir mi enlace** y te damos tu invitación personal al servidor: no caduca y no tiene límite de usos. Cada persona que entre con ella cuenta para ti.'),
+        sep(),
+        text('### Cómo se cuenta\n- Cuenta en cuanto la persona entra con tu enlace.\n- Si se va del servidor, se resta.\n- Tus números, en cualquier momento, con `/invitaciones`.'),
+        sep(),
+        text(`### Ranking\n${top.length ? top.map((r, n) => `**${n + 1}.** <@${r.id}> · ${r.total} ${r.total === 1 ? 'invitación' : 'invitaciones'}`).join('\n') : 'Todavía nadie ha invitado a nadie. Puedes ser la primera persona.'}`),
+        sep(2),
+        row({ type: 2, style: 1, label: 'Conseguir mi enlace', custom_id: 'c:invite' }),
+    ]));
 }
 
 function staticPosts(season) {
@@ -311,7 +327,8 @@ function staticPosts(season) {
                 ch.guides ? `<#${ch.guides}> guías paso a paso · <#${ch.help}> dudas rápidas` : `<#${ch.help}> dudas rápidas`,
                 `<#${ch.tickets}> tu cuenta, pagos o un servidor caído`,
                 `<#${ch.commands}> el bot · <#${ch.general}> charla`,
-                ch.suggestions ? `<#${ch.suggestions}> ideas para mejorar Cinammon` : null,
+                ch.invites ? `<#${ch.invites}> tu enlace para invitar a amigos` : null,
+                ch.suggestions ? `<#${ch.suggestions}> propón y vota ideas para mejorar Cinammon` : null,
             ].filter(Boolean).join('\n')),
             promo && sep(),
             promo && text(promo),
@@ -366,7 +383,7 @@ function staticPosts(season) {
             text('### Primero: vincula tu cuenta\n`/vincular codigo:` con el código de **Ajustes → Perfil → Código para el bot** del panel. Solo hace falta una vez.'),
             text('### Tus servidores\n`/servidores` lista con su estado\n`/servidor` encender, reiniciar, apagar, renombrar y ajustes del juego\n`/consola` enviar un comando a la consola'),
             text('### Tu cuenta\n`/cuenta` resumen de todo · `/perfil` nombre y foto de la web\n`/monedas` saldo y enlace de invitación · `/diario` premio diario con racha\n`/facturas` pagos pendientes · `/tickets` tus tickets'),
-            text('### Comunidad\n`/cumpleaños` guarda tu fecha: ese día te felicitamos y te llega un set de regalo\n`/estado` red y mantenimientos · `/anuncios` · `/planes` · `/rangos`\n`/invitar` tu enlace al servidor · `/invitaciones` · `/top-invitaciones` · `/ping` · `/ayuda`'),
+            text('### Comunidad\n`/cumpleaños` guarda tu fecha: ese día te felicitamos y te llega un set de regalo\n`/estado` red y mantenimientos · `/anuncios` · `/planes` · `/rangos`\n`/sugerir` propón una idea · `/invitar` tu enlace al servidor · `/invitaciones` · `/top-invitaciones` · `/ping` · `/ayuda`'),
             sep(),
             text('-# Si un comando dice que tu Discord no está vinculado, repite el paso de `/vincular`.'),
         ]))],
@@ -822,6 +839,7 @@ async function tick() {
         ['avisos', () => community.syncRolePicker()],
         ['reseñas', () => community.syncReviews(data.reviews)],
         ['sorteos', () => community.tickGiveaways()],
+        ['invitaciones', () => upsert('invites', ctx.layout.channels.invites, invitesPost(), bannerFor('invites'))],
     ];
     if (Date.now() - lastContent > CATALOG_EVERY) {
         steps.push(['canales', async () => { await content.sync(data); lastContent = Date.now(); }]);
@@ -1110,6 +1128,15 @@ function start({ token, guildId, appId }) {
         BILLING,
         signupPost, purchasePost,
         reviewCard: (r) => community.reviewCard(r),
+        suggestions,
+    });
+    suggestions.init({
+        discord, log, saveState,
+        ui: { text, sep, row, container },
+        st: () => st,
+        ctx: () => ctx,
+        isStaff: (m) => isStaffMember(m),
+        editOriginal: (i, body) => editOriginal(i, body),
     });
     members.init({
         discord, sendFile, log, saveState,
@@ -1154,6 +1181,7 @@ async function onEvent(t, d) {
         else if (t === 'GUILD_MEMBER_ADD') await members.onJoin(d);
         else if (t === 'GUILD_MEMBER_REMOVE') await members.onLeave(d);
         else if (t === 'INVITE_CREATE') members.onInviteCreate(d);
+        else if (t === 'THREAD_CREATE') await suggestions.onThreadCreate(d);
         else if (t === 'INVITE_DELETE') members.onInviteDelete(d);
         else if (t === 'VOICE_STATE_UPDATE') await community.onVoiceStateUpdate(d);
     } catch (e) {
@@ -1260,6 +1288,16 @@ async function onInteraction(interaction) {
     if (!ctx) return false;
     if (await verify.handle(interaction, respond)) return true;
     if (await community.handleInteraction(interaction, respond)) return true;
+    if (id.startsWith('sug:') || (interaction.type === 2 && interaction.data?.name === 'sugerir')) {
+        try {
+            const r = interaction.type === 2 ? suggestions.askModal() : await suggestions.component(interaction, respond);
+            if (r) await respond(interaction, r);
+        } catch (e) {
+            log(`[SUGERENCIAS] ${id || '/sugerir'}: ${e.message}`);
+            await respond(interaction, ephemeral('No se pudo completar. Inténtalo otra vez.')).catch(() => {});
+        }
+        return true;
+    }
     if (id.startsWith('sup:')) {
         try {
             const r = await support.component(interaction, respond);

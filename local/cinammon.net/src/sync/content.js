@@ -573,44 +573,52 @@ async function syncSuggestions() {
         { name: 'Descartada', moderated: true },
     ]);
     const S = state();
-    if (!S.suggestionsTopic) {
+    if (S.suggestionsTopic !== 2) {
         await env.discord('PATCH', `/channels/${forum.id}`, {
-            topic: 'Una idea por publicación, con un título claro. Busca antes por si ya existe y, si es así, apóyala respondiendo en ella. El estado (En estudio, Aceptada, Implementada, Descartada) lo pone el equipo.',
+            topic: 'Una idea por publicación, con un título claro. Busca antes por si ya existe y, si es así, vótala. El estado (En estudio, Aceptada, Implementada, Descartada) lo pone el equipo.',
         }).catch(() => {});
-        S.suggestionsTopic = true;
+        S.suggestionsTopic = 2;
         env.saveState();
     }
-    const content = [
-        '## Cómo proponer una sugerencia',
-        'Aquí decides con nosotros qué se añade a Cinammon: juegos y eggs nuevos, planes, cosas del panel, de la tienda o de este Discord.',
-        '',
-        '**Antes de publicar**',
-        '- Busca con la barra de arriba: si ya existe, responde en ella para apoyarla en vez de repetirla.',
-        '- Una idea por publicación. Si tienes tres, abre tres.',
-        '',
-        '**Cómo escribirla**',
-        '- **Título:** la idea en una frase. Mejor "Añadir egg de Terraria" que "Sugerencia".',
-        '- **Qué** quieres, **por qué** te vendría bien y, si puedes, un ejemplo o captura.',
-        '- Ponle la etiqueta **Pendiente**.',
-        '',
-        '**Qué pasa después**',
-        '- **En estudio:** el equipo la está mirando.',
-        '- **Aceptada:** se hará; avisaremos aquí cuando esté.',
-        '- **Implementada:** ya está disponible.',
-        '- **Descartada:** no encaja ahora; te explicamos por qué en la propia publicación.',
-        '',
-        `-# Los fallos y problemas de tu cuenta no van aquí: ticket en <#${L.channels.tickets}>.`,
-    ].join('\n');
+    const { text, sep, row, container } = env.ui;
+    const top = env.suggestions.top(5);
+    const payload = {
+        flags: V2,
+        components: [container(env.accent(), [
+            text('## Cómo proponer una sugerencia\nAquí decides con nosotros qué se añade a Cinammon: juegos y eggs nuevos, planes, cosas del panel, de la tienda o de este Discord.'),
+            sep(),
+            text([
+                '### Antes de publicar',
+                '- Busca con la barra de arriba: si ya existe, vótala en vez de repetirla. El bot también te avisa si hay alguna parecida.',
+                '- Una idea por publicación. Si tienes tres, abre tres.',
+                '- **Título:** la idea en una frase. Mejor "Añadir egg de Terraria" que "Sugerencia".',
+            ].join('\n')),
+            text([
+                '### Cómo funciona',
+                '- Cada idea lleva botones **A favor** y **En contra**: un voto por persona, y si vuelves a pulsar, se quita.',
+                '- El equipo le cambia el estado y te avisa en la propia publicación:',
+                '  **Pendiente** → **En estudio** → **Aceptada** → **Implementada**, o **Descartada** con el motivo.',
+            ].join('\n')),
+            sep(),
+            text(`### Más apoyadas\n${top.length ? top.map((p, n) => `**${n + 1}.** <#${p.id}> · +${p.score} · ${env.suggestions.STATUS[p.status].label}`).join('\n') : 'Todavía ninguna tiene votos. ¡Estrénalas!'}`),
+            text(`-# Los fallos y problemas de tu cuenta no van aquí: ticket en <#${L.channels.tickets}>.`),
+            sep(2),
+            row({ type: 2, style: 1, label: 'Proponer una idea', custom_id: 'sug:ask' }),
+        ])],
+        allowed_mentions: { parse: [] },
+    };
     try {
         const tid = await upsertThread(forum, {
             get: () => S.pins.suggestions,
             set: (v) => { S.pins.suggestions = v; },
-        }, { name: 'Lee esto antes de proponer', content, tagIds: [] });
-        if (!S.pins.suggestionsPinned) {
+        }, { name: 'Lee esto antes de proponer', payload, tagIds: [] });
+        if (S.pins.suggestionsPinned !== tid) {
             await env.discord('PATCH', `/channels/${tid}`, { flags: 2 }, 'Fijar guía de sugerencias');
-            S.pins.suggestionsPinned = true;
+            S.pins.suggestionsPinned = tid;
             env.saveState();
         }
+        env.suggestions.prune();
+        await env.suggestions.backfill(tid);
     } catch (e) {
         env.log(`[SYNC] guía de sugerencias: ${e.message}`);
     }

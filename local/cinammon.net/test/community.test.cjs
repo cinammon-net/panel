@@ -89,7 +89,7 @@ test('ensureCommunityChannels hides new channels from @everyone behind verificat
         await community.ensureCommunityChannels();
 
         const createdChannels = h.calls.filter((c) => c.method === 'POST' && c.route === '/guilds/g-1/channels');
-        assert.equal(createdChannels.length, 6);
+        assert.equal(createdChannels.length, 7);
         for (const call of createdChannels) {
             const everyone = call.body.permission_overwrites.find((o) => o.id === 'g-1');
             assert.ok(everyone, `missing @everyone overwrite for ${call.body.name}`);
