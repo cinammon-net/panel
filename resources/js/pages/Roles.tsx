@@ -1,3 +1,4 @@
+import { getRoleMeta, RankIcon } from '@/components/rank-badges';
 import AppLayout from '@/layouts/app-layout';
 import { Head, Link, usePage } from '@inertiajs/react';
 import { BadgeInfo, ChevronDown, ChevronUp, Pencil, ShieldCheck, Users } from 'lucide-react';
@@ -64,7 +65,7 @@ export default function Roles() {
 
                 {/* SCROLL HORIZONTAL PARA TABLA */}
                 <div className="overflow-x-auto">
-                    <div className="bg-pink inline-block min-w-full overflow-hidden rounded-lg border border-pink-300 shadow-none transition dark:border-pink-700 dark:bg-neutral-950 dark:shadow-[0_0_10px_#0ff3]">
+                    <div className="bg-pink inline-block min-w-full overflow-hidden rounded-lg border border-pink-300 shadow-none transition dark:border-pink-700 dark:bg-neutral-950 dark:shadow-[0_0_10px_rgba(236,72,153,0.2)]">
                         <table className="min-w-full table-auto text-sm">
                             <thead className="border-b border-pink-500 bg-pink-900 text-pink-200">
                                 <tr>
@@ -90,13 +91,36 @@ export default function Roles() {
                             </thead>
 
                             <tbody>
-                                {roles.data.map((role) => (
+                                {roles.data.map((role) => {
+                                    const meta = getRoleMeta(role.name);
+                                    const isVip = meta.kind === 'rank';
+                                    return (
                                     <tr
                                         key={role.id}
                                         className="cursor-pointer border-t border-pink-700 hover:bg-pink-300/10"
-                                        onClick={() => (window.location.href = `/roles/${role.id}/edit`)} // Redirigir al editar cuando se haga clic en el rol
+                                        onClick={() => (window.location.href = `/roles/${role.id}/edit`)}
                                     >
-                                        <td className="px-4 py-3 font-semibold text-pink-500">{role.name}</td>
+                                        <td className="px-4 py-3 font-semibold">
+                                            <div className="flex items-center gap-2.5">
+                                                <span
+                                                    className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border"
+                                                    style={{
+                                                        color: meta.color,
+                                                        borderColor: `${meta.color}80`,
+                                                        backgroundColor: `${meta.color}20`,
+                                                        boxShadow: isVip ? `0 0 12px ${meta.color}40` : undefined,
+                                                    }}
+                                                >
+                                                    <RankIcon icon={meta.icon} className="h-4 w-4" />
+                                                </span>
+                                                <div className="flex flex-col text-left">
+                                                    <span style={{ color: meta.color }} className="font-bold tracking-wide">
+                                                        {role.name}
+                                                    </span>
+                                                    <span className="font-sans text-[10px] text-neutral-400">{meta.label}</span>
+                                                </div>
+                                            </div>
+                                        </td>
                                         <td className="px-4 py-3 text-pink-500">
                                             {role.has_all_permissions ? (
                                                 <span className="inline-flex items-center gap-1 rounded border border-pink-400 px-2 py-0.5 text-xs font-medium text-pink-200 shadow-sm">
@@ -134,7 +158,8 @@ export default function Roles() {
                                             </Link>
                                         </td>
                                     </tr>
-                                ))}
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>

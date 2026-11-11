@@ -1,3 +1,4 @@
+import { RoleBadge } from '@/components/rank-badges';
 import UserAvatar from '@/components/user-avatar';
 import AppLayout from '@/layouts/app-layout';
 import { Head, router, usePage, Link } from '@inertiajs/react';
@@ -117,15 +118,7 @@ export default function Users() {
                                         <td className="px-4 py-3 text-pink-300">
                                             <div className="flex flex-wrap gap-1">
                                                 {user.roles.length ? (
-                                                    user.roles.map((role) => (
-                                                        <span
-                                                            key={role}
-                                                            className="inline-flex items-center gap-1 rounded-full border border-pink-600 bg-pink-800/40 px-2 py-0.5 text-xs text-pink-200"
-                                                        >
-                                                            {role === 'admin' ? <UserCheck className="h-3 w-3" /> : <Eye className="h-3 w-3" />}{' '}
-                                                            {role}
-                                                        </span>
-                                                    ))
+                                                    user.roles.map((role) => <RoleBadge key={role} role={role} size="xs" />)
                                                 ) : (
                                                     <span className="flex items-center gap-1 text-xs text-neutral-400 italic">
                                                         <UserRoundX className="h-3 w-3" /> No Role

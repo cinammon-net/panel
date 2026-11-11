@@ -68,13 +68,17 @@
     @endphp
     @php
         // Favicon ya coloreado con la temporada/festivo del visitante (lo sirve el billing según el país).
-        // La fecha en la URL hace que Safari lo vuelva a pedir cada día.
+        // En *.cinammon.net se sirve desde el mismo origen (/season-favicon.png) para que Safari y Chrome lo muestren igual que en store.
         $cinFavBase = config('services.billing.url') ?: (config('panel.demo') ? 'https://billing.cinammon.net' : null);
         $cinFavSite = in_array($cinSub, ['panel', 'demo', 'store', 'billing'], true) ? $cinSub : 'net';
-        $cinFavicon = $cinFavBase ? rtrim($cinFavBase, '/')."/api/season-favicon/{$cinFavSite}.png?d=".now()->format('Ymd') : $cinLogo;
+        $cinFavVer = 'v=bf2&d='.now()->format('Ymd');
+        $cinFavicon = str_ends_with(request()->getHost(), 'cinammon.net')
+            ? "/season-favicon.png?{$cinFavVer}"
+            : ($cinFavBase ? rtrim($cinFavBase, '/')."/api/season-favicon/{$cinFavSite}.png?{$cinFavVer}" : $cinLogo);
     @endphp
     <link rel="icon" type="image/png" href="{{ $cinFavicon }}">
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="shortcut icon" type="image/png" href="{{ $cinFavicon }}">
+    <link rel="apple-touch-icon" href="{{ $cinFavicon }}">
 
     <!-- 🔤 Fuente Orbitron -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
