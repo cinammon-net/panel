@@ -46,6 +46,12 @@ class Server extends Model
         return $this->egg?->category === 'web';
     }
 
+    /** Web con PHP de Cinammon (WebHost o WordPress): admite el instalador de WordPress del panel. */
+    public function supportsWordpress(): bool
+    {
+        return $this->isWebSite() && str_contains(str_replace('\\/', '/', (string) $this->egg?->docker_images), 'cinammon-net/webhost');
+    }
+
     /**
      * Public hostname of a web hosting server, e.g. "mi-tienda-45c5.cinammon.net", or null when
      * this is not a web server or PANEL_SITES_DOMAIN is empty. The 4-char uuid suffix keeps it unique

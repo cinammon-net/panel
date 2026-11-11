@@ -19,6 +19,7 @@ export type ServerSection =
     | 'gta-players'
     | 'gta-mods'
     | 'sftp'
+    | 'wordpress'
     | 'wingslog'
     | 'databases'
     | 'network'

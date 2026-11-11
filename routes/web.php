@@ -567,6 +567,10 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
     Route::put('/servers/{server}/startup/image', [App\Http\Controllers\ServerModulesController::class, 'updateStartupImage'])->name('servers.startup.image');
     Route::get('/servers/{server}/wings-log', [App\Http\Controllers\WingsLogController::class, 'serverPage'])->name('servers.wings-log');
     Route::get('/servers/{server}/wings-log/events', [App\Http\Controllers\WingsLogController::class, 'serverEvents'])->middleware('throttle:120,1')->name('servers.wings-log.events');
+    // WordPress con un clic (hosting web)
+    Route::get('/servers/{server}/wordpress', [App\Http\Controllers\ServerWordpressController::class, 'page'])->name('servers.wordpress');
+    Route::get('/servers/{server}/wordpress/status', [App\Http\Controllers\ServerWordpressController::class, 'status'])->middleware('throttle:60,1')->name('servers.wordpress.status');
+    Route::post('/servers/{server}/wordpress/step', [App\Http\Controllers\ServerWordpressController::class, 'step'])->middleware('throttle:120,1')->name('servers.wordpress.step');
     Route::get('/servers/{server}/sftp', [App\Http\Controllers\ServerSftpController::class, 'show'])->name('servers.sftp');
     Route::post('/servers/{server}/sftp/rotate', [App\Http\Controllers\ServerSftpController::class, 'rotate'])->name('servers.sftp.rotate');
     Route::delete('/servers/{server}/sftp', [App\Http\Controllers\ServerSftpController::class, 'revoke'])->name('servers.sftp.revoke');

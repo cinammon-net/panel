@@ -79,6 +79,7 @@ class HandleInertiaRequests extends Middleware
                     'egg' => $server->egg?->name,
                     'egg_icon' => $server->egg?->image_url,
                     'category' => $server->egg?->category,
+                    'wordpress' => $server->supportsWordpress(),
                     // Solo si es una URL: un banner subido (data:) pesa demasiado para ir en cada página.
                     'banner' => $server->banner && ! str_starts_with($server->banner, 'data:') ? $server->banner : null,
                 ] : null;

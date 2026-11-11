@@ -24,6 +24,7 @@ import {
     Globe,
     KeyRound,
     Network,
+    Newspaper,
     Play,
     Puzzle,
     SlidersHorizontal,
@@ -141,6 +142,14 @@ export default function ServerSidebar({
                     icon: Puzzle,
                     color: 'text-cyan-400',
                     show: showAddons,
+                },
+                {
+                    key: 'wordpress',
+                    title: 'WordPress',
+                    href: `/servers/${server.id}/wordpress`,
+                    icon: Newspaper,
+                    color: 'text-cyan-400',
+                    show: Boolean(currentServer?.wordpress),
                 },
                 {
                     key: 'sftp',
