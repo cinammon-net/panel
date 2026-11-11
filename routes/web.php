@@ -452,6 +452,13 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
         Route::post('/maintenance/{maintenance}/start', [App\Http\Controllers\MaintenanceController::class, 'start'])->name('maintenance.start');
         Route::post('/maintenance/{maintenance}/finish', [App\Http\Controllers\MaintenanceController::class, 'finish'])->name('maintenance.finish');
         Route::delete('/maintenance/{maintenance}', [App\Http\Controllers\MaintenanceController::class, 'destroy'])->name('maintenance.destroy');
+
+        // Anuncios: ofertas y novedades en la landing, el panel y la tienda
+        Route::get('/announcements', [App\Http\Controllers\AnnouncementController::class, 'index'])->name('announcements.index');
+        Route::post('/announcements', [App\Http\Controllers\AnnouncementController::class, 'store'])->name('announcements.store');
+        Route::put('/announcements/{announcement}', [App\Http\Controllers\AnnouncementController::class, 'update'])->name('announcements.update');
+        Route::post('/announcements/{announcement}/toggle', [App\Http\Controllers\AnnouncementController::class, 'toggle'])->name('announcements.toggle');
+        Route::delete('/announcements/{announcement}', [App\Http\Controllers\AnnouncementController::class, 'destroy'])->name('announcements.destroy');
         Route::delete('/egg-variables/{id}', [EggVariableController::class, 'destroy'])->name('egg-variables.destroy');
     });
 

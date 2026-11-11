@@ -48,3 +48,8 @@ Route::get('/eggs/catalog', [App\Http\Controllers\EggIconController::class, 'cat
 
 // Estado de mantenimiento público (lo consume la tienda)
 Route::get('/maintenance', [App\Http\Controllers\MaintenanceController::class, 'status'])->middleware('throttle:120,1');
+
+// Anuncios públicos (ofertas y novedades) y contador de clics; ?place=web|panel|store
+Route::get('/announcements', [App\Http\Controllers\AnnouncementController::class, 'feed'])->middleware('throttle:120,1');
+Route::post('/announcements/{announcement}/click', [App\Http\Controllers\AnnouncementController::class, 'click'])
+    ->whereNumber('announcement')->middleware('throttle:30,1');

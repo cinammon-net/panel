@@ -1,4 +1,5 @@
 import UserAvatar from '@/components/user-avatar';
+import AnnouncementBar, { AnnouncementPopup } from '@/components/announcement-bar';
 import ReviewModal from '@/components/ReviewModal';
 import { type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
@@ -162,8 +163,10 @@ export default function WelcomePanel() {
             <div id="top" className="relative flex min-h-screen flex-col overflow-x-hidden scroll-smooth bg-black font-[Orbitron] text-white">
                 <div className="pointer-events-none absolute top-0 left-0 z-0 h-full w-full bg-[radial-gradient(circle,#ffffff_1px,transparent_1px)] bg-[length:22px_22px] opacity-20" />
 
-                {/* NAVBAR FIJO */}
-                <header className="animate-fade-in fixed top-0 z-50 flex w-full items-center justify-between gap-2 border-b border-pink-600 bg-black/70 px-4 py-3 backdrop-blur-md sm:gap-4 sm:p-6">
+                {/* NAVBAR FIJO (con la barra de ofertas y novedades encima) */}
+                <div className="fixed top-0 z-50 w-full">
+                <AnnouncementBar place="web" />
+                <header className="animate-fade-in flex w-full items-center justify-between gap-2 border-b border-pink-600 bg-black/70 px-4 py-3 backdrop-blur-md sm:gap-4 sm:p-6">
                     <Link href={route('home')} data-aos="fade-right">
                         <img src={cinLogo()} alt="Cinammon Logo" className="h-8 shrink-0 transition hover:opacity-80 sm:h-12" draggable={false} />
                     </Link>
@@ -200,6 +203,8 @@ export default function WelcomePanel() {
                         )}
                     </nav>
                 </header>
+                </div>
+                <AnnouncementPopup place="web" />
 
                 {/* SECCIÓN 1 */}
                 <section
