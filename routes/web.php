@@ -118,6 +118,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $hasFailedJobs = Schema::hasTable('failed_jobs');
         $hasTickets = Schema::hasTable('tickets');
 
+        // Las estadísticas solo cuentan a los miembros: fuera los Owner y sus servidores.
+        $ownerIds = User::whereHas('roles', fn ($q) => $q->where('name', 'Owner'))->pluck('id');
+        $members = fn () => User::visible()->whereNotIn('id', $ownerIds);
+        $memberServers = fn () => Server::whereNotIn('owner_id', $ownerIds);
+
         if ($isAdmin) {
             $roleScope = 'admin';
             $installations = [];
@@ -126,16 +131,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
             for ($i = 6; $i >= 0; $i--) {
                 $dateStr = now()->subDays($i)->toDateString();
-                $installations[] = Server::whereDate('created_at', $dateStr)->count();
-                $newUsers[] = User::visible()->whereDate('created_at', $dateStr)->count();
+                $installations[] = $memberServers()->whereDate('created_at', $dateStr)->count();
+                $newUsers[] = $members()->whereDate('created_at', $dateStr)->count();
                 $errors[] = $hasFailedJobs
                     ? DB::table('failed_jobs')->whereDate('failed_at', $dateStr)->count()
                     : 0;
             }
 
             $stats = [
-                'users' => User::visible()->count(),
-                'servers' => Server::count(),
+                'users' => $members()->count(),
+                'servers' => $memberServers()->count(),
                 'installations' => Egg::count(),
                 'nodes' => Node::count(),
                 'tickets' => $hasTickets ? \App\Models\Ticket::count() : 0,
@@ -168,7 +173,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
             for ($i = 6; $i >= 0; $i--) {
                 $dateStr = now()->subDays($i)->toDateString();
-                $newUsers[] = User::visible()->whereDate('created_at', $dateStr)->count();
+                $newUsers[] = $members()->whereDate('created_at', $dateStr)->count();
                 $ticketsActivity[] = $hasTickets
                     ? \App\Models\Ticket::whereDate('created_at', $dateStr)->count()
                     : 0;
@@ -177,8 +182,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             $stats = [
                 'openTickets' => $hasTickets ? \App\Models\Ticket::where('status', 'open')->count() : 0,
                 'totalTickets' => $hasTickets ? \App\Models\Ticket::count() : 0,
-                'users' => User::visible()->count(),
-                'servers' => Server::count(),
+                'users' => $members()->count(),
+                'servers' => $memberServers()->count(),
             ];
 
             $weeklyActivity = [
