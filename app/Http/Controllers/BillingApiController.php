@@ -123,6 +123,8 @@ class BillingApiController extends Controller
         }
 
         $images = json_decode($egg->docker_images ?? '{}', true) ?: [];
+        // Los gratuitos pesan menos: menor prioridad de disco (los de pago siempre van primero).
+        $isFree = array_key_exists('paid', $data) && ! $data['paid'];
 
         $server = Server::create([
             'uuid' => (string) Str::uuid(),
@@ -135,7 +137,7 @@ class BillingApiController extends Controller
             'memory' => $data['memory_mb'],
             'swap' => 0,
             'disk' => $data['disk_mb'],
-            'io' => 500,
+            'io' => $isFree ? 100 : 500,
             'cpu' => $data['cpu_pct'],
             'egg_id' => $egg->id,
             'startup' => $egg->startup ?? '',

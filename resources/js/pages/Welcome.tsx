@@ -74,7 +74,7 @@ type BillingCategory = {
 };
 
 export default function WelcomePanel() {
-    const { auth, reviews, posts, galleryImages, stats, billingUrl, billingCategories } = usePage<
+    const { auth, reviews, posts, galleryImages, stats, billingUrl, billingCategories, freeStats } = usePage<
         SharedData & {
             reviews: { comment: string; rating: number; user: { name: string; avatar_url?: string | null } }[];
             posts: { id: number; title: string; content: string; picture?: string; created_at: string }[];
@@ -82,6 +82,7 @@ export default function WelcomePanel() {
             stats?: { users: number; servers: number; nodes: number; eggs: number };
             billingUrl?: string;
             billingCategories?: BillingCategory[];
+            freeStats?: { active: number; people: number } | null;
         }
     >().props;
 
@@ -360,6 +361,22 @@ export default function WelcomePanel() {
                         >
                             Ir a la tienda completa de Cinammon Billing →
                         </a>
+
+                        {freeStats && (
+                            <a
+                                href={`${billingUrl}/coins`}
+                                className="mt-6 flex w-full max-w-xl flex-col items-center gap-1 rounded-2xl border border-yellow-400/40 bg-yellow-400/10 px-5 py-3 text-center transition hover:border-yellow-400/80 sm:flex-row sm:justify-between sm:gap-4 sm:text-left"
+                                data-aos="fade-up"
+                            >
+                                <span>
+                                    <span className="block font-bold text-white">
+                                        {freeStats.active >= 3 ? `${freeStats.active} servidores gratis activos ahora` : 'Consigue tu servidor gratis'}
+                                    </span>
+                                    <span className="block text-xs text-neutral-300">Juegos, bots, webs y más: gana monedas y elige tus recursos.</span>
+                                </span>
+                                <span className="shrink-0 text-sm font-bold text-yellow-300">Consigue el tuyo →</span>
+                            </a>
+                        )}
                     </section>
                 )}
 

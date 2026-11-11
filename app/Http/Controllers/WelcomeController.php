@@ -104,6 +104,12 @@ class WelcomeController extends Controller
             'galleryImages' => $galleryImages,
             'billingUrl' => $billingUrl,
             'billingCategories' => $billingCategories,
+            // Contador público de servidores gratis (pedidos de billing marcados como no pagados)
+            'freeStats' => \App\Support\Panel::demoMode() ? null : Cache::remember('welcome.free_stats', 300, function () {
+                $free = Server::where('billing_paid', false)->where('external_id', 'like', 'billing-%')->where('active', 1);
+
+                return ['active' => (clone $free)->count(), 'people' => (clone $free)->distinct('owner_id')->count('owner_id')];
+            }),
             'stats' => [
                 'users' => User::visible()->count(),
                 'servers' => Server::count(),
