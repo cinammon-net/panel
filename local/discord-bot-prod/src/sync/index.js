@@ -41,6 +41,32 @@ let lastCatalog = 0;
 let timer = null;
 let queue = Promise.resolve();
 let lastData = null;
+let lastSeason = null;
+let presenceTimer = null;
+let presenceStep = 0;
+
+/** Estado personalizado del bot (como "Moxi en 29 servidores."), rotando con datos reales. */
+function statusLines() {
+    const d = lastData;
+    const lines = [];
+    const active = (d?.maintenances || []).filter((m) => m.active);
+    if (active.length) return [`⚠ Mantenimiento en curso · /estado`];
+    if (lastSeason?.promotion && lastSeason?.discount) lines.push(`✦ ${lastSeason.promotion}: -${lastSeason.discount}% en la tienda`);
+    if (d?.stats?.servers) lines.push(`✦ Cuidando ${d.stats.servers} servidores`);
+    if (d?.stats?.users) lines.push(`✦ ${d.stats.users} usuarios en cinammon.net`);
+    if (d?.nodes?.length && d.nodes.every((n) => n.online && !n.maintenance)) lines.push('✦ Todos los nodos en línea');
+    lines.push('✦ Servidor gratis en cinammon.net');
+    lines.push('✦ /ayuda para empezar');
+    return lines;
+}
+
+function rotatePresence() {
+    const lines = statusLines();
+    const text = lines[presenceStep++ % lines.length];
+    try {
+        require('../api/panel').state.updatePresence?.(text);
+    } catch {}
+}
 let runTimer = null;
 
 /* ---------------------------------------------------------------- utilidades */
@@ -137,6 +163,7 @@ async function audit(text) {
 async function refreshSeason() {
     try {
         const season = await billing('/api/season');
+        lastSeason = season;
         pal = art.palette(season);
         const [r, g, b] = pal.primary;
         accent = (r << 16) | (g << 8) | b;
@@ -880,6 +907,9 @@ function start({ token, guildId, appId }) {
     });
     setTimeout(run, 5000);
     timer = setInterval(run, SYNC_EVERY);
+    if (presenceTimer) clearInterval(presenceTimer);
+    setTimeout(rotatePresence, 15000); // tras la primera sincronización, ya con datos
+    presenceTimer = setInterval(rotatePresence, 2 * 60 * 1000);
     log(`[SYNC] Sincronización con el servidor ${ctx.guild} activa (cada ${SYNC_EVERY / 1000} s).`);
 }
 

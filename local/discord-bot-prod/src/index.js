@@ -33,13 +33,7 @@ state.updatePresence = function (text) {
                 op: 3,
                 d: {
                     since: null,
-                    activities: [
-                        {
-                            name: text,
-                            type: 0,
-                            state: text,
-                        },
-                    ],
+                    activities: [{ name: 'Custom Status', type: 4, state: text }],
                     status: 'online',
                     afk: false,
                 },
@@ -126,13 +120,7 @@ async function startBot() {
                                 },
                                 presence: {
                                     since: null,
-                                    activities: [
-                                        {
-                                            name: cfg.status_text || 'Cinammon Network 🥽',
-                                            type: 0,
-                                            state: cfg.status_text || 'Cinammon Network 🥽',
-                                        },
-                                    ],
+                                    activities: [{ name: 'Custom Status', type: 4, state: cfg.status_text || '✦ cinammon.net · hosting de juegos y bots' }],
                                     status: 'online',
                                     afk: false,
                                 },

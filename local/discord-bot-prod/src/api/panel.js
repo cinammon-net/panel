@@ -51,7 +51,7 @@ function readConfig() {
         guild_id: (process.env.DISCORD_GUILD_ID || fileCfg.guild_id || '').trim(),
         panel_url: (process.env.PANEL_URL || fileCfg.panel_url || state.panel_url || 'http://127.0.0.1:8000').replace(/\/+$/, ''),
         bot_secret: (process.env.BOT_INTERNAL_SECRET || fileCfg.bot_secret || '').trim(),
-        status_text: (process.env.DISCORD_STATUS_TEXT || fileCfg.status_text || 'Cinammon Network 🥽').trim(),
+        status_text: (process.env.DISCORD_STATUS_TEXT || fileCfg.status_text || '✦ cinammon.net · hosting de juegos y bots').trim(),
     };
 }
 
