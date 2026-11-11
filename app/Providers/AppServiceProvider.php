@@ -29,6 +29,16 @@ class AppServiceProvider extends ServiceProvider
 
         Event::listen(Login::class, RecordLogin::class);
 
+        // Mailer "cloudflare" (MAIL_MAILER=cloudflare): envía a través del Worker cinammon-mail.
+        \Illuminate\Support\Facades\Mail::extend('cloudflare', fn () => new \App\Mail\Transport\CloudflareTransport(
+            (string) config('services.cloudflare_mail.url'),
+            (string) config('services.cloudflare_mail.secret'),
+            'panel',
+        ));
+
+        // "He olvidado mi contraseña" en español y con la marca.
+        \Illuminate\Auth\Notifications\ResetPassword::toMailUsing(fn ($user, string $token) => \App\Mail\ResetPasswordMail::build($user, $token));
+
         // Solo la instalación de demo (PANEL_DEMO_MODE=true) tiene un nodo simulado.
         if (config('panel.demo')) {
             \App\Support\DemoWings::register();

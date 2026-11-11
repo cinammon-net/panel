@@ -11,6 +11,7 @@ import { es } from 'date-fns/locale';
 import { Activity, BarChart3, Gauge, Heart, Images, MessageSquareQuote, Newspaper, Palette, SlidersHorizontal, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { cinLogo } from '@/lib/brand';
+import NewsletterForm from '@/components/newsletter-form';
 
 const CookieBanner: React.FC = () => {
     const [cookiesAccepted, setCookiesAccepted] = useState<boolean>(false);
@@ -693,7 +694,7 @@ export default function WelcomePanel() {
 
             {/* FOOTER */}
             <footer className="w-full border-t border-neutral-700 bg-black text-neutral-300">
-                <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 py-10 text-sm sm:grid-cols-3">
+                <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 py-10 text-sm sm:grid-cols-2 lg:grid-cols-4">
                     <div className="flex flex-col items-start gap-4">
                         <img src={cinLogo()} alt="Cinammon Logo" className="h-12 w-auto" draggable={false} />
                         <p className="leading-relaxed text-neutral-400">
@@ -730,6 +731,7 @@ export default function WelcomePanel() {
                             Política de Sponsors
                         </a>
                     </div>
+                    <NewsletterForm source="landing" />
                 </div>
                 <div className="border-t border-neutral-700 px-6 py-4 text-center text-xs text-neutral-500">
                     © {new Date().getFullYear()} cinammon.net — Todos los derechos reservados.

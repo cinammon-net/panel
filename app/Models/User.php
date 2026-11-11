@@ -114,6 +114,15 @@ class User extends Authenticatable
             } else {
                 $user->assignRole($membersRole);
             }
+
+            // Bienvenida (registro, Google, Discord o alta por un admin). Nunca en la demo ni desde consola.
+            if (! app()->runningInConsole() && ! config('panel.demo') && filled($user->email)) {
+                try {
+                    \Illuminate\Support\Facades\Mail::to($user->email)->queue(new \App\Mail\WelcomeMail($user));
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            }
         });
     }
 }

@@ -52,4 +52,11 @@ return [
         'token' => env('BILLING_API_TOKEN'),
         'url' => env('BILLING_URL', 'http://localhost:8001'),
     ],
+    // Correo saliente: se manda al Worker cinammon-mail (mail/), que envía con Cloudflare Email Sending.
+    'cloudflare_mail' => [
+        'url' => env('CLOUDFLARE_MAIL_URL'), // https://cinammon-mail.<subdominio>.workers.dev/relay/send (no *.cinammon.net: en el VPS apunta a 127.0.0.1)
+        'secret' => env('CLOUDFLARE_MAIL_SECRET'),
+        // Buzón del equipo: recibe los avisos de tickets y pagos, y es el "Responder a" de los correos.
+        'support' => env('MAIL_SUPPORT_ADDRESS', 'soporte@cinammon.net'),
+    ],
 ];

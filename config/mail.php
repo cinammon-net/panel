@@ -70,6 +70,10 @@ return [
             'path' => env('MAIL_SENDMAIL_PATH', '/usr/sbin/sendmail -bs -i'),
         ],
 
+        'cloudflare' => [
+            'transport' => 'cloudflare',
+        ],
+
         'log' => [
             'transport' => 'log',
             'channel' => env('MAIL_LOG_CHANNEL'),
@@ -111,6 +115,17 @@ return [
     'from' => [
         'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
         'name' => env('MAIL_FROM_NAME', 'Example'),
+    ],
+
+    // Las respuestas de los clientes a cualquier correo llegan a soporte.
+    'reply_to' => [
+        'address' => env('MAIL_REPLY_TO_ADDRESS', 'soporte@cinammon.net'),
+        'name' => 'Soporte Cinammon',
+    ],
+
+    'markdown' => [
+        'theme' => env('MAIL_MARKDOWN_THEME', 'cinammon'),
+        'paths' => [resource_path('views/vendor/mail')],
     ],
 
 ];
