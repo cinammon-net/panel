@@ -20,6 +20,10 @@ const PATHS: Record<string, string[]> = {
         'M3.857 0 1 2.857v10.286h3.429V16l2.857-2.857H9.57L14.714 8V0zm9.714 7.429-2.285 2.285H9l-2 2v-2H4.429V1.143h9.142z',
         'M11.857 3.143h-1.143V6.57h1.143zm-3.143 0H7.571V6.57h1.143z',
     ],
+    cloudflare: [
+        'M11.006 11.23c.098-.338.06-.647-.104-.877-.15-.21-.403-.333-.708-.347l-5.773-.075a.104.104 0 0 1-.089-.048.105.105 0 0 1-.014-.104c.019-.056.075-.098.135-.103l5.824-.075c.69-.033 1.44-.591 1.703-1.276l.332-.867a.17.17 0 0 0 .01-.075C11.945 5.01 10.382 3.667 8.502 3.667c-1.731 0-3.208 1.122-3.728 2.678a1.77 1.77 0 0 0-1.237-.347 1.837 1.837 0 0 0-1.642 1.642c-.01.155 0 .305.028.454C.85 8.127 0 9.004 0 10.083c0 .099.009.197.019.295.01.047.047.085.098.085h10.706a.14.14 0 0 0 .127-.094l.056-.197z',
+        'M12.793 8.204c-.051 0-.107 0-.16.005a.104.104 0 0 0-.084.065l-.225.783c-.098.338-.06.647.103.877.15.211.403.333.708.347l1.228.075c.037 0 .07.019.089.047.019.028.023.066.014.104-.019.056-.075.098-.135.103l-1.28.075c-.694.033-1.44.591-1.702 1.276l-.094.238c-.019.047.014.094.066.094h4.398a.115.115 0 0 0 .113-.085c.075-.267.117-.548.117-.844 0-1.708-1.394-3.093-3.156-3.093z',
+    ],
 };
 
 export function BrandIcon({ provider, className = 'h-4 w-4' }: { provider: string; className?: string }) {
@@ -67,7 +71,15 @@ export function SocialLogin({ label = 'O entra con' }: { label?: string }) {
 /** Ajustes → Perfil: vincular o desvincular proveedores. */
 export function LinkedAccounts({ connections }: { connections: Record<string, boolean> }) {
     const { socialProviders = [], errors, flash } = usePage<{ socialProviders?: Provider[]; errors: Record<string, string>; flash?: { discordCode?: string } }>().props;
-    const names: Record<string, string> = { discord: 'Discord', google: 'Google', microsoft: 'Microsoft', github: 'GitHub', gitlab: 'GitLab', twitch: 'Twitch' };
+    const names: Record<string, string> = {
+        discord: 'Discord',
+        google: 'Google',
+        microsoft: 'Microsoft',
+        github: 'GitHub',
+        cloudflare: 'Cloudflare',
+        gitlab: 'GitLab',
+        twitch: 'Twitch',
+    };
     const enabled = new Set(socialProviders.map((p) => p.key));
     // Se muestran los configurados y los que ya tenías vinculados aunque se hayan desactivado.
     // Discord siempre: se puede vincular con un código y /vincular aunque no haya OAuth.

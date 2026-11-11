@@ -62,6 +62,13 @@ return [
         'redirect' => env('TWITCH_REDIRECT_URI'),
     ],
 
+    'cloudflare' => [
+        'client_id' => env('CLOUDFLARE_ACCESS_CLIENT_ID'),
+        'client_secret' => env('CLOUDFLARE_ACCESS_CLIENT_SECRET'),
+        'tenant' => env('CLOUDFLARE_ACCESS_TEAM_DOMAIN'),
+        'redirect' => env('CLOUDFLARE_ACCESS_REDIRECT_URI'),
+    ],
+
     'bot' => [
         'secret' => env('BOT_INTERNAL_SECRET'),
     ],

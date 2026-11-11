@@ -19,6 +19,7 @@ use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\EggVariableController;
 use App\Http\Controllers\NetworkController;
 use App\Http\Controllers\AdvancedSectionController;
+use App\Http\Controllers\Admin\SocialProviderController;
 use Laravel\Socialite\Facades\Socialite;
 use App\Models\User;
 use App\Models\Server;
@@ -313,6 +314,9 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
         Route::put('/webhooks/{id}', [AdvancedSectionController::class, 'updateWebhook'])->name('webhooks.update');
         Route::post('/webhooks/{id}/test', [AdvancedSectionController::class, 'testWebhook'])->name('webhooks.test');
         Route::delete('/webhooks/{id}', [AdvancedSectionController::class, 'destroyWebhook'])->name('webhooks.destroy');
+
+        Route::get('/auth-providers', [SocialProviderController::class, 'index'])->name('social-providers.index');
+        Route::put('/auth-providers/{provider}', [SocialProviderController::class, 'update'])->name('social-providers.update');
     });
     // Aceptación de términos
     Route::get('/terms/accept', [TermsController::class, 'show'])->name('terms.accept');

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\SocialProviderSetting;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,16 +29,17 @@ class SocialAuthController extends Controller
         'google' => ['Google', ['openid', 'profile', 'email']],
         'microsoft' => ['Microsoft', ['User.Read']],
         'github' => ['GitHub', ['read:user', 'user:email']],
+        'cloudflare' => ['Cloudflare', ['openid', 'email', 'profile']],
         'gitlab' => ['GitLab', ['read_user']],
         'twitch' => ['Twitch', ['user:read:email']],
     ];
 
-    /** Proveedores con credenciales en el .env (los únicos que se muestran). */
+    /** Proveedores activos y con credenciales válidas (BD o .env). */
     public static function enabled(): array
     {
         $list = [];
         foreach (self::PROVIDERS as $key => [$name]) {
-            if (filled(config("services.$key.client_id")) && filled(config("services.$key.client_secret"))) {
+            if (SocialProviderSetting::resolveFor($key)['ready']) {
                 $list[] = ['key' => $key, 'name' => $name];
             }
         }
@@ -50,6 +52,10 @@ class SocialAuthController extends Controller
         $this->ensureEnabled($provider);
         $request->session()->put('social.intent', Auth::check() ? 'link' : 'login');
 
+        if ($provider === 'cloudflare') {
+            return $this->cloudflareRedirect($request);
+        }
+
         return $this->driver($provider)->scopes(self::PROVIDERS[$provider][1])->redirect();
     }
 
@@ -60,7 +66,9 @@ class SocialAuthController extends Controller
         $back = $intent === 'link' ? route('profile.edit') : route('login');
 
         try {
-            $social = $this->driver($provider)->user();
+            $social = $provider === 'cloudflare'
+                ? $this->cloudflareUser($request)
+                : $this->driver($provider)->user();
         } catch (Throwable $e) {
             report($e);
 
@@ -139,10 +147,107 @@ class SocialAuthController extends Controller
 
     private function driver(string $provider)
     {
-        $redirect = config("services.$provider.redirect") ?: url("/auth/$provider/callback");
-        config(["services.$provider.redirect" => $redirect]);
+        $cfg = SocialProviderSetting::resolveFor($provider);
+        config([
+            "services.$provider.client_id" => $cfg['client_id'],
+            "services.$provider.client_secret" => $cfg['client_secret'],
+            "services.$provider.redirect" => $cfg['redirect'],
+        ]);
+        if ($provider === 'microsoft') {
+            config(['services.microsoft.tenant' => $cfg['tenant'] ?: 'common']);
+        }
 
         return Socialite::driver($provider);
+    }
+
+    private function cloudflareRedirect(Request $request): RedirectResponse
+    {
+        $cfg = SocialProviderSetting::resolveFor('cloudflare');
+        $state = Str::random(40);
+        $request->session()->put('social.cf_state', $state);
+
+        $query = http_build_query([
+            'client_id' => $cfg['client_id'],
+            'redirect_uri' => $cfg['redirect'],
+            'response_type' => 'code',
+            'scope' => 'openid email profile',
+            'state' => $state,
+        ]);
+
+        return redirect()->away("{$cfg['tenant']}/cdn-cgi/access/sso/oidc/{$cfg['client_id']}/authorization?{$query}");
+    }
+
+    private function cloudflareUser(Request $request): object
+    {
+        $expected = (string) $request->session()->pull('social.cf_state', '');
+        $state = (string) $request->query('state', '');
+        if ($expected === '' || ! hash_equals($expected, $state)) {
+            throw new \RuntimeException('Invalid Cloudflare OIDC state.');
+        }
+        $code = (string) $request->query('code', '');
+        if ($code === '') {
+            throw new \RuntimeException('Missing Cloudflare OIDC code.');
+        }
+
+        $cfg = SocialProviderSetting::resolveFor('cloudflare');
+        $base = "{$cfg['tenant']}/cdn-cgi/access/sso/oidc/{$cfg['client_id']}";
+
+        $tokenRes = Http::asForm()->acceptJson()->timeout(10)->post("{$base}/token", [
+            'grant_type' => 'authorization_code',
+            'client_id' => $cfg['client_id'],
+            'client_secret' => $cfg['client_secret'],
+            'redirect_uri' => $cfg['redirect'],
+            'code' => $code,
+        ]);
+        if (! $tokenRes->successful() || blank($tokenRes->json('access_token'))) {
+            throw new \RuntimeException('Cloudflare OIDC token exchange failed.');
+        }
+
+        $userRes = Http::withToken((string) $tokenRes->json('access_token'))->acceptJson()->timeout(10)->get("{$base}/userinfo");
+        if (! $userRes->successful()) {
+            throw new \RuntimeException('Cloudflare OIDC userinfo failed.');
+        }
+
+        $raw = (array) $userRes->json();
+        $id = (string) ($raw['sub'] ?? '');
+        if ($id === '') {
+            throw new \RuntimeException('Cloudflare OIDC userinfo missing sub.');
+        }
+
+        return new class($id, $raw)
+        {
+            public array $user;
+
+            public function __construct(private string $id, array $raw)
+            {
+                $this->user = $raw;
+            }
+
+            public function getId(): string
+            {
+                return $this->id;
+            }
+
+            public function getEmail(): ?string
+            {
+                return $this->user['email'] ?? null;
+            }
+
+            public function getName(): ?string
+            {
+                return $this->user['name'] ?? ($this->user['email'] ?? null);
+            }
+
+            public function getNickname(): ?string
+            {
+                return $this->user['preferred_username'] ?? null;
+            }
+
+            public function getAvatar(): ?string
+            {
+                return $this->user['picture'] ?? null;
+            }
+        };
     }
 
     private function attach(User $user, string $provider, $social): void
@@ -198,6 +303,7 @@ class SocialAuthController extends Controller
             'github' => true, // Socialite usa el correo principal verificado de GitHub
             'gitlab' => filled($raw['confirmed_at'] ?? null),
             'twitch' => true, // Twitch solo entrega correos verificados
+            'cloudflare' => true, // Cloudflare Access OIDC entrega identidad verificada por su IdP
             // Microsoft: en cuentas de empresa la organización puede poner cualquier correo; no se usa para unir cuentas.
             'microsoft' => false,
             default => false,

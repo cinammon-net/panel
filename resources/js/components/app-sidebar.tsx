@@ -199,6 +199,15 @@ const mainNavItems: NavItem[] = [
         roles: ['Admin'],
         permissions: ['view_webhook'],
     },
+    {
+        title: 'Inicio Social',
+        href: '/auth-providers',
+        icon: ShieldCheck,
+        group: 'users',
+        groupColor: 'text-pink-400',
+        roles: ['Admin'],
+        permissions: [],
+    },
 
     // ——— Extra (comunidad) ———
     {
