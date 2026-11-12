@@ -420,6 +420,8 @@ const GUIDE_VIDEO_V = 1;
 // Paso a paso con fotos dentro de cada guía (capturas del vídeo con el elemento resaltado); también lo usa el panel en /guias
 const GUIDE_STEPS = require('./guide-steps.json');
 const GUIDE_STEPS_V = 1;
+// Guías rehechas: versión propia para que Discord no muestre la foto o el vídeo antiguos de su caché
+const GUIDE_V = { 'sftp-filezilla': 2 };
 const GUIDE_ICON = { buy: 'cart', team: 'team' };
 const readMinutes = (g) => Math.max(1, Math.round(g.body().filter((l) => !/^!\[/.test(l)).join(' ').split(/\s+/).length / 180));
 
@@ -462,13 +464,13 @@ function guidePayload(g, threads) {
     const L = env.ctx().layout;
     // Guías con vídeo grabado en el panel real: el vídeo va arriba, con enlace a la sección del panel
     const video = GUIDE_VIDEO.includes(g.key)
-        ? [`-# También en el panel, en **Guías en vídeo**: ${env.PANEL}/guias#${g.key}`, `![Vídeo: ${g.title}](${env.PANEL}/videos/guias/${g.key}.mp4?v=${GUIDE_VIDEO_V})`, '']
+        ? [`-# También en el panel, en **Guías en vídeo**: ${env.PANEL}/guias#${g.key}`, `![Vídeo: ${g.title}](${env.PANEL}/videos/guias/${g.key}.mp4?v=${GUIDE_V[g.key] ?? GUIDE_VIDEO_V})`, '']
         : [];
     // Con pasos: cada paso con su explicación y su foto, y después la guía escrita como «Más detalles»
     const steps = GUIDE_VIDEO.includes(g.key) ? GUIDE_STEPS[g.key] || [] : [];
     // Muchos pasos no caben en 40 componentes: entonces van de dos en dos (un texto y una galería con sus dos fotos)
     const per = steps.length > 10 ? 2 : 1;
-    const img = (st, n) => `![Paso ${n + 1}: ${st.title}](${env.PANEL}/videos/guias/pasos/${g.key}-${n + 1}.jpg?v=${GUIDE_STEPS_V})`;
+    const img = (st, n) => `![Paso ${n + 1}: ${st.title}](${env.PANEL}/videos/guias/pasos/${g.key}-${n + 1}.jpg?v=${GUIDE_V[g.key] ?? GUIDE_STEPS_V})`;
     const stepLines = [];
     for (let a = 0; a < steps.length; a += per) {
         const group = steps.slice(a, a + per);

@@ -25,6 +25,8 @@ interface Guide {
     poster?: string;
     /** Solo la ven quienes tienen alguno de estos roles (el Owner las ve todas). */
     roles?: string[];
+    /** Versión propia de sus archivos (sube cuando se rehacen el vídeo o las fotos). */
+    v?: number;
 }
 
 const GUIDES: Guide[] = [
@@ -99,7 +101,8 @@ const GUIDES: Guide[] = [
         title: 'Tus archivos con FileZilla, paso a paso',
         text: 'Generar la contraseña SFTP, descargar la configuración del panel e importarla en FileZilla para conectarte sin escribir nada.',
         duration: '1:14',
-        thread: '',
+        thread: '1570566419471663315',
+        v: 2,
     },
     {
         key: 'team',
@@ -116,13 +119,14 @@ const GUIDES: Guide[] = [
         text: 'Todo lo que puedes hacer con el rol Amigo de Cinammon: crear tu servidor de amigo, dejar notas en el muro y pedir deseos.',
         duration: '0:40',
         roles: ['Amigo de Cinammon'],
+        v: 2,
     },
 ];
 
-const videoOf = (g: Guide) => g.video ?? `/videos/guias/${g.key}.mp4?v=${V}`;
-const posterOf = (g: Guide) => g.poster ?? `/videos/guias/${g.key}.jpg?v=${V}`;
+const videoOf = (g: Guide) => g.video ?? `/videos/guias/${g.key}.mp4?v=${g.v ?? V}`;
+const posterOf = (g: Guide) => g.poster ?? `/videos/guias/${g.key}.jpg?v=${g.v ?? V}`;
 const stepImg = (g: Guide, n: number) =>
-    g.key === 'buy' ? `https://billing.cinammon.net/discord/comprar-${n}.png?v=1` : `/videos/guias/pasos/${g.key}-${n}.jpg?v=${V}`;
+    g.key === 'buy' ? `https://billing.cinammon.net/discord/comprar-${n}.png?v=1` : `/videos/guias/pasos/${g.key}-${n}.jpg?v=${g.v ?? V}`;
 const threadOf = (g: Guide) => `https://discord.com/channels/${GUILD}/${g.thread}`;
 
 const TAG_COLOR: Record<string, string> = {
