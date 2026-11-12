@@ -466,6 +466,17 @@ function staticPosts(season) {
     ];
 }
 
+/** Iconos de los rangos (dibujados igual que en el panel, servidos en panel /discord/rangos/<clave>.png). */
+const RANK_ICON = {
+    chispa: 'chispa', 'neón': 'neon', neon: 'neon', synthwave: 'synthwave', cibercanela: 'cibercanela', 'leyenda cinammon': 'leyenda',
+    'arquitecto de mundos': 'arquitecto', 'comandante de clan': 'comandante', 'creador de contenido': 'creador', desarrollador: 'desarrollador', mecenas: 'mecenas',
+};
+const RANK_ICON_V = 1;
+function rankIcon(name) {
+    const key = RANK_ICON[String(name || '').trim().toLowerCase()];
+    return key ? `${PANEL_PUBLIC}/discord/rangos/${key}.png?v=${RANK_ICON_V}` : null;
+}
+
 async function catalogPosts(season) {
     const ch = ctx.layout.channels;
     const store = season?.store_url || `${BILLING}/store`;
@@ -491,11 +502,21 @@ async function catalogPosts(season) {
     posts.push(['howtobuy', ch.plans, shop.post(methods, tutorial ? `https://discord.com/channels/${ctx.guild}/${tutorial}` : null)]);
 
     if (ranks) {
+        // Cada rango en su tarjeta de color con su icono; 4 componentes por rango, así que van en dos mensajes (límite de 40)
+        const card = (p) => {
+            const body = text(cut(`### ${p.name} · ${eur(p.price)}/mes\n${(p.features || []).map((f) => `- ${f}`).join('\n')}`, 330));
+            const icon = rankIcon(p.name);
+            return container(parseInt(String(p.perks?.color || '#ec4899').replace('#', ''), 16), [
+                icon ? { type: 9, components: [body], accessory: { type: 11, media: { url: icon }, description: `Icono de ${p.name}` } } : body,
+            ]);
+        };
+        const list = ranks.plans.slice(0, 10);
         posts.push(['ranks', ch.ranks, msg(
             container(accent, [text('# Rangos VIP\nAl comprarlo en la tienda, el rango se activa en el panel y, si tu cuenta está vinculada con Discord, recibes aquí su rol.')]),
-            ranks.plans.slice(0, 10).map((p) => container(parseInt(String(p.perks?.color || '#ec4899').replace('#', ''), 16), [
-                text(cut(`### ${p.name} · ${eur(p.price)}/mes\n${(p.features || []).map((f) => `- ${f}`).join('\n')}`, 330)),
-            ])),
+            list.slice(0, 5).map(card),
+        )]);
+        posts.push(['ranks2', ch.ranks, msg(
+            list.slice(5).map(card),
             row(linkBtn('Comprar rango', store)),
         )]);
     }
