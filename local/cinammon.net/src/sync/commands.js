@@ -9,6 +9,7 @@ const moderation = require('./moderation');
 const admin = require('./admin');
 const assistant = require('./assistant');
 const birthdays = require('./birthdays');
+const shop = require('./shop');
 
 let api = null;
 const gameCache = new Map(); // serverId -> { at, fields }
@@ -19,6 +20,7 @@ const V2 = 1 << 15;
 function init(a) {
     api = a;
     admin.init(a);
+    shop.init(a);
 }
 
 /* ------------------------------------------------------------ definiciones */
@@ -38,6 +40,7 @@ function base(categories) {
         { name: 'anuncios', description: 'Anuncios y ofertas publicados ahora mismo' },
         { name: 'planes', description: 'Planes y precios de la tienda', options: catChoices.length ? [{ name: 'categoria', description: 'Tipo de servicio', type: S, required: false, choices: catChoices }] : [] },
         { name: 'rangos', description: 'Rangos VIP y sus ventajas' },
+        shop.definition,
         { name: 'vincular', description: 'Vincular tu cuenta de cinammon.net con este Discord', options: [{ name: 'codigo', description: 'El código de Ajustes → Perfil en el panel', type: S, required: false, max_length: 20 }] },
         { name: 'cuenta', description: 'Tu cuenta: servidores, monedas, facturas y tickets' },
         {
@@ -334,7 +337,7 @@ function helpView() {
         sep(),
         text('### ¿Tienes una duda?\n`/pregunta` te responde al momento. Si no lo sabe, avisa al equipo. Para algo privado (pagos, tu cuenta, un servidor), abre un ticket.'),
         text('### Tu cuenta\n`/cuenta` resumen · `/perfil` nombre y foto · `/servidores` y `/servidor` encender, apagar, ajustes · `/consola` comandos · `/monedas` y `/diario` · `/facturas` · `/tickets`'),
-        text('### Comunidad\n`/cumpleaños` guarda tu fecha y recibe un set de regalo ese día\n`/estado` · `/anuncios` · `/planes` · `/rangos` · `/sugerir` · `/invitar` · `/invitaciones` · `/top-invitaciones` · `/ping`'),
+        text('### Comunidad\n`/cumpleaños` guarda tu fecha y recibe un set de regalo ese día\n`/estado` · `/anuncios` · `/planes` · `/comprar` · `/rangos` · `/sugerir` · `/invitar` · `/invitaciones` · `/top-invitaciones` · `/ping`'),
         text('### Staff\n`/anuncio` · `/mantenimiento` · `/sincronizar`'),
         sep(),
         text('-# ¿Aún no lo has hecho? `/vincular` explica cómo conectar tu cuenta.'),
@@ -727,7 +730,7 @@ async function modal(i) {
 /** Devuelve true si la interacción era suya. */
 async function handle(i) {
     if (i.type === 4) {
-        const choices = i.data.name === 'admin' ? await admin.autocomplete(i) : [];
+        const choices = i.data.name === 'admin' ? await admin.autocomplete(i) : i.data.name === 'comprar' ? await shop.autocomplete(i).catch(() => []) : [];
         await callback(i, { type: 8, data: { choices } });
         return true;
     }
@@ -749,6 +752,14 @@ async function handle(i) {
             api.log(`[CMD] ${i.data.custom_id}: ${e.message}`);
             await edit(i, modError(mod === admin ? 'admin' : 'mod', e));
         }
+        return true;
+    }
+    if (i.type === 2 && i.data?.name === 'comprar') {
+        await shop.slash(i);
+        return true;
+    }
+    if ((i.type === 3 || i.type === 5) && (i.data?.custom_id || '').startsWith('buy:')) {
+        await shop.component(i);
         return true;
     }
     if (i.type === 2) {

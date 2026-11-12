@@ -64,6 +64,8 @@ Route::middleware('bot.secret')->group(function () {
         Route::put('/servers/{server}/game', 'game');
         Route::post('/announcements', 'announce');
         Route::post('/maintenances', 'maintenance');
+        Route::post('/store/quote', 'storeQuote')->middleware('throttle:60,1');
+        Route::post('/store/order', 'storeOrder')->middleware('throttle:10,1');
     });
     // Administración desde Discord (Owner/Admin)
     Route::prefix('/bot/discord/{discordId}/admin')->where(['discordId' => '[0-9]{5,25}'])->controller(App\Http\Controllers\BotAdminController::class)->group(function () {

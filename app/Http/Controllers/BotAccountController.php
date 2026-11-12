@@ -357,6 +357,47 @@ class BotAccountController extends Controller
         ];
     }
 
+    /** Compra desde Discord: precio de un plan con el descuento de esa persona. */
+    public function storeQuote(Request $request, string $discordId)
+    {
+        $data = $request->validate(['plan_id' => 'required|integer|min:1']);
+
+        return $this->storeProxy('quote', $this->user($discordId), $data);
+    }
+
+    /** Compra desde Discord: crea pedido + factura y devuelve el enlace de pago. */
+    public function storeOrder(Request $request, string $discordId)
+    {
+        $data = $request->validate([
+            'plan_id' => 'required|integer|min:1',
+            'cycle' => 'required|string|max:20',
+            'name' => 'nullable|string|max:60',
+        ]);
+
+        return $this->storeProxy('order', $this->user($discordId), $data);
+    }
+
+    /** Reenvía a la tienda y devuelve su respuesta tal cual (con su código), para que el bot muestre el motivo. */
+    private function storeProxy(string $action, User $user, array $data)
+    {
+        $base = rtrim((string) config('services.billing.url'), '/');
+        $token = (string) config('services.billing.token');
+        abort_if($base === '' || $token === '' || ! $user->email, 502, 'La tienda no responde ahora mismo.');
+        try {
+            $ca = (string) config('services.billing.ca');
+            $res = Http::withHeaders(['X-Billing-Token' => $token])->acceptJson()->timeout(12)
+                ->when($ca !== '', fn ($h) => $h->withOptions(['verify' => $ca]))
+                ->post($base.'/api/panel/bot/'.$action, ['email' => $user->email] + $data);
+        } catch (\Throwable $e) {
+            report($e);
+            abort(502, 'La tienda no responde ahora mismo.');
+        }
+        $status = $res->status();
+        abort_if($status >= 500 || $res->json() === null, 502, 'La tienda no responde ahora mismo.');
+
+        return response()->json($res->json(), $status);
+    }
+
     private function billing(string $action, User $user, array $extra = [], bool $with404 = false): ?array
     {
         $base = rtrim((string) config('services.billing.url'), '/');

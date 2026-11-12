@@ -24,6 +24,7 @@ const verify = require('./verify');
 const content = require('./content');
 const assistant = require('./assistant');
 const birthdays = require('./birthdays');
+const shop = require('./shop');
 const support = require('./support');
 const moderation = require('./moderation');
 
@@ -416,7 +417,7 @@ function staticPosts(season) {
             text('### Primero: vincula tu cuenta\n`/vincular codigo:` con el código de **Ajustes → Perfil → Código para el bot** del panel. Solo hace falta una vez.'),
             text('### Tus servidores\n`/servidores` lista con su estado\n`/servidor` encender, reiniciar, apagar, renombrar y ajustes del juego\n`/consola` enviar un comando a la consola'),
             text('### Tu cuenta\n`/cuenta` resumen de todo · `/perfil` nombre y foto de la web\n`/monedas` saldo y enlace de invitación · `/diario` premio diario con racha\n`/facturas` pagos pendientes · `/tickets` tus tickets'),
-            text('### Comunidad\n`/cumpleaños` guarda tu fecha: ese día te felicitamos y te llega un set de regalo\n`/estado` red y mantenimientos · `/anuncios` · `/planes` · `/rangos`\n`/sugerir` propón una idea · `/invitar` tu enlace al servidor · `/invitaciones` · `/top-invitaciones` · `/ping` · `/ayuda`'),
+            text('### Comunidad\n`/cumpleaños` guarda tu fecha: ese día te felicitamos y te llega un set de regalo\n`/estado` red y mantenimientos · `/anuncios` · `/planes` · `/rangos`\n`/comprar` compra un servidor o un rango sin salir de Discord\n`/sugerir` propón una idea · `/invitar` tu enlace al servidor · `/invitaciones` · `/top-invitaciones` · `/ping` · `/ayuda`'),
             sep(),
             text('-# Si un comando dice que tu Discord no está vinculado, repite el paso de `/vincular`.'),
         ]))],
@@ -459,8 +460,11 @@ async function catalogPosts(season) {
             return `**${c.title}**\n-# ${c.plans.length} planes · desde ${eur(min)}/mes`;
         }).join('\n'), 3000)),
         sep(2),
-        row(linkBtn('Ver la tienda', store)),
+        row({ type: 2, style: 1, label: 'Comprar desde Discord', custom_id: 'buy:start' }, linkBtn('Ver la tienda', store)),
     ]))]);
+    // Debajo de los planes: cómo comprar, explicado fácil (con los métodos de pago reales)
+    const methods = await billing('/api/payment-methods').then((r) => r.methods).catch(() => null);
+    posts.push(['howtobuy', ch.plans, shop.post(methods)]);
 
     if (ranks) {
         posts.push(['ranks', ch.ranks, msg(
