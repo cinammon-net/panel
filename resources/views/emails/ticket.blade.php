@@ -1,4 +1,4 @@
-<x-mail::message>
+<x-mail::message kicker="Soporte">
 @if ($kind === 'opened')
 # Nuevo ticket #{{ $ticket->id }}
 

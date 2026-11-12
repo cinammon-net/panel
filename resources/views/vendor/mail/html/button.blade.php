@@ -5,22 +5,23 @@
 ])
 @php
     $theme = $theme ?? \App\Support\Seasons::emailTheme();
-    $btnBg = $color === 'primary' ? $theme['button_bg'] : match($color) {
-        'success', 'green' => '#10b981',
-        'error', 'red' => '#ef4444',
+    // Botón «a prueba de clientes»: tabla con bgcolor (Outlook) + enlace con relleno
+    $btnBg = match ($color) {
+        'success', 'green' => '#059669',
+        'error', 'red' => '#dc2626',
+        'secondary' => '#1f1730',
         default => $theme['button_bg'],
     };
-    $btnText = $color === 'primary' ? $theme['button_text'] : '#ffffff';
+    $btnText = in_array($color, ['success', 'green', 'error', 'red', 'secondary'], true) ? '#ffffff' : $theme['button_text'];
+    $font = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 @endphp
-<table class="action" align="{{ $align }}" width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin: 28px auto; text-align: {{ $align }};">
+<table class="action" align="{{ $align }}" width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin: 28px 0;">
 <tr>
 <td align="{{ $align }}">
-<table border="0" cellpadding="0" cellspacing="0" role="presentation" style="margin: 0 auto;">
+<table border="0" cellpadding="0" cellspacing="0" role="presentation">
 <tr>
-<td align="center" style="border-radius: 8px; background-color: {{ $btnBg }};">
-<a href="{{ $url }}" class="button button-{{ $color }}" target="_blank" rel="noopener" style="display: inline-block; padding: 12px 26px; font-size: 15px; font-weight: 700; text-decoration: none; border-radius: 8px; background-color: {{ $btnBg }}; color: {{ $btnText }}; border: 1px solid {{ $btnBg }}; line-height: 1.2; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-{{ $slot }}
-</a>
+<td align="center" bgcolor="{{ $btnBg }}" style="border-radius: 10px; background-color: {{ $btnBg }};">
+<a href="{{ $url }}" class="button button-{{ $color }}" target="_blank" rel="noopener" style="display: inline-block; padding: 14px 30px; font-size: 15px; font-weight: 700; text-decoration: none; border-radius: 10px; background-color: {{ $btnBg }}; color: {{ $btnText }}; line-height: 1.2; font-family: {!! $font !!};">{{ $slot }}</a>
 </td>
 </tr>
 </table>

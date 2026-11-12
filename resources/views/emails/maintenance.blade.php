@@ -1,4 +1,4 @@
-<x-mail::message>
+<x-mail::message kicker="Mantenimiento">
 # {{ $m->title }}
 
 Vamos a realizar un mantenimiento en **Cinammon Network**.

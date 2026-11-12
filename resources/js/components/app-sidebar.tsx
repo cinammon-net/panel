@@ -37,6 +37,7 @@ import {
     Coins,
     Sparkles,
     PlayCircle,
+    Mail,
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -78,6 +79,15 @@ const mainNavItems: NavItem[] = [
         group: 'main',
         groupColor: 'text-yellow-400',
         roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin', 'Owner'],
+        permissions: [],
+    },
+    {
+        title: 'Mis correos',
+        href: '/correos',
+        icon: Mail,
+        group: 'main',
+        groupColor: 'text-fuchsia-400',
+        roles: [],
         permissions: [],
     },
     {

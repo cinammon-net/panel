@@ -19,7 +19,7 @@ use Illuminate\Queue\SerializesModels;
  */
 class TicketActivity extends Mailable implements ShouldQueue
 {
-    use Queueable, SerializesModels;
+    use Queueable, SerializesModels, Concerns\Archived;
 
     /** Clave única por aviso: el Worker de correo descarta correos idénticos en 24 h y dos avisos pueden coincidir. */
     public string $idempotencyKey;

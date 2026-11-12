@@ -1,4 +1,4 @@
-<x-mail::message>
+<x-mail::message kicker="Cumpleaños">
 # ¡Feliz cumpleaños, {{ $user->name }}!
 
 Hoy es tu día y en Cinammon queríamos ser de los primeros en decírtelo. Gracias por estar con nosotros otro año más.

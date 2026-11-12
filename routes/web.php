@@ -338,6 +338,11 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
         return back();
     })->name('settings.font');
 
+    // Mis correos: los correos de Cinammon (panel y tienda) con el diseño actual
+    Route::get('/correos', [App\Http\Controllers\MailArchiveController::class, 'index'])->name('mails.index');
+    Route::get('/correos/{source}/{uuid}', [App\Http\Controllers\MailArchiveController::class, 'show'])
+        ->whereIn('source', ['panel', 'billing'])->whereUuid('uuid')->middleware('throttle:60,1')->name('mails.show');
+
     // Guías en vídeo (grabadas en el panel real; la guía completa vive en el foro #guias de Discord)
     Route::get('/guias', fn () => Inertia::render('Guides'))->name('guides.index');
 

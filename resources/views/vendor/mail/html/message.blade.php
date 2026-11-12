@@ -1,15 +1,16 @@
-<x-mail::layout>
-{{-- Header --}}
+@props(['kicker' => null])
+<x-mail::layout :kicker="$kicker">
+{{-- Cabecera --}}
 <x-slot:header>
 <x-mail::header :url="config('app.url')">
 {{ config('app.name') }}
 </x-mail::header>
 </x-slot:header>
 
-{{-- Body --}}
+{{-- Cuerpo --}}
 {{ $slot }}
 
-{{-- Subcopy --}}
+{{-- Texto pequeño --}}
 @isset($subcopy)
 <x-slot:subcopy>
 <x-mail::subcopy>
@@ -18,12 +19,12 @@
 </x-slot:subcopy>
 @endisset
 
-{{-- Footer --}}
+{{-- Pie --}}
 <x-slot:footer>
 <x-mail::footer>
-Cinammon Network · [cinammon.net](https://cinammon.net) · [Panel](https://panel.cinammon.net) · [Tienda](https://billing.cinammon.net)
+[Panel](https://panel.cinammon.net) &nbsp;·&nbsp; [Tienda](https://store.cinammon.net) &nbsp;·&nbsp; [Discord](https://discord.gg/U5EaDJerhZ) &nbsp;·&nbsp; [cinammon.net](https://cinammon.net)
 
-Recibes este correo por tu cuenta en Cinammon Network. Si tienes dudas, responde a este mensaje y te atenderemos.
+Recibes este correo por tu cuenta en Cinammon Network. Si tienes cualquier duda, responde a este mensaje y te contestamos.
 </x-mail::footer>
 </x-slot:footer>
 </x-mail::layout>

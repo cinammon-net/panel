@@ -1,4 +1,4 @@
-<x-mail::message>
+<x-mail::message kicker="Cumpleaños">
 # Tu tarjeta de cumpleaños
 
 {{ $user->name }}, hoy {{ count($wishes) === 1 ? 'una persona de la comunidad se ha acordado' : count($wishes).' personas de la comunidad se han acordado' }} de ti en Discord. Aquí tienes sus firmas:

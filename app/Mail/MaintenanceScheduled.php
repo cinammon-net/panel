@@ -12,7 +12,7 @@ use Illuminate\Queue\SerializesModels;
 
 class MaintenanceScheduled extends Mailable implements ShouldQueue
 {
-    use Queueable, SerializesModels;
+    use Queueable, SerializesModels, Concerns\Archived;
 
     public function __construct(public Maintenance $maintenance)
     {
