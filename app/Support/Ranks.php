@@ -148,6 +148,10 @@ class Ranks
             }
         }
         Cache::forget("ranks:perks:{$user->id}");
+
+        // Servidor de amigo: activo solo mientras tenga el rol (el Owner siempre lo conserva)
+        $friendRole = config('ranks.special.amigo.name', 'Amigo de Cinammon');
+        FriendServers::syncAccess($user, in_array($friendRole, $active, true) || $user->hasRole('Owner'));
     }
 
     /** Ventajas efectivas: la mejor de cada tipo entre los rangos activos. */

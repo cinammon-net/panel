@@ -1,8 +1,9 @@
 import { RankIcon } from '@/components/rank-badges';
+import EggIcon from '@/components/EggIcon';
 import UserAvatar from '@/components/user-avatar';
 import AppLayout from '@/layouts/app-layout';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
-import { Check, Feather, Heart, PenLine, RotateCcw, Send, Sparkles, Trash2, Undo2, X } from 'lucide-react';
+import { Check, Cpu, Feather, HardDrive, Heart, MemoryStick, PenLine, Rocket, RotateCcw, Search, Send, Server as ServerIcon, Sparkles, Trash2, Undo2, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -41,7 +42,44 @@ interface Wish {
     author: Author;
 }
 
+interface Range {
+    min: number;
+    max: number;
+    step: number;
+    default: number;
+}
+
+interface FriendEgg {
+    id: number;
+    name: string;
+    category: string;
+    icon: string | null;
+}
+
+interface FriendServerItem {
+    id: number;
+    name: string;
+    egg: string | null;
+    category: string | null;
+    icon: string | null;
+    memory: number;
+    cpu: number;
+    disk: number;
+    active: boolean;
+    address: string | null;
+}
+
+interface FriendServerInfo {
+    enabled: boolean;
+    per_friend: number;
+    limits: { memory: Range; cpu: Range; disk: Range };
+    servers: FriendServerItem[];
+    can_create: boolean;
+    eggs: FriendEgg[];
+}
+
 interface Props {
+    friendServer: FriendServerInfo;
     isOwner: boolean;
     max: number;
     friends: Friend[];
@@ -85,7 +123,7 @@ function daysSince(iso: string) {
 }
 
 export default function FriendsIndex() {
-    const { isOwner, max, friends, notes, wishes, colors, limits, flash, errors } = usePage<Props>().props;
+    const { isOwner, max, friends, notes, wishes, colors, limits, flash, errors, friendServer } = usePage<Props>().props;
     const me = friends.find((f) => f.me) ?? null;
 
     useEffect(() => {
@@ -117,6 +155,8 @@ export default function FriendsIndex() {
                     {me ? <FriendCard friend={me} max={max} /> : <OwnerKey count={friends.length} max={max} />}
                     <Constellation friends={friends} isOwner={isOwner} />
                 </section>
+
+                {friendServer.enabled && <Forge info={friendServer} />}
 
                 <Wall notes={notes} colors={colors} perDay={limits.notes_per_day} error={errors?.body} />
 
@@ -324,6 +364,186 @@ function StarInfo({ friend, isOwner, onClose }: { friend: Friend; isOwner: boole
                     </div>
                 </form>
             )}
+        </div>
+    );
+}
+
+/* ------------------------------------------------------- servidor de amigo */
+
+const CATEGORY_LABELS: Record<string, string> = {
+    minecraft: 'Minecraft',
+    games: 'Juegos',
+    bots: 'Bots',
+    generic: 'Apps',
+    voice: 'Voz',
+    web: 'Web',
+    software: 'Software',
+    database: 'Bases de datos',
+};
+
+const fmtMem = (mb: number) => (mb >= 1024 ? `${+(mb / 1024).toFixed(2)} GB` : `${mb} MB`);
+const fmtCpu = (pct: number) => `${+(pct / 100).toFixed(2)} ${pct === 100 ? 'núcleo' : 'núcleos'}`;
+
+function Forge({ info }: { info: FriendServerInfo }) {
+    const { limits } = info;
+    const form = useForm({ name: '', egg_id: 0, memory: limits.memory.default, cpu: limits.cpu.default, disk: limits.disk.default });
+    const [cat, setCat] = useState<string>('all');
+    const [q, setQ] = useState('');
+
+    const cats = useMemo(() => Array.from(new Set(info.eggs.map((e) => e.category))), [info.eggs]);
+    const list = useMemo(() => {
+        const term = q.trim().toLowerCase();
+        return info.eggs.filter((e) => (cat === 'all' || e.category === cat) && (!term || e.name.toLowerCase().includes(term)));
+    }, [info.eggs, cat, q]);
+    const chosen = info.eggs.find((e) => e.id === form.data.egg_id) ?? null;
+
+    const submit = (e: React.FormEvent) => {
+        e.preventDefault();
+        form.post('/amigos/servidor', { preserveScroll: true });
+    };
+
+    return (
+        <section className="space-y-4">
+            <SectionTitle
+                icon={<ServerIcon className="h-5 w-5 text-sky-400" />}
+                title="Tu servidor de amigo"
+                subtitle={`Un regalo por ser Amigo de Cinammon: ${info.per_friend === 1 ? 'un servidor' : `${info.per_friend} servidores`} gratis, con el juego y los recursos que tú elijas. Sigue activo mientras tengas el rol.`}
+            />
+
+            {info.servers.length > 0 && (
+                <div className="grid gap-3 sm:grid-cols-2">
+                    {info.servers.map((srv) => (
+                        <a
+                            key={srv.id}
+                            href={`/servers/${srv.id}/console`}
+                            className="group flex items-center gap-4 rounded-2xl border border-sky-500/30 bg-gradient-to-br from-sky-500/10 to-pink-500/5 p-4 transition hover:border-sky-400"
+                        >
+                            <EggIcon src={srv.icon} category={srv.category} name={srv.egg ?? ''} size={48} />
+                            <div className="min-w-0 flex-1">
+                                <p className="truncate font-semibold text-neutral-900 dark:text-white">{srv.name}</p>
+                                <p className="truncate text-xs text-neutral-500">{srv.egg}</p>
+                                <p className="mt-1 text-xs text-neutral-500">
+                                    {fmtMem(srv.memory)} · {fmtCpu(srv.cpu)} · {fmtMem(srv.disk)} de disco
+                                </p>
+                                {srv.address && <p className="font-mono text-xs text-sky-500">{srv.address}</p>}
+                            </div>
+                            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${srv.active ? 'bg-emerald-500/15 text-emerald-500' : 'bg-red-500/15 text-red-400'}`}>
+                                {srv.active ? 'Activo' : 'Suspendido'}
+                            </span>
+                        </a>
+                    ))}
+                </div>
+            )}
+
+            {info.can_create ? (
+                <form onSubmit={submit} className="grid gap-5 rounded-2xl border border-neutral-200 bg-white p-4 sm:p-5 lg:grid-cols-[1fr_320px] dark:border-neutral-800 dark:bg-neutral-950">
+                    {/* 1. Juego */}
+                    <div className="min-w-0 space-y-3">
+                        <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">1. Elige el juego o la app</p>
+                        <div className="flex flex-wrap gap-1.5">
+                            {['all', ...cats].map((c) => (
+                                <button
+                                    key={c}
+                                    type="button"
+                                    onClick={() => setCat(c)}
+                                    className={`rounded-full px-3 py-1 text-xs font-semibold transition ${cat === c ? 'bg-sky-600 text-white' : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-white/5 dark:text-neutral-300 dark:hover:bg-white/10'}`}
+                                >
+                                    {c === 'all' ? 'Todo' : (CATEGORY_LABELS[c] ?? c)}
+                                </button>
+                            ))}
+                        </div>
+                        <label className="flex items-center gap-2 rounded-md border border-neutral-300 px-3 py-2 dark:border-neutral-700">
+                            <Search className="h-4 w-4 text-neutral-400" />
+                            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar..." className="w-full bg-transparent text-sm outline-none dark:text-white" />
+                        </label>
+                        <div className="grid max-h-72 grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3" role="radiogroup" aria-label="Juego o app">
+                            {list.map((egg) => (
+                                <button
+                                    key={egg.id}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={form.data.egg_id === egg.id}
+                                    onClick={() => form.setData('egg_id', egg.id)}
+                                    className={`flex items-center gap-2 rounded-lg border p-2 text-left text-xs transition ${form.data.egg_id === egg.id ? 'border-sky-500 bg-sky-500/10 text-sky-700 dark:text-sky-300' : 'border-neutral-200 hover:border-sky-400 dark:border-neutral-800 dark:text-neutral-300'}`}
+                                >
+                                    <EggIcon src={egg.icon} category={egg.category} name={egg.name} size={28} />
+                                    <span className="line-clamp-2">{egg.name}</span>
+                                </button>
+                            ))}
+                            {!list.length && <p className="col-span-full py-6 text-center text-sm text-neutral-500">No hay nada con ese nombre.</p>}
+                        </div>
+                        {form.errors.egg_id && <p className="text-xs text-red-500">{form.errors.egg_id}</p>}
+                    </div>
+
+                    {/* 2. Recursos y nombre */}
+                    <div className="space-y-4">
+                        <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">2. Ajusta tu servidor</p>
+                        <Slider icon={<MemoryStick className="h-4 w-4 text-pink-400" />} label="RAM" range={limits.memory} value={form.data.memory} onChange={(v) => form.setData('memory', v)} format={fmtMem} error={form.errors.memory} />
+                        <Slider icon={<Cpu className="h-4 w-4 text-sky-400" />} label="CPU" range={limits.cpu} value={form.data.cpu} onChange={(v) => form.setData('cpu', v)} format={fmtCpu} error={form.errors.cpu} />
+                        <Slider icon={<HardDrive className="h-4 w-4 text-amber-400" />} label="Disco" range={limits.disk} value={form.data.disk} onChange={(v) => form.setData('disk', v)} format={fmtMem} error={form.errors.disk} />
+
+                        <div>
+                            <label className="text-xs font-semibold text-neutral-600 dark:text-neutral-400" htmlFor="friend-server-name">
+                                Nombre
+                            </label>
+                            <input
+                                id="friend-server-name"
+                                value={form.data.name}
+                                onChange={(e) => form.setData('name', e.target.value)}
+                                maxLength={60}
+                                placeholder={chosen ? `Mi ${chosen.name}` : 'Mi servidor'}
+                                className="mt-1 w-full rounded-md border border-neutral-300 bg-transparent px-3 py-2 text-sm focus:border-sky-500 focus:outline-none dark:border-neutral-700 dark:text-white"
+                            />
+                            {form.errors.name && <p className="mt-1 text-xs text-red-500">{form.errors.name}</p>}
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={form.processing || !form.data.egg_id || form.data.name.trim().length < 2}
+                            className="friend-launch flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-bold text-white disabled:opacity-40"
+                        >
+                            <Rocket className="h-4 w-4" />
+                            {form.processing ? 'Creando...' : chosen ? `Crear ${chosen.name}` : 'Elige un juego primero'}
+                        </button>
+                    </div>
+                </form>
+            ) : (
+                info.servers.length === 0 && (
+                    <p className="rounded-2xl border border-dashed border-neutral-300 p-6 text-center text-sm text-neutral-500 dark:border-neutral-700">
+                        Los servidores de amigo son solo para quien tiene el rol Amigo de Cinammon.
+                    </p>
+                )
+            )}
+        </section>
+    );
+}
+
+function Slider({ icon, label, range, value, onChange, format, error }: { icon: React.ReactNode; label: string; range: Range; value: number; onChange: (v: number) => void; format: (v: number) => string; error?: string }) {
+    const pct = ((value - range.min) / Math.max(1, range.max - range.min)) * 100;
+    return (
+        <div>
+            <div className="mb-1 flex items-center justify-between text-xs">
+                <span className="flex items-center gap-1.5 font-semibold text-neutral-600 dark:text-neutral-400">
+                    {icon} {label}
+                </span>
+                <span className="font-mono font-semibold text-neutral-900 dark:text-white">{format(value)}</span>
+            </div>
+            <input
+                type="range"
+                min={range.min}
+                max={range.max}
+                step={range.step}
+                value={value}
+                onChange={(e) => onChange(Number(e.target.value))}
+                className="friend-range w-full"
+                style={{ ['--p' as string]: `${pct}%` }}
+                aria-label={label}
+            />
+            <div className="flex justify-between text-[10px] text-neutral-500">
+                <span>{format(range.min)}</span>
+                <span>{format(range.max)}</span>
+            </div>
+            {error && <p className="text-xs text-red-500">{error}</p>}
         </div>
     );
 }
@@ -611,6 +831,12 @@ const CSS = `
 @keyframes friend-drop { 0% { transform: translateY(0); opacity: 1; } 80% { transform: translateY(70px); opacity: 1; } 100% { transform: translateY(72px) scale(.2); opacity: 0; } }
 .friend-shooting { background: linear-gradient(90deg, transparent, #fde68a, #fff); animation: friend-shoot 3.5s ease-in infinite; transform: rotate(-12deg); }
 @keyframes friend-shoot { 0% { left: -6rem; opacity: 0; } 10% { opacity: 1; } 40%, 100% { left: 110%; opacity: 0; } }
+
+.friend-range { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 9999px; background: linear-gradient(90deg, ${SKY} 0%, ${ROSE} var(--p), rgba(127,127,127,.25) var(--p)); }
+.friend-range::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 2px solid ${SKY}; box-shadow: 0 0 8px ${SKY}; cursor: pointer; }
+.friend-range::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 2px solid ${SKY}; box-shadow: 0 0 8px ${SKY}; cursor: pointer; }
+.friend-launch { background: linear-gradient(90deg, #0284c7, #db2777, #0284c7); background-size: 200% auto; transition: background-position .5s; }
+.friend-launch:not(:disabled):hover { background-position: right center; }
 
 @media (prefers-reduced-motion: reduce) {
   .friend-holo, .friend-holo-shine, .friend-twinkle, .friend-pulse, .friend-line, .friend-gradient-text, .friend-shooting, .friend-water { animation: none !important; }

@@ -39,8 +39,22 @@ return [
         'veterano' => ['name' => 'Veterano', 'color' => '#e879f9', 'icon' => 'medal', 'hint' => 'Ser cliente desde hace más de 6 meses'],
     ],
 
-    // Reconocimientos que solo concede el Owner. Sin ventajas: no compiten con los rangos de pago.
+    // Reconocimientos que solo concede el Owner. No dan descuentos ni ventajas de los rangos de pago;
+    // el rol Amigo da acceso al Rincón de Amigos y a un servidor de amigo.
     'special' => [
-        'amigo' => ['name' => 'Amigo de Cinammon', 'color' => '#38bdf8', 'icon' => 'amigo', 'hint' => 'Lo concede el Owner', 'max' => 25],
+        'amigo' => [
+            'name' => 'Amigo de Cinammon', 'color' => '#38bdf8', 'icon' => 'amigo', 'hint' => 'Lo concede el Owner', 'max' => 25,
+            // Servidor de amigo: lo crea cada amigo desde /amigos. Se suspende solo si pierde el rol y vuelve si lo recupera.
+            'server' => [
+                'enabled' => true,
+                'per_friend' => 1,
+                // El amigo elige cada recurso entre min y max (en pasos de step) al crear el servidor
+                'memory' => ['min' => 512, 'max' => 4096, 'step' => 256, 'default' => 2048],   // MB
+                'cpu' => ['min' => 50, 'max' => 200, 'step' => 25, 'default' => 100],          // % (100 = 1 núcleo)
+                'disk' => ['min' => 2048, 'max' => 20480, 'step' => 1024, 'default' => 10240], // MB
+                // Categorías de eggs que puede elegir (vacío = todas)
+                'categories' => ['minecraft', 'games', 'bots', 'generic', 'voice', 'web', 'software', 'database'],
+            ],
+        ],
     ],
 ];

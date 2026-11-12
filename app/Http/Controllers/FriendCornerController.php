@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\FriendPost;
 use App\Models\RoleGrant;
 use App\Models\User;
+use App\Support\FriendServers;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -63,7 +64,31 @@ class FriendCornerController extends Controller
                 'author' => ['id' => $p->user_id, 'name' => $p->user?->name, 'avatar' => $p->user?->avatar_url],
             ]);
 
+        $fs = FriendServers::settings();
+        $mineServers = FriendServers::query($user)->with('egg:id,name,category,image,uuid,updated_at')->get()->map(fn ($srv) => [
+            'id' => $srv->id,
+            'name' => $srv->name,
+            'egg' => $srv->egg?->name,
+            'category' => $srv->egg?->category,
+            'icon' => $srv->egg?->image_url,
+            'memory' => (int) $srv->memory,
+            'cpu' => (int) $srv->cpu,
+            'disk' => (int) $srv->disk,
+            'active' => (int) ($srv->active ?? 1) !== 0,
+            'address' => $srv->publicAddress(),
+        ]);
+        $canCreate = $fs['enabled'] && ($mine || $owner) && $mineServers->count() < (int) $fs['per_friend'];
+
         return Inertia::render('Friends/Index', [
+            'friendServer' => [
+                'enabled' => (bool) $fs['enabled'],
+                'per_friend' => (int) $fs['per_friend'],
+                'limits' => ['memory' => $fs['memory'], 'cpu' => $fs['cpu'], 'disk' => $fs['disk']],
+                'servers' => $mineServers,
+                'can_create' => $canCreate,
+                // La lista de juegos solo hace falta si todavía puede crear uno
+                'eggs' => $canCreate ? FriendServers::eggs() : [],
+            ],
             'isOwner' => $owner,
             'max' => (int) config('ranks.special.amigo.max', 25),
             'friends' => $friends,
@@ -114,6 +139,22 @@ class FriendCornerController extends Controller
         $post->delete();
 
         return back()->with('success', $post->kind === 'note' ? 'Nota quitada del muro.' : 'Deseo retirado.');
+    }
+
+    /** Crear su servidor de amigo eligiendo juego y recursos. */
+    public function createServer(Request $request)
+    {
+        $user = $this->member($request);
+        abort_unless(FriendServers::settings()['enabled'], 403, 'Los servidores de amigo están desactivados.');
+        $data = $request->validate([
+            'name' => 'required|string|min:2|max:60',
+            'egg_id' => 'required|integer',
+        ] + FriendServers::rules());
+
+        $server = FriendServers::create($user, trim($data['name']), (int) $data['egg_id'], $data);
+        \App\Support\Ranks::sync($user);
+
+        return redirect('/servers/'.$server->id.'/console')->with('success', 'Tu servidor de amigo se está instalando.');
     }
 
     /** Owner: conceder un deseo (con una respuesta opcional) o volver a dejarlo pendiente. */

@@ -349,6 +349,7 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
             Route::delete('/posts/{post}', 'destroy')->name('friends.posts.destroy');
             Route::patch('/deseos/{post}', 'grant')->name('friends.wishes.grant');
             Route::put('/dedicatoria/{user}', 'dedication')->name('friends.dedication');
+            Route::post('/servidor', 'createServer')->middleware('throttle:3,1')->name('friends.server.store');
         });
     });
 
