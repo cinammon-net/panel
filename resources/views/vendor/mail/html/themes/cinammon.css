@@ -1,5 +1,5 @@
 /* Tema de los correos de Cinammon (igual en panel y billing). Laravel lo pasa a estilos en línea.
-   Cuerpo claro: es lo que mejor aguantan Gmail, Outlook y Apple Mail (también en modo oscuro). */
+   Oscuro, como la web. Los colores de la temporada van en línea desde las plantillas (layout, botón, panel...). */
 
 body,
 body *:not(html):not(style):not(br):not(tr):not(code) {
@@ -10,8 +10,8 @@ body *:not(html):not(style):not(br):not(tr):not(code) {
 
 body {
     -webkit-text-size-adjust: none;
-    background-color: #f3f1f8;
-    color: #374151;
+    background-color: #05060d;
+    color: #c9c6d6;
     height: 100%;
     line-height: 1.65;
     margin: 0;
@@ -23,7 +23,7 @@ p,
 ul,
 ol,
 blockquote {
-    color: #374151;
+    color: #c9c6d6;
     font-size: 15px;
     line-height: 1.65;
     margin-top: 0;
@@ -41,13 +41,13 @@ li {
 }
 
 a {
-    color: #c026d3;
+    color: #f0abfc;
     font-weight: 600;
     text-decoration: underline;
 }
 
 strong {
-    color: #111827;
+    color: #ffffff;
 }
 
 a img {
@@ -57,8 +57,9 @@ a img {
 /* Títulos */
 
 h1 {
-    color: #111827;
-    font-size: 24px;
+    color: #ffffff;
+    font-family: 'Orbitron', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 23px;
     font-weight: 800;
     letter-spacing: -0.02em;
     line-height: 1.25;
@@ -68,7 +69,8 @@ h1 {
 }
 
 h2 {
-    color: #111827;
+    color: #ffffff;
+    font-family: 'Orbitron', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     font-size: 17px;
     font-weight: 700;
     margin-top: 26px;
@@ -77,7 +79,7 @@ h2 {
 }
 
 h3 {
-    color: #111827;
+    color: #ffffff;
     font-size: 15px;
     font-weight: 700;
     margin-top: 20px;
@@ -91,15 +93,16 @@ h3 {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    border: 1px solid #ece7f5;
+    border: 1px solid #23243a;
     border-radius: 10px;
     margin: 0;
+    background-color: #11121f;
 }
 
 .table th {
-    background-color: #f7f5fb;
-    border-bottom: 1px solid #ece7f5;
-    color: #6b6478;
+    background-color: #161729;
+    border-bottom: 1px solid #23243a;
+    color: #9b97b0;
     font-size: 11px;
     font-weight: 800;
     letter-spacing: 0.08em;
@@ -109,7 +112,7 @@ h3 {
 }
 
 .table td {
-    color: #111827;
+    color: #ffffff;
     font-size: 14px;
     font-weight: 600;
     padding: 13px 14px;
@@ -120,7 +123,7 @@ h3 {
 
 .panel-content p,
 .panel-item p {
-    color: #374151;
+    color: #c9c6d6;
     font-size: 14px;
     margin-bottom: 8px;
 }
@@ -130,12 +133,12 @@ h3 {
 }
 
 .subcopy p {
-    color: #8b8598;
+    color: #8a86a0;
     font-size: 12px;
 }
 
 .footer p {
-    color: #6b6478;
+    color: #8a86a0;
     font-size: 12px;
     line-height: 1.6;
     text-align: center;
@@ -143,20 +146,20 @@ h3 {
 }
 
 .footer a {
-    color: #6d28d9;
+    color: #f0abfc;
     font-weight: 600;
     text-decoration: none;
 }
 
 .muted {
-    color: #8b8598;
+    color: #8a86a0;
     font-size: 13px;
 }
 
 code {
-    background-color: #f3f0f9;
+    background-color: #1a1b2e;
     border-radius: 5px;
-    color: #6d28d9;
+    color: #f0abfc;
     font-family: SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 13px;
     padding: 2px 6px;
@@ -164,7 +167,7 @@ code {
 
 hr {
     border: 0;
-    border-top: 1px solid #eeeaf5;
+    border-top: 1px solid #1d1e32;
     margin: 24px 0;
 }
 
