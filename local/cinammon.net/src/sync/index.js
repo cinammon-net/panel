@@ -911,6 +911,35 @@ async function syncTickets(open) {
     }
 }
 
+/**
+ * Iconos de los roles (los mismos que en el panel). Discord solo lo permite desde el nivel 2 de mejoras
+ * (función ROLE_ICONS): mientras no lo haya no hace nada, y cuando llegue los pone solo una vez.
+ */
+async function syncRoleIcons() {
+    const g = await discord('GET', `/guilds/${ctx.guild}`);
+    if (!(g.features || []).includes('ROLE_ICONS')) return;
+    st.roleIcons ??= {};
+    const roles = ctx.layout.roles || {};
+    const want = Object.entries(roles).map(([k, id]) => {
+        let key = null;
+        if (k === 'client') key = 'cliente';
+        else if (k === 'rank:Amigo de Cinammon') key = 'amigo';
+        else if (k.startsWith('rank:')) key = RANK_ICON[k.slice(5).toLowerCase()];
+        return key ? { id, key } : null;
+    }).filter(Boolean);
+    for (const { id, key } of want) {
+        const tag = `${key}:${RANK_ICON_V}`;
+        if (st.roleIcons[id] === tag) continue;
+        const res = await fetch(`${PANEL_PUBLIC}/discord/rangos/${key}.png?v=${RANK_ICON_V}`);
+        if (!res.ok) throw new Error(`icono ${key}: HTTP ${res.status}`);
+        const icon = `data:image/png;base64,${Buffer.from(await res.arrayBuffer()).toString('base64')}`;
+        await discord('PATCH', `/guilds/${ctx.guild}/roles/${id}`, { icon }, 'Icono del rol (igual que en el panel)');
+        st.roleIcons[id] = tag;
+        saveState();
+        log(`[SYNC] icono puesto al rol ${key}`);
+    }
+}
+
 /* ------------------------------------------------------------ bucle general */
 
 async function tick() {
@@ -939,6 +968,7 @@ async function tick() {
             for (const [key, ch, payload] of [...staticPosts(season), ...(await catalogPosts(season))]) await upsert(key, ch, payload, bannerFor(key));
             lastCatalog = Date.now();
         }]);
+        steps.push(['iconos de roles', () => syncRoleIcons()]);
     }
     for (const [name, fn] of steps) {
         try {
