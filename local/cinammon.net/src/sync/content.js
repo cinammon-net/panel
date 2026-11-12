@@ -407,16 +407,16 @@ const readMinutes = (g) => Math.max(1, Math.round(g.body().filter((l) => !/^!\[/
 /** Portada de una guía (se dibuja con los colores de temporada; cambia de nombre si cambia la temporada). */
 function guideCover(g) {
     return {
-        key: `${env.pal().key}:${env.ART_VERSION}:c1`,
+        key: `${env.pal().key}:${env.ART_VERSION}:c2`,
         name: `guia-${g.key}.png`,
         render: () => env.art.guideCover({ kicker: g.tag.toUpperCase(), title: g.title, icon: GUIDE_ICON[g.key] || TAG_ICON[g.tag] || 'help', color: TAG_COLOR[g.tag], meta: `${readMinutes(g)} min de lectura` }, env.pal()),
     };
 }
 function indexCover() {
     return {
-        key: `${env.pal().key}:${env.ART_VERSION}:c1`,
+        key: `${env.pal().key}:${env.ART_VERSION}:c2`,
         name: 'guias.png',
-        render: () => env.art.banner({ title: 'GUÍAS', subtitle: 'Aprende a usar Cinammon paso a paso', icon: 'book' }, env.pal()),
+        render: () => env.art.guideCover({ kicker: 'ÍNDICE', title: 'Guías de Cinammon', icon: 'book', color: 0xec4899, meta: 'Aprende a usar Cinammon paso a paso' }, env.pal()),
     };
 }
 
