@@ -1,5 +1,6 @@
 import { usePage } from '@inertiajs/react';
-import { useId } from 'react';
+import { ChevronDown } from 'lucide-react';
+import { useEffect, useId, useState } from 'react';
 
 export interface Badge {
     name: string;
@@ -372,37 +373,73 @@ export function RoleBadge({ role, size = 'sm' }: { role: string; size?: 'xs' | '
     );
 }
 
-/** Insignias del usuario: rangos comprados (con icono original y brillo) y roles automáticos. */
+const COMPACT_KEY = 'cinammon_badges_compact';
+
+/**
+ * Insignias del usuario: rangos comprados (con icono original y brillo) y roles automáticos.
+ * Por defecto van comprimidas (solo iconos, el nombre al pasar el ratón); se pueden desplegar y se recuerda.
+ */
 export default function RankBadges({ max = 6 }: { max?: number }) {
     const { badges = [], billingUrl } = usePage<{ badges?: Badge[]; billingUrl?: string }>().props;
     const hasRank = badges.some((b) => b.kind === 'rank');
     // Con el rango más alto (el Owner lo tiene siempre) no hay nada que mejorar.
     const isTop = badges.some((b) => b.name === 'Leyenda Cinammon');
 
-    const shown = badges.slice(0, max);
+    const [compact, setCompact] = useState(true);
+    useEffect(() => {
+        try {
+            setCompact(localStorage.getItem(COMPACT_KEY) !== '0');
+        } catch {
+            /* sin almacenamiento: comprimidas */
+        }
+    }, []);
+    const toggle = () =>
+        setCompact((v) => {
+            try {
+                localStorage.setItem(COMPACT_KEY, v ? '0' : '1');
+            } catch {
+                /* sin almacenamiento */
+            }
+            return !v;
+        });
+
+    const shown = compact ? badges : badges.slice(0, max);
     const rest = badges.length - shown.length;
+    const titleOf = (b: Badge) => {
+        const until = b.expires_at ? ` · hasta ${new Date(b.expires_at).toLocaleDateString('es-ES')}` : '';
+        return b.kind === 'rank'
+            ? `Rango VIP ${b.name}${until}`
+            : b.kind === 'special'
+              ? `${b.name} · ${b.hint ?? 'lo concede el Owner'}${until}`
+              : `${b.name} · ${b.hint ?? 'insignia automática'}`;
+    };
 
     return (
         <div className="flex flex-wrap items-center gap-1.5 px-2 pb-2 group-data-[collapsible=icon]:hidden" aria-label="Tus rangos e insignias">
             {shown.map((b) => {
                 // Los rangos VIP y el rol Amigo llevan brillo; las insignias automáticas no.
                 const isRank = b.kind === 'rank' || b.kind === 'special';
-                const until = b.expires_at ? ` · hasta ${new Date(b.expires_at).toLocaleDateString('es-ES')}` : '';
-                const title =
-                    b.kind === 'rank' ? `Rango VIP ${b.name}${until}` : b.kind === 'special' ? `${b.name} · ${b.hint ?? 'lo concede el Owner'}${until}` : `${b.name} · ${b.hint ?? 'insignia automática'}`;
+                const style = {
+                    color: b.color,
+                    borderColor: `${b.color}${isRank ? '99' : '66'}`,
+                    backgroundColor: `${b.color}${isRank ? '26' : '14'}`,
+                    boxShadow: isRank ? `0 0 10px ${b.color}55` : undefined,
+                };
+                if (compact) {
+                    return (
+                        <span key={b.name} title={titleOf(b)} aria-label={b.name} className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition hover:scale-110" style={style}>
+                            <RankIcon icon={b.icon} role={b.name} className="h-4 w-4" />
+                        </span>
+                    );
+                }
                 return (
                     <span
                         key={b.name}
-                        title={title}
+                        title={titleOf(b)}
                         className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 font-[Orbitron] text-[9px] font-bold tracking-wide ${
                             isRank ? 'uppercase' : ''
                         }`}
-                        style={{
-                            color: b.color,
-                            borderColor: `${b.color}${isRank ? '99' : '66'}`,
-                            backgroundColor: `${b.color}${isRank ? '26' : '14'}`,
-                            boxShadow: isRank ? `0 0 10px ${b.color}55` : undefined,
-                        }}
+                        style={style}
                     >
                         <RankIcon icon={b.icon} role={b.name} className="h-3.5 w-3.5 shrink-0" />
                         <span>{b.name}</span>
@@ -410,11 +447,24 @@ export default function RankBadges({ max = 6 }: { max?: number }) {
                 );
             })}
             {rest > 0 && <span className="px-1 text-[9px] text-neutral-500">+{rest}</span>}
+            {badges.length > 0 && (
+                <button
+                    type="button"
+                    onClick={toggle}
+                    title={compact ? 'Ver los nombres' : 'Comprimir'}
+                    aria-label={compact ? 'Ver los nombres de tus insignias' : 'Comprimir tus insignias'}
+                    aria-expanded={!compact}
+                    className="ml-auto inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-neutral-500 transition hover:bg-white/5 hover:text-fuchsia-400"
+                >
+                    <ChevronDown className={`h-4 w-4 transition-transform ${compact ? '' : 'rotate-180'}`} />
+                </button>
+            )}
             {billingUrl && !isTop && (
                 <a
                     href={`${billingUrl}/store/ranks`}
                     target="_blank"
                     rel="noopener noreferrer"
+                    title={hasRank ? 'Mejorar mi rango' : 'Conseguir un rango VIP'}
                     className="flex w-full items-center justify-center gap-1.5 rounded-md border border-yellow-500/50 bg-yellow-500/10 px-2 py-1 text-center font-[Orbitron] text-[10px] font-bold text-yellow-300 transition hover:bg-yellow-400 hover:text-black"
                 >
                     <RankIcon icon="crown" role="Leyenda Cinammon" className="h-3.5 w-3.5 shrink-0" />
