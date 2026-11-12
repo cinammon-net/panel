@@ -502,12 +502,17 @@ async function catalogPosts(season) {
     posts.push(['howtobuy', ch.plans, shop.post(methods, tutorial ? `https://discord.com/channels/${ctx.guild}/${tutorial}` : null)]);
 
     if (ranks) {
-        // Cada rango en su tarjeta de color con su icono; 4 componentes por rango, así que van en dos mensajes (límite de 40)
+        // Cada rango en su tarjeta de color con su icono y sus botones; 7 componentes por rango, así que van en dos mensajes (límite de 40)
         const card = (p) => {
             const body = text(cut(`### ${p.name} · ${eur(p.price)}/mes\n${(p.features || []).map((f) => `- ${f}`).join('\n')}`, 330));
             const icon = rankIcon(p.name);
             return container(parseInt(String(p.perks?.color || '#ec4899').replace('#', ''), 16), [
                 icon ? { type: 9, components: [body], accessory: { type: 11, media: { url: icon }, description: `Icono de ${p.name}` } } : body,
+                // La web abre la tienda con este rango ya elegido; Discord abre /comprar con él (solo lo ve quien pulsa)
+                row(
+                    linkBtn('Comprar en la web', `${BILLING}/store/ranks?plan=${p.id}&cycle=monthly`),
+                    { type: 2, style: 1, label: 'Comprar desde Discord', custom_id: `buy:pl:${p.id}` },
+                ),
             ]);
         };
         const list = ranks.plans.slice(0, 10);
@@ -517,7 +522,7 @@ async function catalogPosts(season) {
         )]);
         posts.push(['ranks2', ch.ranks, msg(
             list.slice(5).map(card),
-            row(linkBtn('Comprar rango', store)),
+            row(linkBtn('Ver todos los rangos en la tienda', `${BILLING}/store/ranks`)),
         )]);
     }
 
