@@ -141,6 +141,7 @@ function drawIcon(x, name, cx, cy, size, color) {
         if (tag === 'path') p.addPath(new Path2D(a.d));
         else if (tag === 'rect') p.roundRect(+a.x, +a.y, +a.width, +a.height, +(a.rx || 0));
         else if (tag === 'circle') p.arc(+a.cx, +a.cy, +a.r, 0, Math.PI * 2);
+        else if (tag === 'ellipse') p.ellipse(+a.cx, +a.cy, +a.rx, +a.ry, 0, 0, Math.PI * 2);
         else if (tag === 'line') { p.moveTo(+a.x1, +a.y1); p.lineTo(+a.x2, +a.y2); }
         else if (tag === 'polyline' || tag === 'polygon') {
             const pts = a.points.trim().split(/[\s,]+/).map(Number);
@@ -226,6 +227,105 @@ async function banner({ title, subtitle, icon }, pal) {
     const lg = x.createLinearGradient(0, 0, W, 0);
     lg.addColorStop(0, rgba(pal.second, 0));
     lg.addColorStop(0.5, hex(pal.strong));
+    lg.addColorStop(1, rgba(pal.primary, 0));
+    x.fillStyle = lg;
+    x.fillRect(0, H - 4, W, 4);
+    return c.toBuffer('image/png');
+}
+
+/** Parte un texto en líneas que quepan en `max` px con la fuente actual. */
+function wrap(x, text, max) {
+    const lines = [];
+    let cur = '';
+    for (const w of text.split(/\s+/)) {
+        const t = cur ? `${cur} ${w}` : w;
+        if (x.measureText(t).width > max && cur) { lines.push(cur); cur = w; } else cur = t;
+    }
+    if (cur) lines.push(cur);
+    return lines;
+}
+
+/**
+ * Portada de una guía (1200x480): marca, etiqueta con el color de la categoría,
+ * título grande en varias líneas, minutos de lectura y el icono de la categoría.
+ */
+async function guideCover({ kicker, title, icon, color, meta }, pal) {
+    const W = 1200, H = 480;
+    const c = createCanvas(W, H);
+    const x = c.getContext('2d');
+    background(x, W, H, pal);
+    const tag = typeof color === 'number' ? [(color >> 16) & 255, (color >> 8) & 255, color & 255] : pal.primary;
+
+    // Halo del color de la categoría detrás del icono
+    const g0 = x.createRadialGradient(1000, 230, 0, 1000, 230, 330);
+    g0.addColorStop(0, rgba(tag, 0.32));
+    g0.addColorStop(1, rgba(tag, 0));
+    x.fillStyle = g0;
+    x.fillRect(0, 0, W, H);
+
+    const wm = await tintedWordmark(pal);
+    const wmH = 40;
+    x.drawImage(wm, 64, 48, (wm.width * wmH) / wm.height, wmH);
+
+    // Etiqueta
+    x.font = '700 20px Orbitron';
+    const kw = x.measureText(kicker).width;
+    x.fillStyle = rgba(tag, 0.16);
+    x.strokeStyle = rgba(tag, 0.75);
+    x.lineWidth = 2;
+    x.beginPath();
+    x.roundRect(64, 120, kw + 40, 42, 21);
+    x.fill();
+    x.stroke();
+    x.fillStyle = hex(tag);
+    x.fillText(kicker, 84, 148);
+
+    // Título (hasta 3 líneas)
+    let size = 58, lines;
+    for (;;) {
+        x.font = `900 ${size}px Orbitron`;
+        lines = wrap(x, title, 740);
+        if (lines.length <= 3 || size <= 36) break;
+        size -= 4;
+    }
+    const lh = Math.round(size * 1.18);
+    const top = lines.length === 1 ? 200 + lh * 0.6 : lines.length === 2 ? 200 + lh * 0.25 : 186;
+    x.shadowColor = rgba(tag, 0.5);
+    x.shadowBlur = 22;
+    lines.slice(0, 3).forEach((l, i) => {
+        const g = x.createLinearGradient(64, 0, 64 + x.measureText(l).width, 0);
+        g.addColorStop(0, '#ffffff');
+        g.addColorStop(1, hex(pal.primary));
+        x.fillStyle = g;
+        x.fillText(l, 64, top + lh * i + size * 0.8);
+    });
+    x.shadowBlur = 0;
+
+    // Pie: rayas y minutos de lectura
+    speedLines(x, 64, 410, 220, hex(pal.second), 7);
+    if (meta) {
+        x.font = '500 22px Orbitron';
+        x.fillStyle = '#a1a1aa';
+        x.fillText(meta, 320, 430);
+    }
+
+    // Icono en tarjeta
+    const bx = 890, by = 120, bs = 220;
+    x.fillStyle = rgba(tag, 0.1);
+    x.strokeStyle = rgba(tag, 0.6);
+    x.lineWidth = 2;
+    x.beginPath();
+    x.roundRect(bx, by, bs, bs, 40);
+    x.fill();
+    x.stroke();
+    x.shadowColor = hex(tag);
+    x.shadowBlur = 30;
+    drawIcon(x, icon, bx + bs / 2, by + bs / 2, 124, hex(tag));
+    x.shadowBlur = 0;
+
+    const lg = x.createLinearGradient(0, 0, W, 0);
+    lg.addColorStop(0, rgba(pal.second, 0));
+    lg.addColorStop(0.5, hex(tag));
     lg.addColorStop(1, rgba(pal.primary, 0));
     x.fillStyle = lg;
     x.fillRect(0, H - 4, W, 4);
@@ -361,4 +461,4 @@ async function memberCard({ avatarUrl, name, kind, line }, pal) {
     return c.toBuffer('image/png');
 }
 
-module.exports = { palette, banner, avatar, profileBanner, memberCard, hex };
+module.exports = { palette, banner, guideCover, avatar, profileBanner, memberCard, hex };

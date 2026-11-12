@@ -400,6 +400,26 @@ const TAG_COLOR = {
     'Empieza aquí': 0xec4899, Minecraft: 0x22c55e, Bots: 0x5865f2,
     'Web y Dominios': 0xf59e0b, 'Bases de Datos': 0x06b6d4, 'Archivos y copias': 0xa855f7,
 };
+const TAG_ICON = { 'Empieza aquí': 'rocket', Minecraft: 'pickaxe', Bots: 'bot', 'Web y Dominios': 'globe', 'Bases de Datos': 'database', 'Archivos y copias': 'folder' };
+const GUIDE_ICON = { buy: 'cart', team: 'team' };
+const readMinutes = (g) => Math.max(1, Math.round(g.body().filter((l) => !/^!\[/.test(l)).join(' ').split(/\s+/).length / 180));
+
+/** Portada de una guía (se dibuja con los colores de temporada; cambia de nombre si cambia la temporada). */
+function guideCover(g) {
+    return {
+        key: `${env.pal().key}:${env.ART_VERSION}:c1`,
+        name: `guia-${g.key}.png`,
+        render: () => env.art.guideCover({ kicker: g.tag.toUpperCase(), title: g.title, icon: GUIDE_ICON[g.key] || TAG_ICON[g.tag] || 'help', color: TAG_COLOR[g.tag], meta: `${readMinutes(g)} min de lectura` }, env.pal()),
+    };
+}
+function indexCover() {
+    return {
+        key: `${env.pal().key}:${env.ART_VERSION}:c1`,
+        name: 'guias.png',
+        render: () => env.art.banner({ title: 'GUÍAS', subtitle: 'Aprende a usar Cinammon paso a paso', icon: 'book' }, env.pal()),
+    };
+}
+
 const threadUrl = (id) => `https://discord.com/channels/${env.ctx().guild}/${id}`;
 
 /** Parte el texto de una guía en bloques por cada "## Título". */
@@ -418,7 +438,7 @@ function guidePayload(g, threads) {
     const L = env.ctx().layout;
     const lines = g.body();
     const blocks = sections(lines);
-    const minutes = Math.max(1, Math.round(lines.join(' ').split(/\s+/).length / 180));
+    const minutes = readMinutes(g);
     const i = GUIDES.indexOf(g);
     const prev = GUIDES.slice(0, i).reverse().find((x) => threads[x.key]);
     const next = GUIDES.slice(i + 1).find((x) => threads[x.key]);
@@ -473,7 +493,7 @@ function indexPayload(threads) {
             });
         });
     }
-    comps.push(sep(2));
+    // (sin separador aquí: con la portada, el índice va justo en el límite de 40 componentes de Discord)
     comps.push(text(`### ¿No encuentras lo tuyo?\nPregunta en <#${L.channels.help}>: si sale mucho, lo convertimos en guía.${L.channels.suggestions ? ` Para proponer una guía nueva, usa <#${L.channels.suggestions}>.` : ''}`));
     comps.push(row(
         { type: 2, style: 1, label: 'Hacer una pregunta', custom_id: 'sup:ask' },
@@ -506,9 +526,20 @@ async function allThreads(forumId) {
  * Crea o actualiza una publicación del bot en un foro. Devuelve el id del hilo.
  * `payload` = mensaje con tarjeta (Components V2); si no, `content` en texto.
  */
-async function upsertThread(forum, slot, { name, content, payload, tagIds }, known) {
-    const message = payload || { content, allowed_mentions: { parse: [] } };
-    const h = hash([name, message, tagIds]);
+async function upsertThread(forum, slot, { name, content, payload, tagIds, cover }, known) {
+    let message = payload || { content, allowed_mentions: { parse: [] } };
+    const h = hash([name, message, tagIds, cover?.key || null]);
+    // Portada: imagen adjunta arriba de la tarjeta (solo se dibuja si hay que publicar o editar)
+    let files = null;
+    const withCover = async () => {
+        if (!cover || !payload) return;
+        const body = JSON.parse(JSON.stringify(message));
+        const box = body.components.find((c) => c.type === 17);
+        (box ? box.components : body.components).unshift({ type: 12, items: [{ media: { url: `attachment://${cover.name}` } }] });
+        body.attachments = [{ id: 0, filename: cover.name }];
+        message = body;
+        files = [{ name: cover.name, data: await cover.render() }];
+    };
     let prev = slot.get();
     if (!prev && known) prev = { thread: known.id, hash: null };
     if (prev) {
@@ -517,8 +548,11 @@ async function upsertThread(forum, slot, { name, content, payload, tagIds }, kno
         if (exists) {
             await env.discord('PATCH', `/channels/${prev.thread}`, { archived: false, name: name.slice(0, 100), applied_tags: tagIds }).catch((e) => env.log(`[SYNC] guía ${name}: ${e.message}`));
             try {
+                await withCover();
+                const edit = payload && !prev.v2 ? { content: '', embeds: [], ...message } : message;
                 // De texto a tarjeta: se vacía el texto en la misma edición
-                await env.discord('PATCH', `/channels/${prev.thread}/messages/${prev.thread}`, payload && !prev.v2 ? { content: '', embeds: [], ...message } : message);
+                if (files) await env.discordFiles('PATCH', `/channels/${prev.thread}/messages/${prev.thread}`, edit, files);
+                else await env.discord('PATCH', `/channels/${prev.thread}/messages/${prev.thread}`, edit);
                 slot.set({ thread: prev.thread, hash: h, v2: !!payload });
                 env.saveState();
                 return prev.thread;
@@ -530,12 +564,9 @@ async function upsertThread(forum, slot, { name, content, payload, tagIds }, kno
             }
         }
     }
-    const t = await env.discord('POST', `/channels/${forum.id}/threads`, {
-        name: name.slice(0, 100),
-        auto_archive_duration: 10080,
-        applied_tags: tagIds,
-        message,
-    }, 'Guía oficial');
+    if (!files) await withCover();
+    const thread = { name: name.slice(0, 100), auto_archive_duration: 10080, applied_tags: tagIds, message };
+    const t = files ? await env.discordFiles('POST', `/channels/${forum.id}/threads`, thread, files) : await env.discord('POST', `/channels/${forum.id}/threads`, thread, 'Guía oficial');
     slot.set({ thread: t.id, hash: h, v2: !!payload });
     env.saveState();
     return t.id;
@@ -577,7 +608,7 @@ async function syncGuides() {
             threads[g.key] = await upsertThread(forum, {
                 get: () => S.guides[g.key],
                 set: (v) => { S.guides[g.key] = v; },
-            }, { name: g.title, payload: guidePayload(g, threads), tagIds: tagId.get(g.tag) ? [tagId.get(g.tag)] : [] }, known);
+            }, { name: g.title, payload: guidePayload(g, threads), tagIds: tagId.get(g.tag) ? [tagId.get(g.tag)] : [], cover: guideCover(g) }, known);
         } catch (e) {
             env.log(`[SYNC] guía ${g.key}: ${e.message}`);
         }
@@ -589,7 +620,7 @@ async function syncGuides() {
         const idx = await upsertThread(forum, {
             get: () => S.pins.guides,
             set: (v) => { S.pins.guides = v; },
-        }, { name: 'Empieza aquí: índice de guías', payload: indexPayload(threads), tagIds: tagId.get('Empieza aquí') ? [tagId.get('Empieza aquí')] : [] });
+        }, { name: 'Empieza aquí: índice de guías', payload: indexPayload(threads), tagIds: tagId.get('Empieza aquí') ? [tagId.get('Empieza aquí')] : [], cover: indexCover() });
         if (!S.pins.guidesPinned) {
             await env.discord('PATCH', `/channels/${idx}`, { flags: 2 }, 'Fijar índice');
             S.pins.guidesPinned = true;
@@ -719,4 +750,4 @@ async function sync(data) {
     await backfill(data).catch((e) => env.log(`[SYNC] relleno inicial: ${e.message}`));
 }
 
-module.exports = { init, sync, GUIDES };
+module.exports = { init, sync, GUIDES, _test: { guidePayload, indexPayload } };

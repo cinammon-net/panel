@@ -205,6 +205,29 @@ async function refreshIdentity() {
  * Envía un mensaje V2 con un banner dibujado como adjunto, colocado arriba del primer contenedor.
  * banner = { name, title, subtitle, icon }
  */
+/** Petición multipart con imágenes adjuntas (payload_json + files[n]). */
+async function discordFiles(method, route, body, files) {
+    for (let attempt = 0; attempt < 4; attempt++) {
+        const form = new FormData();
+        form.append('payload_json', JSON.stringify(body));
+        files.forEach((f, n) => form.append(`files[${n}]`, new Blob([f.data], { type: 'image/png' }), f.name));
+        const res = await fetch(API + route, { method, headers: { Authorization: `Bot ${ctx.token}` }, body: form });
+        if (res.status === 429) {
+            const j = await res.json().catch(() => ({}));
+            await new Promise((r) => setTimeout(r, Math.ceil((j.retry_after || 1) * 1000) + 100));
+            continue;
+        }
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+            const err = new Error(`${method} ${route} -> ${res.status} ${data?.message || ''} ${data?.errors ? JSON.stringify(data.errors).slice(0, 300) : ''}`.trim());
+            err.status = res.status;
+            throw err;
+        }
+        return data;
+    }
+    throw new Error(`${method} ${route} -> demasiados 429`);
+}
+
 async function sendV2(method, route, payload, banner) {
     if (!banner) return discord(method, route, payload);
     const file = `${banner.name}.png`;
@@ -1158,7 +1181,8 @@ function start({ token, guildId, appId }) {
         }).catch(() => {}),
     });
     content.init({
-        discord, log, saveState, upsert,
+        discord, discordFiles, log, saveState, upsert,
+        art, pal: () => pal, ART_VERSION,
         ui: { text, sep, row, linkBtn, container, cut, ts },
         st: () => st,
         ctx: () => ctx,
