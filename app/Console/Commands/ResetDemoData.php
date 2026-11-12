@@ -12,6 +12,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -58,6 +59,14 @@ class ResetDemoData extends Command
         Artisan::call('db:seed', ['--class' => RolePermissionSeeder::class, '--force' => true]);
         config(['panel.demo' => true]);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        // Algunas migraciones ya crean filas (p. ej. eggs por defecto): se vacían antes de cargar el
+        // catálogo para que sus ids no choquen (el 12/11/2026 el reset falló así y dejó la demo sin cuentas).
+        Schema::disableForeignKeyConstraints();
+        foreach (array_keys($catalog) as $table) {
+            DB::table($table)->delete();
+        }
+        Schema::enableForeignKeyConstraints();
 
         foreach ($catalog as $table => $rows) {
             foreach (array_chunk($rows, 50) as $chunk) {
