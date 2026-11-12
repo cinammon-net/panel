@@ -35,6 +35,7 @@ import {
     Webhook,
     Wrench,
     Coins,
+    Sparkles,
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -76,6 +77,16 @@ const mainNavItems: NavItem[] = [
         group: 'main',
         groupColor: 'text-yellow-400',
         roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin', 'Owner'],
+        permissions: [],
+    },
+    {
+        // Solo quien tiene el rol "Amigo de Cinammon" (el Owner lo ve siempre)
+        title: 'Rincón de Amigos',
+        href: '/amigos',
+        icon: Sparkles,
+        group: 'main',
+        groupColor: 'text-sky-400',
+        roles: ['Amigo de Cinammon'],
         permissions: [],
     },
     {

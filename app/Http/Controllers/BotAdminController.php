@@ -232,7 +232,7 @@ class BotAdminController extends Controller
         $role = $this->friendRole();
         $target = User::where('discord_id', $data['target_discord_id'])->first();
         abort_unless($target, 422, 'Esa persona no tiene su Discord vinculado con el panel. Tiene que vincularlo primero (Ajustes → Perfil → Código para el bot).');
-        abort_if($target->id === $owner->id, 422, 'El Owner ya tiene el rango más alto.');
+        // El Owner también puede darse el rol Amigo a sí mismo (y quitárselo).
 
         if ($data['action'] === 'remove') {
             $deleted = RoleGrant::where('user_id', $target->id)->where('source', 'friend')->where('role', $role['name'])->delete();

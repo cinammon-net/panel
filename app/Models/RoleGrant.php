@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RoleGrant extends Model
 {
-    protected $fillable = ['user_id', 'role', 'source', 'external_id', 'perks', 'expires_at'];
+    protected $fillable = ['user_id', 'role', 'source', 'external_id', 'perks', 'expires_at', 'dedication'];
 
     protected $casts = ['perks' => 'array', 'expires_at' => 'datetime'];
 

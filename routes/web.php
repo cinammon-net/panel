@@ -340,6 +340,18 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
     // Reviews
     Route::resource('reviews', ReviewController::class)->except(['show']);
 
+    // Rincón de Amigos (rol "Amigo de Cinammon" y Owner; el controlador comprueba el acceso)
+    Route::controller(App\Http\Controllers\FriendCornerController::class)->prefix('/amigos')->group(function () {
+        Route::get('/', 'index')->name('friends.index');
+        Route::middleware('throttle:20,1')->group(function () {
+            Route::post('/notas', 'storeNote')->name('friends.notes.store');
+            Route::post('/deseos', 'storeWish')->name('friends.wishes.store');
+            Route::delete('/posts/{post}', 'destroy')->name('friends.posts.destroy');
+            Route::patch('/deseos/{post}', 'grant')->name('friends.wishes.grant');
+            Route::put('/dedicatoria/{user}', 'dedication')->name('friends.dedication');
+        });
+    });
+
     // Posts: lectura para usuarios autenticados; creación/edición/borrado solo Owner/Admin
     Route::get('/posts', [PostController::class, 'index'])->name('posts.index');
     Route::middleware('admin')->group(function () {
