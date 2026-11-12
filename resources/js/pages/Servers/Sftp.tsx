@@ -1,6 +1,6 @@
 import ServerLayout from '@/layouts/server-layout';
 import { Head, router, usePage } from '@inertiajs/react';
-import { AlertTriangle, Check, Copy, KeyRound, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
+import { AlertTriangle, Check, Copy, ExternalLink, KeyRound, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -101,11 +101,19 @@ export default function SftpPage({ server, sftp, generated_password }: PageProps
                     <CopyRow label="Usuario" value={sftp.username} />
                     {/* Dirección completa: pegada en FileZilla o WinSCP ya lleva el protocolo y el puerto correctos */}
                     <CopyRow label="Dirección completa (pégala en el campo Servidor)" value={`sftp://${sftp.username}@${sftp.host}:${sftp.port}`} />
+                    {/* Abre FileZilla o WinSCP ya con protocolo, servidor, puerto y usuario: así nadie acaba en el puerto 22 */}
+                    <a
+                        href={`sftp://${encodeURIComponent(sftp.username)}@${sftp.host}:${sftp.port}`}
+                        className="inline-flex items-center gap-2 rounded-lg border border-cyan-500/50 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-700 transition hover:bg-cyan-500/20 dark:text-cyan-300"
+                    >
+                        <ExternalLink className="h-4 w-4" />
+                        Abrir en FileZilla / WinSCP (puerto {sftp.port})
+                    </a>
                     <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
                         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                         <p>
                             Usa el <strong>puerto {sftp.port}</strong> y el protocolo <strong>SFTP</strong> (no FTP). Si lo dejas vacío, tu programa usa el
-                            22, que no es el de tus archivos: la contraseña fallará y, tras varios intentos, tu conexión queda bloqueada 24 horas. En
+                            22, que no es el de tus archivos: la contraseña fallará siempre y, tras varios intentos, tu conexión queda bloqueada 1 hora. En
                             FileZilla: Archivo → Gestor de sitios → Protocolo «SFTP», Servidor <strong>{sftp.host}</strong>, Puerto{' '}
                             <strong>{sftp.port}</strong>.
                         </p>
