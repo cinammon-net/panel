@@ -1,8 +1,8 @@
+import STEPS from '@/data/guide-steps.json';
 import AppLayout from '@/layouts/app-layout';
 import { Head, usePage } from '@inertiajs/react';
 import { BookOpen, Clock, ExternalLink, Play, PlayCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import STEPS from '@/data/guide-steps.json';
 
 /*
  * Guías en vídeo. Cada vídeo está grabado en el panel real (cuenta "Tutorial") y resume
@@ -19,9 +19,12 @@ interface Guide {
     title: string;
     text: string;
     duration: string;
-    thread: string;
+    /** Hilo del foro #guias de Discord; sin hilo no sale el botón de «guía completa». */
+    thread?: string;
     video?: string;
     poster?: string;
+    /** Solo la ven quienes tienen alguno de estos roles (el Owner las ve todas). */
+    roles?: string[];
 }
 
 const GUIDES: Guide[] = [
@@ -91,12 +94,28 @@ const GUIDES: Guide[] = [
         thread: '1570174612371808326',
     },
     {
+        key: 'sftp-filezilla',
+        tag: 'Archivos y copias',
+        title: 'Tus archivos con FileZilla, paso a paso',
+        text: 'Generar la contraseña SFTP, descargar la configuración del panel e importarla en FileZilla para conectarte sin escribir nada.',
+        duration: '1:14',
+        thread: '',
+    },
+    {
         key: 'team',
         tag: 'Empieza aquí',
         title: 'Dar acceso a tu equipo',
         text: 'Invitar a otra persona a tu servidor con solo los permisos que necesita, sin darle tu contraseña.',
         duration: '0:27',
         thread: '1570174613722501144',
+    },
+    {
+        key: 'amigos',
+        tag: 'Amigos',
+        title: 'Rincón de Amigos: tu servidor gratis, el muro y los deseos',
+        text: 'Todo lo que puedes hacer con el rol Amigo de Cinammon: crear tu servidor de amigo, dejar notas en el muro y pedir deseos.',
+        duration: '0:40',
+        roles: ['Amigo de Cinammon'],
     },
 ];
 
@@ -113,21 +132,26 @@ const TAG_COLOR: Record<string, string> = {
     'Web y Dominios': 'bg-sky-500/15 text-sky-400 ring-sky-500/30',
     'Bases de Datos': 'bg-amber-500/15 text-amber-400 ring-amber-500/30',
     'Archivos y copias': 'bg-cyan-500/15 text-cyan-400 ring-cyan-500/30',
+    Amigos: 'bg-sky-500/15 text-sky-300 ring-sky-400/40',
 };
 
 function Tag({ name }: { name: string }) {
     return (
-        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ${TAG_COLOR[name] ?? 'bg-neutral-500/15 text-neutral-400 ring-neutral-500/30'}`}>
+        <span
+            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ${TAG_COLOR[name] ?? 'bg-neutral-500/15 text-neutral-400 ring-neutral-500/30'}`}
+        >
             {name}
         </span>
     );
 }
 
 export default function Guides() {
-    const { discordInvite } = usePage<{ discordInvite?: string }>().props;
+    const { discordInvite, auth } = usePage<{ discordInvite?: string; auth?: { user?: { roles?: string[] } | null } }>().props;
+    const myRoles = auth?.user?.roles ?? [];
+    const guides = GUIDES.filter((g) => !g.roles || myRoles.includes('Owner') || g.roles.some((r) => myRoles.includes(r)));
     const initial = () => {
         const k = typeof window !== 'undefined' ? window.location.hash.slice(1) : '';
-        return GUIDES.find((g) => g.key === k) ?? GUIDES[0];
+        return guides.find((g) => g.key === k) ?? guides[0];
     };
     const [current, setCurrent] = useState<Guide>(initial);
     const player = useRef<HTMLVideoElement>(null);
@@ -161,7 +185,8 @@ export default function Guides() {
                     </p>
                     <h1 className="font-[Orbitron] text-3xl font-bold text-neutral-900 sm:text-4xl dark:text-white">Guías en vídeo</h1>
                     <p className="max-w-2xl text-sm text-neutral-600 dark:text-neutral-400">
-                        Vídeos cortos grabados en este mismo panel. Cada uno tiene su guía escrita, más detallada, en el canal #guías de nuestro Discord.
+                        Vídeos cortos grabados en este mismo panel. Cada uno tiene su guía escrita, más detallada, en el canal #guías de nuestro
+                        Discord.
                     </p>
                 </header>
 
@@ -192,17 +217,21 @@ export default function Guides() {
                         <h2 className="text-lg leading-snug font-semibold text-neutral-900 dark:text-white">{current.title}</h2>
                         <p className="text-sm text-neutral-600 dark:text-neutral-400">{current.text}</p>
                         <div className="mt-auto flex flex-col gap-2">
-                            <a
-                                href={threadOf(current)}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#5865F2] px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110"
-                            >
-                                <BookOpen className="h-4 w-4" />
-                                Leer la guía completa
-                                <ExternalLink className="h-3.5 w-3.5 opacity-70" />
-                            </a>
-                            {discordInvite && (
+                            {current.thread ? (
+                                <a
+                                    href={threadOf(current)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#5865F2] px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110"
+                                >
+                                    <BookOpen className="h-4 w-4" />
+                                    Leer la guía completa
+                                    <ExternalLink className="h-3.5 w-3.5 opacity-70" />
+                                </a>
+                            ) : (
+                                <p className="text-xs text-neutral-500">La guía completa es el paso a paso de aquí abajo.</p>
+                            )}
+                            {current.thread && discordInvite && (
                                 <a
                                     href={discordInvite}
                                     target="_blank"
@@ -225,11 +254,23 @@ export default function Guides() {
                                     key={`${current.key}-${i}`}
                                     className="flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white dark:border-white/10 dark:bg-neutral-900/60"
                                 >
-                                    <button type="button" onClick={() => setZoom(stepImg(current, i + 1))} className="block bg-neutral-900" title="Ver en grande">
-                                        <img src={stepImg(current, i + 1)} alt={`Paso ${i + 1}: ${s.title}`} loading="lazy" className="aspect-video w-full object-cover" />
+                                    <button
+                                        type="button"
+                                        onClick={() => setZoom(stepImg(current, i + 1))}
+                                        className="block bg-neutral-900"
+                                        title="Ver en grande"
+                                    >
+                                        <img
+                                            src={stepImg(current, i + 1)}
+                                            alt={`Paso ${i + 1}: ${s.title}`}
+                                            loading="lazy"
+                                            className="aspect-video w-full object-cover"
+                                        />
                                     </button>
                                     <div className="flex gap-3 p-4">
-                                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-pink-500 text-sm font-bold text-white">{i + 1}</span>
+                                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-pink-500 text-sm font-bold text-white">
+                                            {i + 1}
+                                        </span>
                                         <div className="space-y-1">
                                             <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">{s.title}</h3>
                                             <p className="text-sm text-neutral-600 dark:text-neutral-400">{s.text}</p>
@@ -243,7 +284,7 @@ export default function Guides() {
 
                 <h2 className="font-[Orbitron] text-xl font-bold text-neutral-900 dark:text-white">Todas las guías</h2>
                 <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                    {GUIDES.map((g) => {
+                    {guides.map((g) => {
                         const active = g.key === current.key;
                         return (
                             <button
@@ -257,14 +298,21 @@ export default function Guides() {
                                 } bg-white dark:bg-neutral-900/60`}
                             >
                                 <div className="relative aspect-video w-full overflow-hidden bg-neutral-900">
-                                    <img src={posterOf(g)} alt="" loading="lazy" className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]" />
+                                    <img
+                                        src={posterOf(g)}
+                                        alt=""
+                                        loading="lazy"
+                                        className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                                    />
                                     <span className="absolute inset-0 flex items-center justify-center bg-black/0 transition group-hover:bg-black/30">
                                         <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white/90 text-neutral-900 opacity-0 shadow-lg transition group-hover:opacity-100">
                                             <Play className="ml-0.5 h-5 w-5 fill-current" />
                                         </span>
                                     </span>
                                     {g.duration && (
-                                        <span className="absolute right-2 bottom-2 rounded bg-black/75 px-1.5 py-0.5 text-[11px] font-medium text-white">{g.duration}</span>
+                                        <span className="absolute right-2 bottom-2 rounded bg-black/75 px-1.5 py-0.5 text-[11px] font-medium text-white">
+                                            {g.duration}
+                                        </span>
                                     )}
                                     {active && (
                                         <span className="absolute top-2 left-2 rounded bg-emerald-500 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-white uppercase">

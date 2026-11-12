@@ -374,6 +374,20 @@ const GUIDES = [
         ],
     },
     {
+        key: 'sftp-filezilla', tag: 'Archivos y copias', title: 'Tus archivos con FileZilla, paso a paso',
+        body: () => [
+            '## Antes de empezar',
+            '- Descarga **FileZilla Client** (gratis) desde filezilla-project.org.',
+            '- En el panel, tu servidor → **Acceso SFTP**. Ahí está también esta guía, resumida.',
+            '',
+            '## Lo importante',
+            '- Protocolo **SFTP** (no FTP) y puerto **2022**. El archivo que descargas del panel ya lo trae puesto.',
+            '- Si usas el puerto 22, la contraseña falla siempre y, tras varios intentos, tu conexión se bloquea **1 hora**.',
+            '- La contraseña SFTP no es la de tu cuenta: se genera en el panel y solo se muestra una vez. Si la pierdes, genera otra.',
+            '- Cada persona con acceso al servidor tiene su propio usuario y contraseña.',
+        ],
+    },
+    {
         key: 'team', tag: 'Empieza aquí', title: 'Dar acceso a tu equipo sin compartir tu contraseña',
         body: () => [
             '## Usuarios del servidor',
@@ -401,7 +415,7 @@ const TAG_COLOR = {
     'Web y Dominios': 0xf59e0b, 'Bases de Datos': 0x06b6d4, 'Archivos y copias': 0xa855f7,
 };
 const TAG_ICON = { 'Empieza aquí': 'rocket', Minecraft: 'pickaxe', Bots: 'bot', 'Web y Dominios': 'globe', 'Bases de Datos': 'database', 'Archivos y copias': 'folder' };
-const GUIDE_VIDEO = ['start', 'mc-optimize', 'mc-addons', 'bots', 'domains', 'databases', 'files', 'team'];
+const GUIDE_VIDEO = ['start', 'mc-optimize', 'mc-addons', 'bots', 'domains', 'databases', 'files', 'sftp-filezilla', 'team'];
 const GUIDE_VIDEO_V = 1;
 // Paso a paso con fotos dentro de cada guía (capturas del vídeo con el elemento resaltado); también lo usa el panel en /guias
 const GUIDE_STEPS = require('./guide-steps.json');
@@ -452,12 +466,15 @@ function guidePayload(g, threads) {
         : [];
     // Con pasos: cada paso con su explicación y su foto, y después la guía escrita como «Más detalles»
     const steps = GUIDE_VIDEO.includes(g.key) ? GUIDE_STEPS[g.key] || [] : [];
-    const stepLines = steps.flatMap((st, n) => [
-        `## Paso ${n + 1} · ${st.title}`,
-        st.text,
-        `![Paso ${n + 1}: ${st.title}](${env.PANEL}/videos/guias/pasos/${g.key}-${n + 1}.jpg?v=${GUIDE_STEPS_V})`,
-        '',
-    ]);
+    // Muchos pasos no caben en 40 componentes: entonces van de dos en dos (un texto y una galería con sus dos fotos)
+    const per = steps.length > 10 ? 2 : 1;
+    const img = (st, n) => `![Paso ${n + 1}: ${st.title}](${env.PANEL}/videos/guias/pasos/${g.key}-${n + 1}.jpg?v=${GUIDE_STEPS_V})`;
+    const stepLines = [];
+    for (let a = 0; a < steps.length; a += per) {
+        const group = steps.slice(a, a + per);
+        group.forEach((st, k) => stepLines.push(`${k ? '###' : '##'} Paso ${a + k + 1} · ${st.title}`, st.text));
+        stepLines.push(...group.map((st, k) => img(st, a + k)), '');
+    }
     const lines = steps.length ? [...video, ...stepLines, ...detailLines(g.body())] : [...video, ...g.body()];
     const blocks = sections(lines);
     const minutes = readMinutes(g);
@@ -506,6 +523,9 @@ async function removeOldSteps(S, g) {
 }
 
 /** Índice fijado: una fila por guía con su botón, agrupadas por etiqueta. */
+/** Componentes que cuenta Discord (cada uno, también los anidados). */
+const count = (list) => list.reduce((n, c) => n + 1 + count(c.components || []) + (c.accessory ? 1 : 0), 0);
+
 function indexPayload(threads) {
     const { text, sep, row, container } = env.ui;
     const L = env.ctx().layout;
@@ -515,7 +535,7 @@ function indexPayload(threads) {
     for (const tag of GUIDE_TAGS) {
         const list = GUIDES.filter((g) => g.tag === tag && threads[g.key]);
         if (!list.length) continue;
-        // Discord admite 40 componentes por mensaje: el título de la etiqueta va dentro de su primera guía
+        // Discord admite 40 componentes por mensaje (cada guía gasta 3): el título de la etiqueta va dentro de su primera guía
         comps.push(sep(1));
         list.forEach((g, n) => {
             const words = g.body().join(' ').split(/\s+/).length;
@@ -532,6 +552,8 @@ function indexPayload(threads) {
         { type: 2, style: 1, label: 'Hacer una pregunta', custom_id: 'sup:ask' },
         { type: 2, style: 5, label: 'Abrir el panel', url: env.PANEL },
     ));
+    // Límite de 40 (el contenedor y la portada cuentan 2): sobran separadores antes que guías
+    while (count(comps) + 2 > 40 && comps.some((c) => c.type === 14)) comps.splice(comps.findLastIndex((c) => c.type === 14), 1);
     return { flags: V2, components: [container(env.accent(), comps)], allowed_mentions: { parse: [] } };
 }
 

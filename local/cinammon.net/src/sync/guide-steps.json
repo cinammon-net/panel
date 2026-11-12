@@ -65,5 +65,31 @@
     { "title": "Elige cada cuánto pagar", "text": "Mes, trimestre, semestre o año. Cuanto más tiempo pagas de una vez, menos te cuesta al mes." },
     { "title": "Revisa y reserva", "text": "Te sale un resumen con el plan, el nombre del servidor y el total, con la oferta o tu descuento VIP ya aplicados. Puedes cambiar el nombre. Pulsa Reservar billete." },
     { "title": "Paga", "text": "Pulsa Pagar ahora: se abre tu factura en la web. Cuando se confirma el pago, el servidor se crea solo y aparece en el panel." }
+  ],
+  "sftp-filezilla": [
+    { "title": "Abre Acceso SFTP", "text": "Entra en tu servidor y, en el menú de la izquierda, pulsa Acceso SFTP." },
+    { "title": "Genera tu contraseña", "text": "Pulsa Generar contraseña. Si ya tenías una, se crea otra y la anterior deja de funcionar." },
+    { "title": "Cópiala y guárdala", "text": "Solo se muestra esta vez. Cópiala con el botón de la derecha y guárdala en un sitio seguro. Si la pierdes, genera otra." },
+    { "title": "Descarga la configuración", "text": "Pulsa Descargar configuración para FileZilla. Se baja un archivo .xml con el servidor, el puerto 2022 y tu usuario ya puestos." },
+    { "title": "En FileZilla: Archivo → Importar…", "text": "Abre FileZilla Client (gratis en filezilla-project.org). En el menú Archivo pulsa Importar… y elige el archivo .xml que acabas de descargar (estará en Descargas)." },
+    { "title": "Acepta la importación", "text": "Deja marcado «Entradas del Gestor de Sitios» y pulsa Aceptar. FileZilla te confirma que se ha importado." },
+    { "title": "Abre el Gestor de sitios", "text": "Archivo → Gestor de sitios (o Ctrl+S). Ahí está tu servidor con el nombre «tu servidor (Cinammon)»." },
+    { "title": "Todo viene ya puesto", "text": "Elige tu servidor en la lista: protocolo SFTP, servidor sftp.cinammon.net, puerto 2022 y tu usuario ya están rellenos. No cambies nada y pulsa Conectar." },
+    { "title": "Pulsa Conectar", "text": "Con tu servidor elegido, pulsa Conectar. La próxima vez solo tendrás que abrir el Gestor de sitios y pulsar aquí." },
+    { "title": "Pega tu contraseña SFTP", "text": "Pega la contraseña que generaste en el panel y pulsa Aceptar. Si marcas la casilla, no te la vuelve a pedir hasta que cierres FileZilla." },
+    { "title": "Confía en el servidor (solo la primera vez)", "text": "Sale «Clave de sitio desconocida»: es normal la primera vez. Marca «Confiar siempre en este sitio» y pulsa Aceptar." },
+    { "title": "Ya estás dentro", "text": "A la izquierda ves tu ordenador y a la derecha los archivos de tu servidor: world, plugins, server.properties…" },
+    { "title": "Sube tus archivos", "text": "Abre en la derecha la carpeta de destino (por ejemplo plugins), y en la izquierda haz clic derecho en tu archivo → Subir. También puedes arrastrarlo de un lado a otro." },
+    { "title": "Listo", "text": "El archivo ya está en tu servidor y aparece en Transferencias satisfactorias. Si has cambiado el mundo o plugins, reinicia el servidor desde la consola." },
+    { "title": "Si no conecta", "text": "Revisa que el protocolo sea SFTP y el puerto 2022, no el 22. Con el puerto equivocado la contraseña falla siempre y, tras varios intentos, tu conexión se bloquea 1 hora." }
+  ],
+  "amigos": [
+    { "title": "Entra en el Rincón de Amigos", "text": "Con el rol Amigo de Cinammon verás Rincón de Amigos en el menú de la izquierda. Solo lo ven los amigos." },
+    { "title": "Tu carné de amigo", "text": "Muestra tu número y desde cuándo eres amigo. Tócalo para girarlo y leer la dedicatoria que te ha escrito el Owner." },
+    { "title": "Elige el juego o la app", "text": "En Tu servidor de amigo tienes un servidor gratis. Filtra por categoría o busca por nombre y elige el juego, bot o app que quieras." },
+    { "title": "Ajusta y crea", "text": "Elige RAM, CPU y disco dentro de los límites, ponle nombre y pulsa Crear. Tarda unos segundos en prepararse." },
+    { "title": "Tu servidor, listo", "text": "Aparece aquí y en Servers, con su dirección para conectarte, y te llega un aviso por correo y por Discord. Sigue activo mientras tengas el rol." },
+    { "title": "Deja una nota en el muro", "text": "El muro lo ven todos los amigos: escribe algo, elige un color y pulsa Pegar. Hasta 3 notas al día; puedes borrar las tuyas." },
+    { "title": "Pide un deseo", "text": "En el pozo de los deseos pides algo en privado (más recursos, una función, una idea) y pulsas Lanzar moneda. Solo lo leéis tú y el Owner; cuando lo cumpla verás su respuesta." }
   ]
 }

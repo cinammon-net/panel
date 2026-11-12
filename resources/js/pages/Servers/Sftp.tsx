@@ -1,6 +1,6 @@
 import ServerLayout from '@/layouts/server-layout';
 import { Head, router, usePage } from '@inertiajs/react';
-import { AlertTriangle, Check, Copy, Download, KeyRound, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
+import { AlertTriangle, Check, Copy, Download, KeyRound, PlayCircle, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -18,7 +18,8 @@ interface PageProps {
     generated_password: string | null;
 }
 
-const fmtDate = (value: string | null) => (value ? new Date(value).toLocaleString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—');
+const fmtDate = (value: string | null) =>
+    value ? new Date(value).toLocaleString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
 function CopyRow({ label, value, secret = false }: { label: string; value: string; secret?: boolean }) {
     const [copied, setCopied] = useState(false);
@@ -32,7 +33,11 @@ function CopyRow({ label, value, secret = false }: { label: string; value: strin
         <div className="space-y-1">
             <span className="text-[10px] font-bold tracking-wider text-neutral-500 uppercase dark:text-neutral-400">{label}</span>
             <div className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2 dark:border-neutral-800 dark:bg-black/60">
-                <code className={`flex-1 font-mono text-sm break-all ${secret ? 'font-bold text-emerald-400' : 'text-neutral-800 dark:text-cyan-100'}`}>{value}</code>
+                <code
+                    className={`flex-1 font-mono text-sm break-all ${secret ? 'font-bold text-emerald-400' : 'text-neutral-800 dark:text-cyan-100'}`}
+                >
+                    {value}
+                </code>
                 <button type="button" onClick={copy} title="Copiar" className="text-neutral-400 hover:text-cyan-400">
                     {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
                 </button>
@@ -54,7 +59,7 @@ export default function SftpPage({ server, sftp, generated_password }: PageProps
     const downloadFileZilla = () => {
         const esc = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<FileZilla3 version="3.66.0">
+<FileZilla3 version="3.40.0">
     <Servers>
         <Server>
             <Host>${esc(sftp.host)}</Host>
@@ -98,7 +103,8 @@ export default function SftpPage({ server, sftp, generated_password }: PageProps
                     <div>
                         <h1 className="text-xl font-bold tracking-tight text-neutral-900 uppercase sm:text-2xl dark:text-white">Acceso SFTP</h1>
                         <p className="text-xs text-neutral-500 sm:text-sm dark:text-neutral-400">
-                            Credenciales generadas por el panel, solo para ti y solo para <span className="font-semibold text-cyan-500">{server.name}</span>.
+                            Credenciales generadas por el panel, solo para ti y solo para{' '}
+                            <span className="font-semibold text-cyan-500">{server.name}</span>.
                         </p>
                     </div>
                 </div>
@@ -143,15 +149,17 @@ export default function SftpPage({ server, sftp, generated_password }: PageProps
                             <Download className="h-4 w-4" />
                             Descargar configuración para FileZilla
                         </button>
-                        <span className="text-[11px] text-neutral-500 dark:text-neutral-400">En FileZilla: Archivo → Importar… y elige el archivo. Te pedirá la contraseña al conectar.</span>
+                        <span className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                            En FileZilla: Archivo → Importar… y elige el archivo. Te pedirá la contraseña al conectar.
+                        </span>
                     </div>
                     <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
                         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                         <p>
-                            Usa el <strong>puerto {sftp.port}</strong> y el protocolo <strong>SFTP</strong> (no FTP). Si lo dejas vacío, tu programa usa el
-                            22, que no es el de tus archivos: la contraseña fallará siempre y, tras varios intentos, tu conexión queda bloqueada 1 hora. En
-                            FileZilla: Archivo → Gestor de sitios → Protocolo «SFTP», Servidor <strong>{sftp.host}</strong>, Puerto{' '}
-                            <strong>{sftp.port}</strong>.
+                            Usa el <strong>puerto {sftp.port}</strong> y el protocolo <strong>SFTP</strong> (no FTP). Si lo dejas vacío, tu programa
+                            usa el 22, que no es el de tus archivos: la contraseña fallará siempre y, tras varios intentos, tu conexión queda
+                            bloqueada 1 hora. En FileZilla: Archivo → Gestor de sitios → Protocolo «SFTP», Servidor <strong>{sftp.host}</strong>,
+                            Puerto <strong>{sftp.port}</strong>.
                         </p>
                     </div>
                     {!sftp.has_credentials && !generated_password && (
@@ -187,6 +195,60 @@ export default function SftpPage({ server, sftp, generated_password }: PageProps
                     </div>
                 </section>
 
+                {/* Guía rápida: lo mismo que la guía con fotos de /guias#sftp-filezilla, aquí donde se hace */}
+                <section className="space-y-4 rounded-xl border border-pink-500/30 bg-pink-500/5 p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h2 className="text-sm font-bold tracking-wider text-pink-600 uppercase dark:text-pink-400">Cómo conectarte con FileZilla</h2>
+                        <a
+                            href="/guias#sftp-filezilla"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-pink-500/40 px-3 py-1.5 text-[11px] font-bold text-pink-600 hover:bg-pink-500/10 dark:text-pink-300"
+                        >
+                            <PlayCircle className="h-4 w-4" />
+                            Ver la guía con fotos y vídeo
+                        </a>
+                    </div>
+                    <ol className="space-y-3">
+                        {[
+                            {
+                                done: sftp.has_credentials || !!generated_password,
+                                title: 'Genera tu contraseña',
+                                text: 'Pulsa «Generar contraseña» aquí arriba. Solo se muestra una vez: cópiala y guárdala.',
+                            },
+                            {
+                                title: 'Descarga la configuración',
+                                text:
+                                    'Pulsa «Descargar configuración para FileZilla». El archivo ya lleva el servidor, el puerto ' +
+                                    sftp.port +
+                                    ' y tu usuario.',
+                            },
+                            {
+                                title: 'Impórtala en FileZilla',
+                                text: 'Abre FileZilla Client (gratis en filezilla-project.org) → Archivo → Importar… y elige el archivo. Deja marcadas las entradas del gestor de sitios.',
+                            },
+                            {
+                                title: 'Conecta',
+                                text: `Archivo → Gestor de sitios → «${server.name} (Cinammon)» → Conectar. Pega tu contraseña. La primera vez avisa de una clave de servidor desconocida: marca «Confiar siempre» y acepta.`,
+                            },
+                            {
+                                title: 'Pasa tus archivos',
+                                text: 'A la izquierda está tu ordenador y a la derecha tu servidor: arrastra de un lado a otro. Si vas a cambiar el mundo, apaga antes el servidor.',
+                            },
+                        ].map((st, i) => (
+                            <li key={st.title} className="flex gap-3">
+                                <span
+                                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ${st.done ? 'bg-emerald-500' : 'bg-pink-500'}`}
+                                >
+                                    {st.done ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                                </span>
+                                <div>
+                                    <p className="text-xs font-bold text-neutral-900 dark:text-white">{st.title}</p>
+                                    <p className="text-xs text-neutral-600 dark:text-neutral-400">{st.text}</p>
+                                </div>
+                            </li>
+                        ))}
+                    </ol>
+                </section>
+
                 {sftp.has_credentials && (
                     <section className="grid grid-cols-1 gap-4 rounded-xl border border-neutral-200 bg-neutral-50 p-5 text-xs sm:grid-cols-3 dark:border-cyan-900/60 dark:bg-neutral-900/60">
                         <div>
@@ -205,7 +267,9 @@ export default function SftpPage({ server, sftp, generated_password }: PageProps
                 )}
 
                 <ul className="space-y-1.5 rounded-xl border border-neutral-200 p-4 text-xs text-neutral-600 dark:border-neutral-800 dark:text-neutral-400">
-                    <li>• Este acceso solo abre los archivos de <strong>este servidor</strong>; no sirve para tu cuenta ni para otros servidores.</li>
+                    <li>
+                        • Este acceso solo abre los archivos de <strong>este servidor</strong>; no sirve para tu cuenta ni para otros servidores.
+                    </li>
                     <li>• Cada persona con acceso al servidor tiene su propio usuario y contraseña, y puede revocar la suya.</li>
                     <li>• Tras varios intentos fallidos el acceso se bloquea temporalmente.</li>
                     <li>• Si dejas de tener acceso al servidor, tu contraseña SFTP deja de funcionar automáticamente.</li>
