@@ -100,3 +100,7 @@ Route::get('/maintenance', [App\Http\Controllers\MaintenanceController::class, '
 Route::get('/announcements', [App\Http\Controllers\AnnouncementController::class, 'feed'])->middleware('throttle:120,1');
 Route::post('/announcements/{announcement}/click', [App\Http\Controllers\AnnouncementController::class, 'click'])
     ->whereNumber('announcement')->middleware('throttle:30,1');
+
+// Webmail de Cloudflare: correos del panel y la tienda con el diseño actual (secreto del relay)
+Route::get('/mail-archive/{source}/{uuid}', [App\Http\Controllers\MailArchiveController::class, 'fresh'])
+    ->whereIn('source', ['panel', 'billing'])->whereUuid('uuid')->middleware('throttle:120,1');

@@ -73,6 +73,35 @@ class MailArchiveController extends Controller
             ->header('Cache-Control', 'private, no-store');
     }
 
+    /**
+     * Para el webmail (mail.cinammon.net, con el secreto del relay): el correo dibujado con el diseño actual.
+     * Solo si era para alguno de los buzones que dice `to`, así una cabecera falsa no enseña correos ajenos.
+     */
+    public function fresh(Request $request, string $source, string $uuid)
+    {
+        $secret = (string) config('services.cloudflare_mail.secret');
+        abort_if($secret === '' || ! hash_equals($secret, (string) $request->bearerToken()), 401);
+        $emails = collect(explode(',', (string) $request->query('to')))
+            ->map(fn ($e) => mb_strtolower(trim($e)))->filter(fn ($e) => str_contains($e, '@'))->take(20)->values()->all();
+        abort_if($emails === [], 422);
+
+        if ($source === 'panel') {
+            $mail = MailArchive::where('uuid', $uuid)->whereIn('to', $emails)->firstOrFail();
+            try {
+                $html = $mail->html();
+            } catch (\Throwable $e) {
+                report($e);
+                abort(410);
+            }
+        } else {
+            $res = $this->billing('mails/show', ['emails' => $emails, 'uuid' => $uuid]);
+            abort_unless(isset($res['html']), 404);
+            $html = $res['html'];
+        }
+
+        return response($html)->header('Content-Type', 'text/html; charset=UTF-8')->header('Cache-Control', 'no-store');
+    }
+
     /** Buzones que puede ver: el suyo y, si es Owner o Admin, también el del equipo de soporte. */
     private function mailboxes(Request $request): array
     {

@@ -59,6 +59,7 @@ class CloudflareTransport extends AbstractTransport
             'html' => $body($email->getHtmlBody()),
             'text' => $body($email->getTextBody()),
             'idempotency_key' => $email->getHeaders()->get('X-Idempotency-Key')?->getBodyAsString(),
+            'headers' => array_filter(['X-Cinammon-Archive' => $email->getHeaders()->get('X-Cinammon-Archive')?->getBodyAsString()]),
             'attachments' => array_map(fn ($part) => [
                 'filename' => $part->getFilename() ?? 'adjunto',
                 'type' => $part->getMediaType().'/'.$part->getMediaSubtype(),

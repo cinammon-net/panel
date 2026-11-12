@@ -18,6 +18,13 @@ trait Archived
     {
         $this->archiveUuid ??= (string) Str::uuid();
         View::share('archiveUrl', MailArchive::viewUrl(MailArchive::SOURCE, $this->archiveUuid));
+        // El webmail (mail.cinammon.net) usa esta cabecera para volver a dibujarlo con el diseño actual.
+        $ref = MailArchive::SOURCE.'/'.$this->archiveUuid;
+        $this->withSymfonyMessage(function ($message) use ($ref) {
+            if (! $message->getHeaders()->has('X-Cinammon-Archive')) {
+                $message->getHeaders()->addTextHeader('X-Cinammon-Archive', $ref);
+            }
+        });
         try {
             $sent = parent::send($mailer);
         } finally {

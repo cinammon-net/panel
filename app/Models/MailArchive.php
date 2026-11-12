@@ -36,7 +36,8 @@ class MailArchive extends Model
         if (! $view || ! $mail->archiveUuid) {
             return;
         }
-        $data = self::pack($mail->buildViewData());
+        // Los datos de content()->with solo se cargan al enviar: se añaden aquí por si se guarda sin enviarlo.
+        $data = self::pack(array_merge($mail->content()->with ?? [], $mail->buildViewData()));
         $subject = (string) ($mail->envelope()->subject ?? $mail->subject ?? '');
         foreach (collect($mail->to)->pluck('address')->filter()->unique()->values() as $n => $to) {
             self::create([
