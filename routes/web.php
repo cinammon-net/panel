@@ -338,6 +338,9 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
         return back();
     })->name('settings.font');
 
+    // Guías en vídeo (grabadas en el panel real; la guía completa vive en el foro #guias de Discord)
+    Route::get('/guias', fn () => Inertia::render('Guides'))->name('guides.index');
+
     // Reviews
     Route::resource('reviews', ReviewController::class)->except(['show']);
 

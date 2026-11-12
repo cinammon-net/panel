@@ -36,6 +36,7 @@ import {
     Wrench,
     Coins,
     Sparkles,
+    PlayCircle,
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -77,6 +78,15 @@ const mainNavItems: NavItem[] = [
         group: 'main',
         groupColor: 'text-yellow-400',
         roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin', 'Owner'],
+        permissions: [],
+    },
+    {
+        title: 'Guías en vídeo',
+        href: '/guias',
+        icon: PlayCircle,
+        group: 'main',
+        groupColor: 'text-emerald-400',
+        roles: [],
         permissions: [],
     },
     {

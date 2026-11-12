@@ -401,6 +401,8 @@ const TAG_COLOR = {
     'Web y Dominios': 0xf59e0b, 'Bases de Datos': 0x06b6d4, 'Archivos y copias': 0xa855f7,
 };
 const TAG_ICON = { 'Empieza aquí': 'rocket', Minecraft: 'pickaxe', Bots: 'bot', 'Web y Dominios': 'globe', 'Bases de Datos': 'database', 'Archivos y copias': 'folder' };
+const GUIDE_VIDEO = ['start', 'mc-optimize', 'mc-addons', 'bots', 'domains', 'databases', 'files', 'team'];
+const GUIDE_VIDEO_V = 1;
 const GUIDE_ICON = { buy: 'cart', team: 'team' };
 const readMinutes = (g) => Math.max(1, Math.round(g.body().filter((l) => !/^!\[/.test(l)).join(' ').split(/\s+/).length / 180));
 
@@ -436,7 +438,11 @@ function sections(lines) {
 function guidePayload(g, threads) {
     const { text, sep, row, container } = env.ui;
     const L = env.ctx().layout;
-    const lines = g.body();
+    // Guías con vídeo grabado en el panel real: el vídeo va arriba, con enlace a la sección del panel
+    const video = GUIDE_VIDEO.includes(g.key)
+        ? [`-# También en el panel, en **Guías en vídeo**: ${env.PANEL}/guias#${g.key}`, `![Vídeo: ${g.title}](${env.PANEL}/videos/guias/${g.key}.mp4?v=${GUIDE_VIDEO_V})`, '']
+        : [];
+    const lines = [...video, ...g.body()];
     const blocks = sections(lines);
     const minutes = readMinutes(g);
     const i = GUIDES.indexOf(g);
