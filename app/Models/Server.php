@@ -121,6 +121,23 @@ class Server extends Model
 
     protected static function booted()
     {
+        // Servidor nuevo (cualquier origen): correo al dueño cuando ya esté guardado. Nunca en la demo.
+        static::created(function (Server $server) {
+            if (config('panel.demo')) {
+                return;
+            }
+            \Illuminate\Support\Facades\DB::afterCommit(function () use ($server) {
+                try {
+                    $email = $server->owner?->email;
+                    if (filled($email)) {
+                        \Illuminate\Support\Facades\Mail::to($email)->queue(new \App\Mail\ServerCreated($server));
+                    }
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            });
+        });
+
         static::deleting(function (Server $server) {
             // Dominios propios: quitar sus registros de Cloudflare
             try {

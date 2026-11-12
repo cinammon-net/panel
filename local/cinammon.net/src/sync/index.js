@@ -390,7 +390,7 @@ function staticPosts(season) {
             promo && sep(),
             promo && text(promo),
             sep(2),
-            row(linkBtn('Panel', PANEL_PUBLIC), linkBtn('Tienda', BILLING)),
+            row(linkBtn('Panel', PANEL_PUBLIC), linkBtn('Tienda', `${BILLING}/store`)),
         ]))],
         ['rules', ch.rules, msg(container(accent, [
             text('# Normas de Cinammon\nEstar en este servidor implica aceptar estas normas y los [Términos de servicio](' + PANEL_PUBLIC + '/terms) de cinammon.net.'),
@@ -452,7 +452,8 @@ function staticPosts(season) {
             text('### Administración (Owner y Admin)\n`/admin crear-servidor` · `/admin crear-nodo` · `/admin nodos` · `/admin servidor`\n`/amigo` rol Amigo de Cinammon (solo Owner)'),
             text(`### Cómo funciona\n**Tickets:** cada ticket es un hilo privado en <#${ch.tickets}> con su tipo, servidor y prioridad VIP. Pulsa **Me encargo** para quedártelo; lo que escribáis le llega al cliente en la web. Al cerrar, el cliente lo valora del 1 al 5.\n**Asistente:** responde en <#${ch.help}> y con \`/pregunta\`; si no sabe, menciona a Helper y Moderador (como mucho una vez cada 10 min).\n**Menciones al staff:** quien no es del equipo y os menciona recibe un aviso y, la siguiente vez, una advertencia automática. Con 5 advertencias sale un aviso aquí para suspender sus servidores.\n**Registro:** sanciones, AutoMod, roles, anuncios y tickets en <#${ch.logs}>.`),
             sep(2),
-            row(linkBtn('Panel de administración', `${PANEL_PUBLIC}/admin`)),
+            // El panel no tiene /admin: botones a las páginas de administración que existen
+            row(linkBtn('Usuarios', `${PANEL_PUBLIC}/users`), linkBtn('Nodos', `${PANEL_PUBLIC}/nodes`), linkBtn('Anuncios', `${PANEL_PUBLIC}/announcements`)),
         ]))],
         ['tickets', ch.tickets, msg(container(accent, [
             text('# Atención privada\nPara lo que no se puede contar en público: **tu cuenta, tus pagos o un servidor concreto**. Se abre un hilo privado que solo ves tú y el equipo, conectado con tu cuenta del panel.'),
@@ -1013,6 +1014,21 @@ function purchasePost(e) {
     ].filter(Boolean)));
 }
 
+/** Servidor recién creado (de cualquiera): tarjeta para #compras y versión para el privado del dueño. */
+function serverCreatedPost(e, forOwner = false) {
+    const size = (mb) => (mb >= 1024 ? `${+(mb / 1024).toFixed(1)} GB` : `${mb} MB`);
+    const details = [e.egg ? cut(e.egg, 60) : null, e.ram_mb > 0 ? `${size(e.ram_mb)} RAM` : null, e.disk_mb > 0 ? `${size(e.disk_mb)} disco` : null].filter(Boolean).join(' · ');
+    const who = `**${cut(e.owner || 'Alguien', 60)}**${e.discord_id ? ` (<@${e.discord_id}>)` : ''}`;
+    return msg(container(0x22d3ee, [
+        text(forOwner
+            ? `### Tu servidor está creado\n**${cut(e.name, 80)}** ya está en tu cuenta. Se está instalando: en unos minutos lo podrás encender desde el panel o con \`/servidores\`.`
+            : `### Nuevo servidor\n${who} ha creado **${cut(e.name, 80)}**.`),
+        details ? text(details) : null,
+        text(`-# ${ts(e.at, 'R')}`),
+        row(forOwner ? linkBtn('Abrir mi servidor', e.url) : linkBtn('Ver planes', `${BILLING}/store`)),
+    ].filter(Boolean)));
+}
+
 /** Publica cuentas nuevas y compras. La primera vez solo memoriza lo que ya había (no inunda el canal). */
 async function syncActivity(data) {
     const ch = ctx.layout.channels;
@@ -1036,6 +1052,28 @@ async function syncActivity(data) {
             A.events.push(e.key);
             changed = true;
         }
+    }
+    // Servidores creados: aviso en #compras y por privado al dueño (si tiene Discord vinculado)
+    if (Array.isArray(data.servers_created)) {
+        A.servers ??= [];
+        const seed = !A.serversSeeded;
+        if (seed) { A.serversSeeded = true; changed = true; }
+        for (const e of [...data.servers_created].reverse()) {
+            if (A.servers.includes(e.id)) continue;
+            A.servers.push(e.id);
+            changed = true;
+            if (seed) continue;
+            if (ch.purchases) await discord('POST', `/channels/${ch.purchases}/messages`, serverCreatedPost(e)).catch((err) => log(`[SERVIDORES] #compras: ${err.message}`));
+            if (e.discord_id) {
+                try {
+                    const dm = await discord('POST', '/users/@me/channels', { recipient_id: e.discord_id });
+                    await discord('POST', `/channels/${dm.id}/messages`, serverCreatedPost(e, true));
+                } catch (err) {
+                    log(`[SERVIDORES] privado a ${e.discord_id}: ${err.message}`); // privados cerrados
+                }
+            }
+        }
+        A.servers = A.servers.slice(-500);
     }
     A.users = A.users.slice(-300);
     A.events = A.events.slice(-500);

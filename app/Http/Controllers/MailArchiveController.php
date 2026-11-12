@@ -15,7 +15,7 @@ class MailArchiveController extends Controller
 {
     private const LABELS = [
         'emails.welcome' => 'Bienvenida', 'emails.ticket' => 'Soporte', 'emails.birthday' => 'Cumpleaños',
-        'emails.birthday-card' => 'Cumpleaños', 'emails.maintenance' => 'Mantenimiento',
+        'emails.birthday-card' => 'Cumpleaños', 'emails.maintenance' => 'Mantenimiento', 'emails.server-created' => 'Servidor nuevo',
         'emails.invoice-created' => 'Pedido', 'emails.payment-received' => 'Pago confirmado', 'emails.payment-rejected' => 'Pago',
         'emails.payment-review' => 'Pagos', 'emails.free-expiring' => 'Servidor gratis', 'emails.free-suspended' => 'Servidor gratis',
     ];

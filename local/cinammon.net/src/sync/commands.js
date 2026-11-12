@@ -191,7 +191,7 @@ function accountView(acc) {
         ].filter(Boolean).join('\n')),
         sep(),
         row(btn('Servidores', 'c:servers', 1), btn('Monedas', 'c:coins'), btn('Facturas', 'c:invoices'), btn('Tickets', 'c:tickets'), btn('Perfil', 'c:profile')),
-        row(linkBtn('Abrir el panel', api.PANEL), linkBtn('Tienda', api.BILLING)),
+        row(linkBtn('Abrir el panel', api.PANEL), linkBtn('Tienda', `${api.BILLING}/store`)),
     );
 }
 

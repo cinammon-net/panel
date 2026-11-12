@@ -67,6 +67,22 @@ class BotSyncController extends Controller
                     'at' => $u->created_at?->toIso8601String(),
                 ])->values(),
             'purchases' => $this->purchases(),
+            // Servidores creados (de cualquiera: compra, gratis, Amigo, admin o Discord), últimos 3 días.
+            // El bot los publica en #compras y avisa al dueño por privado si tiene Discord vinculado.
+            'servers_created' => Server::with(['owner:id,name,discord_id', 'egg:id,name'])
+                ->where('created_at', '>=', now()->subDays(3))->latest()->limit(30)
+                ->get(['id', 'name', 'owner_id', 'egg_id', 'memory', 'disk', 'created_at'])
+                ->map(fn (Server $s) => [
+                    'id' => $s->id,
+                    'name' => (string) $s->name,
+                    'owner' => $s->owner?->name ?? 'Alguien',
+                    'discord_id' => $s->owner?->discord_id ? (string) $s->owner->discord_id : null,
+                    'egg' => $s->egg?->name,
+                    'ram_mb' => (int) $s->memory,
+                    'disk_mb' => (int) $s->disk,
+                    'url' => url('/servers/'.$s->id.'/console'),
+                    'at' => $s->created_at?->toIso8601String(),
+                ])->values(),
             'reviews' => Review::with('user:id,name,discord_id')
                 ->where('created_at', '>=', now()->subDays(30))
                 ->latest()->limit(20)->get()
