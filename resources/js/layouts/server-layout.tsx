@@ -88,9 +88,10 @@ export default function ServerLayout({
         <AppShell variant="sidebar">
             <ServerSidebar server={server} section={section} />
             <AppContent variant="sidebar">
-                <AppSidebarHeader breadcrumbs={breadcrumbs} />
+                {/* Avisos y anuncios siempre encima de la barra, como en la web principal */}
                 <MaintenanceBanner />
                 <AnnouncementBar place="panel" />
+                <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 {showLockNotice && (
                     <Link
                         href="/settings/security"

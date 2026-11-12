@@ -14,9 +14,10 @@ export default function AppSidebarLayout({ children, breadcrumbs = [] }: PropsWi
         <AppShell variant="sidebar">
             <AppSidebar />
             <AppContent variant="sidebar">
-                <AppSidebarHeader breadcrumbs={breadcrumbs} />
+                {/* Avisos y anuncios siempre encima de la barra, como en la web principal */}
                 <MaintenanceBanner />
                 <AnnouncementBar place="panel" />
+                <AppSidebarHeader breadcrumbs={breadcrumbs} />
                 <UpdateBanner />
                 {children}
                 <footer>
