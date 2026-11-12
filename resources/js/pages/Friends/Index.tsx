@@ -123,7 +123,7 @@ function daysSince(iso: string) {
 }
 
 export default function FriendsIndex() {
-    const { isOwner, max, friends, notes, wishes, colors, limits, flash, errors, friendServer } = usePage<Props>().props;
+    const { isOwner, max, friends, notes, wishes, colors, limits, flash, friendServer } = usePage<Props>().props;
     const me = friends.find((f) => f.me) ?? null;
 
     useEffect(() => {
@@ -158,9 +158,9 @@ export default function FriendsIndex() {
 
                 {friendServer.enabled && <Forge info={friendServer} />}
 
-                <Wall notes={notes} colors={colors} perDay={limits.notes_per_day} error={errors?.body} />
+                <Wall notes={notes} colors={colors} perDay={limits.notes_per_day} />
 
-                <Well wishes={wishes} isOwner={isOwner} canWish={!!me || isOwner} openLimit={limits.open_wishes} error={errors?.body} />
+                <Well wishes={wishes} isOwner={isOwner} canWish={!!me || isOwner} openLimit={limits.open_wishes} />
             </div>
         </AppLayout>
     );
@@ -550,7 +550,7 @@ function Slider({ icon, label, range, value, onChange, format, error }: { icon: 
 
 /* -------------------------------------------------------------------- muro */
 
-function Wall({ notes, colors, perDay, error }: { notes: Note[]; colors: string[]; perDay: number; error?: string }) {
+function Wall({ notes, colors, perDay }: { notes: Note[]; colors: string[]; perDay: number }) {
     const form = useForm({ body: '', color: colors[0] ?? 'sky' });
 
     const submit = (e: React.FormEvent) => {
@@ -572,7 +572,7 @@ function Wall({ notes, colors, perDay, error }: { notes: Note[]; colors: string[
                         placeholder="Algo bonito, una idea, un saludo..."
                         className="w-full resize-none rounded-md border border-neutral-300 bg-transparent px-3 py-2 text-sm focus:border-sky-500 focus:outline-none dark:border-neutral-700 dark:text-white"
                     />
-                    {(form.errors.body || error) && <p className="mt-1 text-xs text-red-500">{form.errors.body || error}</p>}
+                    {form.errors.body && <p className="mt-1 text-xs text-red-500">{form.errors.body}</p>}
                 </div>
                 <div className="flex items-center gap-3 sm:flex-col sm:items-end">
                     <div className="flex gap-1.5" role="radiogroup" aria-label="Color de la nota">
@@ -633,7 +633,7 @@ function Wall({ notes, colors, perDay, error }: { notes: Note[]; colors: string[
 
 /* ---------------------------------------------------------- pozo de deseos */
 
-function Well({ wishes, isOwner, canWish, openLimit, error }: { wishes: Wish[]; isOwner: boolean; canWish: boolean; openLimit: number; error?: string }) {
+function Well({ wishes, isOwner, canWish, openLimit }: { wishes: Wish[]; isOwner: boolean; canWish: boolean; openLimit: number }) {
     const form = useForm({ body: '' });
     const [dropping, setDropping] = useState(false);
 
@@ -680,7 +680,7 @@ function Well({ wishes, isOwner, canWish, openLimit, error }: { wishes: Wish[]; 
                                 placeholder="Me gustaría..."
                                 className="w-full resize-none rounded-md border border-pink-500/30 bg-black/60 px-3 py-2 text-sm text-white focus:border-pink-400 focus:outline-none"
                             />
-                            {(form.errors.body || error) && <p className="text-xs text-red-400">{form.errors.body || error}</p>}
+                            {form.errors.body && <p className="text-xs text-red-400">{form.errors.body}</p>}
                             <button type="submit" disabled={form.processing || form.data.body.trim().length < 3} className="w-full rounded-md bg-pink-600 py-2 text-sm font-semibold text-white hover:bg-pink-500 disabled:opacity-50">
                                 Lanzar moneda
                             </button>

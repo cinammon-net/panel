@@ -126,16 +126,21 @@ class FriendServers
         return $server;
     }
 
+    /** Marca en external_id de un servidor suspendido por perder el rol (para no reactivar los que suspende un admin). */
+    public const NO_ROLE = '~norole';
+
     /** Suspende o reactiva los servidores de amigo según si la persona tiene el rol. */
     public static function syncAccess(User $user, bool $isFriend): void
     {
         $servers = self::query($user)->get();
         foreach ($servers as $server) {
             $active = (int) ($server->active ?? 1) !== 0;
-            if ($isFriend && ! $active) {
-                $server->forceFill(['active' => 1])->save();
+            $byRole = str_ends_with((string) $server->external_id, self::NO_ROLE);
+            if ($isFriend && ! $active && $byRole) {
+                // Solo vuelven los que suspendimos nosotros por el rol; los que suspendió un admin se quedan así
+                $server->forceFill(['active' => 1, 'external_id' => substr($server->external_id, 0, -strlen(self::NO_ROLE))])->save();
             } elseif (! $isFriend && $active) {
-                $server->forceFill(['active' => 0, 'status' => 0])->save();
+                $server->forceFill(['active' => 0, 'status' => 0, 'external_id' => $server->external_id.self::NO_ROLE])->save();
                 try {
                     app(WingsClient::class)->power($server, 'kill');
                 } catch (\Throwable) {
