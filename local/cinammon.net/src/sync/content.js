@@ -403,7 +403,7 @@ const TAG_COLOR = {
 const TAG_ICON = { 'Empieza aquí': 'rocket', Minecraft: 'pickaxe', Bots: 'bot', 'Web y Dominios': 'globe', 'Bases de Datos': 'database', 'Archivos y copias': 'folder' };
 const GUIDE_VIDEO = ['start', 'mc-optimize', 'mc-addons', 'bots', 'domains', 'databases', 'files', 'team'];
 const GUIDE_VIDEO_V = 1;
-// Paso a paso con fotos (las mismas capturas del vídeo, con el elemento resaltado); también lo usa el panel en /guias
+// Paso a paso con fotos dentro de cada guía (capturas del vídeo con el elemento resaltado); también lo usa el panel en /guias
 const GUIDE_STEPS = require('./guide-steps.json');
 const GUIDE_STEPS_V = 1;
 const GUIDE_ICON = { buy: 'cart', team: 'team' };
@@ -437,6 +437,11 @@ function sections(lines) {
     return out.map((b) => b.join('\n').trim()).filter(Boolean);
 }
 
+/** La guía escrita debajo de los pasos: un único bloque «Más detalles» con subtítulos en negrita. */
+function detailLines(body) {
+    return ['## Más detalles', ...body.map((l) => (l.startsWith('## ') ? `**${l.slice(3)}**` : l))];
+}
+
 /** Guía como tarjeta: cabecera, bloques separados y botones (panel, duda, ticket, anterior/siguiente). */
 function guidePayload(g, threads) {
     const { text, sep, row, container } = env.ui;
@@ -445,7 +450,15 @@ function guidePayload(g, threads) {
     const video = GUIDE_VIDEO.includes(g.key)
         ? [`-# También en el panel, en **Guías en vídeo**: ${env.PANEL}/guias#${g.key}`, `![Vídeo: ${g.title}](${env.PANEL}/videos/guias/${g.key}.mp4?v=${GUIDE_VIDEO_V})`, '']
         : [];
-    const lines = [...video, ...g.body()];
+    // Con pasos: cada paso con su explicación y su foto, y después la guía escrita como «Más detalles»
+    const steps = GUIDE_VIDEO.includes(g.key) ? GUIDE_STEPS[g.key] || [] : [];
+    const stepLines = steps.flatMap((st, n) => [
+        `## Paso ${n + 1} · ${st.title}`,
+        st.text,
+        `![Paso ${n + 1}: ${st.title}](${env.PANEL}/videos/guias/pasos/${g.key}-${n + 1}.jpg?v=${GUIDE_STEPS_V})`,
+        '',
+    ]);
+    const lines = steps.length ? [...video, ...stepLines, ...detailLines(g.body())] : [...video, ...g.body()];
     const blocks = sections(lines);
     const minutes = readMinutes(g);
     const i = GUIDES.indexOf(g);
@@ -463,7 +476,8 @@ function guidePayload(g, threads) {
     // Las líneas "![texto](url)" de una guía se muestran como imagen debajo de su bloque
     const IMG = /^!\[([^\]]*)\]\((\S+)\)$/;
     blocks.forEach((b, n) => {
-        if (n) comps.push(sep(1, false));
+        // Entre pasos no hace falta separador (el título del paso ya los separa) y así cabe en 40 componentes
+        if (n && !/^### Paso \d/.test(b)) comps.push(sep(1, false));
         const lines = b.split('\n');
         const body = lines.filter((l) => !IMG.test(l.trim())).join('\n').trim();
         const pics = lines.map((l) => l.trim().match(IMG)).filter(Boolean);
@@ -481,37 +495,13 @@ function guidePayload(g, threads) {
     return { flags: V2, components: [container(TAG_COLOR[g.tag] ?? env.accent(), comps)], allowed_mentions: { parse: [] } };
 }
 
-/** Segundo mensaje de la guía: cada paso con su explicación y su foto. */
-function stepsPayload(g) {
-    const { text, sep, container } = env.ui;
-    const steps = GUIDE_STEPS[g.key] || [];
-    const comps = [text(`-# PASO A PASO CON FOTOS\n## ${g.title}\nLo mismo que en el vídeo, para seguirlo a tu ritmo. El número de cada foto marca dónde tienes que mirar o pulsar.`)];
-    steps.forEach((s, i) => {
-        comps.push(sep(1, false));
-        comps.push(text(`### ${i + 1}. ${s.title}\n${s.text}`));
-        comps.push({ type: 12, items: [{ media: { url: `${env.PANEL}/videos/guias/pasos/${g.key}-${i + 1}.jpg?v=${GUIDE_STEPS_V}` }, description: `Paso ${i + 1}: ${s.title}` }] });
-    });
-    comps.push(sep(2));
-    comps.push(text(`-# Vídeo y pasos también en el panel: ${env.PANEL}/guias#${g.key}`));
-    return { flags: V2, components: [container(TAG_COLOR[g.tag] ?? env.accent(), comps)], allowed_mentions: { parse: [] } };
-}
-
-/** Publica o edita el mensaje de pasos dentro del hilo de la guía (se rehace si el hilo cambió). */
-async function upsertSteps(S, g, thread) {
-    if (!GUIDE_VIDEO.includes(g.key) || !GUIDE_STEPS[g.key]) return;
-    S.guideSteps ??= {};
-    const payload = stepsPayload(g);
-    const h = hash(payload);
-    const prev = S.guideSteps[g.key];
-    if (prev && prev.thread === thread && prev.hash === h) return;
-    // En un hilo archivado no se puede editar: se desarchiva antes
-    await env.discord('PATCH', `/channels/${thread}`, { archived: false }).catch(() => {});
-    if (prev && prev.thread === thread) {
-        const ok = await env.discord('PATCH', `/channels/${thread}/messages/${prev.id}`, payload).then(() => true).catch((e) => (e.status === 404 ? false : Promise.reject(e)));
-        if (ok) { S.guideSteps[g.key] = { thread, id: prev.id, hash: h }; env.saveState(); return; }
-    }
-    const m = await env.discord('POST', `/channels/${thread}/messages`, payload);
-    S.guideSteps[g.key] = { thread, id: m.id, hash: h };
+/** Los pasos ya van dentro de la guía: borra el mensaje aparte de «Paso a paso» que se publicó antes. */
+async function removeOldSteps(S, g) {
+    const prev = S.guideSteps?.[g.key];
+    if (!prev) return;
+    await env.discord('PATCH', `/channels/${prev.thread}`, { archived: false }).catch(() => {});
+    await env.discord('DELETE', `/channels/${prev.thread}/messages/${prev.id}`).catch((e) => { if (e.status !== 404) throw e; });
+    delete S.guideSteps[g.key];
     env.saveState();
 }
 
@@ -652,7 +642,7 @@ async function syncGuides() {
                 get: () => S.guides[g.key],
                 set: (v) => { S.guides[g.key] = v; },
             }, { name: g.title, payload: guidePayload(g, threads), tagIds: tagId.get(g.tag) ? [tagId.get(g.tag)] : [], cover: guideCover(g) }, known);
-            if (pass === 1) await upsertSteps(S, g, threads[g.key]).catch((e) => env.log(`[SYNC] pasos de ${g.key}: ${e.message}`));
+            if (pass === 1) await removeOldSteps(S, g).catch((e) => env.log(`[SYNC] pasos de ${g.key}: ${e.message}`));
         } catch (e) {
             env.log(`[SYNC] guía ${g.key}: ${e.message}`);
         }
@@ -794,4 +784,4 @@ async function sync(data) {
     await backfill(data).catch((e) => env.log(`[SYNC] relleno inicial: ${e.message}`));
 }
 
-module.exports = { init, sync, GUIDES, _test: { guidePayload, indexPayload, stepsPayload } };
+module.exports = { init, sync, GUIDES, _test: { guidePayload, indexPayload } };
