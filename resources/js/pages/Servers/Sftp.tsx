@@ -1,6 +1,6 @@
 import ServerLayout from '@/layouts/server-layout';
 import { Head, router, usePage } from '@inertiajs/react';
-import { AlertTriangle, Check, Copy, ExternalLink, KeyRound, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
+import { AlertTriangle, Check, Copy, Download, KeyRound, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -48,6 +48,37 @@ export default function SftpPage({ server, sftp, generated_password }: PageProps
     const rotate = () => {
         if (sftp.has_credentials && !confirm('Se generará una contraseña nueva y la anterior dejará de funcionar. ¿Continuar?')) return;
         router.post(`/servers/${server.id}/sftp/rotate`, {}, { preserveScroll: true, onStart: () => setBusy(true), onFinish: () => setBusy(false) });
+    };
+
+    // Sitio de FileZilla listo para importar: protocolo SFTP (1), puerto correcto y contraseña preguntada al conectar (Logontype 2)
+    const downloadFileZilla = () => {
+        const esc = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<FileZilla3 version="3.66.0">
+    <Servers>
+        <Server>
+            <Host>${esc(sftp.host)}</Host>
+            <Port>${sftp.port}</Port>
+            <Protocol>1</Protocol>
+            <Type>0</Type>
+            <User>${esc(sftp.username)}</User>
+            <Logontype>2</Logontype>
+            <EncodingType>Auto</EncodingType>
+            <BypassProxy>0</BypassProxy>
+            <Name>${esc(server.name)} (Cinammon)</Name>
+        </Server>
+    </Servers>
+</FileZilla3>
+`;
+        const url = URL.createObjectURL(new Blob([xml], { type: 'application/xml' }));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cinammon-sftp-${server.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase() || server.id}.xml`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        toast.success('Configuración descargada. Impórtala en FileZilla: Archivo → Importar.');
     };
 
     const revoke = () => {
@@ -101,14 +132,19 @@ export default function SftpPage({ server, sftp, generated_password }: PageProps
                     <CopyRow label="Usuario" value={sftp.username} />
                     {/* Dirección completa: pegada en FileZilla o WinSCP ya lleva el protocolo y el puerto correctos */}
                     <CopyRow label="Dirección completa (pégala en el campo Servidor)" value={`sftp://${sftp.username}@${sftp.host}:${sftp.port}`} />
-                    {/* Abre FileZilla o WinSCP ya con protocolo, servidor, puerto y usuario: así nadie acaba en el puerto 22 */}
-                    <a
-                        href={`sftp://${encodeURIComponent(sftp.username)}@${sftp.host}:${sftp.port}`}
-                        className="inline-flex items-center gap-2 rounded-lg border border-cyan-500/50 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-700 transition hover:bg-cyan-500/20 dark:text-cyan-300"
-                    >
-                        <ExternalLink className="h-4 w-4" />
-                        Abrir en FileZilla / WinSCP (puerto {sftp.port})
-                    </a>
+                    {/* Archivo para importar en FileZilla (Archivo → Importar): ya trae SFTP, servidor, puerto y usuario.
+                        Un enlace sftp:// no sirve: Safari y la mayoría de sistemas no tienen programa asociado. */}
+                    <div className="flex flex-wrap items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={downloadFileZilla}
+                            className="inline-flex items-center gap-2 rounded-lg border border-cyan-500/50 bg-cyan-500/10 px-3 py-2 text-xs font-bold text-cyan-700 transition hover:bg-cyan-500/20 dark:text-cyan-300"
+                        >
+                            <Download className="h-4 w-4" />
+                            Descargar configuración para FileZilla
+                        </button>
+                        <span className="text-[11px] text-neutral-500 dark:text-neutral-400">En FileZilla: Archivo → Importar… y elige el archivo. Te pedirá la contraseña al conectar.</span>
+                    </div>
                     <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
                         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                         <p>
