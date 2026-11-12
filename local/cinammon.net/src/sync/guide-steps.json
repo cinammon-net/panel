@@ -1,0 +1,69 @@
+{
+  "start": [
+    { "title": "Entra en tu servidor", "text": "En Servers ves todos tus servidores con su estado (encendido o apagado). Pulsa el tuyo para abrir su panel." },
+    { "title": "La Consola", "text": "Es la pestaña principal. Arriba tienes Iniciar, Reiniciar y Detener; abajo ves lo que va pasando y puedes escribir comandos. Si algo falla, lo primero es leer las últimas líneas de aquí." },
+    { "title": "Tu dirección", "text": "En Dirección está lo que tiene que poner la gente para entrar (por ejemplo en Minecraft: Multijugador → Añadir servidor). Pulsa el icono de copiar para no equivocarte. Si quieres algo como play.tudominio.com, mira la guía de dominios." },
+    { "title": "El menú del servidor", "text": "En la barra de la izquierda están todas las pestañas: Archivos, Jugadores, Ajustes del juego, Plugins, Acceso SFTP, Bases de Datos, Red y Puertos, Copias de Seguridad, Usuarios…" },
+    { "title": "Archivos", "text": "Un explorador de archivos en el navegador: abre y edita archivos, crea carpetas y sube cosas con Subir archivos. Para mundos enteros o muchos archivos es mejor el Acceso SFTP." },
+    { "title": "Ajustes del juego", "text": "Las opciones más comunes (nombre que se ve en la lista, modo de juego, dificultad, jugadores máximos…) sin tener que editar server.properties a mano. Reinicia para aplicar los cambios." },
+    { "title": "Plugins", "text": "Pulsa Explorar para buscar en el catálogo de Modrinth e instalar en un clic la versión compatible con tu servidor. Tienes la guía de plugins y mods con más detalle." },
+    { "title": "Vincula Discord", "text": "En Ajustes → Perfil pulsa Código para el bot, copia el código y en Discord escribe /vincular codigo: con ese código (caduca en 15 minutos). Así controlas tu servidor desde Discord y recibes tus roles." }
+  ],
+  "mc-optimize": [
+    { "title": "Pestaña Inicio", "text": "En Inicio está la Imagen de Docker: es la versión de Java con la que arranca tu servidor. Si ves el error UnsupportedClassVersionError, es que no es la correcta." },
+    { "title": "Qué Java elegir", "text": "Minecraft 1.20.5 o más nuevo: Java 21. De 1.18 a 1.20.4: Java 17. La 1.17: Java 16 o 17. La 1.16.5 o anterior: Java 8 u 11." },
+    { "title": "Reinicia", "text": "El cambio de Java solo se aplica al arrancar: vuelve a la Consola y pulsa Reiniciar." },
+    { "title": "Distancia de visión", "text": "En Ajustes del juego baja la distancia de visión a 8–10 (y la de simulación a 6–8). Es el ajuste que más se nota en el rendimiento y casi nadie ve la diferencia jugando." },
+    { "title": "Instala Spark", "text": "Si sigue habiendo lag, hay que saber qué lo causa. Ve a Plugins y pulsa Explorar." },
+    { "title": "Búscalo e instálalo", "text": "Escribe spark en el buscador y pulsa instalar. Después reinicia el servidor para que se cargue." },
+    { "title": "Mide el lag", "text": "Cuando haya lag, escribe en la Consola spark profiler start, espera 2–3 minutos y luego spark profiler stop. Te da un enlace que muestra qué plugin o qué zona del mapa está gastando el tiempo." }
+  ],
+  "mc-addons": [
+    { "title": "Haz una copia primero", "text": "En Copias de Seguridad pulsa Crear respaldo. Si un plugin rompe algo, restauras la copia y vuelves a como estaba." },
+    { "title": "Abre el catálogo", "text": "En la pestaña Plugins (o Mods) pulsa Explorar para buscar en Modrinth." },
+    { "title": "Busca el plugin", "text": "Escribe su nombre, por ejemplo LuckPerms. Mira que sea para tu software (Paper, Purpur, Fabric…) y tu versión de Minecraft." },
+    { "title": "Instálalo", "text": "Pulsa instalar: el panel baja la última versión estable compatible con tu servidor y la pone en su carpeta." },
+    { "title": "O súbelo a mano", "text": "Si lo tienes descargado: en Archivos, los plugins (.jar) van en la carpeta plugins y los mods en mods. Descarga solo de Modrinth, Hangar, SpigotMC o CurseForge." },
+    { "title": "Reinicia", "text": "Pulsa Reiniciar para que se cargue. Si después no arranca, la Consola suele decir qué plugin falla: sácalo de plugins y busca una versión compatible." }
+  ],
+  "bots": [
+    { "title": "Sube tu código", "text": "En Archivos pulsa Subir archivos. Puedes subir un .zip y descomprimirlo ahí mismo. No subas node_modules ni venv: se instalan solos al arrancar." },
+    { "title": "Versión de Node.js", "text": "En Inicio eliges la versión de Node.js (o de Python) con la que funciona tu bot." },
+    { "title": "Archivo principal", "text": "En el mismo sitio pon el archivo con el que arranca tu bot: index.js, main.py, bot.js… Tiene que coincidir con el nombre real del archivo." },
+    { "title": "El token", "text": "En los bots de Discord pega el token en su casilla y no en el código: así no se escapa si compartes el código. Si alguna vez se filtra, regéneralo en el Developer Portal." },
+    { "title": "Arranca y mira la Consola", "text": "Pulsa Iniciar. En la Consola ves lo que escribe tu bot y los errores. En WhatsApp, el QR para vincularlo también sale aquí." },
+    { "title": "Puerto para webs y webhooks", "text": "Si tu bot abre una web o recibe webhooks, tiene que escuchar en 0.0.0.0 y en el puerto que ves en Red y Puertos (en el código: process.env.SERVER_PORT)." }
+  ],
+  "domains": [
+    { "title": "Lo que quieres cambiar", "text": "Esta es la dirección que te da el panel. Con tu propio dominio la gente podrá entrar con algo como play.tudominio.com." },
+    { "title": "Pestaña Subdominios", "text": "En el menú del servidor abre Subdominios (Dominios propios). Está disponible en servidores de pago." },
+    { "title": "Conecta tu Cloudflare", "text": "Tu dominio tiene que estar en Cloudflare (el plan gratis vale). Allí ve a Mi perfil → Tokens de API → Crear token, usa la plantilla Editar DNS de zona y elige tu dominio. Pega el token aquí." },
+    { "title": "Añade el dominio", "text": "Pulsa Añadir dominio, escribe play (o lo que quieras) y elige tu dominio. El panel crea los registros DNS por ti y los borra si lo quitas. Puede tardar unos minutos en funcionar." }
+  ],
+  "databases": [
+    { "title": "Nueva base de datos", "text": "En tu servidor abre Bases de Datos y pulsa Nueva Base de Datos." },
+    { "title": "Ponle nombre", "text": "Escribe un nombre (por ejemplo jugadores) y pulsa Crear. El panel le añade un prefijo y le crea su propio usuario y contraseña." },
+    { "title": "Los datos de conexión", "text": "Pulsa ¿Cómo conectarse? para ver el host, el puerto, el nombre, el usuario y la contraseña. Ahí también está Copiar todo, para pegarlo en la config de tu plugin o en el .env de tu bot." },
+    { "title": "Usa ese host", "text": "Copia el host tal cual. No escribas localhost: tu servidor está en un contenedor y localhost sería él mismo. Si sale Access denied, revisa usuario y contraseña; si sale Unknown database, copia el nombre con su prefijo." }
+  ],
+  "files": [
+    { "title": "Tu contraseña SFTP", "text": "En Acceso SFTP genera tu contraseña. Solo se muestra una vez: guárdala. Si la pierdes, genera otra." },
+    { "title": "Conéctate", "text": "Abre FileZilla o WinSCP, elige SFTP y pon el host, el puerto y el usuario que ves aquí. Es mucho más rápido que el navegador para mundos y modpacks. Si vas a cambiar el mundo, apaga antes el servidor." },
+    { "title": "Haz copias de seguridad", "text": "En Copias de Seguridad pulsa Crear Respaldo antes de actualizar, instalar plugins o borrar cosas. Puedes bloquear la copia buena para que no se borre sin querer." },
+    { "title": "Restaurar", "text": "Restaurar devuelve el servidor a ese momento y sustituye los archivos actuales. También puedes descargarte la copia a tu ordenador." }
+  ],
+  "team": [
+    { "title": "Invita a alguien", "text": "En tu servidor abre Usuarios y pulsa Invitar Usuario." },
+    { "title": "Correo y permisos", "text": "Escribe el correo de su cuenta de cinammon.net (tiene que estar registrada) y marca solo los permisos que necesita: por ejemplo consola y archivos sí, borrar copias no. Puedes cambiarlos o quitarle el acceso cuando quieras." },
+    { "title": "Actividad", "text": "En Actividad queda registrado quién encendió el servidor, cambió archivos o entró por SFTP, y cuándo. Útil si algo desaparece." },
+    { "title": "Cambiar dueño", "text": "Cambiar Dueño pasa el servidor a otra persona, que pasa a ser quien lo paga. No se puede deshacer tú solo. Y nunca compartas la contraseña de tu cuenta: con ella se puede pagar y borrar servidores." }
+  ],
+  "buy": [
+    { "title": "Vincula tu cuenta (solo la primera vez)", "text": "En el panel ve a Ajustes → Perfil → Código para el bot, copia el código y en Discord escribe /vincular codigo: con ese código. Caduca en 15 minutos." },
+    { "title": "Abre la compra", "text": "Pulsa Comprar desde Discord en el canal de planes, o escribe /comprar en cualquier canal. Todo lo que eliges solo lo ves tú." },
+    { "title": "Elige el tipo y el plan", "text": "Primero el tipo (Minecraft, bots, web, rangos VIP…) y después el plan. Debajo de cada uno ves el precio al mes, la RAM y el disco." },
+    { "title": "Elige cada cuánto pagar", "text": "Mes, trimestre, semestre o año. Cuanto más tiempo pagas de una vez, menos te cuesta al mes." },
+    { "title": "Revisa y reserva", "text": "Te sale un resumen con el plan, el nombre del servidor y el total, con la oferta o tu descuento VIP ya aplicados. Puedes cambiar el nombre. Pulsa Reservar billete." },
+    { "title": "Paga", "text": "Pulsa Pagar ahora: se abre tu factura en la web. Cuando se confirma el pago, el servidor se crea solo y aparece en el panel." }
+  ]
+}

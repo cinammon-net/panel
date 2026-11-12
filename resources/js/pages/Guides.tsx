@@ -2,6 +2,7 @@ import AppLayout from '@/layouts/app-layout';
 import { Head, usePage } from '@inertiajs/react';
 import { BookOpen, Clock, ExternalLink, Play, PlayCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import STEPS from '@/data/guide-steps.json';
 
 /*
  * Guías en vídeo. Cada vídeo está grabado en el panel real (cuenta "Tutorial") y resume
@@ -101,6 +102,8 @@ const GUIDES: Guide[] = [
 
 const videoOf = (g: Guide) => g.video ?? `/videos/guias/${g.key}.mp4?v=${V}`;
 const posterOf = (g: Guide) => g.poster ?? `/videos/guias/${g.key}.jpg?v=${V}`;
+const stepImg = (g: Guide, n: number) =>
+    g.key === 'buy' ? `https://billing.cinammon.net/discord/comprar-${n}.png?v=1` : `/videos/guias/pasos/${g.key}-${n}.jpg?v=${V}`;
 const threadOf = (g: Guide) => `https://discord.com/channels/${GUILD}/${g.thread}`;
 
 const TAG_COLOR: Record<string, string> = {
@@ -129,6 +132,9 @@ export default function Guides() {
     const [current, setCurrent] = useState<Guide>(initial);
     const player = useRef<HTMLVideoElement>(null);
     const top = useRef<HTMLDivElement>(null);
+
+    const [zoom, setZoom] = useState<string | null>(null);
+    const steps = (STEPS as Record<string, { title: string; text: string }[]>)[current.key] ?? [];
 
     const pick = (g: Guide) => {
         setCurrent(g);
@@ -210,6 +216,32 @@ export default function Guides() {
                     </aside>
                 </section>
 
+                {steps.length > 0 && (
+                    <section className="space-y-4">
+                        <h2 className="font-[Orbitron] text-xl font-bold text-neutral-900 dark:text-white">Paso a paso con fotos</h2>
+                        <ol className="grid gap-5 md:grid-cols-2">
+                            {steps.map((s, i) => (
+                                <li
+                                    key={`${current.key}-${i}`}
+                                    className="flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white dark:border-white/10 dark:bg-neutral-900/60"
+                                >
+                                    <button type="button" onClick={() => setZoom(stepImg(current, i + 1))} className="block bg-neutral-900" title="Ver en grande">
+                                        <img src={stepImg(current, i + 1)} alt={`Paso ${i + 1}: ${s.title}`} loading="lazy" className="aspect-video w-full object-cover" />
+                                    </button>
+                                    <div className="flex gap-3 p-4">
+                                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-pink-500 text-sm font-bold text-white">{i + 1}</span>
+                                        <div className="space-y-1">
+                                            <h3 className="text-sm font-semibold text-neutral-900 dark:text-white">{s.title}</h3>
+                                            <p className="text-sm text-neutral-600 dark:text-neutral-400">{s.text}</p>
+                                        </div>
+                                    </div>
+                                </li>
+                            ))}
+                        </ol>
+                    </section>
+                )}
+
+                <h2 className="font-[Orbitron] text-xl font-bold text-neutral-900 dark:text-white">Todas las guías</h2>
                 <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                     {GUIDES.map((g) => {
                         const active = g.key === current.key;
@@ -250,6 +282,17 @@ export default function Guides() {
                     })}
                 </section>
             </div>
+
+            {zoom && (
+                <button
+                    type="button"
+                    onClick={() => setZoom(null)}
+                    className="fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-black/85 p-4"
+                    aria-label="Cerrar"
+                >
+                    <img src={zoom} alt="" className="max-h-full max-w-full rounded-lg shadow-2xl" />
+                </button>
+            )}
         </AppLayout>
     );
 }

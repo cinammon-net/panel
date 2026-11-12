@@ -403,6 +403,9 @@ const TAG_COLOR = {
 const TAG_ICON = { 'Empieza aquí': 'rocket', Minecraft: 'pickaxe', Bots: 'bot', 'Web y Dominios': 'globe', 'Bases de Datos': 'database', 'Archivos y copias': 'folder' };
 const GUIDE_VIDEO = ['start', 'mc-optimize', 'mc-addons', 'bots', 'domains', 'databases', 'files', 'team'];
 const GUIDE_VIDEO_V = 1;
+// Paso a paso con fotos (las mismas capturas del vídeo, con el elemento resaltado); también lo usa el panel en /guias
+const GUIDE_STEPS = require('./guide-steps.json');
+const GUIDE_STEPS_V = 1;
 const GUIDE_ICON = { buy: 'cart', team: 'team' };
 const readMinutes = (g) => Math.max(1, Math.round(g.body().filter((l) => !/^!\[/.test(l)).join(' ').split(/\s+/).length / 180));
 
@@ -476,6 +479,40 @@ function guidePayload(g, threads) {
     ));
     if (nav.length) comps.push(row(...nav));
     return { flags: V2, components: [container(TAG_COLOR[g.tag] ?? env.accent(), comps)], allowed_mentions: { parse: [] } };
+}
+
+/** Segundo mensaje de la guía: cada paso con su explicación y su foto. */
+function stepsPayload(g) {
+    const { text, sep, container } = env.ui;
+    const steps = GUIDE_STEPS[g.key] || [];
+    const comps = [text(`-# PASO A PASO CON FOTOS\n## ${g.title}\nLo mismo que en el vídeo, para seguirlo a tu ritmo. El número de cada foto marca dónde tienes que mirar o pulsar.`)];
+    steps.forEach((s, i) => {
+        comps.push(sep(1, false));
+        comps.push(text(`### ${i + 1}. ${s.title}\n${s.text}`));
+        comps.push({ type: 12, items: [{ media: { url: `${env.PANEL}/videos/guias/pasos/${g.key}-${i + 1}.jpg?v=${GUIDE_STEPS_V}` }, description: `Paso ${i + 1}: ${s.title}` }] });
+    });
+    comps.push(sep(2));
+    comps.push(text(`-# Vídeo y pasos también en el panel: ${env.PANEL}/guias#${g.key}`));
+    return { flags: V2, components: [container(TAG_COLOR[g.tag] ?? env.accent(), comps)], allowed_mentions: { parse: [] } };
+}
+
+/** Publica o edita el mensaje de pasos dentro del hilo de la guía (se rehace si el hilo cambió). */
+async function upsertSteps(S, g, thread) {
+    if (!GUIDE_VIDEO.includes(g.key) || !GUIDE_STEPS[g.key]) return;
+    S.guideSteps ??= {};
+    const payload = stepsPayload(g);
+    const h = hash(payload);
+    const prev = S.guideSteps[g.key];
+    if (prev && prev.thread === thread && prev.hash === h) return;
+    // En un hilo archivado no se puede editar: se desarchiva antes
+    await env.discord('PATCH', `/channels/${thread}`, { archived: false }).catch(() => {});
+    if (prev && prev.thread === thread) {
+        const ok = await env.discord('PATCH', `/channels/${thread}/messages/${prev.id}`, payload).then(() => true).catch((e) => (e.status === 404 ? false : Promise.reject(e)));
+        if (ok) { S.guideSteps[g.key] = { thread, id: prev.id, hash: h }; env.saveState(); return; }
+    }
+    const m = await env.discord('POST', `/channels/${thread}/messages`, payload);
+    S.guideSteps[g.key] = { thread, id: m.id, hash: h };
+    env.saveState();
 }
 
 /** Índice fijado: una fila por guía con su botón, agrupadas por etiqueta. */
@@ -615,6 +652,7 @@ async function syncGuides() {
                 get: () => S.guides[g.key],
                 set: (v) => { S.guides[g.key] = v; },
             }, { name: g.title, payload: guidePayload(g, threads), tagIds: tagId.get(g.tag) ? [tagId.get(g.tag)] : [], cover: guideCover(g) }, known);
+            if (pass === 1) await upsertSteps(S, g, threads[g.key]).catch((e) => env.log(`[SYNC] pasos de ${g.key}: ${e.message}`));
         } catch (e) {
             env.log(`[SYNC] guía ${g.key}: ${e.message}`);
         }
@@ -756,4 +794,4 @@ async function sync(data) {
     await backfill(data).catch((e) => env.log(`[SYNC] relleno inicial: ${e.message}`));
 }
 
-module.exports = { init, sync, GUIDES, _test: { guidePayload, indexPayload } };
+module.exports = { init, sync, GUIDES, _test: { guidePayload, indexPayload, stepsPayload } };
