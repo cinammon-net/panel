@@ -279,7 +279,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                             'latency_ms' => $latency,
                             'version' => $version,
                             'servers_count' => $node->servers_count,
-                            'running' => \App\Models\Server::where('node_id', $node->id)->where('status', 'online')->count(),
+                            // status es 1/0 (lo sincroniza nodes:check-status con Wings); nunca vale 'online'
+                            'running' => \App\Models\Server::where('node_id', $node->id)->where('status', 1)->count(),
                             'maintenance' => (bool) $node->maintenance_mode,
                         ];
                     })->values();

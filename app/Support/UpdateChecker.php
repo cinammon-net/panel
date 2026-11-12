@@ -22,7 +22,8 @@ class UpdateChecker
 
         if ($fresh) {
             Cache::forget('updates:latest');
-            Cache::forget('updates:wings-current');
+            $statusPath = (string) config('panel.updates.status_path');
+            Cache::forget('updates:wings-current:'.(($statusPath !== '' && is_readable($statusPath)) ? (int) @filemtime($statusPath) : 0));
         }
 
         $latest = Cache::remember('updates:latest', $ttl, fn () => [
@@ -217,7 +218,18 @@ class UpdateChecker
 
     private static function wingsCurrentVersion(): string
     {
-        return (string) Cache::remember('updates:wings-current', now()->addMinutes(5), function () {
+        // La clave cambia cada vez que el updater escribe su estado: tras actualizar Wings
+        // se vuelve a preguntar la versión al momento (antes quedaba la vieja hasta 5 min).
+        $statusPath = (string) config('panel.updates.status_path');
+        $stamp = ($statusPath !== '' && is_readable($statusPath)) ? (int) @filemtime($statusPath) : 0;
+        $key = 'updates:wings-current:'.$stamp;
+
+        $cached = Cache::get($key);
+        if (is_string($cached) && $cached !== '') {
+            return $cached;
+        }
+
+        $version = (function () {
             $node = Node::query()->first();
             if (! $node) {
                 return '';
@@ -235,7 +247,14 @@ class UpdateChecker
             } catch (\Throwable) {
                 return '';
             }
-        });
+        })();
+
+        // Si Wings no respondió (p. ej. reiniciándose), no se guarda: se reintenta en la siguiente petición.
+        if ($version !== '') {
+            Cache::put($key, $version, now()->addMinutes(5));
+        }
+
+        return $version;
     }
 
     /** Versión instalada del billing: BILLING_VERSION en su .env. */
