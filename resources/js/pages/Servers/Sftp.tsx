@@ -99,6 +99,17 @@ export default function SftpPage({ server, sftp, generated_password }: PageProps
                         <CopyRow label="Puerto" value={String(sftp.port)} />
                     </div>
                     <CopyRow label="Usuario" value={sftp.username} />
+                    {/* Dirección completa: pegada en FileZilla o WinSCP ya lleva el protocolo y el puerto correctos */}
+                    <CopyRow label="Dirección completa (pégala en el campo Servidor)" value={`sftp://${sftp.username}@${sftp.host}:${sftp.port}`} />
+                    <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                        <p>
+                            Usa el <strong>puerto {sftp.port}</strong> y el protocolo <strong>SFTP</strong> (no FTP). Si lo dejas vacío, tu programa usa el
+                            22, que no es el de tus archivos: la contraseña fallará y, tras varios intentos, tu conexión queda bloqueada 24 horas. En
+                            FileZilla: Archivo → Gestor de sitios → Protocolo «SFTP», Servidor <strong>{sftp.host}</strong>, Puerto{' '}
+                            <strong>{sftp.port}</strong>.
+                        </p>
+                    </div>
                     {!sftp.has_credentials && !generated_password && (
                         <p className="rounded-lg border border-neutral-300 bg-white px-3 py-2 text-xs text-neutral-600 dark:border-neutral-700 dark:bg-black/40 dark:text-neutral-300">
                             Aún no tienes contraseña para este servidor. Genérala para poder conectarte.
