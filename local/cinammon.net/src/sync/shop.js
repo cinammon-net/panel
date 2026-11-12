@@ -298,7 +298,7 @@ async function component(i) {
 }
 
 /** Mensaje fijo de #planes: cómo comprar, explicado fácil. */
-function post(methods) {
+function post(methods, tutorialUrl) {
     const pay = methods?.length
         ? methods.map((m) => m.label.toLowerCase().replace(/^bizum$/, 'Bizum')).join(', ').replace(/, ([^,]*)$/, ' o $1')
         : 'los métodos de la tienda';
@@ -308,9 +308,10 @@ function post(methods) {
         text(`### 3 pasos\n**1. Elige** qué quieres: un servidor de Minecraft, otro juego, un bot, una web o un rango VIP.\n**2. Ponle nombre** a tu servidor. Lo puedes cambiar después.\n**3. Paga** con ${pay}. Cuando se confirma el pago, tu servidor se crea solo y te aparece en el panel.`),
         sep(),
         text('### Para comprar desde Discord\nPulsa **Comprar desde Discord** o escribe `/comprar`. Lo que eliges solo lo ves tú.\nLa primera vez tienes que vincular tu cuenta con `/vincular` (te explicamos cómo en **Vincular mi cuenta**).'),
+        { type: 12, items: [{ media: { url: `${api.BILLING}/discord/tutorial-comprar.mp4?v=1` }, description: 'Vídeo: cómo comprar desde Discord en 1 minuto' }] },
         text('-# Si pagas varios meses de una vez, te sale más barato al mes. Las ofertas y tu descuento VIP se aplican solos (se usa el mayor, no se suman).'),
         sep(2),
-        row(btn('Comprar desde Discord', 'buy:start', 1), linkBtn('Ir a la tienda web', `${api.BILLING}/store`), btn('Vincular mi cuenta', 'buy:link')),
+        row(btn('Comprar desde Discord', 'buy:start', 1), ...(tutorialUrl ? [linkBtn('Ver el tutorial', tutorialUrl)] : []), linkBtn('Ir a la tienda web', `${api.BILLING}/store`), btn('Vincular mi cuenta', 'buy:link')),
     ])] };
 }
 

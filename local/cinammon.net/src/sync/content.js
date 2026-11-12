@@ -188,6 +188,41 @@ const GUIDES = [
         ],
     },
     {
+        key: 'buy', tag: 'Empieza aquí', title: 'Cómo comprar desde Discord, paso a paso',
+        body: () => {
+            const img = (n) => `![Paso ${n}](${env.BILLING}/discord/comprar-${n}.png?v=1)`;
+            return [
+                `![Vídeo: cómo comprar desde Discord](${env.BILLING}/discord/tutorial-comprar.mp4?v=1)`,
+                'Puedes comprar un servidor o un rango **sin salir de Discord**. Tardas un minuto y todo lo que eliges solo lo ves tú. Si prefieres la web, es lo mismo: ' + `${env.BILLING}/store`,
+                '',
+                '## Paso 1 · Vincula tu cuenta (solo la primera vez)',
+                `El bot tiene que saber quién eres. En el panel (${env.PANEL}) ve a **Ajustes → Perfil → Código para el bot**, copia el código y escribe aquí \`/vincular codigo:\` con ese código. El código caduca en 15 minutos.`,
+                img(1),
+                '## Paso 2 · Abre la compra',
+                'Pulsa **Comprar desde Discord** en el canal de planes, o escribe `/comprar` en cualquier canal. Si ya sabes lo que quieres, escribe parte del nombre (por ejemplo `coal mine`) y elígelo de la lista.',
+                img(2),
+                '## Paso 3 · Elige qué quieres y el plan',
+                'Primero el tipo (Minecraft, bots, web, rangos VIP…) y después el plan. Debajo de cada plan ves su precio al mes, la RAM y el disco.',
+                img(3),
+                '## Paso 4 · Elige cada cuánto pagar',
+                'Mes, trimestre, semestre o año. **Cuanto más tiempo pagas de una vez, menos te cuesta al mes**: al lado de cada opción ves cuánto ahorras.',
+                img(4),
+                '## Paso 5 · Revisa tu billete y reserva',
+                'Te sale un resumen con el plan, el nombre del servidor y el total. El nombre se pone solo, pero puedes cambiarlo con **Cambiar nombre** (y también más tarde en el panel). Si hay una oferta o tienes descuento VIP, ya viene aplicado. Cuando esté bien, pulsa **Reservar billete**.',
+                img(5),
+                '## Paso 6 · Paga',
+                'Pulsa **Pagar ahora**: se abre tu factura en la web y eliges cómo pagar. Cuando se confirma el pago, tu servidor se crea solo y te aparece en el panel. La factura también te llega por correo.',
+                img(6),
+                '## Preguntas rápidas',
+                '- **Me dice que mi Discord no está vinculado:** haz el paso 1.',
+                '- **Me dice que mi cuenta no está activa en la tienda:** entra una vez en la tienda con tu cuenta del panel y vuelve a probar.',
+                '- **¿Y si no pago?** No pasa nada: la factura caduca a los 7 días y no se crea nada.',
+                '- **¿Se suman los descuentos?** No, se aplica el mayor (oferta, VIP o cumpleaños).',
+                '- **¿Algo no va?** Pulsa **Tengo una duda** o abre un ticket si es de un pago.',
+            ];
+        },
+    },
+    {
         key: 'mc-optimize', tag: 'Minecraft', legacy: 'Primeros pasos y optimización en Minecraft (Paper / Purpur)',
         title: 'Minecraft: elegir versión, Java y quitar el lag',
         body: () => [
@@ -396,9 +431,15 @@ function guidePayload(g, threads) {
         text(`-# GUÍA OFICIAL · ${g.tag.toUpperCase()} · ${minutes} min de lectura\n# ${g.title}`),
         sep(2),
     ];
+    // Las líneas "![texto](url)" de una guía se muestran como imagen debajo de su bloque
+    const IMG = /^!\[([^\]]*)\]\((\S+)\)$/;
     blocks.forEach((b, n) => {
         if (n) comps.push(sep(1, false));
-        comps.push(text(b));
+        const lines = b.split('\n');
+        const body = lines.filter((l) => !IMG.test(l.trim())).join('\n').trim();
+        const pics = lines.map((l) => l.trim().match(IMG)).filter(Boolean);
+        if (body) comps.push(text(body));
+        if (pics.length) comps.push({ type: 12, items: pics.slice(0, 10).map((m) => ({ media: { url: m[2] }, description: m[1] || undefined })) });
     });
     comps.push(sep(2));
     comps.push(text(`-# ¿Te has atascado? Pulsa **Tengo una duda** y se abre tu pregunta en <#${L.channels.help}>. Si es de tu cuenta o un pago, abre un ticket.`));

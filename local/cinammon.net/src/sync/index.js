@@ -464,7 +464,8 @@ async function catalogPosts(season) {
     ]))]);
     // Debajo de los planes: cómo comprar, explicado fácil (con los métodos de pago reales)
     const methods = await billing('/api/payment-methods').then((r) => r.methods).catch(() => null);
-    posts.push(['howtobuy', ch.plans, shop.post(methods)]);
+    const tutorial = st.content?.guides?.buy?.thread;
+    posts.push(['howtobuy', ch.plans, shop.post(methods, tutorial ? `https://discord.com/channels/${ctx.guild}/${tutorial}` : null)]);
 
     if (ranks) {
         posts.push(['ranks', ch.ranks, msg(
