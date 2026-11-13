@@ -210,14 +210,14 @@ export default function NewsPaperArticle({
                 {article.picture && (
                     <figure className="space-y-2">
                         <div
-                            className={`overflow-hidden border p-1 ${
-                                isVintage ? 'border-[#c7b9a2] bg-[#ebe2cf]' : 'border-neutral-800 bg-neutral-950'
+                            className={`overflow-hidden rounded-lg border p-1 shadow-2xl ${
+                                isVintage ? 'border-[#c7b9a2] bg-[#ebe2cf]' : 'border-neutral-800 bg-black/60'
                             }`}
                         >
                             <img
                                 src={article.picture}
                                 alt={article.title}
-                                className="w-full h-80 sm:h-[450px] object-cover"
+                                className="w-full max-h-[500px] object-cover object-top rounded"
                             />
                         </div>
                         <figcaption

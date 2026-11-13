@@ -368,14 +368,14 @@ export default function NewsPaper({
                                 {leadStory.picture && (
                                     <figure className="space-y-2">
                                         <div
-                                            className={`overflow-hidden border p-1 ${
-                                                isVintage ? 'border-[#c7b9a2] bg-[#ebe2cf]' : 'border-neutral-800 bg-neutral-950'
+                                            className={`overflow-hidden rounded-lg border p-1 shadow-xl ${
+                                                isVintage ? 'border-[#c7b9a2] bg-[#ebe2cf]' : 'border-neutral-800 bg-black/60'
                                             }`}
                                         >
                                             <img
                                                 src={leadStory.picture}
                                                 alt={leadStory.title}
-                                                className="w-full h-72 sm:h-96 object-cover"
+                                                className="w-full h-72 sm:h-[400px] object-cover object-top rounded"
                                             />
                                         </div>
                                         <figcaption
@@ -468,11 +468,11 @@ export default function NewsPaper({
                                             }`}
                                         >
                                             {story.picture && (
-                                                <div className="h-40 w-full overflow-hidden mb-3 border border-current/20">
+                                                <div className="h-44 w-full overflow-hidden mb-3 border border-current/20 rounded bg-black/40">
                                                     <img
                                                         src={story.picture}
                                                         alt={story.title}
-                                                        className="h-full w-full object-cover"
+                                                        className="h-full w-full object-cover object-top"
                                                     />
                                                 </div>
                                             )}
