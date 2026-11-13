@@ -32,3 +32,5 @@ node_modules/
 
 # Guías (vídeos y capturas): solo en el servidor, nunca en GitHub
 /public/videos/guias/
+/resources/js/data/guide-steps.json
+/local/cinammon.net/src/sync/guide-steps.json

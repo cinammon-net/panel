@@ -1,8 +1,11 @@
-import STEPS from '@/data/guide-steps.json';
 import AppLayout from '@/layouts/app-layout';
 import { Head, usePage } from '@inertiajs/react';
 import { BookOpen, Clock, ExternalLink, Play, PlayCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+
+// Textos del paso a paso: solo existen en el servidor (no se suben a GitHub). Sin el archivo, la página compila sin pasos.
+const STEPS: Record<string, { title: string; text: string }[]> =
+    (Object.values(import.meta.glob('../data/guide-steps.json', { eager: true, import: 'default' }))[0] as Record<string, { title: string; text: string }[]>) ?? {};
 
 /*
  * Guías en vídeo. Cada vídeo está grabado en el panel real (cuenta "Tutorial") y resume
@@ -109,9 +112,9 @@ const GUIDES: Guide[] = [
         tag: 'Comunidad',
         title: 'Dudas de la comunidad y sugerencias',
         text: 'Buscar si tu duda ya está resuelta, preguntar, marcar la respuesta que te sirvió, ayudar a otros y proponer o votar ideas para Cinammon.',
-        duration: '0:59',
+        duration: '1:24',
         thread: '1570605273154846720',
-        v: 2,
+        v: 3,
     },
     {
         key: 'team',
@@ -172,7 +175,7 @@ export default function Guides() {
     const top = useRef<HTMLDivElement>(null);
 
     const [zoom, setZoom] = useState<string | null>(null);
-    const steps = (STEPS as Record<string, { title: string; text: string }[]>)[current.key] ?? [];
+    const steps = STEPS[current.key] ?? [];
 
     const pick = (g: Guide) => {
         setCurrent(g);

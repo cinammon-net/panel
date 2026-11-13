@@ -459,10 +459,12 @@ const TAG_ICON = { 'Empieza aquí': 'rocket', Minecraft: 'pickaxe', Bots: 'bot',
 const GUIDE_VIDEO = ['start', 'mc-optimize', 'mc-addons', 'bots', 'domains', 'databases', 'files', 'sftp-filezilla', 'team', 'dudas', 'amigos'];
 const GUIDE_VIDEO_V = 1;
 // Paso a paso con fotos dentro de cada guía (capturas del vídeo con el elemento resaltado); también lo usa el panel en /guias
-const GUIDE_STEPS = require('./guide-steps.json');
+// Textos del paso a paso: solo en el servidor (no se suben a GitHub)
+let GUIDE_STEPS = {};
+try { GUIDE_STEPS = require('./guide-steps.json'); } catch {}
 const GUIDE_STEPS_V = 1;
 // Guías rehechas: versión propia para que Discord no muestre la foto o el vídeo antiguos de su caché
-const GUIDE_V = { 'sftp-filezilla': 2, amigos: 2, dudas: 2 };
+const GUIDE_V = { 'sftp-filezilla': 2, amigos: 2, dudas: 3 };
 const GUIDE_ICON = { buy: 'cart', team: 'team' };
 const readMinutes = (g) => Math.max(1, Math.round(g.body().filter((l) => !/^!\[/.test(l)).join(' ').split(/\s+/).length / 180));
 
@@ -500,7 +502,8 @@ function detailLines(body) {
 }
 
 /** Guía como tarjeta: cabecera, bloques separados y botones (panel, duda, ticket, anterior/siguiente). */
-function guidePayload(g, threads) {
+function guideParts(g, threads) {
+    const per = 1;
     const { text, sep, row, container } = env.ui;
     const L = env.ctx().layout;
     // Guías con vídeo grabado en el panel real: el vídeo va arriba, con enlace a la sección del panel
@@ -509,8 +512,6 @@ function guidePayload(g, threads) {
         : [];
     // Con pasos: cada paso con su explicación y su foto, y después la guía escrita como «Más detalles»
     const steps = GUIDE_VIDEO.includes(g.key) ? GUIDE_STEPS[g.key] || [] : [];
-    // Muchos pasos no caben en 40 componentes: entonces van de dos en dos (un texto y una galería con sus dos fotos)
-    const per = steps.length > 10 ? 2 : 1;
     const img = (st, n) => `![Paso ${n + 1}: ${st.title}](${env.PANEL}/videos/guias/pasos/${g.key}-${n + 1}.jpg?v=${GUIDE_V[g.key] ?? GUIDE_STEPS_V})`;
     const stepLines = [];
     for (let a = 0; a < steps.length; a += per) {
@@ -552,8 +553,22 @@ function guidePayload(g, threads) {
         { type: 2, style: 2, label: 'Abrir ticket', custom_id: 'ticket:open' },
     ));
     if (nav.length) comps.push(row(...nav));
-    return { flags: V2, components: [container(TAG_COLOR[g.tag] ?? env.accent(), comps)], allowed_mentions: { parse: [] } };
+    const color = TAG_COLOR[g.tag] ?? env.accent();
+    const wrap = (list) => ({ flags: V2, components: [container(color, list)], allowed_mentions: { parse: [] } });
+    // Discord admite 40 componentes por mensaje (la portada suma 1). Si no cabe, la guía sigue en un segundo mensaje
+    // del mismo hilo, cortando antes de un paso: así cada paso conserva su texto y su foto.
+    if (count([container(color, comps)]) + 1 <= 40) return [wrap(comps)];
+    let cut = comps.length;
+    for (let k = 1; k < comps.length; k++) {
+        const isStep = comps[k].type === 10 && /^### Paso \d/.test(comps[k].content || '');
+        if (isStep && count([container(color, comps.slice(0, k))]) + 2 <= 40) cut = k;
+    }
+    const first = comps.slice(0, cut);
+    const firstStep = (comps[cut]?.content || '').match(/^### Paso (\d+)/)?.[1];
+    first.push(text(`-# La guía sigue en el siguiente mensaje${firstStep ? ` (desde el paso ${firstStep})` : ''}.`));
+    return [wrap(first), wrap(comps.slice(cut))];
 }
+const guidePayload = (g, threads) => guideParts(g, threads)[0];
 
 /** Los pasos ya van dentro de la guía: borra el mensaje aparte de «Paso a paso» que se publicó antes. */
 async function removeOldSteps(S, g) {
@@ -670,6 +685,35 @@ async function upsertThread(forum, slot, { name, content, payload, tagIds, cover
     return t.id;
 }
 
+/** Segundo mensaje de una guía larga (justo debajo de la publicación). Se edita en su sitio; si ya no hace falta, se borra. */
+async function syncContinuation(key, threadId, payload) {
+    const S = state();
+    S.guideCont ??= {};
+    const prev = S.guideCont[key];
+    const h = payload ? hash([payload, threadId]) : null;
+    if (prev && prev.hash === h && prev.thread === threadId) return;
+    if (!payload) {
+        if (prev) await env.discord('DELETE', `/channels/${prev.thread}/messages/${prev.id}`).catch(() => {});
+        delete S.guideCont[key];
+        env.saveState();
+        return;
+    }
+    await env.discord('PATCH', `/channels/${threadId}`, { archived: false }).catch(() => {});
+    if (prev && prev.thread === threadId) {
+        try {
+            await env.discord('PATCH', `/channels/${threadId}/messages/${prev.id}`, payload);
+            S.guideCont[key] = { thread: threadId, id: prev.id, hash: h };
+            env.saveState();
+            return;
+        } catch (e) {
+            if (e.status !== 404) throw e;
+        }
+    }
+    const m = await env.discord('POST', `/channels/${threadId}/messages`, payload);
+    S.guideCont[key] = { thread: threadId, id: m.id, hash: h };
+    env.saveState();
+}
+
 async function syncGuides() {
     const L = env.ctx().layout;
     if (!L.channels.guides) return;
@@ -701,12 +745,14 @@ async function syncGuides() {
     for (const pass of [1, 2]) {
     if (pass === 2 && JSON.stringify(threads) === before) break;
     for (const g of PUBLIC_GUIDES) {
+        let parts;
         const known = g.legacy && !S.guides[g.key] ? existing.find((t) => t.name === g.legacy) : null;
         try {
             threads[g.key] = await upsertThread(forum, {
                 get: () => S.guides[g.key],
                 set: (v) => { S.guides[g.key] = v; },
-            }, { name: g.title, payload: guidePayload(g, threads), tagIds: tagId.get(g.tag) ? [tagId.get(g.tag)] : [], cover: guideCover(g) }, known);
+            }, { name: g.title, payload: (parts = guideParts(g, threads))[0], tagIds: tagId.get(g.tag) ? [tagId.get(g.tag)] : [], cover: guideCover(g) }, known);
+            await syncContinuation(g.key, threads[g.key], parts[1]);
             if (pass === 1) await removeOldSteps(S, g).catch((e) => env.log(`[SYNC] pasos de ${g.key}: ${e.message}`));
         } catch (e) {
             env.log(`[SYNC] guía ${g.key}: ${e.message}`);
@@ -756,10 +802,12 @@ async function syncFriendsGuide() {
         env.saveState();
         env.log(`[SYNC] Foro privado de amigos creado (${forum.id}).`);
     }
+    let parts;
     const tid = await upsertThread(forum, {
         get: () => S.pins.friendsGuide,
         set: (v) => { S.pins.friendsGuide = v; },
-    }, { name: g.title, payload: guidePayload(g, {}), tagIds: [], cover: guideCover(g) });
+    }, { name: g.title, payload: (parts = guideParts(g, {}))[0], tagIds: [], cover: guideCover(g) });
+    await syncContinuation(g.key, tid, parts[1]);
     if (S.pins.friendsPinned !== tid) {
         await env.discord('PATCH', `/channels/${tid}`, { flags: 2 }, 'Fijar la guía de amigos').catch(() => {});
         S.pins.friendsPinned = tid;
@@ -895,4 +943,4 @@ async function sync(data) {
     await backfill(data).catch((e) => env.log(`[SYNC] relleno inicial: ${e.message}`));
 }
 
-module.exports = { init, sync, GUIDES, _test: { guidePayload, indexPayload } };
+module.exports = { init, sync, GUIDES, _test: { guidePayload, guideParts, indexPayload } };
