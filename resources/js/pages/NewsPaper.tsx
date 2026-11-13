@@ -166,13 +166,13 @@ export default function NewsPaper({
             >
                 <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2 sm:px-6">
                     <div className="flex items-center gap-4 flex-wrap">
-                        <span className="font-bold text-yellow-600 dark:text-yellow-400">
+                        <span className={`font-bold ${isVintage ? 'text-yellow-700' : 'text-yellow-400'}`}>
                             AÑO II · EDICIÓN Nº {edition.number}
                         </span>
                         <span className="hidden sm:inline">|</span>
                         <span className="capitalize">{edition.date_formatted}</span>
                         <span className="hidden md:inline">|</span>
-                        <span className="hidden md:inline font-sans text-emerald-600 dark:text-emerald-400">
+                        <span className={`hidden md:inline font-sans ${isVintage ? 'text-emerald-700' : 'text-emerald-400'}`}>
                             ● {edition.weather}
                         </span>
                     </div>
@@ -199,7 +199,7 @@ export default function NewsPaper({
                         </a>
                         <a
                             href="https://panel.cinammon.net/dashboard"
-                            className="rounded bg-yellow-600 dark:bg-yellow-500 px-2.5 py-0.5 font-sans font-bold text-black hover:opacity-90 transition text-[11px]"
+                            className="rounded bg-yellow-500 px-2.5 py-0.5 font-sans font-bold text-black hover:opacity-90 transition text-[11px]"
                         >
                             Ir al Panel →
                         </a>
@@ -217,14 +217,14 @@ export default function NewsPaper({
                     <div className="py-2 sm:py-4">
                         <div className="flex items-center justify-center gap-3 mb-2">
                             <span className="h-[1px] w-12 sm:w-24 bg-yellow-600/50"></span>
-                            <span className="font-mono text-[10px] sm:text-xs uppercase tracking-[0.25em] text-yellow-600 dark:text-yellow-400 font-bold">
+                            <span className={`font-mono text-[10px] sm:text-xs uppercase tracking-[0.25em] font-bold ${isVintage ? 'text-yellow-700' : 'text-yellow-400'}`}>
                                 LA VOZ INDEPENDIENTE DE LA INFRAESTRUCTURA & EL GAMING
                             </span>
                             <span className="h-[1px] w-12 sm:w-24 bg-yellow-600/50"></span>
                         </div>
 
                         {/* TÍTULO GIGANTE DE PRENSA */}
-                        <h1 className="font-[Orbitron] text-3xl sm:text-6xl md:text-7xl font-black tracking-tight uppercase text-black dark:text-white drop-shadow-sm">
+                        <h1 className={`font-[Orbitron] text-3xl sm:text-6xl md:text-7xl font-black tracking-tight uppercase drop-shadow-sm ${isVintage ? 'text-[#1c1813]' : 'text-white'}`}>
                             EL DIARIO DE CINAMMON
                         </h1>
 
@@ -236,7 +236,7 @@ export default function NewsPaper({
                     {/* Doble línea inferior de prensa con metadatos */}
                     <div className={`border-t border-b-2 ${isVintage ? 'border-[#332a1e]' : 'border-yellow-500/40'} py-2 flex items-center justify-between text-[11px] font-mono uppercase tracking-wider`}>
                         <span>Precio: {edition.price}</span>
-                        <span className="font-bold text-yellow-700 dark:text-yellow-400">
+                        <span className={`font-bold ${isVintage ? 'text-yellow-700' : 'text-yellow-400'}`}>
                             EDICIÓN DIGITAL VERIFICADA
                         </span>
                         <span>MADRID · SERVIDORES GLOBALES</span>
@@ -316,7 +316,7 @@ export default function NewsPaper({
                     <main className="lg:col-span-8 space-y-8">
                         {leadStory ? (
                             <article className="space-y-4">
-                                <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-yellow-600 dark:text-yellow-400">
+                                <div className={`flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider ${isVintage ? 'text-yellow-700' : 'text-yellow-400'}`}>
                                     <span className="inline-flex items-center gap-1 rounded border border-current px-2 py-0.5 text-[10px]">
                                         <Sparkles className="h-2.5 w-2.5" />
                                         {formatCategoryName(leadStory.category)}
@@ -329,7 +329,7 @@ export default function NewsPaper({
                                 </div>
 
                                 {/* GRAN TITULAR EDITORIAL */}
-                                <h2 className="font-[Orbitron,serif] text-2xl sm:text-4xl md:text-5xl font-black leading-[1.1] tracking-tight uppercase hover:text-yellow-600 dark:hover:text-yellow-400 transition cursor-pointer">
+                                <h2 className={`font-[Orbitron,serif] text-2xl sm:text-4xl md:text-5xl font-black leading-[1.1] tracking-tight uppercase transition cursor-pointer ${isVintage ? 'text-[#1c1813] hover:text-yellow-700' : 'text-white hover:text-yellow-400'}`}>
                                     <Link href={`/articulo/${leadStory.id}`}>
                                         {leadStory.title}
                                     </Link>
@@ -395,7 +395,7 @@ export default function NewsPaper({
                                     }`}
                                 >
                                     {/* Párrafo con Drop Cap en la primera letra */}
-                                    <p className="first-letter:float-left first-letter:text-5xl sm:first-letter:text-6xl first-letter:pr-3 first-letter:font-black first-letter:font-[Orbitron] first-letter:text-yellow-600 dark:first-letter:text-yellow-400 first-letter:leading-none">
+                                    <p className={`first-letter:float-left first-letter:text-5xl sm:first-letter:text-6xl first-letter:pr-3 first-letter:font-black first-letter:font-[Orbitron] ${isVintage ? 'first-letter:text-yellow-700' : 'first-letter:text-yellow-400'} first-letter:leading-none`}>
                                         {leadStory.content.split('\n')[0]}
                                     </p>
 
@@ -416,7 +416,7 @@ export default function NewsPaper({
                                     <div className="flex items-center gap-3">
                                         <Link
                                             href={`/articulo/${leadStory.id}`}
-                                            className="inline-flex items-center gap-1.5 font-bold text-yellow-700 dark:text-yellow-400 hover:underline text-sm"
+                                            className={`inline-flex items-center gap-1.5 font-bold hover:underline text-sm ${isVintage ? 'text-yellow-700' : 'text-yellow-400'}`}
                                         >
                                             Continuar leyendo la noticia completa <ArrowRight className="h-4 w-4" />
                                         </Link>
@@ -454,7 +454,7 @@ export default function NewsPaper({
                         {/* SEGUNDA PLANA — CRÓNICAS SECUNDARIAS (COLUMNAS DE 2) */}
                         {secondaryStories.length > 0 && (
                             <div className={`pt-8 border-t-2 ${isVintage ? 'border-[#332a1e]' : 'border-neutral-800'}`}>
-                                <h3 className="font-[Orbitron] text-xs uppercase tracking-[0.2em] font-black text-yellow-600 dark:text-yellow-400 mb-6 flex items-center gap-2">
+                                <h3 className={`font-[Orbitron] text-xs uppercase tracking-[0.2em] font-black mb-6 flex items-center gap-2 ${isVintage ? 'text-yellow-700' : 'text-yellow-400'}`}>
                                     <Newspaper className="h-4 w-4" />
                                     INFORMACIONES DE SEGUNDA PLANA
                                 </h3>
@@ -478,7 +478,7 @@ export default function NewsPaper({
                                             )}
 
                                             <div>
-                                                <span className="font-mono text-[10px] uppercase font-bold text-yellow-600 dark:text-yellow-400">
+                                                <span className={`font-mono text-[10px] uppercase font-bold ${isVintage ? 'text-yellow-700' : 'text-yellow-400'}`}>
                                                     {formatCategoryName(story.category)}
                                                 </span>
 
@@ -488,7 +488,7 @@ export default function NewsPaper({
                                                     </Link>
                                                 </h4>
 
-                                                <p className="font-serif text-xs leading-relaxed mt-2 line-clamp-3 text-neutral-600 dark:text-neutral-400">
+                                                <p className={`font-serif text-xs leading-relaxed mt-2 line-clamp-3 ${isVintage ? 'text-neutral-700' : 'text-neutral-400'}`}>
                                                     {story.summary || story.content}
                                                 </p>
                                             </div>
@@ -502,7 +502,7 @@ export default function NewsPaper({
                                                 </span>
                                                 <Link
                                                     href={`/articulo/${story.id}`}
-                                                    className="font-bold text-yellow-600 dark:text-yellow-400 hover:underline"
+                                                    className={`font-bold hover:underline ${isVintage ? 'text-yellow-700' : 'text-yellow-400'}`}
                                                 >
                                                     Leer artículo →
                                                 </Link>
@@ -522,7 +522,7 @@ export default function NewsPaper({
                                 isVintage ? 'border-[#cfc2aa] bg-[#ede5d3]' : 'border-neutral-800 bg-neutral-950/60'
                             }`}
                         >
-                            <h3 className="font-[Orbitron] text-xs font-black uppercase tracking-wider text-yellow-600 dark:text-yellow-400 pb-3 border-b border-current/20 flex items-center justify-between">
+                            <h3 className={`font-[Orbitron] text-xs font-black uppercase tracking-wider pb-3 border-b border-current/20 flex items-center justify-between ${isVintage ? 'text-yellow-700' : 'text-yellow-400'}`}>
                                 <span>LO MÁS LEÍDO</span>
                                 <TrendingUp className="h-4 w-4" />
                             </h3>
@@ -530,14 +530,14 @@ export default function NewsPaper({
                             <div className="divide-y divide-current/10">
                                 {allStories.slice(0, 5).map((post, index) => (
                                     <div key={post.id} className="py-3 flex items-start gap-3">
-                                        <span className="font-[Orbitron] text-2xl font-black text-yellow-600/70 dark:text-yellow-500/70 shrink-0 leading-none">
+                                        <span className={`font-[Orbitron] text-2xl font-black shrink-0 leading-none ${isVintage ? 'text-yellow-700/70' : 'text-yellow-400/70'}`}>
                                             0{index + 1}
                                         </span>
                                         <div className="min-w-0">
                                             <span className="text-[10px] font-mono uppercase text-neutral-500">
                                                 {formatCategoryName(post.category)}
                                             </span>
-                                            <h4 className="font-serif font-bold text-xs leading-snug line-clamp-2 hover:text-yellow-600 dark:hover:text-yellow-400 transition cursor-pointer">
+                                            <h4 className="font-serif font-bold text-xs leading-snug line-clamp-2 hover:text-yellow-500 transition cursor-pointer">
                                                 <Link href={`/articulo/${post.id}`}>
                                                     {post.title}
                                                 </Link>
@@ -557,7 +557,7 @@ export default function NewsPaper({
                                 isVintage ? 'border-[#bcae96] bg-[#e4dac5]' : 'border-yellow-500/30 bg-yellow-950/10'
                             }`}
                         >
-                            <h4 className="font-mono text-[10px] font-bold uppercase tracking-widest text-yellow-700 dark:text-yellow-400 mb-2">
+                            <h4 className={`font-mono text-[10px] font-bold uppercase tracking-widest mb-2 ${isVintage ? 'text-yellow-700' : 'text-yellow-400'}`}>
                                 EDITORIAL
                             </h4>
                             <p className="font-serif italic text-sm leading-relaxed text-justify">
@@ -573,9 +573,9 @@ export default function NewsPaper({
                             <div
                                 className={`p-5 border ${
                                     isVintage ? 'border-[#cfc2aa] bg-[#ede5d3]' : 'border-neutral-800 bg-neutral-950/60'
-                                }`}
+                                    }`}
                             >
-                                <h3 className="font-[Orbitron] text-xs font-black uppercase tracking-wider text-yellow-600 dark:text-yellow-400 pb-3 border-b border-current/20 flex items-center justify-between">
+                                <h3 className={`font-[Orbitron] text-xs font-black uppercase tracking-wider pb-3 border-b border-current/20 flex items-center justify-between ${isVintage ? 'text-yellow-700' : 'text-yellow-400'}`}>
                                     <span>CARTAS AL DIRECTOR</span>
                                     <MessageSquare className="h-4 w-4" />
                                 </h3>
@@ -591,7 +591,7 @@ export default function NewsPaper({
                                                     <Star key={s} className="h-3 w-3 fill-amber-500" />
                                                 ))}
                                             </div>
-                                            <p className="italic text-neutral-600 dark:text-neutral-300">
+                                            <p className={`italic ${isVintage ? 'text-neutral-700' : 'text-neutral-300'}`}>
                                                 «{letter.comment}»
                                             </p>
                                             <footer className="font-mono text-[10px] text-neutral-500">
@@ -609,21 +609,21 @@ export default function NewsPaper({
                                 isVintage ? 'border-[#cfc2aa] bg-[#ede5d3]' : 'border-neutral-800 bg-neutral-950/60'
                             }`}
                         >
-                            <h3 className="font-[Orbitron] text-xs font-black uppercase tracking-wider text-yellow-600 dark:text-yellow-400 pb-3 border-b border-current/20">
+                            <h3 className={`font-[Orbitron] text-xs font-black uppercase tracking-wider pb-3 border-b border-current/20 ${isVintage ? 'text-yellow-700' : 'text-yellow-400'}`}>
                                 ANUNCIOS POR PALABRAS & CLASIFICADOS
                             </h3>
 
                             <div className="space-y-3 mt-3 divide-y divide-current/10">
                                 {classifieds.map((ad, i) => (
                                     <div key={i} className="pt-2.5 text-xs font-sans">
-                                        <div className="flex items-center justify-between font-mono text-[10px] text-yellow-700 dark:text-yellow-400 font-bold mb-0.5">
+                                        <div className={`flex items-center justify-between font-mono text-[10px] font-bold mb-0.5 ${isVintage ? 'text-yellow-700' : 'text-yellow-400'}`}>
                                             <span>[{ad.section}]</span>
-                                            <span className="rounded bg-black/10 dark:bg-yellow-500/10 px-1.5 py-0.2">
+                                            <span className={`rounded px-1.5 py-0.2 ${isVintage ? 'bg-black/10' : 'bg-yellow-500/10'}`}>
                                                 {ad.tag}
                                             </span>
                                         </div>
                                         <strong className="font-serif block text-sm">{ad.title}</strong>
-                                        <p className="text-neutral-600 dark:text-neutral-400 text-[11px] leading-tight mt-0.5">
+                                        <p className={`text-[11px] leading-tight mt-0.5 ${isVintage ? 'text-neutral-700' : 'text-neutral-400'}`}>
                                             {ad.text}
                                         </p>
                                     </div>

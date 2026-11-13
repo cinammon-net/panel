@@ -152,7 +152,7 @@ export default function NewsPaperArticle({
             <main className="mx-auto max-w-4xl px-4 sm:px-6 py-8 sm:py-12 space-y-8">
                 {/* CABECERA DE NOTICIA */}
                 <header className="space-y-4">
-                    <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider text-yellow-600 dark:text-yellow-400">
+                    <div className={`flex items-center gap-2 text-xs font-mono font-bold uppercase tracking-wider ${isVintage ? 'text-yellow-700' : 'text-yellow-400'}`}>
                         <span className="border-b-2 border-current pb-0.5">
                             {article.category || 'ACTUALIDAD'}
                         </span>
@@ -161,7 +161,7 @@ export default function NewsPaperArticle({
                     </div>
 
                     {/* TITULAR PRINCIPAL */}
-                    <h1 className="font-[Orbitron,serif] text-3xl sm:text-5xl font-black leading-[1.1] tracking-tight uppercase text-black dark:text-white">
+                    <h1 className={`font-[Orbitron,serif] text-3xl sm:text-5xl font-black leading-[1.1] tracking-tight uppercase ${isVintage ? 'text-[#1c1813]' : 'text-white'}`}>
                         {article.title}
                     </h1>
 
@@ -237,7 +237,7 @@ export default function NewsPaperArticle({
                     }`}
                 >
                     {/* Primer párrafo con Drop Cap (Letra Capitular grande de prensa) */}
-                    <p className="first-letter:float-left first-letter:text-6xl first-letter:pr-3.5 first-letter:font-black first-letter:font-[Orbitron] first-letter:text-yellow-600 dark:first-letter:text-yellow-400 first-letter:leading-none">
+                    <p className={`first-letter:float-left first-letter:text-6xl first-letter:pr-3.5 first-letter:font-black first-letter:font-[Orbitron] ${isVintage ? 'first-letter:text-yellow-700' : 'first-letter:text-yellow-400'} first-letter:leading-none`}>
                         {article.content.split('\n')[0]}
                     </p>
 
@@ -279,7 +279,7 @@ export default function NewsPaperArticle({
                     <div className="flex items-center gap-3 text-neutral-500 font-mono text-xs">
                         <span>{article.views_count || 0} lecturas</span>
                         <span>·</span>
-                        <Link href="/" className="text-yellow-600 dark:text-yellow-400 font-bold hover:underline">
+                        <Link href="/" className={`font-bold hover:underline ${isVintage ? 'text-yellow-700' : 'text-yellow-400'}`}>
                             Volver al periódico →
                         </Link>
                     </div>
@@ -292,7 +292,7 @@ export default function NewsPaperArticle({
                             isVintage ? 'border-[#332a1e]' : 'border-neutral-800'
                         }`}
                     >
-                        <h3 className="font-[Orbitron] text-xs font-black uppercase tracking-[0.2em] text-yellow-600 dark:text-yellow-400">
+                        <h3 className={`font-[Orbitron] text-xs font-black uppercase tracking-[0.2em] ${isVintage ? 'text-yellow-700' : 'text-yellow-400'}`}>
                             MÁS NOTICIAS DE LA EDICIÓN DE HOY
                         </h3>
 
@@ -313,7 +313,7 @@ export default function NewsPaperArticle({
                                         />
                                     )}
                                     <div className="min-w-0">
-                                        <span className="text-[10px] font-mono uppercase text-yellow-600 dark:text-yellow-400 font-bold">
+                                        <span className={`text-[10px] font-mono uppercase font-bold ${isVintage ? 'text-yellow-700' : 'text-yellow-400'}`}>
                                             {item.category || 'ACTUALIDAD'}
                                         </span>
                                         <h4 className="font-serif font-bold text-xs line-clamp-2 group-hover:text-yellow-500 transition">
