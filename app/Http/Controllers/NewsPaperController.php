@@ -52,8 +52,9 @@ class NewsPaperController extends Controller
         $briefs = $posts->filter(fn ($p) => $leadStory && $p['id'] !== $leadStory['id'] && !$secondaryStories->contains('id', $p['id']))->take(5)->values();
 
         // Testimonios de la comunidad como "Cartas al Director"
-        $lettersToEditor = Review::approved()
-            ->with('user:id,name')
+        $lettersToEditor = Review::with('user:id,name')
+            ->whereNotNull('comment')
+            ->where('comment', '!=', '')
             ->latest()
             ->take(3)
             ->get()
