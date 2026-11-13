@@ -137,6 +137,7 @@ export default function NewsPaper({
             mantenimiento: 'Infraestructura',
             evento: 'Evento & Comunidad',
             comunidad: 'Crónica Social',
+            opinion: 'Tribuna & Opinión',
             general: 'Información General',
         };
         return map[cat] || cat.toUpperCase();
@@ -277,11 +278,12 @@ export default function NewsPaper({
                 >
                     {[
                         { id: 'todos', label: 'Portada' },
+                        { id: 'mantenimiento', label: 'Infraestructura' },
                         { id: 'actualizacion', label: 'Actualizaciones' },
                         { id: 'anuncio', label: 'Comunicados' },
-                        { id: 'mantenimiento', label: 'Infraestructura' },
-                        { id: 'evento', label: 'Eventos & Promos' },
                         { id: 'comunidad', label: 'Comunidad' },
+                        { id: 'evento', label: 'Eventos & Torneos' },
+                        { id: 'opinion', label: 'Opinión & Editorial' },
                     ].map((cat) => (
                         <button
                             key={cat.id}

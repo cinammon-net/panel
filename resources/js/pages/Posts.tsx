@@ -56,6 +56,11 @@ const CATEGORY_MAP: Record<string, { label: string; badgeClass: string; color: s
         badgeClass: 'border-cyan-500/40 bg-cyan-500/10 text-cyan-300',
         color: 'cyan',
     },
+    opinion: {
+        label: 'Opinión & Editorial',
+        badgeClass: 'border-yellow-500/40 bg-yellow-500/10 text-yellow-300',
+        color: 'yellow',
+    },
     general: {
         label: 'General',
         badgeClass: 'border-yellow-500/40 bg-yellow-500/10 text-yellow-300',

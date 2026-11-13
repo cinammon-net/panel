@@ -34,6 +34,7 @@ const CATEGORIES = [
     { id: 'mantenimiento', label: 'Mantenimiento', color: 'orange' },
     { id: 'evento', label: 'Evento & Promo', color: 'purple' },
     { id: 'comunidad', label: 'Comunidad', color: 'cyan' },
+    { id: 'opinion', label: 'Opinión & Editorial', color: 'yellow' },
 ];
 
 export default function PostFormModal({ isOpen, closeModal, post }: Props) {

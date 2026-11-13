@@ -65,13 +65,14 @@ class NewsPaperController extends Controller
                 'date' => $r->created_at?->diffForHumans(),
             ]);
 
-        // Teletipo de última hora (Ticker)
-        $breakingNews = [
-            'DESPLIEGUE GRATIS: Consigue tu propio servidor con monedas en 1 clic.',
-            'INFRAESTRUCTURA: Nodos Wings operando al 100% con latencia ultra baja.',
-            'BLACK FRIDAY: -30% en planes Premium de alto rendimiento.',
-            'COMUNIDAD: Sincronización oficial de Discord activa 24/7.',
-        ];
+        // Teletipo de última hora (Ticker) dinámico con los titulares más recientes
+        $postHeadlines = $posts->take(4)->pluck('title')->map(fn ($t) => 'ÚLTIMA HORA: ' . $t)->all();
+        $breakingNews = array_merge($postHeadlines, [
+            'INFRAESTRUCTURA: Troncal de 40 Gbps activa en Madrid y Frankfurt con latencia ultrabaja.',
+            'COMUNIDAD: Despliegue de servidores gratuitos con monedas disponible las 24 horas.',
+            'BLACK FRIDAY: -30% en planes Premium de alto rendimiento con código promocional activo.',
+            'SEGURIDAD: Filtrado autónomo Anycast operando al 100% sin pérdida de paquetes.',
+        ]);
 
         // Anuncios por palabras / Clasificados de época
         $classifieds = [
