@@ -43,7 +43,13 @@ class WelcomeController extends Controller
 
         $galleryImages = $ordered->concat($remaining)
             ->take(10)
-            ->map(fn ($file) => Storage::url($file) . '?v=' . Storage::disk('public')->lastModified($file))
+            ->map(function ($file) {
+                $disk = Storage::disk('public');
+                $fullPath = $disk->path($file);
+                $hash = file_exists($fullPath) ? substr(md5_file($fullPath), 0, 8) : '0';
+                $mtime = $disk->lastModified($file);
+                return Storage::url($file) . '?v=' . $mtime . '_' . $hash;
+            })
             ->values()
             ->all();
 
