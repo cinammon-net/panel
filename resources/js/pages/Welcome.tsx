@@ -217,12 +217,30 @@ export default function WelcomePanel() {
                     <Link href={route('home')} data-aos="fade-right">
                         <img src={cinLogo()} alt="Cinammon Logo" className="h-8 shrink-0 transition hover:opacity-80 sm:h-12" draggable={false} />
                     </Link>
-                    <nav className="flex shrink-0 gap-2 sm:gap-3" data-aos="fade-left">
+                    <nav className="flex shrink-0 items-center gap-2 sm:gap-3" data-aos="fade-left">
                         <a
                             href="#planes"
-                            className="hidden items-center rounded-md border border-amber-400/60 px-4 py-2 font-semibold text-amber-300 transition hover:bg-amber-400 hover:text-black sm:flex"
+                            className="hidden items-center rounded-md border border-amber-400/60 bg-amber-400/10 px-3.5 py-1.5 text-xs font-semibold text-amber-300 transition hover:bg-amber-400 hover:text-black md:flex"
                         >
                             Planes
+                        </a>
+                        <a
+                            href="#galeria"
+                            className="hidden items-center rounded-md border border-pink-500/60 bg-pink-500/10 px-3.5 py-1.5 text-xs font-semibold text-pink-300 transition hover:bg-pink-500 hover:text-white md:flex"
+                        >
+                            Galería
+                        </a>
+                        <a
+                            href="#testimonios"
+                            className="hidden items-center rounded-md border border-white/20 bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-neutral-300 transition hover:bg-white/10 hover:text-white lg:flex"
+                        >
+                            Opiniones
+                        </a>
+                        <a
+                            href="#noticias"
+                            className="hidden items-center rounded-md border border-white/20 bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-neutral-300 transition hover:bg-white/10 hover:text-white lg:flex"
+                        >
+                            Noticias
                         </a>
                         {auth?.user ? (
                             <a
@@ -434,7 +452,7 @@ export default function WelcomePanel() {
 
                 {/* SECCIÓN DESCRIPCIÓN */}
                 <section
-                    id="seccion-siguiente"
+                    id="caracteristicas"
                     className="relative z-10 flex flex-col items-center justify-center gap-10 px-6 py-20 text-center text-white sm:px-10"
                 >
                     <h1 className="mb-6 text-3xl font-bold text-pink-400 sm:text-4xl" data-aos="fade-up">
@@ -483,8 +501,194 @@ export default function WelcomePanel() {
                     </div>
                 </section>
 
-                {/* SECCIÓN DE POSTS */}
-                <section className="relative z-10 w-full px-4 py-24 sm:px-6 lg:px-8">
+                {/* 1. SECCIÓN GALERÍA (Muestra el producto real inmediatamente tras las características) */}
+                <section id="galeria" className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
+                    <div className="space-y-3" data-aos="fade-up">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-pink-500/30 bg-pink-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-pink-300 backdrop-blur-md">
+                            <Images className="h-4 w-4 shrink-0 text-pink-400" aria-hidden />
+                            <span>Capturas en vivo {seasonMeta?.season_name ? `· Ambientación ${seasonMeta.season_name}` : '· Infraestructura en tiempo real'}</span>
+                        </div>
+                        <h2 className="flex items-center justify-center gap-3 font-orbitron text-3xl font-extrabold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-pink-300 via-fuchsia-400 to-purple-400 sm:text-4xl lg:text-5xl">
+                            Galería de Cinammon
+                        </h2>
+                        <p className="mx-auto max-w-2xl text-xs sm:text-sm text-neutral-300">
+                            Explora las vistas reales de nuestro panel de control para servidores, nodos, bases de datos y monitoreo en tiempo real, actualizadas con la ambientación estacional.
+                        </p>
+                    </div>
+
+                    {/* Muestra las imágenes en una cuadrícula */}
+                    <div className="grid w-full max-w-6xl grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+                        {images.map((imageUrl, index) => {
+                            const title = getImageTitle(imageUrl, index);
+                            return (
+                                <div
+                                    key={index}
+                                    onClick={() => openModal(imageUrl)}
+                                    className="group cursor-pointer overflow-hidden rounded-xl border border-pink-500/30 bg-neutral-950/95 shadow-[0_10px_30px_rgba(0,0,0,0.6)] transition-all duration-300 hover:-translate-y-1 hover:border-pink-500/70 hover:shadow-[0_0_25px_rgba(236,72,153,0.25)]"
+                                    data-aos="zoom-in"
+                                    data-aos-delay={(index % 3) * 80}
+                                >
+                                    <div className="flex items-center justify-between border-b border-white/10 bg-neutral-900/90 px-4 py-2.5 text-xs">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="h-2.5 w-2.5 rounded-full bg-rose-500/80" />
+                                            <span className="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
+                                            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/80" />
+                                        </div>
+                                        <span className="font-mono text-xs font-medium tracking-wide text-pink-300 truncate max-w-[180px] sm:max-w-[220px]">{title}</span>
+                                        <span className="text-[11px] text-neutral-400 transition group-hover:text-pink-300">Ampliar ↗</span>
+                                    </div>
+                                    <div className="aspect-[16/10] w-full overflow-hidden bg-black">
+                                        <img
+                                            src={imageUrl}
+                                            alt={`Cinammon - ${title}`}
+                                            className="h-full w-full object-cover object-left-top transition-transform duration-500 group-hover:scale-[1.03]"
+                                            loading="lazy"
+                                        />
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </section>
+
+                {/* 2. SECCIÓN ESTADÍSTICAS (Validación de infraestructura y volumen) */}
+                <section id="estadisticas" className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
+                    <h2 className="flex items-center justify-center gap-3 text-3xl font-bold text-pink-400 sm:text-4xl" data-aos="fade-up">
+                        <BarChart3 className="h-7 w-7 shrink-0 sm:h-9 sm:w-9" aria-hidden /> Nuestras estadísticas
+                    </h2>
+                    <div className="grid max-w-4xl grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-4">
+                        <div className="rounded-lg bg-black/60 p-6 shadow-md backdrop-blur-md" data-aos="fade-up" data-aos-delay="100">
+                            <p className="text-3xl font-extrabold text-fuchsia-400">{stats?.users ?? 0}</p>
+                            <p className="text-sm text-pink-100">Usuarios registrados</p>
+                        </div>
+                        <div className="rounded-lg bg-black/60 p-6 shadow-md backdrop-blur-md" data-aos="fade-up" data-aos-delay="200">
+                            <p className="text-3xl font-extrabold text-fuchsia-400">{stats?.nodes ?? 1}</p>
+                            <p className="text-sm text-pink-100">Nodos activos</p>
+                        </div>
+                        <div className="rounded-lg bg-black/60 p-6 shadow-md backdrop-blur-md" data-aos="fade-up" data-aos-delay="300">
+                            <p className="text-3xl font-extrabold text-fuchsia-400">{stats?.servers ?? 0}</p>
+                            <p className="text-sm text-pink-100">Servidores activos</p>
+                        </div>
+                        <div className="rounded-lg bg-black/60 p-6 shadow-md backdrop-blur-md" data-aos="fade-up" data-aos-delay="400">
+                            <p className="text-3xl font-extrabold text-fuchsia-400">{stats?.eggs ?? 0}</p>
+                            <p className="text-sm text-pink-100">Eggs disponibles</p>
+                        </div>
+                    </div>
+                </section>
+
+                {/* 3. SECCIÓN TESTIMONIOS (Confianza social y opiniones de clientes) */}
+                <section id="testimonios" className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
+                    <h2 className="flex items-center justify-center gap-3 text-2xl font-bold text-pink-400 sm:text-4xl" data-aos="fade-up">
+                        <MessageSquareQuote className="h-7 w-7 shrink-0 sm:h-9 sm:w-9" aria-hidden /> Testimonios de nuestros usuarios
+                    </h2>
+
+                    <div
+                        className={`flex w-full items-center justify-center rounded-lg p-6 text-pink-500 ${
+                            reviews && reviews.length === 0 ? '' : 'gap-6'
+                        }`}
+                        style={{ width: '100%' }}
+                    >
+                        {reviews && reviews.length > 0 ? (
+                            reviews.map((review, i) => (
+                                <div
+                                    key={i}
+                                    className={`scroll-snap-align-start flex-shrink-0 rounded-lg border border-pink-600 bg-transparent p-6 shadow-md ${
+                                        reviews.length === 1 ? 'mx-auto w-full max-w-md' : 'w-full sm:w-[48%]'
+                                    }`}
+                                    data-aos="fade-up"
+                                    data-aos-delay={i * 50}
+                                >
+                                    <p className="text-lg font-semibold text-pink-600">"{review.comment}"</p>
+                                    <p className="font-size-16 mt-2 text-3xl text-yellow-600">
+                                        {'★'.repeat(review.rating)} {'☆'.repeat(5 - review.rating)}
+                                    </p>
+                                    <p className="mt-2 flex items-center justify-center gap-2 text-sm font-semibold text-pink-500">
+                                        <UserAvatar name={review.user.name} src={review.user.avatar_url} size={22} />
+                                        {review.user.name}
+                                    </p>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="flex w-full items-center justify-center rounded-lg p-6 text-pink-500">No hay reseñas disponibles.</div>
+                        )}
+                    </div>
+
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="mt-6 inline-block rounded-md border border-pink-500 px-5 py-2 font-semibold text-pink-300 transition hover:bg-pink-500 hover:text-black"
+                    >
+                        Deja tu reseña
+                    </button>
+                </section>
+
+                {/* 4. SECCIÓN COMUNIDAD DE DISCORD (Soporte directo y participación) */}
+                {discord?.url && (
+                    <section id="discord" className="relative z-10 px-6 py-20 text-white sm:px-10">
+                        <div
+                            className="mx-auto grid max-w-6xl items-center gap-10 overflow-hidden rounded-2xl border border-pink-500/40 bg-gradient-to-br from-pink-500/15 via-black to-fuchsia-600/10 p-8 shadow-[0_0_40px_rgba(236,72,153,0.2)] sm:p-12 lg:grid-cols-[1.2fr_1fr]"
+                            data-aos="fade-up"
+                        >
+                            <div className="text-center lg:text-left">
+                                <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-pink-500/50 bg-pink-500/15 px-3 py-1 text-xs font-bold uppercase tracking-widest text-pink-200">
+                                    <BrandIcon provider="discord" className="h-4 w-4 text-pink-300" />
+                                    Comunidad
+                                </p>
+                                <h2 className="text-2xl font-bold sm:text-4xl">
+                                    Únete a nuestro <span className="text-pink-400">Discord</span>
+                                </h2>
+                                <p className="mt-4 text-sm text-neutral-300 sm:text-base">
+                                    Soporte de tú a tú, anuncios y ofertas antes que nadie, y tu cuenta del panel conectada: tus servidores, monedas y tickets también desde Discord.
+                                </p>
+                                <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row lg:justify-start">
+                                    <a
+                                        href={discord.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-3 rounded-xl bg-gradient-to-r from-pink-500 to-fuchsia-600 px-6 py-3 text-sm font-bold text-white shadow-[0_0_20px_rgba(236,72,153,0.35)] transition hover:scale-105 hover:from-pink-600 hover:to-fuchsia-700"
+                                    >
+                                        <BrandIcon provider="discord" className="h-5 w-5" />
+                                        Unirme al Discord
+                                    </a>
+                                    {!!discord.members && (
+                                        <div className="flex items-center gap-5 text-sm">
+                                            <span className="text-neutral-300">
+                                                <strong className="text-white">{discord.members.toLocaleString('es-ES')}</strong> miembros
+                                            </span>
+                                            {!!discord.online && (
+                                                <span className="flex items-center gap-2 text-neutral-300">
+                                                    <span className="relative flex h-2.5 w-2.5">
+                                                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                                                        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
+                                                    </span>
+                                                    <strong className="text-white">{discord.online.toLocaleString('es-ES')}</strong> conectados
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <ul className="grid gap-3 text-left text-sm">
+                                {[
+                                    { icon: LifeBuoy, title: 'Soporte directo', text: 'Abre un ticket y te responde el equipo en el mismo hilo.' },
+                                    { icon: Megaphone, title: 'Anuncios y ofertas', text: 'Novedades, mantenimientos y descuentos en cuanto salen.' },
+                                    { icon: Bot, title: 'Tu panel en el bot', text: 'Enciende servidores, mira tus monedas y facturas con comandos.' },
+                                    { icon: Ticket, title: 'Roles y rangos', text: 'Vincula tu cuenta y recibe tu rango VIP y tus insignias.' },
+                                ].map(({ icon: Icon, title, text }) => (
+                                    <li key={title} className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/40 p-4 transition hover:border-pink-500/40">
+                                        <Icon className="mt-0.5 h-5 w-5 shrink-0 text-pink-400" aria-hidden />
+                                        <div>
+                                            <p className="font-bold text-white">{title}</p>
+                                            <p className="mt-0.5 text-xs text-neutral-400">{text}</p>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </section>
+                )}
+
+                {/* 5. SECCIÓN DE POSTS (Noticias, comunicados y crónicas técnicas de El Diario) */}
+                <section id="noticias" className="relative z-10 w-full px-4 py-24 sm:px-6 lg:px-8">
                     <div className="mx-auto max-w-7xl">
                         {/* Cabecera de la sección */}
                         <div className="mb-12 flex flex-col items-center text-center" data-aos="fade-up">
@@ -602,192 +806,6 @@ export default function WelcomePanel() {
                             </a>
                         </div>
                     </div>
-                </section>
-
-                {/* SECCIÓN ESTADÍSTICAS */}
-                <section className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
-                    <h2 className="flex items-center justify-center gap-3 text-3xl font-bold text-pink-400 sm:text-4xl" data-aos="fade-up">
-                        <BarChart3 className="h-7 w-7 shrink-0 sm:h-9 sm:w-9" aria-hidden /> Nuestras estadísticas
-                    </h2>
-                    <div className="grid max-w-4xl grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-4">
-                        <div className="rounded-lg bg-black/60 p-6 shadow-md backdrop-blur-md" data-aos="fade-up" data-aos-delay="100">
-                            <p className="text-3xl font-extrabold text-fuchsia-400">{stats?.users ?? 0}</p>
-                            <p className="text-sm text-pink-100">Usuarios registrados</p>
-                        </div>
-                        <div className="rounded-lg bg-black/60 p-6 shadow-md backdrop-blur-md" data-aos="fade-up" data-aos-delay="200">
-                            <p className="text-3xl font-extrabold text-fuchsia-400">{stats?.nodes ?? 1}</p>
-                            <p className="text-sm text-pink-100">Nodos activos</p>
-                        </div>
-                        <div className="rounded-lg bg-black/60 p-6 shadow-md backdrop-blur-md" data-aos="fade-up" data-aos-delay="300">
-                            <p className="text-3xl font-extrabold text-fuchsia-400">{stats?.servers ?? 0}</p>
-                            <p className="text-sm text-pink-100">Servidores activos</p>
-                        </div>
-                        <div className="rounded-lg bg-black/60 p-6 shadow-md backdrop-blur-md" data-aos="fade-up" data-aos-delay="400">
-                            <p className="text-3xl font-extrabold text-fuchsia-400">{stats?.eggs ?? 0}</p>
-                            <p className="text-sm text-pink-100">Eggs disponibles</p>
-                        </div>
-                    </div>
-                </section>
-
-                {/* SECCIÓN GALERÍA */}
-                <section className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
-                    <div className="space-y-3" data-aos="fade-up">
-                        <div className="inline-flex items-center gap-2 rounded-full border border-pink-500/30 bg-pink-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-pink-300 backdrop-blur-md">
-                            <Images className="h-4 w-4 shrink-0 text-pink-400" aria-hidden />
-                            <span>Capturas en vivo {seasonMeta?.season_name ? `· Ambientación ${seasonMeta.season_name}` : '· Infraestructura en tiempo real'}</span>
-                        </div>
-                        <h2 className="flex items-center justify-center gap-3 font-orbitron text-3xl font-extrabold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-pink-300 via-fuchsia-400 to-purple-400 sm:text-4xl lg:text-5xl">
-                            Galería de Cinammon
-                        </h2>
-                        <p className="mx-auto max-w-2xl text-xs sm:text-sm text-neutral-300">
-                            Explora las vistas reales de nuestro panel de control para servidores, nodos, bases de datos y monitoreo en tiempo real, actualizadas con la ambientación estacional.
-                        </p>
-                    </div>
-
-                    {/* Muestra las imágenes en una cuadrícula */}
-                    <div className="grid w-full max-w-6xl grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                        {images.map((imageUrl, index) => {
-                            const title = getImageTitle(imageUrl, index);
-                            return (
-                                <div
-                                    key={index}
-                                    onClick={() => openModal(imageUrl)}
-                                    className="group cursor-pointer overflow-hidden rounded-xl border border-pink-500/30 bg-neutral-950/95 shadow-[0_10px_30px_rgba(0,0,0,0.6)] transition-all duration-300 hover:-translate-y-1 hover:border-pink-500/70 hover:shadow-[0_0_25px_rgba(236,72,153,0.25)]"
-                                    data-aos="zoom-in"
-                                    data-aos-delay={(index % 3) * 80}
-                                >
-                                    <div className="flex items-center justify-between border-b border-white/10 bg-neutral-900/90 px-4 py-2.5 text-xs">
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="h-2.5 w-2.5 rounded-full bg-rose-500/80" />
-                                            <span className="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
-                                            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/80" />
-                                        </div>
-                                        <span className="font-mono text-xs font-medium tracking-wide text-pink-300 truncate max-w-[180px] sm:max-w-[220px]">{title}</span>
-                                        <span className="text-[11px] text-neutral-400 transition group-hover:text-pink-300">Ampliar ↗</span>
-                                    </div>
-                                    <div className="aspect-[16/10] w-full overflow-hidden bg-black">
-                                        <img
-                                            src={imageUrl}
-                                            alt={`Cinammon - ${title}`}
-                                            className="h-full w-full object-cover object-left-top transition-transform duration-500 group-hover:scale-[1.03]"
-                                            loading="lazy"
-                                        />
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </section>
-
-                {/* SECCIÓN COMUNIDAD DE DISCORD */}
-                {discord?.url && (
-                    <section id="discord" className="relative z-10 px-6 py-20 text-white sm:px-10">
-                        <div
-                            className="mx-auto grid max-w-6xl items-center gap-10 overflow-hidden rounded-2xl border border-pink-500/40 bg-gradient-to-br from-pink-500/15 via-black to-fuchsia-600/10 p-8 shadow-[0_0_40px_rgba(236,72,153,0.2)] sm:p-12 lg:grid-cols-[1.2fr_1fr]"
-                            data-aos="fade-up"
-                        >
-                            <div className="text-center lg:text-left">
-                                <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-pink-500/50 bg-pink-500/15 px-3 py-1 text-xs font-bold uppercase tracking-widest text-pink-200">
-                                    <BrandIcon provider="discord" className="h-4 w-4 text-pink-300" />
-                                    Comunidad
-                                </p>
-                                <h2 className="text-2xl font-bold sm:text-4xl">
-                                    Únete a nuestro <span className="text-pink-400">Discord</span>
-                                </h2>
-                                <p className="mt-4 text-sm text-neutral-300 sm:text-base">
-                                    Soporte de tú a tú, anuncios y ofertas antes que nadie, y tu cuenta del panel conectada: tus servidores, monedas y tickets también desde Discord.
-                                </p>
-                                <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row lg:justify-start">
-                                    <a
-                                        href={discord.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-3 rounded-xl bg-gradient-to-r from-pink-500 to-fuchsia-600 px-6 py-3 text-sm font-bold text-white shadow-[0_0_20px_rgba(236,72,153,0.35)] transition hover:scale-105 hover:from-pink-600 hover:to-fuchsia-700"
-                                    >
-                                        <BrandIcon provider="discord" className="h-5 w-5" />
-                                        Unirme al Discord
-                                    </a>
-                                    {!!discord.members && (
-                                        <div className="flex items-center gap-5 text-sm">
-                                            <span className="text-neutral-300">
-                                                <strong className="text-white">{discord.members.toLocaleString('es-ES')}</strong> miembros
-                                            </span>
-                                            {!!discord.online && (
-                                                <span className="flex items-center gap-2 text-neutral-300">
-                                                    <span className="relative flex h-2.5 w-2.5">
-                                                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-                                                        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
-                                                    </span>
-                                                    <strong className="text-white">{discord.online.toLocaleString('es-ES')}</strong> conectados
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                            <ul className="grid gap-3 text-left text-sm">
-                                {[
-                                    { icon: LifeBuoy, title: 'Soporte directo', text: 'Abre un ticket y te responde el equipo en el mismo hilo.' },
-                                    { icon: Megaphone, title: 'Anuncios y ofertas', text: 'Novedades, mantenimientos y descuentos en cuanto salen.' },
-                                    { icon: Bot, title: 'Tu panel en el bot', text: 'Enciende servidores, mira tus monedas y facturas con comandos.' },
-                                    { icon: Ticket, title: 'Roles y rangos', text: 'Vincula tu cuenta y recibe tu rango VIP y tus insignias.' },
-                                ].map(({ icon: Icon, title, text }) => (
-                                    <li key={title} className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/40 p-4 transition hover:border-pink-500/40">
-                                        <Icon className="mt-0.5 h-5 w-5 shrink-0 text-pink-400" aria-hidden />
-                                        <div>
-                                            <p className="font-bold text-white">{title}</p>
-                                            <p className="mt-0.5 text-xs text-neutral-400">{text}</p>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </section>
-                )}
-
-                {/* SECCIÓN TESTIMONIOS */}
-                <section className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
-                    <h2 className="flex items-center justify-center gap-3 text-2xl font-bold text-pink-400 sm:text-4xl" data-aos="fade-up">
-                        <MessageSquareQuote className="h-7 w-7 shrink-0 sm:h-9 sm:w-9" aria-hidden /> Testimonios de nuestros usuarios
-                    </h2>
-
-                    <div
-                        className={`flex w-full items-center justify-center rounded-lg p-6 text-pink-500 ${
-                            reviews && reviews.length === 0 ? '' : 'gap-6'
-                        }`}
-                        style={{ width: '100%' }}
-                    >
-                        {reviews && reviews.length > 0 ? (
-                            reviews.map((review, i) => (
-                                <div
-                                    key={i}
-                                    className={`scroll-snap-align-start flex-shrink-0 rounded-lg border border-pink-600 bg-transparent p-6 shadow-md ${
-                                        reviews.length === 1 ? 'mx-auto w-full max-w-md' : 'w-full sm:w-[48%]'
-                                    }`}
-                                    data-aos="fade-up"
-                                    data-aos-delay={i * 50}
-                                >
-                                    <p className="text-lg font-semibold text-pink-600">"{review.comment}"</p>
-                                    <p className="font-size-16 mt-2 text-3xl text-yellow-600">
-                                        {'★'.repeat(review.rating)} {'☆'.repeat(5 - review.rating)}
-                                    </p>
-                                    <p className="mt-2 flex items-center justify-center gap-2 text-sm font-semibold text-pink-500">
-                                        <UserAvatar name={review.user.name} src={review.user.avatar_url} size={22} />
-                                        {review.user.name}
-                                    </p>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="flex w-full items-center justify-center rounded-lg p-6 text-pink-500">No hay reseñas disponibles.</div>
-                        )}
-                    </div>
-
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="mt-6 inline-block rounded-md border border-pink-500 px-5 py-2 font-semibold text-pink-300 transition hover:bg-pink-500 hover:text-black"
-                    >
-                        Deja tu reseña
-                    </button>
                 </section>
 
                 {/* Modal de galería a nivel raíz para evitar problemas de z-index con secciones AOS */}

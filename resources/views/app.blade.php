@@ -2,7 +2,7 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" @class(['dark'=> ($appearance ?? 'system') == 'dark'])>
 
 <head>
-    <!-- 📄 Meta básico -->
+    <!-- Meta basico -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -17,7 +17,7 @@
     <meta name="msapplication-TileColor" content="#ff44cc">
     <meta name="msapplication-TileImage" content="/favicon.ico">
 
-    <!-- 🌐 Open Graph (Discord, WhatsApp, Facebook, etc.) -->
+    <!-- Open Graph (Discord, WhatsApp, Facebook, etc.) -->
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Cinammon.net">
     <meta property="og:locale" content="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -27,13 +27,13 @@
     <meta property="og:image:alt" content="Logotipo de Cinammon">
     <meta property="og:url" content="https://cinammon.net">
 
-    <!-- 🐦 Twitter Card -->
+    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="Cinammon.net — Tu red. Tu dominio. Tu juego.">
     <meta name="twitter:description" content="Plataforma de alto rendimiento para el despliegue y control de servidores de juegos en la nube.">
     <meta name="twitter:image" content="https://cinammon.net/favicon.ico">
 
-    <!-- 🌙 Modo oscuro automático -->
+    <!-- Modo oscuro automatico -->
     <script>
         (function() {
             const appearance = '{{ $appearance ?? "system" }}';
@@ -46,7 +46,7 @@
         })();
     </script>
 
-    <!-- 🎨 Estilo de fondo -->
+    <!-- Estilo de fondo -->
     <style>
         html {
             background-color: oklch(1 0 0);
@@ -57,16 +57,16 @@
         }
     </style>
 
-    <!-- 🏷️ Título -->
+    <!-- Titulo -->
     <title inertia>{{ config('app.name', 'Cinammon') }}</title>
 
-    <!-- 🖼️ Iconos -->
+    <!-- Iconos y Logo -->
     @php
         $cinSub = explode('.', request()->getHost())[0];
         $knownSubs = ['panel', 'demo', 'store', 'billing', 'news', 'status', 'admin', 'database', 'mail', 'nodo', 'wings'];
         $logoFile = in_array($cinSub, $knownSubs, true) ? "cinammon-{$cinSub}.png" : 'cinammon-panel.png';
         $logoVer = @filemtime(public_path("logos/{$logoFile}")) ?: 2;
-        $cinLogo = "/logos/{$logoFile}?v={$logoVer}-v3";
+        $cinLogo = "/logos/{$logoFile}?v={$logoVer}-v4";
 
         $loaderA = match ($cinSub) {
             'news' => '#eab308',
@@ -81,7 +81,7 @@
     @endphp
     @include('partials.favicon')
 
-    <!-- 🔤 Fuente Orbitron y tipografía global personalizada -->
+    <!-- Fuente Orbitron y tipografia global personalizada -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -102,7 +102,7 @@
         } catch (e) {}
     </script>
 
-    <!-- 🔗 Laravel + Inertia + React -->
+    <!-- Laravel + Inertia + React -->
     @routes
     @viteReactRefresh
     @vite('resources/js/app.tsx')
