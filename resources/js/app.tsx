@@ -7,6 +7,7 @@ import axios from 'axios';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { createRoot } from 'react-dom/client';
+import { toast } from 'sonner';
 import { initializeTheme } from './hooks/use-appearance';
 import { initServerIntro } from './lib/server-intro';
 
@@ -22,6 +23,27 @@ function setCsrf(token: unknown) {
     document.querySelector('meta[name="csrf-token"]')?.setAttribute('content', token);
 }
 router.on('navigate', (event) => setCsrf(event.detail.page.props.csrf_token));
+
+/*
+ * 419 (token caducado: la página llevaba mucho rato abierta o la sesión se renovó en otra pestaña).
+ * En vez de la pantalla de error, se pide un token nuevo y se avisa para volver a pulsar; lo escrito no se pierde.
+ * Si la sesión ya no existe, se va al inicio de sesión.
+ */
+router.on('invalid', (event) => {
+    if (event.detail.response?.status !== 419) return;
+    event.preventDefault();
+    fetch('/csrf-token', { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+        .then((r) => r.json())
+        .then((d: { token?: string; auth?: boolean }) => {
+            setCsrf(d.token);
+            if (!d.auth) {
+                window.location.href = '/login';
+                return;
+            }
+            toast.warning('La sesión se ha renovado. Vuelve a pulsar el botón para guardar.');
+        })
+        .catch(() => window.location.reload());
+});
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,

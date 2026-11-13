@@ -97,6 +97,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
 });
 
 // Entrar / registrarse / vincular con Discord, Google, Microsoft, GitHub, GitLab o Twitch
+// Token CSRF nuevo para el panel (lo pide el frontend tras un 419, sin recargar la página)
+Route::get('/csrf-token', fn (Illuminate\Http\Request $request) => response()->json(['token' => csrf_token(), 'auth' => (bool) $request->user()])
+    ->header('Cache-Control', 'no-store'))->middleware('throttle:30,1')->name('csrf.token');
 Route::get('/auth/{provider}/redirect', [App\Http\Controllers\Auth\SocialAuthController::class, 'redirect'])
     ->whereIn('provider', array_keys(App\Http\Controllers\Auth\SocialAuthController::PROVIDERS))->middleware('throttle:30,1')->name('social.redirect');
 Route::get('/auth/{provider}/callback', [App\Http\Controllers\Auth\SocialAuthController::class, 'callback'])
