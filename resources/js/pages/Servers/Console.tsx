@@ -357,14 +357,10 @@ export default function Console({ server }: { server: Server }) {
                     <Metric label="Estado" value={snapshot ? `${states[snapshot.state] || snapshot.state}${running && uptime !== null ? ` · ${formatUptime(uptime)}` : ''}` : 'Conectando…'} live={running} />
                     <div className="flex min-w-0 items-center justify-between rounded border border-cyan-800/80 bg-black/70 px-4 py-3.5 text-sm transition hover:border-cyan-600/70">
                         <span className="shrink-0 text-xs font-semibold uppercase tracking-wider text-cyan-500">Dirección</span>
-                        {server.discord_bot ? (
-                            <span className="text-sm font-semibold tracking-wide text-cyan-200">localhost:{server.address.split(':')[1] || '3001'}</span>
-                        ) : (
-                            <button className="flex min-w-0 items-center gap-1.5 text-sm font-semibold tracking-wide text-cyan-300 hover:text-cyan-100" onClick={async () => { try { await navigator.clipboard.writeText(server.address); setNotice('Dirección copiada.'); } catch { setError('No se pudo copiar la dirección.'); } }}>
-                                <span>{server.address}</span>
-                                <Copy size={13} className="shrink-0 opacity-70 hover:opacity-100" />
-                            </button>
-                        )}
+                        <button className="flex min-w-0 items-center gap-1.5 text-sm font-semibold tracking-wide text-cyan-300 hover:text-cyan-100" onClick={async () => { try { await navigator.clipboard.writeText(server.address); setNotice('Dirección copiada.'); } catch { setError('No se pudo copiar la dirección.'); } }}>
+                            <span>{server.address}</span>
+                            <Copy size={13} className="shrink-0 opacity-70 hover:opacity-100" />
+                        </button>
                     </div>
                     <Metric label="CPU" value={`${snapshot?.utilization ? (snapshot.utilization.cpu_absolute ?? 0).toFixed(2) : '—'} % / ${server.cpu || '∞'}${server.cpu ? ' %' : ''}`} />
                     <Metric label="Memoria" value={`${snapshot?.utilization ? ((snapshot.utilization.memory_bytes ?? 0) / 1048576).toFixed(1) : '—'} MiB / ${server.memory || '∞'}${server.memory ? ' MiB' : ''}`} />
