@@ -29,3 +29,6 @@ database/migrations/db/*
 /database/*.sqlite*
 
 node_modules/
+
+# Guías (vídeos y capturas): solo en el servidor, nunca en GitHub
+/public/videos/guias/

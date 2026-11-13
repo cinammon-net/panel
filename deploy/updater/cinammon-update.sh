@@ -95,7 +95,7 @@ if [ "$TARGET" = "panel" ]; then
     run rsync -a --delete --stats \
       --exclude .env --exclude storage --exclude bootstrap/cache \
       --exclude node_modules --exclude .git \
-      --exclude /local --exclude /public/storage --exclude '/database/*.sqlite' \
+      --exclude /local --exclude /public/storage --exclude /public/videos/guias --exclude '/database/*.sqlite' \
       "$SRC/" "$DIR/"
     run chown -R "$OWNER":"$OWNER" "$DIR"
     # fijar la versión instalada en .env
