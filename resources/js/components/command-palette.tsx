@@ -90,7 +90,7 @@ export function CommandPalette({ isOpen, onClose }: { isOpen: boolean; onClose: 
                 title: 'Estado de la Red en Vivo',
                 description: 'Monitor en tiempo real de nodos, Wings y latencia',
                 icon: Activity,
-                href: '/estado',
+                href: 'https://status.cinammon.net',
                 category: 'Navegación',
             },
             {

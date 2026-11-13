@@ -786,7 +786,7 @@ export default function WelcomePanel() {
                     </div>
                     <div className="flex flex-col gap-2">
                         <h3 className="mb-1 font-semibold text-white">Información</h3>
-                        <a href="/estado" className="inline-flex items-center gap-1.5 hover:text-white hover:underline">
+                        <a href="https://status.cinammon.net" className="inline-flex items-center gap-1.5 hover:text-white hover:underline">
                             <span className="h-2 w-2 rounded-full bg-emerald-400"></span>
                             Estado de la red
                         </a>

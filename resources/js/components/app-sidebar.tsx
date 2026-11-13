@@ -313,7 +313,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Estado de la Red',
-        href: '/estado',
+        href: 'https://status.cinammon.net',
         external: true,
         icon: Globe,
         group: 'ajustes',

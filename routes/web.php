@@ -34,9 +34,24 @@ if (($wingsHost = (string) config('panel.wings_host')) !== '') {
     Route::domain($wingsHost)->get('/api/wings/telemetry', [App\Http\Controllers\WingsPublicController::class, 'telemetry'])->middleware('throttle:120,1')->name('wings.telemetry');
 }
 
+// 📊 Página de estado pública en status.cinammon.net (debe registrarse antes de la portada)
+$statusHost = (string) config('panel.status_host', 'status.cinammon.net');
+if ($statusHost !== '') {
+    Route::domain($statusHost)->group(function () {
+        Route::get('/', [App\Http\Controllers\StatusController::class, 'index'])->name('status.subdomain.index');
+        Route::get('/estado', fn () => redirect()->to('/'));
+        Route::get('/status', fn () => redirect()->to('/'));
+    });
+}
+
 // 🌐 Rutas públicas
 Route::get('/', [WelcomeController::class, 'index'])->name('home');
-Route::get('/estado', [App\Http\Controllers\StatusController::class, 'index'])->name('status.index');
+Route::get('/estado', function (Request $request) use ($statusHost) {
+    if ($statusHost !== '' && strcasecmp($request->getHost(), $statusHost) !== 0 && !app()->environment('local')) {
+        return redirect()->away("https://{$statusHost}");
+    }
+    return app(App\Http\Controllers\StatusController::class)->index($request);
+})->name('status.index');
 Route::get('/status', fn () => redirect()->route('status.index'));
 Route::get('/demo', function (Request $request) {
     $demoHost = (string) config('panel.demo_host', 'demo.cinammon.net');

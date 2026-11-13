@@ -67,6 +67,9 @@ return [
     'wings_host' => env('PANEL_WINGS_HOST', ''),
     'wings_demo_url' => env('PANEL_WINGS_DEMO_URL', 'https://demo.cinammon.net/wings'),
 
+    // Dominio de la página de estado pública de la red
+    'status_host' => env('PANEL_STATUS_HOST', 'status.cinammon.net'),
+
     // Cuentas de demostración que solo pueden iniciar sesión y usarse en modo demo
     'demo_emails' => [
         'demo-owner@cinammon.net',

@@ -329,13 +329,13 @@ export default function Status() {
             <div className="border-t border-neutral-900 pt-6 text-center text-xs text-neutral-500">
                 <p>Cinammon Network · Infraestructura de Alto Rendimiento protegida por Cloudflare y Wings Daemon.</p>
                 <div className="mt-2 flex justify-center gap-4 text-neutral-400">
-                    <Link href="/" className="hover:text-pink-400">Inicio</Link>
+                    <a href="https://cinammon.net" className="hover:text-pink-400">Inicio</a>
                     <span>·</span>
-                    <Link href="/terms" className="hover:text-pink-400">Términos</Link>
+                    <a href="https://cinammon.net/terms" className="hover:text-pink-400">Términos</a>
                     <span>·</span>
-                    <Link href="/privacy" className="hover:text-pink-400">Privacidad</Link>
+                    <a href="https://cinammon.net/privacy" className="hover:text-pink-400">Privacidad</a>
                     <span>·</span>
-                    <Link href="/dudas" className="hover:text-pink-400">Comunidad</Link>
+                    <a href="https://panel.cinammon.net/dudas" className="hover:text-pink-400">Comunidad</a>
                 </div>
             </div>
         </div>
@@ -374,7 +374,7 @@ export default function Status() {
                             <span className="hidden sm:inline">Web principal</span>
                         </a>
                         <a
-                            href="/dashboard"
+                            href="https://panel.cinammon.net/dashboard"
                             className="inline-flex items-center rounded-xl bg-pink-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-pink-500/20 transition hover:bg-pink-600"
                         >
                             {auth?.user ? 'Ir al Panel' : 'Iniciar sesión'}
