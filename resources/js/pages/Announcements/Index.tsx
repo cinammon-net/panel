@@ -72,7 +72,7 @@ const emptyForm = (): Form => ({
 const isDecember = new Date().getMonth() === 11;
 
 /** Plantillas rápidas ultra-visuales (sin emojis, poco texto, máximo impacto). */
-const TEMPLATES: { name: string; data: Partial<Form>; days?: number; onlyDecember?: boolean }[] = [
+const TEMPLATES: { name: string; data: Partial<Form>; days?: number; onlyDecember?: boolean }[] = ([
     {
         name: 'Servidor Gratis (Fijo)',
         data: {
@@ -163,7 +163,7 @@ const TEMPLATES: { name: string; data: Partial<Form>; days?: number; onlyDecembe
             popup: true,
         },
     },
-].filter((t) => !t.onlyDecember || isDecember);
+] satisfies { name: string; data: Partial<Form>; days?: number; onlyDecember?: boolean }[]).filter((t) => !t.onlyDecember || isDecember);
 
 export default function AnnouncementsIndex() {
     const { announcements } = usePage<Props>().props;

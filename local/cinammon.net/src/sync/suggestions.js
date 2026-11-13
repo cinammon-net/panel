@@ -6,9 +6,10 @@
  *   botones A favor / En contra (un voto por persona; volver a pulsar lo quita).
  * - El equipo cambia el estado desde la misma tarjeta, con una nota opcional para el autor.
  *   Implementada y Descartada cierran la publicación.
- * - Las más apoyadas salen en la publicación fijada.
+ * - Sincronizado bidireccionalmente con la base de datos del Panel Web (/sugerencias).
+ * - Notificación por Mensaje Directo (DM) al autor cuando su idea cambia de estado.
  */
-let env = null; // { discord, log, st, ctx, ui, saveState, isStaff }
+let env = null; // { discord, panel, log, st, ctx, ui, saveState, isStaff }
 
 const V2 = 1 << 15;
 const EPH = 64;
@@ -35,7 +36,7 @@ function init(deps) {
 function state() {
     const st = env.st();
     st.suggestions ??= {};
-    st.suggestions.posts ??= {}; // threadId -> { author, title, at, status, card, up: {id: 1}, down: {id: 1}, note }
+    st.suggestions.posts ??= {}; // threadId -> { author, title, at, status, card, up: {id: 1}, down: {id: 1}, note, webId }
     return st.suggestions;
 }
 
@@ -87,7 +88,8 @@ function cardPayload(threadId) {
     const { text, sep, row, container } = env.ui;
     const up = count(p.up);
     const down = count(p.down);
-    const lines = [`### ${s.label}`, `Propuesta por <@${p.author}> · **${up - down >= 0 ? '+' : ''}${up - down}** de apoyo`];
+    const authorMention = /^\d{5,25}$/.test(p.author) ? `<@${p.author}>` : `**${p.author}**`;
+    const lines = [`### ${s.label}`, `Propuesta por ${authorMention} · **${up - down >= 0 ? '+' : ''}${up - down}** de apoyo`];
     if (p.note) lines.push(`-# Nota del equipo: ${cut(p.note, 400)}`);
     const components = [
         text(lines.join('\n')),
@@ -124,6 +126,17 @@ async function register(threadId, author, title) {
     env.saveState();
 }
 
+/** Envía un mensaje directo (DM) a un usuario si tiene mensajes privados habilitados. */
+async function sendDM(userId, content) {
+    if (!userId || !/^\d{5,25}$/.test(userId)) return;
+    try {
+        const dm = await env.discord('POST', '/users/@me/channels', { recipient_id: userId });
+        if (dm?.id) {
+            await env.discord('POST', `/channels/${dm.id}/messages`, { content });
+        }
+    } catch (_) {}
+}
+
 /* ------------------------------------------------------------ eventos */
 
 /** THREAD_CREATE: una publicación nueva en el foro (las del bot ya se registran al crearlas). */
@@ -146,7 +159,7 @@ async function backfill(skip) {
     env.saveState();
 }
 
-/** Las más apoyadas que siguen abiertas, para la publicación fijada. */
+/** Las más apoyadas que siguen abiertas, para la publicación fijada y comando /top-sugerencias. */
 function top(n = 5) {
     return Object.entries(state().posts)
         .filter(([, p]) => STATUS[p.status]?.open)
@@ -154,6 +167,35 @@ function top(n = 5) {
         .filter((p) => p.score > 0)
         .sort((a, b) => b.score - a.score || a.at - b.at)
         .slice(0, n);
+}
+
+function topSuggestionsResponse() {
+    const list = top(5);
+    if (!list.length) {
+        return {
+            type: 4,
+            data: {
+                flags: EPH,
+                content: 'No hay sugerencias abiertas con votos ahora mismo. Usa `/sugerir` para proponer la primera.',
+            },
+        };
+    }
+    const { text, container } = env.ui;
+    const lines = ['## Sugerencias más apoyadas\nLas ideas abiertas con más apoyo de la comunidad:\n'];
+    for (let i = 0; i < list.length; i++) {
+        const p = list[i];
+        const s = STATUS[p.status] || STATUS.pending;
+        lines.push(`**${i + 1}. [${cut(p.title, 70)}](https://discord.com/channels/${env.ctx().guild}/${p.id})**`);
+        lines.push(`> **+${p.score}** de apoyo · Estado: **${s.label}** · Hilo: <#${p.id}>`);
+    }
+    lines.push('\n-# Entra a cada hilo para votar o propón tu propia idea con `/sugerir`.');
+    return {
+        type: 4,
+        data: {
+            flags: EPH | V2,
+            components: [container(0xfacc15, [text(lines.join('\n'))])],
+        },
+    };
 }
 
 /* ------------------------------------------------------------ formulario */
@@ -176,7 +218,9 @@ const field = (i, id) => (i.data.components || []).flatMap((r) => r.components |
 async function fromModal(i) {
     const user = i.member?.user || i.user;
     const title = field(i, 'title');
-    const body = [`**Qué:** ${field(i, 'what')}`, field(i, 'why') ? `**Por qué:** ${field(i, 'why')}` : null, `-# Propuesta por <@${user.id}>`].filter(Boolean).join('\n\n');
+    const what = field(i, 'what');
+    const why = field(i, 'why');
+    const body = [`**Qué:** ${what}`, why ? `**Por qué:** ${why}` : null, `-# Propuesta por <@${user.id}>`].filter(Boolean).join('\n\n');
     const id = (await tagIds()).get(STATUS.pending.tag);
     const t = await env.discord('POST', `/channels/${forumId()}/threads`, {
         name: cut(title, 100),
@@ -187,6 +231,21 @@ async function fromModal(i) {
     // Quien la propone recibe los avisos del hilo
     await env.discord('PUT', `/channels/${t.id}/thread-members/${user.id}`).catch(() => {});
     await register(t.id, user.id, title);
+
+    // Sincronizar con el panel si la API está conectada
+    if (env.panel) {
+        await env.panel('POST', '/api/bot/suggestions/store', {
+            thread_id: t.id,
+            message_id: state().posts[t.id]?.card || null,
+            discord_id: user.id,
+            author_name: user.username,
+            title,
+            what,
+            why: why || null,
+            category: 'general',
+        }).catch((e) => env.log(`[SUGERENCIAS] panel store: ${e.message}`));
+    }
+
     return t.id;
 }
 
@@ -194,15 +253,33 @@ async function fromModal(i) {
 
 async function changeStatus(threadId, status, note, staffId) {
     const p = state().posts[threadId];
+    if (!p) return;
     p.status = status;
     p.note = note || null;
     env.saveState();
     if (p.archived) await env.discord('PATCH', `/channels/${threadId}`, { archived: false, locked: false }).catch(() => {});
     await refreshCard(threadId);
+
+    const authorMention = /^\d{5,25}$/.test(p.author) ? `<@${p.author}>` : `**${p.author}**`;
     await env.discord('POST', `/channels/${threadId}/messages`, {
-        content: `<@${p.author}>, tu sugerencia pasa a **${STATUS[status].label}**: ${NOTICE[status]}.${note ? `\n> ${cut(note, 900).replace(/\n/g, '\n> ')}` : ''}\n-# Cambiado por <@${staffId}>.`,
-        allowed_mentions: { users: [p.author] },
+        content: `${authorMention}, tu sugerencia pasa a **${STATUS[status].label}**: ${NOTICE[status]}.${note ? `\n> ${cut(note, 900).replace(/\n/g, '\n> ')}` : ''}\n-# ${staffId === 'Panel' ? 'Cambiado desde el panel' : `Cambiado por <@${staffId}>`}.`,
+        allowed_mentions: /^\d{5,25}$/.test(p.author) ? { users: [p.author] } : { parse: [] },
     }).catch((e) => env.log(`[SUGERENCIAS] aviso: ${e.message}`));
+
+    // Notificación por Mensaje Directo (DM) al autor
+    if (/^\d{5,25}$/.test(p.author)) {
+        sendDM(p.author, `**Novedades de tu sugerencia en Cinammon**\nTu idea **"${cut(p.title, 80)}"** ha pasado a estado **${STATUS[status].label}**: ${NOTICE[status]}.${note ? `\n> ${cut(note, 400).replace(/\n/g, '\n> ')}` : ''}\n\nPuedes verla en <#${threadId}> o en https://panel.cinammon.net/sugerencias`).catch(() => {});
+    }
+
+    // Sincronizar cambio de estado hacia el panel
+    if (env.panel && staffId !== 'Panel') {
+        env.panel('POST', '/api/bot/suggestions/status', {
+            thread_id: threadId,
+            status,
+            staff_note: note || '',
+        }).catch((e) => env.log(`[SUGERENCIAS] panel status: ${e.message}`));
+    }
+
     const closed = !STATUS[status].open;
     p.archived = closed;
     await setTag(threadId, status, closed ? { archived: true, locked: true } : {}).catch((e) => env.log(`[SUGERENCIAS] estado: ${e.message}`));
@@ -239,12 +316,26 @@ async function component(i, respond) {
         if (user.id === p.author) return eph('Es tu propia idea: tu apoyo ya se da por hecho.');
         const mine = action === 'up' ? p.up : p.down;
         const other = action === 'up' ? p.down : p.up;
-        if (mine[user.id]) delete mine[user.id];
-        else {
+        let direction = 0;
+        if (mine[user.id]) {
+            delete mine[user.id];
+            direction = 0;
+        } else {
             mine[user.id] = 1;
             delete other[user.id];
+            direction = action === 'up' ? 1 : -1;
         }
         env.saveState();
+
+        // Sincronizar voto con la base de datos del panel
+        if (env.panel) {
+            env.panel('POST', '/api/bot/suggestions/vote', {
+                thread_id: threadId,
+                discord_id: user.id,
+                direction,
+            }).catch((e) => env.log(`[SUGERENCIAS] panel vote: ${e.message}`));
+        }
+
         return { type: 7, data: cardPayload(threadId) };
     }
 
@@ -275,6 +366,61 @@ async function component(i, respond) {
     return eph('Esta acción ya no está disponible.');
 }
 
+/** Sincroniza sugerencias creadas y actualizadas en la web */
+async function syncWeb(feed) {
+    if (!feed || !forumId()) return;
+    const S = state();
+
+    for (const s of feed.new || []) {
+        const existing = Object.entries(S.posts).find(([, p]) => p.webId === s.id);
+        if (existing) {
+            // Ya tiene hilo pero el panel no lo supo (falló la confirmación): se vuelve a avisar
+            await env.panel('POST', `/api/bot/suggestions/${s.id}/thread`, { thread_id: existing[0], message_id: existing[1].card || null })
+                .catch((e) => env.log(`[SUGERENCIAS] vincular web ${s.id}: ${e.message}`));
+        } else {
+            try {
+                const tagId = (await tagIds()).get(STATUS.pending.tag);
+                const body = [
+                    `**Qué:** ${cut(s.what, 1500)}`,
+                    s.why ? `**Por qué:** ${cut(s.why, 800)}` : null,
+                    `-# Propuesta en la web por **${s.author}** · ${s.category_label}\n[Ver en el panel](${s.url})`,
+                ].filter(Boolean).join('\n\n');
+
+                const t = await env.discord('POST', `/channels/${forumId()}/threads`, {
+                    name: cut(s.title, 100),
+                    auto_archive_duration: 10080,
+                    applied_tags: tagId ? [tagId] : [],
+                    message: { content: body, allowed_mentions: { parse: [] } },
+                }, `Sugerencia web de ${s.author}`);
+
+                if (s.discord_id) {
+                    await env.discord('PUT', `/channels/${t.id}/thread-members/${s.discord_id}`).catch(() => {});
+                }
+
+                await register(t.id, s.discord_id || s.author, s.title);
+                S.posts[t.id].webId = s.id;
+                env.saveState();
+
+                if (env.panel) {
+                    await env.panel('POST', `/api/bot/suggestions/${s.id}/thread`, {
+                        thread_id: t.id,
+                        message_id: S.posts[t.id]?.card || null,
+                    });
+                }
+            } catch (e) {
+                env.log(`[SUGERENCIAS] error creando hilo para web ${s.id}: ${e.message}`);
+            }
+        }
+    }
+
+    for (const st of feed.statuses || []) {
+        const p = S.posts[st.thread_id];
+        if (p && p.status !== st.status) {
+            await changeStatus(st.thread_id, st.status, st.note, 'Panel').catch(() => {});
+        }
+    }
+}
+
 /** Olvida las cerradas de hace más de 180 días. */
 function prune() {
     const S = state();
@@ -282,4 +428,4 @@ function prune() {
     for (const [id, p] of Object.entries(S.posts)) if (!STATUS[p.status]?.open && p.at < limit) delete S.posts[id];
 }
 
-module.exports = { init, onThreadCreate, backfill, isSuggestion, component, askModal, top, prune, STATUS };
+module.exports = { init, onThreadCreate, backfill, isSuggestion, component, askModal, top, topSuggestionsResponse, syncWeb, prune, STATUS };

@@ -215,6 +215,44 @@ async function fromClaude(question) {
     }
 }
 
+const SUMMARY_SCHEMA = {
+    type: 'object',
+    properties: {
+        publishable: { type: 'boolean', description: 'true solo si es una duda general útil para otros, con una solución clara. false si es un caso de una cuenta, un pago, una sanción, una queja o no quedó resuelto.' },
+        title: { type: 'string', description: 'La pregunta en una frase, en español, como la buscaría otra persona (máx. 120 caracteres).' },
+        question: { type: 'string', description: 'Contexto breve de la duda (1-3 frases), sin nombres, correos, IPs, dominios privados, IDs ni datos personales.' },
+        answer: { type: 'string', description: 'La solución explicada paso a paso, en español, en Markdown sencillo (listas, `código`). Sin nombres ni datos personales.' },
+        category: { type: 'string', enum: ['general', 'minecraft', 'bots', 'web', 'panel', 'bases', 'otros'] },
+    },
+    required: ['publishable', 'title', 'question', 'answer', 'category'],
+    additionalProperties: false,
+};
+
+/** Resume un hilo de #soporte ya resuelto para guardarlo en Dudas de la comunidad. Devuelve null si no se puede. */
+async function summarizeThread(question, transcript) {
+    const client = claudeClient();
+    if (!client) return null;
+    try {
+        const res = await client.beta.messages.create({
+            model: 'claude-opus-5-5',
+            max_tokens: 2048,
+            betas: ['server-side-fallback-2026-07-01'],
+            fallbacks: 'default',
+            system: 'Resumes hilos de soporte de Cinammon (hosting de servidores de juegos, bots y webs) para una base pública de preguntas frecuentes. '
+                + 'Escribe en español claro y neutro. Quita cualquier dato personal: nombres de usuario, correos, IPs, contraseñas, IDs, nombres de servidores privados y dominios de clientes (usa "tu servidor", "tu dominio"). '
+                + 'Si la solución no queda clara en el hilo o el tema es privado (cuenta, pagos, sanciones), marca publishable=false.',
+            output_config: { effort: 'low', format: { type: 'json_schema', schema: SUMMARY_SCHEMA } },
+            messages: [{ role: 'user', content: `Pregunta inicial:\n${String(question).slice(0, 1500)}\n\nConversación:\n${String(transcript).slice(0, 12000)}` }],
+        });
+        if (res.stop_reason === 'refusal') return null;
+        const out = JSON.parse(res.content.find((b) => b.type === 'text')?.text || '{}');
+        return out.title && out.answer ? out : null;
+    } catch (e) {
+        env.log(`[ASISTENTE] resumen: ${e.status || ''} ${e.message}`);
+        return null;
+    }
+}
+
 /* ---------------------------------------------------------------- respuesta */
 
 /** Busca una respuesta: error conocido → base de conocimiento → Claude. */
@@ -378,4 +416,4 @@ async function component(i) {
     return eph('Esta acción ya no está disponible.');
 }
 
-module.exports = { init, answer, onSupportMessage, ask, ticketHint, component, definitions, pingStaff, NAMES: new Set(['pregunta']) };
+module.exports = { init, answer, summarizeThread, onSupportMessage, ask, ticketHint, component, definitions, pingStaff, NAMES: new Set(['pregunta']) };

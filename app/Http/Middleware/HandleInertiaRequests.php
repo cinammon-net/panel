@@ -34,7 +34,7 @@ class HandleInertiaRequests extends Middleware
             // Token CSRF en cada respuesta: el panel lo manda como X-CSRF-TOKEN. Así no depende de la cookie XSRF-TOKEN,
             // que la tienda (dominio .cinammon.net) también crea con el mismo nombre y provocaba errores 419.
             'csrf_token' => fn (): string => csrf_token(),
-            'flash' => fn(): array => ['success' => $request->session()->get('success'), 'discordCode' => $request->session()->get('discordCode')],
+            'flash' => fn(): array => ['success' => $request->session()->get('success'), 'error' => $request->session()->get('error'), 'discordCode' => $request->session()->get('discordCode')],
             // Botones de "Entrar con ..." (solo los proveedores configurados en el .env)
             'discordInvite' => \App\Support\Discord::invite(),
             'socialProviders' => fn (): array => \App\Http\Controllers\Auth\SocialAuthController::enabled(),

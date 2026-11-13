@@ -67,6 +67,7 @@ function base(categories) {
         { name: 'top-invitaciones', description: 'Quién ha invitado a más gente' },
         { name: 'invitar', description: 'Tu enlace para invitar a gente al servidor de Discord' },
         { name: 'sugerir', description: 'Proponer una idea para mejorar Cinammon' },
+        { name: 'top-sugerencias', description: 'Las sugerencias más apoyadas de la comunidad' },
         {
             name: 'anuncio', description: 'Publicar un anuncio en la web y en Discord (staff)', default_member_permissions: '32', options: [
                 { name: 'tipo', description: 'Tipo', type: S, required: true, choices: [{ name: 'Oferta', value: 'offer' }, { name: 'Novedad', value: 'new' }, { name: 'Evento', value: 'event' }, { name: 'Noticia', value: 'news' }] },

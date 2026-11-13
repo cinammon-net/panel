@@ -38,6 +38,8 @@ import {
     Sparkles,
     PlayCircle,
     Mail,
+    Lightbulb,
+    MessagesSquare,
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
@@ -96,6 +98,15 @@ const mainNavItems: NavItem[] = [
         icon: PlayCircle,
         group: 'main',
         groupColor: 'text-emerald-400',
+        roles: [],
+        permissions: [],
+    },
+    {
+        title: 'Dudas de la comunidad',
+        href: '/dudas',
+        icon: MessagesSquare,
+        group: 'main',
+        groupColor: 'text-sky-400',
         roles: [],
         permissions: [],
     },
@@ -263,6 +274,15 @@ const mainNavItems: NavItem[] = [
         title: 'Reviews',
         href: '/reviews',
         icon: HeartPulse,
+        group: 'extra',
+        groupColor: 'text-yellow-400',
+        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin'],
+        permissions: [],
+    },
+    {
+        title: 'Sugerencias',
+        href: '/sugerencias',
+        icon: Lightbulb,
         group: 'extra',
         groupColor: 'text-yellow-400',
         roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin'],

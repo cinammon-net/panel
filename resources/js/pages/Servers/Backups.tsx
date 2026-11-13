@@ -48,7 +48,7 @@ export default function BackupsPage({ server, backups = [] }: PageProps) {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [restoringId, setRestoringId] = useState<string | null>(null);
 
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, errors, reset } = useForm<{ name: string; is_locked: boolean }>({
         name: `Respaldo manual - ${new Date().toLocaleDateString('es-ES')}`,
         is_locked: false,
     });

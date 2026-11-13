@@ -346,6 +346,34 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
     // Guías en vídeo (grabadas en el panel real; la guía completa vive en el foro #guias de Discord)
     Route::get('/guias', fn () => Inertia::render('Guides'))->name('guides.index');
 
+    // Dudas de la comunidad (con cuenta; se sincroniza con #soporte de Discord)
+    Route::controller(App\Http\Controllers\CommunityController::class)->prefix('/dudas')->group(function () {
+        Route::get('/', 'index')->name('community.index');
+        Route::get('/parecidas', 'similar')->middleware('throttle:60,1')->name('community.similar');
+        Route::get('/{question}', 'show')->whereNumber('question')->name('community.show');
+        Route::middleware('throttle:20,1')->group(function () {
+            Route::post('/', 'store')->middleware('throttle:5,1')->name('community.store');
+            Route::post('/{question}/respuestas', 'answer')->name('community.answer');
+            Route::post('/{question}/mejor/{answer}', 'best')->name('community.best');
+            Route::post('/{question}/resuelta', 'solved')->name('community.solved');
+            Route::patch('/{question}', 'update')->name('community.update');
+            Route::delete('/{question}', 'destroy')->name('community.destroy');
+            Route::post('/respuestas/{answer}/voto', 'vote')->name('community.vote');
+            Route::delete('/respuestas/{answer}', 'destroyAnswer')->name('community.answer.destroy');
+        });
+    });
+
+    // Sugerencias de la comunidad (con cuenta; se sincroniza con #sugerencias de Discord)
+    Route::controller(App\Http\Controllers\SuggestionController::class)->prefix('/sugerencias')->group(function () {
+        Route::get('/', 'index')->name('suggestions.index');
+        Route::get('/parecidas', 'similar')->middleware('throttle:60,1')->name('suggestions.similar');
+        Route::middleware('throttle:30,1')->group(function () {
+            Route::post('/', 'store')->middleware('throttle:5,1')->name('suggestions.store');
+            Route::post('/{suggestion}/voto', 'vote')->whereNumber('suggestion')->name('suggestions.vote');
+            Route::patch('/{suggestion}/estado', 'status')->whereNumber('suggestion')->name('suggestions.status');
+        });
+    });
+
     // Reviews
     Route::resource('reviews', ReviewController::class)->except(['show']);
 

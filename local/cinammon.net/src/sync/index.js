@@ -951,6 +951,8 @@ async function tick() {
         ['estado', () => syncStatus(data)],
         ['roles', () => syncRoles(data.members)],
         ['tickets', () => syncTickets(data.tickets)],
+        ['dudas', () => support.syncWeb(data.community)],
+        ['sugerencias', () => suggestions.syncWeb(data.suggestions)],
         ['cumpleaños', () => birthdays.sync(data.birthdays || [])],
         ['actividad', () => syncActivity(data)],
         ['avisos', () => community.syncRolePicker()],
@@ -1241,7 +1243,7 @@ function start({ token, guildId, appId }) {
         matchTip: (t) => community.matchSupportTip(t),
     });
     support.init({
-        discord, log, saveState, assistant,
+        discord, log, saveState, assistant, panel,
         ui: { text, sep, row, container },
         st: () => st,
         ctx: () => ctx,
@@ -1288,7 +1290,7 @@ function start({ token, guildId, appId }) {
         suggestions,
     });
     suggestions.init({
-        discord, log, saveState,
+        discord, panel, log, saveState,
         ui: { text, sep, row, container },
         st: () => st,
         ctx: () => ctx,
@@ -1362,7 +1364,7 @@ async function onMessage(message) {
             if (ctx.layout.channels?.help && message.channel_id === ctx.layout.channels.help) {
                 await support.onChannelMessage(message, isStaffMember(message.member));
             } else if (support.isSupportThread(message.channel_id)) {
-                support.onThreadMessage(message);
+                await support.onThreadMessage(message);
             }
         } catch (e) {
             log(`[SYNC] mensaje: ${e.message}`);
@@ -1446,12 +1448,19 @@ async function onInteraction(interaction) {
     if (!ctx) return false;
     if (await verify.handle(interaction, respond)) return true;
     if (await community.handleInteraction(interaction, respond)) return true;
-    if (id.startsWith('sug:') || (interaction.type === 2 && interaction.data?.name === 'sugerir')) {
+    if (id.startsWith('sug:') || (interaction.type === 2 && (interaction.data?.name === 'sugerir' || interaction.data?.name === 'top-sugerencias'))) {
         try {
-            const r = interaction.type === 2 ? suggestions.askModal() : await suggestions.component(interaction, respond);
+            let r;
+            if (interaction.type === 2 && interaction.data?.name === 'top-sugerencias') {
+                r = suggestions.topSuggestionsResponse();
+            } else if (interaction.type === 2 && interaction.data?.name === 'sugerir') {
+                r = suggestions.askModal();
+            } else {
+                r = await suggestions.component(interaction, respond);
+            }
             if (r) await respond(interaction, r);
         } catch (e) {
-            log(`[SUGERENCIAS] ${id || '/sugerir'}: ${e.message}`);
+            log(`[SUGERENCIAS] ${id || interaction.data?.name || '/sugerir'}: ${e.message}`);
             await respond(interaction, ephemeral('No se pudo completar. Inténtalo otra vez.')).catch(() => {});
         }
         return true;

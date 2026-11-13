@@ -38,6 +38,23 @@ Route::middleware('bot.secret')->group(function () {
     Route::post('/bot/tickets/{ticket}/status', [App\Http\Controllers\BotSyncController::class, 'status']);
     Route::post('/bot/tickets/{ticket}/claim', [App\Http\Controllers\BotSyncController::class, 'claim']);
     Route::post('/bot/tickets/{ticket}/rating', [App\Http\Controllers\BotSyncController::class, 'rate']);
+    // Dudas de la comunidad <-> #soporte
+    Route::controller(App\Http\Controllers\BotCommunityController::class)->prefix('/bot/community')->group(function () {
+        Route::post('/questions/{question}/thread', 'thread')->whereNumber('question');
+        Route::post('/answers/{answer}/message', 'mirrored')->whereNumber('answer');
+        Route::post('/answers', 'answer')->middleware('throttle:120,1');
+        Route::post('/solved', 'solved');
+        Route::post('/import', 'import')->middleware('throttle:30,1');
+        Route::get('/search', 'search')->middleware('throttle:120,1');
+    });
+    // Sugerencias de la comunidad <-> #sugerencias
+    Route::controller(App\Http\Controllers\BotSuggestionController::class)->prefix('/bot/suggestions')->group(function () {
+        Route::post('/{suggestion}/thread', 'thread')->whereNumber('suggestion');
+        Route::post('/store', 'storeFromDiscord')->middleware('throttle:60,1');
+        Route::post('/vote', 'voteFromDiscord')->middleware('throttle:120,1');
+        Route::post('/status', 'statusFromDiscord')->middleware('throttle:60,1');
+        Route::get('/top', 'top');
+    });
     Route::post('/bot/birthdays/{celebration}/wish', [App\Http\Controllers\BotBirthdayController::class, 'wish'])->middleware('throttle:120,1');
     Route::get('/bot/birthdays/upcoming', [App\Http\Controllers\BotBirthdayController::class, 'upcoming']);
     Route::get('/bot/discord/{discordId}/birthday', [App\Http\Controllers\BotBirthdayController::class, 'show'])->where('discordId', '[0-9]{5,25}');

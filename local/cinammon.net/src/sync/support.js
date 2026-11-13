@@ -7,7 +7,7 @@
  * - Quien preguntó pulsa "Resuelto" y elige quién le ayudó: suma un punto de ayuda. Los que más
  *   ayudan en el mes salen en el mensaje de #soporte.
  */
-let env = null; // { discord, log, st, ctx, accent, ui, saveState, assistant, isStaff }
+let env = null; // { discord, panel, log, st, ctx, accent, ui, saveState, assistant, isStaff }
 
 const V2 = 1 << 15;
 const GREEN = 0x10b981;
@@ -100,10 +100,22 @@ async function onChannelMessage(message, isStaff) {
     return true;
 }
 
-/** Mensaje dentro de un hilo de pregunta: se apunta quién ayuda. */
-function onThreadMessage(message) {
+/** Mensaje dentro de un hilo de pregunta: se apunta quién ayuda (y, si la duda es de la web, se copia allí). */
+async function onThreadMessage(message) {
     const t = state().threads[message.channel_id];
-    if (!t || message.author?.bot || message.author.id === t.asker) return false;
+    if (!t || message.author?.bot) return false;
+    const content = String(message.content || '').trim();
+    if (t.webQuestion && content.length >= 2 && !PRIVATE.test(content)) {
+        await env.panel('POST', '/api/bot/community/answers', {
+            thread_id: message.channel_id,
+            message_id: message.id,
+            discord_id: message.author.id,
+            author_name: cut(message.member?.nick || message.author.global_name || message.author.username, 80),
+            body: cut(content, 4000),
+            source: 'discord',
+        }).catch((e) => env.log(`[DUDAS] respuesta a la web: ${e.message}`));
+    }
+    if (message.author.id === t.asker) return true;
     if (!t.helpers[message.author.id]) {
         t.helpers[message.author.id] = cut(message.member?.nick || message.author.global_name || message.author.username, 80);
         env.saveState();
@@ -112,6 +124,136 @@ function onThreadMessage(message) {
 }
 
 const isSupportThread = (id) => !!state().threads[id];
+
+/* ------------------------------------------------------------ Dudas de la web */
+
+/** Abre en #soporte el hilo de una duda hecha en la web, con la respuesta del asistente si la tiene. */
+async function openWebQuestion(S, q) {
+    const help = env.ctx().layout.channels.help;
+    let entry = Object.entries(S.threads).find(([, t]) => t.webQuestion === q.id);
+    if (!entry) {
+        const thread = await env.discord('POST', `/channels/${help}/threads`, {
+            name: threadName(q.title), type: 11, auto_archive_duration: 1440,
+        }, 'Duda del panel');
+        const t = { webQuestion: q.id, asker: q.discord_id || null, title: thread.name, q: cut(`${q.title}\n${q.body || ''}`, 1500), at: Date.now(), helpers: {} };
+        S.threads[thread.id] = t;
+        env.saveState();
+        entry = [thread.id, t];
+    }
+    const [threadId, t] = entry;
+    if (!t.webPosted) {
+        const who = q.discord_id ? `<@${q.discord_id}>` : `**${cut(q.author, 60)}**`;
+        await env.discord('POST', `/channels/${threadId}/messages`, {
+            ...card(env.accent(),
+                env.ui.text(`**Duda de ${who} desde el panel** · ${q.category}\n## ${cut(q.title, 140)}${q.body ? `\n${cut(q.body, 1500)}` : ''}`),
+                env.ui.text('-# Lo que respondas aquí sale también en la web.'),
+                env.ui.row({ type: 2, style: 5, label: 'Ver en el panel', url: q.url }, btn('Resuelto', `sup:solved:${threadId}`, 3)),
+            ),
+            allowed_mentions: { users: q.discord_id ? [q.discord_id] : [] },
+        });
+        t.webPosted = true;
+        env.saveState();
+        // Respuesta automática: si el asistente está seguro, se publica en el hilo y en la web
+        const question = `${q.title}\n${q.body || ''}`;
+        const a = PRIVATE.test(question) ? null : await env.assistant.answer(question).catch(() => null);
+        if (a && !a.unsure) {
+            const m = await env.discord('POST', `/channels/${threadId}/messages`, card(env.accent(),
+                env.ui.text(`### ${a.title}\n${a.body}`),
+                env.ui.text('-# Respuesta automática. Si no lo resuelve, la comunidad y el equipo leen el hilo.'),
+            ));
+            await env.panel('POST', '/api/bot/community/answers', {
+                thread_id: threadId, message_id: m.id, body: cut(`${a.title}\n\n${a.body}`, 4000), source: 'assistant',
+            }).catch((e) => env.log(`[DUDAS] respuesta automática a la web: ${e.message}`));
+        } else {
+            await env.assistant.pingStaff(threadId, q.discord_id || threadId, 'duda nueva del panel sin respuesta automática').catch(() => {});
+        }
+    }
+    await env.panel('POST', `/api/bot/community/questions/${q.id}/thread`, { thread_id: threadId });
+}
+
+/** Feed del panel: dudas nuevas, respuestas escritas en la web y dudas resueltas allí. Cada envío se confirma para no repetirlo. */
+async function syncWeb(feed) {
+    if (!feed || !env.ctx().layout.channels?.help) return;
+    const S = state();
+    S.webMessages ??= {};  // id de respuesta web -> id del mensaje (hasta que el panel lo confirma)
+    S.webSolved ??= [];    // ids de dudas web ya cerradas en Discord
+    const step = async (what, fn) => {
+        try {
+            await fn();
+        } catch (e) {
+            env.log(`[DUDAS] ${what}: ${e.message}`);
+        }
+    };
+
+    for (const q of feed.new || []) await step(`hilo de la duda ${q.id}`, () => openWebQuestion(S, q));
+
+    for (const a of feed.answers || []) {
+        await step(`respuesta ${a.id}`, async () => {
+            if (!S.webMessages[a.id]) {
+                // Discord exige desarchivar un hilo antes de escribir en él
+                await env.discord('PATCH', `/channels/${a.thread}`, { archived: false }).catch(() => {});
+                const who = a.discord_id ? `<@${a.discord_id}>` : `**${cut(a.author, 60)}**`;
+                const m = await env.discord('POST', `/channels/${a.thread}/messages`, card(env.accent(),
+                    env.ui.text(`${who} respondió desde el panel:\n${cut(a.body, 3500)}`),
+                    env.ui.row({ type: 2, style: 5, label: 'Ver en el panel', url: a.url }),
+                ));
+                S.webMessages[a.id] = m.id;
+                env.saveState();
+            }
+            await env.panel('POST', `/api/bot/community/answers/${a.id}/message`, { message_id: S.webMessages[a.id] });
+            delete S.webMessages[a.id];
+            env.saveState();
+        });
+    }
+
+    for (const q of feed.solved || []) {
+        if (S.webSolved.includes(q.id)) continue;
+        await step(`cerrar duda ${q.id}`, async () => {
+            const t = S.threads[q.thread];
+            if (t && !t.solved) {
+                t.solved = true;
+                await env.discord('POST', `/channels/${q.thread}/messages`, card(GREEN, env.ui.text('**Resuelta en el panel.** Gracias a quienes ayudaron.'))).catch(() => {});
+            }
+            await env.discord('PATCH', `/channels/${q.thread}`, { name: cut(`[Resuelto] ${t?.title || 'Duda'}`, 100), archived: true }, 'Duda resuelta en el panel').catch(() => {});
+            S.webSolved.push(q.id);
+            S.webSolved = S.webSolved.slice(-200);
+            env.saveState();
+        });
+    }
+}
+
+/** Hilo de #soporte resuelto: el asistente lo resume sin datos personales y se guarda en Dudas de la web. */
+async function publishSolved(threadId, t, helperIds) {
+    if (t.webQuestion || PRIVATE.test(t.q || '')) return;
+    const msgs = await env.discord('GET', `/channels/${threadId}/messages?limit=60`).catch(() => []);
+    const lines = (Array.isArray(msgs) ? msgs : []).reverse()
+        .map((m) => {
+            const textOf = [m.content, ...(m.components || []).flatMap(function walk(c) { return [c.content, ...(c.components || []).flatMap(walk)]; })]
+                .filter(Boolean).join('\n').trim();
+            if (!textOf) return null;
+            const who = m.author?.bot ? 'Asistente' : m.author?.id === t.asker ? 'Quien pregunta' : 'Ayudante';
+            return `${who}: ${cut(textOf, 1200)}`;
+        })
+        .filter(Boolean);
+    if (!lines.length) return;
+    const sum = await env.assistant.summarizeThread(t.q || t.title, lines.join('\n')).catch(() => null);
+    if (!sum || !sum.publishable) return;
+    const names = helperIds.map((id) => t.helpers?.[id]).filter(Boolean).slice(0, 4).join(', ');
+    const res = await env.panel('POST', '/api/bot/community/import', {
+        thread_id: threadId,
+        title: cut(sum.title, 140),
+        body: sum.question ? cut(sum.question, 2000) : null,
+        answer: cut(sum.answer, 4000),
+        helpers: names || null,
+        category: sum.category,
+    });
+    if (res?.url) {
+        await env.discord('POST', `/channels/${threadId}/messages`, card(GREEN,
+            env.ui.text('-# Guardada en Dudas de la comunidad para quien tenga la misma pregunta (resumida, sin datos personales).'),
+            env.ui.row({ type: 2, style: 5, label: 'Ver en el panel', url: res.url }),
+        )).catch(() => {});
+    }
+}
 
 /* ------------------------------------------------------------ "Hacer una pregunta" */
 
@@ -153,6 +295,9 @@ async function finish(threadId, helperIds, by) {
     const S = state();
     const t = S.threads[threadId];
     if (!t || t.solved) return;
+    if (t.webQuestion) {
+        await env.panel('POST', '/api/bot/community/solved', { thread_id: threadId }).catch((e) => env.log(`[DUDAS] resuelta: ${e.message}`));
+    }
     t.solved = true;
     const m = month();
     S.points[m] ??= {};
@@ -166,6 +311,7 @@ async function finish(threadId, helperIds, by) {
         ...card(GREEN, env.ui.text(`**Resuelto** por <@${by}>.${thanks}\n-# Si vuelve a pasar, abre otra pregunta en #soporte.`)),
         allowed_mentions: { users: helperIds },
     }).catch(() => {});
+    await publishSolved(threadId, t, helperIds).catch((e) => env.log(`[DUDAS] guardar en la web: ${e.message}`));
     await env.discord('PATCH', `/channels/${threadId}`, { name: cut(`[Resuelto] ${t.title}`, 100), archived: true }, 'Pregunta resuelta').catch(() => {});
 }
 
@@ -240,4 +386,4 @@ async function component(i, respond) {
     return eph('Esta acción ya no está disponible.');
 }
 
-module.exports = { init, onChannelMessage, onThreadMessage, isSupportThread, component, topHelpers };
+module.exports = { init, onChannelMessage, onThreadMessage, isSupportThread, component, topHelpers, syncWeb };

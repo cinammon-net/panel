@@ -67,6 +67,10 @@ class BotSyncController extends Controller
                     'at' => $u->created_at?->toIso8601String(),
                 ])->values(),
             'purchases' => $this->purchases(),
+            // Dudas de la web que aún no están en #soporte (y respuestas/resueltas para el hilo)
+            'community' => BotCommunityController::feed(),
+            // Sugerencias de la web para abrir hilo en #sugerencias y sincronizar estados
+            'suggestions' => BotSuggestionController::feed(),
             // Servidores creados (de cualquiera: compra, gratis, Amigo, admin o Discord), últimos 3 días.
             // El bot los publica en #compras y avisa al dueño por privado si tiene Discord vinculado.
             'servers_created' => Server::with(['owner:id,name,discord_id', 'egg:id,name'])
