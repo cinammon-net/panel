@@ -9,6 +9,7 @@ import {
     HelpCircle,
     Info,
     LayoutGrid,
+    Newspaper,
     Server,
     Settings,
     Share2,
@@ -33,6 +34,16 @@ interface LiveNode {
     maintenance: boolean;
 }
 
+interface DashboardNews {
+    id: number;
+    title: string;
+    category?: string;
+    summary?: string;
+    picture?: string;
+    is_pinned?: boolean;
+    created_at?: string;
+}
+
 interface DashboardProps {
     liveNodes?: LiveNode[] | null;
     updateStatus?: UpdateStatus | null;
@@ -40,6 +51,7 @@ interface DashboardProps {
     roleScope?: 'admin' | 'moderator' | 'client';
     userRole?: string;
     birthday?: BirthdayToday | null;
+    latestNews?: DashboardNews[] | null;
     stats?: Record<string, number>;
     weeklyActivity?: {
         labels: string[];
@@ -60,6 +72,7 @@ export default function Dashboard() {
         updates,
         roleScope = 'client',
         userRole = 'Member',
+        latestNews = [],
         stats: serverStats = {},
         weeklyActivity,
     } = usePage<DashboardProps>().props;
@@ -286,6 +299,68 @@ export default function Dashboard() {
                         </div>
                     ))}
                 </div>
+
+                {/* Tablón de Últimas Noticias & Novedades */}
+                {latestNews && latestNews.length > 0 && (
+                    <div className="rounded-2xl border border-yellow-500/30 bg-gradient-to-r from-neutral-950 via-[#18130a] to-neutral-950 p-5 sm:p-6 shadow-xl backdrop-blur">
+                        <div className="flex items-center justify-between mb-4 pb-3 border-b border-yellow-500/20">
+                            <div className="flex items-center gap-2.5">
+                                <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-2 text-yellow-400">
+                                    <Newspaper className="h-4 w-4" />
+                                </div>
+                                <div>
+                                    <h2 className="text-sm sm:text-base font-bold text-white tracking-wide uppercase">
+                                        Novedades & Noticias Oficiales
+                                    </h2>
+                                    <p className="text-[11px] text-neutral-400">
+                                        Últimos comunicados y anuncios de la red
+                                    </p>
+                                </div>
+                            </div>
+                            <Link
+                                href="/posts"
+                                className="inline-flex items-center gap-1.5 text-xs font-semibold text-yellow-400 hover:text-yellow-300 transition"
+                            >
+                                Ver todas →
+                            </Link>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {latestNews.map((news) => (
+                                <Link
+                                    key={news.id}
+                                    href={`/posts?id=${news.id}`}
+                                    className="group relative flex flex-col overflow-hidden rounded-xl border border-neutral-800/80 bg-black/40 p-4 transition-all duration-300 hover:border-yellow-500/40 hover:bg-neutral-900/60"
+                                >
+                                    <div className="flex items-center justify-between gap-2 text-[10px] text-neutral-400 mb-2">
+                                        <span className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-2 py-0.5 font-bold uppercase text-yellow-300">
+                                            {news.category || 'Novedad'}
+                                        </span>
+                                        {news.is_pinned && (
+                                            <span className="text-yellow-400 font-semibold flex items-center gap-0.5">
+                                                📌 Destacada
+                                            </span>
+                                        )}
+                                    </div>
+                                    <h3 className="font-bold text-sm text-white group-hover:text-yellow-400 transition-colors line-clamp-2">
+                                        {news.title}
+                                    </h3>
+                                    {news.summary && (
+                                        <p className="mt-1.5 text-xs text-neutral-400 line-clamp-2 leading-relaxed">
+                                            {news.summary}
+                                        </p>
+                                    )}
+                                    <span className="mt-3 text-[11px] text-neutral-500 font-sans">
+                                        {new Date(news.created_at || '').toLocaleDateString('es-ES', {
+                                            day: '2-digit',
+                                            month: 'short',
+                                        })}
+                                    </span>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Infraestructura en vivo (nodos Wings) */}
                 {roleScope === 'admin' && !!liveNodes?.length && (

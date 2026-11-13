@@ -267,6 +267,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'stats' => $stats,
             'weeklyActivity' => $weeklyActivity,
             'userRole' => $userRoles[0] ?? 'Member',
+            'latestNews' => \App\Models\Post::with('author:id,name')
+                ->orderByDesc('is_pinned')
+                ->orderByDesc('created_at')
+                ->take(3)
+                ->get()
+                ->map(fn($p) => [
+                    'id' => $p->id,
+                    'title' => $p->title,
+                    'category' => $p->category ?: 'actualizacion',
+                    'summary' => $p->summary ?: \Illuminate\Support\Str::limit(strip_tags($p->content), 120),
+                    'picture' => $p->picture,
+                    'is_pinned' => (bool) $p->is_pinned,
+                    'created_at' => $p->created_at?->toIso8601String(),
+                ]),
             // Gestor de actualizaciones embebido en el dashboard (solo admins)
             'updateStatus' => $roleScope === 'admin' ? \App\Support\UpdateChecker::status() : null,
             // Infraestructura en vivo: estado de cada nodo Wings (cache 30 s)
@@ -410,8 +424,11 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
         });
     });
 
-    // Posts: lectura para usuarios autenticados; creación/edición/borrado solo Owner/Admin
+    // Sistema de Noticias & Comunicados
     Route::get('/posts', [PostController::class, 'index'])->name('posts.index');
+    Route::get('/noticias', fn () => redirect()->route('posts.index'))->name('noticias.index');
+    Route::get('/noticias/{post}', fn ($post) => redirect()->route('posts.show', $post))->whereNumber('post');
+    Route::post('/posts/{post}/like', [PostController::class, 'toggleLike'])->whereNumber('post')->name('posts.like');
     Route::middleware('admin')->group(function () {
         Route::resource('posts', PostController::class)->except(['index', 'show']);
     });

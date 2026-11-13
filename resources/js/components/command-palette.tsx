@@ -20,6 +20,7 @@ import {
     LogOut,
     Mail,
     Megaphone,
+    Newspaper,
     Palette,
     PlusCircle,
     Radio,
@@ -103,6 +104,14 @@ export function CommandPalette({ isOpen, onClose }: { isOpen: boolean; onClose: 
             },
 
             // Comunidad y soporte
+            {
+                id: 'news',
+                title: 'Noticias & Comunicados',
+                description: 'Tablón de novedades oficiales, actualizaciones y anuncios',
+                icon: Newspaper,
+                href: '/posts',
+                category: 'Comunidad',
+            },
             {
                 id: 'tickets',
                 title: 'Tickets de Soporte',
