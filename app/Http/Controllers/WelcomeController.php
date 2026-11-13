@@ -19,7 +19,9 @@ class WelcomeController extends Controller
     public function index()
     {
         $reviews = Review::with('user:id,name,avatar')->latest()->take(5)->get(['id', 'comment', 'rating', 'user_id']);
-        $posts = Post::latest()->take(5)->get(['id', 'title', 'content', 'picture', 'created_at']); // toma últimos 5 posts
+        $posts = Post::latest()
+            ->take(6)
+            ->get(['id', 'title', 'summary', 'content', 'picture', 'category', 'views_count', 'likes_count', 'is_pinned', 'created_at']);
 
         $preferredOrder = [
             'gallery/Console.png',

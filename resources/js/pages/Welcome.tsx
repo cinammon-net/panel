@@ -8,11 +8,20 @@ import 'aos/dist/aos.css';
 import 'aos/dist/aos.js';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Activity, BarChart3, Bot, Gauge, Heart, Images, LifeBuoy, Megaphone, MessageSquareQuote, Newspaper, Palette, SlidersHorizontal, Ticket, Zap } from 'lucide-react';
+import { Activity, ArrowRight, BarChart3, Bot, Clock, Gauge, Heart, Images, LifeBuoy, Megaphone, MessageSquareQuote, Newspaper, Palette, SlidersHorizontal, Ticket, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { cinLogo } from '@/lib/brand';
 import NewsletterForm from '@/components/newsletter-form';
 import { BrandIcon } from '@/components/social-login';
+
+const categoryStyles: Record<string, { label: string; bg: string; text: string; border: string }> = {
+    mantenimiento: { label: 'Mantenimiento', bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/30' },
+    comunidad: { label: 'Comunidad', bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30' },
+    actualizacion: { label: 'Actualización', bg: 'bg-cyan-500/15', text: 'text-cyan-400', border: 'border-cyan-500/30' },
+    evento: { label: 'Evento', bg: 'bg-purple-500/15', text: 'text-purple-400', border: 'border-purple-500/30' },
+    opinion: { label: 'Opinión', bg: 'bg-rose-500/15', text: 'text-rose-400', border: 'border-rose-500/30' },
+    anuncio: { label: 'Comunicado', bg: 'bg-yellow-500/15', text: 'text-yellow-400', border: 'border-yellow-500/30' },
+};
 
 const CookieBanner: React.FC = () => {
     const [cookiesAccepted, setCookiesAccepted] = useState<boolean>(false);
@@ -80,7 +89,17 @@ export default function WelcomePanel() {
     const { auth, reviews, posts, galleryImages, stats, billingUrl, billingCategories, freeStats, discord } = usePage<
         SharedData & {
             reviews: { comment: string; rating: number; user: { name: string; avatar_url?: string | null } }[];
-            posts: { id: number; title: string; content: string; picture?: string; created_at: string }[];
+            posts: {
+                id: number;
+                title: string;
+                summary?: string | null;
+                content: string;
+                picture?: string | null;
+                category?: string | null;
+                likes_count?: number;
+                views_count?: number;
+                created_at: string;
+            }[];
             galleryImages?: string[];
             stats?: { users: number; servers: number; nodes: number; eggs: number };
             billingUrl?: string;
@@ -440,55 +459,123 @@ export default function WelcomePanel() {
                 </section>
 
                 {/* SECCIÓN DE POSTS */}
-                <section className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
-                    <h2 className="flex items-center justify-center gap-3 text-2xl font-bold text-pink-400 sm:text-4xl" data-aos="fade-up">
-                        <Newspaper className="h-7 w-7 shrink-0 sm:h-9 sm:w-9" aria-hidden /> Últimos posts
-                    </h2>
+                <section className="relative z-10 w-full px-4 py-24 sm:px-6 lg:px-8">
+                    <div className="mx-auto max-w-7xl">
+                        {/* Cabecera de la sección */}
+                        <div className="mb-12 flex flex-col items-center text-center" data-aos="fade-up">
+                            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-amber-300 backdrop-blur-md">
+                                <Newspaper className="h-4 w-4 shrink-0 text-amber-400" aria-hidden />
+                                <span>El Diario de Cinammon · Edición Digital</span>
+                            </div>
+                            <h2 className="font-orbitron text-2xl font-extrabold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 sm:text-4xl lg:text-5xl">
+                                Últimos posts & comunicados
+                            </h2>
+                            <p className="mt-3 max-w-2xl text-xs sm:text-sm text-neutral-300">
+                                Información técnica de la red, notas de mantenimiento, actualizaciones de Wings y crónicas comunitarias.
+                            </p>
+                        </div>
 
-                    <div className="grid w-full max-w-4xl grid-cols-1 gap-8 sm:grid-cols-1">
+                        {/* Grid de tarjetas responsivo: 1 col móvil, 2 cols tablet, 3 cols escritorio */}
                         {posts.length > 0 ? (
-                            posts.map((post, i) => (
-                                <div
-                                    key={post.id}
-                                    className="group relative max-w-sm rounded-lg bg-[#2b182e] shadow-lg"
-                                    data-aos="fade-up"
-                                    data-aos-delay={i * 50}
-                                >
-                                    {/* Imagen */}
-                                    {post.picture && <img src={post.picture} alt={post.title} className="h-48 w-full rounded-t-lg object-cover" />}
-
-                                    {/* Corazón y contador arriba derecha */}
-                                    <div className="absolute top-2 right-2 flex items-center gap-1 rounded bg-black/60 px-2 py-1 text-sm text-white shadow-md">
-                                        <Heart className="h-4 w-4" />3
-                                    </div>
-
-                                    {/* Texto dentro de la caja */}
-                                    <div className="relative px-4 py-4 text-center text-white">
-                                        <h3 className="mb-2 text-lg font-bold">{post.title}</h3>
-                                        <p className="mb-4 line-clamp-3 max-h-16 overflow-hidden text-sm leading-relaxed text-gray-300">
-                                            {post.content}
-                                        </p>
-
-                                        {/* Botón leer, oculto hasta hover */}
-                                        <Link
-                                            href={`/posts/${post.id}`}
-                                            className="absolute bottom-4 left-1/2 hidden -translate-x-1/2 rounded bg-orange-500 px-6 py-2 text-sm font-semibold text-black shadow-md transition-opacity duration-300 group-hover:block group-hover:opacity-100"
+                            <div className="grid w-full grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                                {posts.map((post, i) => {
+                                    const cat = categoryStyles[post.category ?? 'actualizacion'] ?? categoryStyles.actualizacion;
+                                    const postUrl = `https://news.cinammon.net/articulo/${post.id}`;
+                                    return (
+                                        <a
+                                            key={post.id}
+                                            href={postUrl}
+                                            className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0e1017]/90 shadow-xl backdrop-blur-md transition-all duration-300 hover:-translate-y-1.5 hover:border-amber-400/60 hover:shadow-[0_12px_35px_rgba(245,158,11,0.22)]"
+                                            data-aos="fade-up"
+                                            data-aos-delay={(i % 3) * 100}
                                         >
-                                            Leer
-                                        </Link>
-                                    </div>
+                                            {/* Imagen del post */}
+                                            <div className="relative aspect-[16/10] w-full overflow-hidden bg-black/60">
+                                                {post.picture ? (
+                                                    <img
+                                                        src={post.picture}
+                                                        alt={post.title}
+                                                        className="h-full w-full object-cover object-top transition-transform duration-700 ease-out group-hover:scale-105"
+                                                        loading="lazy"
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-amber-950/40 via-neutral-900 to-black">
+                                                        <Newspaper className="h-12 w-12 text-amber-500/30" />
+                                                    </div>
+                                                )}
 
-                                    {/* Pestaña fecha relativa */}
-                                    <div className="rounded-b-lg bg-[#4a2d57] px-4 py-2 text-center text-xs text-gray-300 shadow-inner">
-                                        {post.created_at
-                                            ? formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: es })
-                                            : 'Fecha no disponible'}
-                                    </div>
-                                </div>
-                            ))
+                                                {/* Degradado sobre la imagen */}
+                                                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0e1017] via-transparent to-black/40" />
+
+                                                {/* Categoría arriba izquierda */}
+                                                <div className="absolute top-3 left-3">
+                                                    <span className={`inline-flex items-center rounded-md border ${cat.border} ${cat.bg} ${cat.text} px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider backdrop-blur-md`}>
+                                                        {cat.label}
+                                                    </span>
+                                                </div>
+
+                                                {/* Me gusta arriba derecha */}
+                                                <div className="absolute top-3 right-3 flex items-center gap-1.5 rounded-full border border-white/10 bg-black/70 px-2.5 py-1 text-xs text-white backdrop-blur-md">
+                                                    <Heart className="h-3.5 w-3.5 text-pink-500 fill-pink-500/40" />
+                                                    <span className="font-mono text-[11px] font-bold">{post.likes_count ?? 0}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Contenido de la tarjeta */}
+                                            <div className="flex flex-1 flex-col justify-between p-5 text-left">
+                                                <div>
+                                                    {/* Meta: fecha */}
+                                                    <div className="mb-2.5 flex items-center gap-1.5 text-[11px] text-neutral-400">
+                                                        <Clock className="h-3 w-3 text-amber-400/80" />
+                                                        <span>
+                                                            {post.created_at
+                                                                ? formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: es })
+                                                                : 'Reciente'}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Título */}
+                                                    <h3 className="font-orbitron text-base font-bold leading-snug text-white transition-colors duration-200 group-hover:text-amber-300 line-clamp-2">
+                                                        {post.title}
+                                                    </h3>
+
+                                                    {/* Resumen o extracto */}
+                                                    <p className="mt-2.5 text-xs leading-relaxed text-neutral-300/85 line-clamp-3">
+                                                        {post.summary || post.content}
+                                                    </p>
+                                                </div>
+
+                                                {/* Pie de tarjeta con llamada a leer */}
+                                                <div className="mt-5 flex items-center justify-between border-t border-white/5 pt-3 text-xs font-semibold text-amber-400 transition-colors group-hover:text-amber-300">
+                                                    <span>Leer crónica completa</span>
+                                                    <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+                                                </div>
+                                            </div>
+                                        </a>
+                                    );
+                                })}
+                            </div>
                         ) : (
-                            <p className="text-pink-400">No hay posts disponibles.</p>
+                            <p className="text-center text-amber-400">No hay posts disponibles en este momento.</p>
                         )}
+
+                        {/* Banner inferior con acceso al periódico digital */}
+                        <div
+                            className="mt-12 flex flex-col items-center justify-between gap-4 rounded-2xl border border-amber-500/20 bg-gradient-to-r from-amber-950/30 via-[#13111c] to-amber-950/20 p-6 backdrop-blur-md sm:flex-row text-center sm:text-left"
+                            data-aos="fade-up"
+                        >
+                            <div>
+                                <h3 className="font-orbitron text-base font-bold text-white">¿Buscas la hemeroteca completa?</h3>
+                                <p className="text-xs sm:text-sm text-neutral-400">Accede a El Diario de Cinammon para consultar todas las ediciones, notas de redacción y cartas del director.</p>
+                            </div>
+                            <a
+                                href="https://news.cinammon.net"
+                                className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-amber-400/40 bg-gradient-to-r from-amber-500 to-amber-600 px-5 py-2.5 text-xs sm:text-sm font-bold text-neutral-950 shadow-[0_0_20px_rgba(245,158,11,0.25)] transition hover:from-amber-400 hover:to-amber-500 hover:shadow-[0_0_30px_rgba(245,158,11,0.4)]"
+                            >
+                                <span>Visitar news.cinammon.net</span>
+                                <ArrowRight className="h-4 w-4" />
+                            </a>
+                        </div>
                     </div>
                 </section>
 
