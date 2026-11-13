@@ -66,7 +66,7 @@
         $knownSubs = ['panel', 'demo', 'store', 'billing', 'news', 'status', 'admin', 'database', 'mail', 'nodo', 'wings'];
         $logoFile = in_array($cinSub, $knownSubs, true) ? "cinammon-{$cinSub}.png" : 'cinammon-panel.png';
         $logoVer = @filemtime(public_path("logos/{$logoFile}")) ?: 2;
-        $cinLogo = "/logos/{$logoFile}?v={$logoVer}";
+        $cinLogo = "/logos/{$logoFile}?v={$logoVer}-v3";
 
         $loaderA = match ($cinSub) {
             'news' => '#eab308',
