@@ -44,19 +44,20 @@ if ($statusHost !== '') {
     });
 }
 
-// 📰 Periódico Digital Oficial en news.cinammon.net (debe registrarse antes de la portada)
+// Periodico Digital Oficial en news.cinammon.net
 $newsHost = (string) config('panel.news_host', 'news.cinammon.net');
 if ($newsHost !== '') {
     Route::domain($newsHost)->group(function () {
         Route::get('/', [App\Http\Controllers\NewsPaperController::class, 'index'])->name('news.newspaper.index');
         Route::get('/articulo/{post}', [App\Http\Controllers\NewsPaperController::class, 'show'])->whereNumber('post')->name('news.newspaper.show');
         Route::get('/noticia/{post}', fn ($post) => redirect()->route('news.newspaper.show', $post))->whereNumber('post');
+        Route::get('/noticias/{post}', fn ($post) => redirect()->route('news.newspaper.show', $post))->whereNumber('post');
         Route::get('/posts/{post}', fn ($post) => redirect()->route('news.newspaper.show', $post))->whereNumber('post');
-        Route::post('/posts/{post}/like', [App\Http\Controllers\PostController::class, 'toggleLike'])->whereNumber('post');
+        Route::match(['get', 'post'], '/posts/{post}/like', [App\Http\Controllers\PostController::class, 'toggleLike'])->whereNumber('post');
     });
 }
 
-// 🌐 Rutas públicas
+// Rutas publicas
 Route::get('/', [WelcomeController::class, 'index'])->name('home');
 Route::get('/noticias', function (Request $request) use ($newsHost) {
     if ($newsHost !== '' && strcasecmp($request->getHost(), $newsHost) !== 0 && !app()->environment('local')) {
@@ -64,6 +65,18 @@ Route::get('/noticias', function (Request $request) use ($newsHost) {
     }
     return app(App\Http\Controllers\NewsPaperController::class)->index($request);
 })->name('noticias.index');
+Route::get('/articulo/{post}', function (Request $request, $post) use ($newsHost) {
+    if ($newsHost !== '' && strcasecmp($request->getHost(), $newsHost) !== 0 && !app()->environment('local')) {
+        return redirect()->away("https://{$newsHost}/articulo/{$post}");
+    }
+    return app(App\Http\Controllers\NewsPaperController::class)->show($request, \App\Models\Post::findOrFail($post));
+})->whereNumber('post');
+Route::get('/noticia/{post}', function (Request $request, $post) use ($newsHost) {
+    if ($newsHost !== '' && strcasecmp($request->getHost(), $newsHost) !== 0 && !app()->environment('local')) {
+        return redirect()->away("https://{$newsHost}/articulo/{$post}");
+    }
+    return redirect()->route('news.newspaper.show', $post);
+})->whereNumber('post');
 Route::get('/estado', function (Request $request) use ($statusHost) {
     if ($statusHost !== '' && strcasecmp($request->getHost(), $statusHost) !== 0 && !app()->environment('local')) {
         return redirect()->away("https://{$statusHost}");
@@ -455,8 +468,9 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
     Route::get('/posts', [PostController::class, 'index'])->name('posts.index');
     Route::get('/noticias', fn () => redirect()->route('posts.index'))->name('noticias.index');
     Route::get('/noticias/{post}', fn ($post) => redirect()->route('posts.show', $post))->whereNumber('post');
-    Route::post('/posts/{post}/like', [PostController::class, 'toggleLike'])->whereNumber('post')->name('posts.like');
+    Route::match(['get', 'post'], '/posts/{post}/like', [PostController::class, 'toggleLike'])->whereNumber('post')->name('posts.like');
     Route::middleware('admin')->group(function () {
+        Route::match(['put', 'patch', 'post'], '/posts/{post}', [PostController::class, 'update'])->name('posts.update.direct');
         Route::resource('posts', PostController::class)->except(['index', 'show']);
     });
     Route::get('/posts/{post}', [PostController::class, 'show'])->whereNumber('post')->name('posts.show');
@@ -623,12 +637,13 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
     Route::get('/servers/edit', fn() => redirect('/servers'));
     // Crear, configurar y borrar servidores (nodo, propietario, recursos): solo Owner/Admin.
     Route::get('/servers', [ServerController::class, 'index'])->name('servers.index');
+    Route::get('/servers/{server}', fn ($server) => redirect()->route('servers.console', $server))->name('servers.show');
     Route::middleware('admin')->group(function () {
         // Sin nombres repetidos (si no, `php artisan route:cache` falla). Son las mismas rutas que respondían antes.
         Route::resource('servers', ServerController::class)->only(['create', 'destroy']);
         Route::get('/servers/{server}/edit', [ServerController::class, 'edit'])->name('servers.edit');
         Route::post('/servers', [ServerController::class, 'store'])->name('servers.store');
-        Route::match(['put', 'patch'], '/servers/{server}', [ServerController::class, 'update'])->name('servers.update');
+        Route::match(['put', 'patch', 'post'], '/servers/{server}', [ServerController::class, 'update'])->name('servers.update');
     });
     Route::post('/servers/{server}/transfer-owner', [App\Http\Controllers\ServerSubusersController::class, 'transferOwner'])->name('servers.transfer_owner');
 
@@ -767,3 +782,12 @@ Route::get('/dev-autologin', function (Request $request) {
     $to = $request->query('to', '/dashboard');
     return redirect($to);
 });
+
+// Manejo global de peticiones preflight OPTIONS (evita errores 405 en llamadas cross-subdomain y API)
+Route::options('/{any}', function () {
+    return response('', 204)
+        ->header('Access-Control-Allow-Origin', '*')
+        ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+        ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-CSRF-TOKEN, X-Inertia, X-Inertia-Version');
+})->where('any', '.*');
+
