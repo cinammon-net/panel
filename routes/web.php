@@ -36,6 +36,8 @@ if (($wingsHost = (string) config('panel.wings_host')) !== '') {
 
 // 🌐 Rutas públicas
 Route::get('/', [WelcomeController::class, 'index'])->name('home');
+Route::get('/estado', [App\Http\Controllers\StatusController::class, 'index'])->name('status.index');
+Route::get('/status', fn () => redirect()->route('status.index'));
 Route::get('/demo', function (Request $request) {
     $demoHost = (string) config('panel.demo_host', 'demo.cinammon.net');
     if ($demoHost !== '' && strcasecmp($request->getHost(), $demoHost) !== 0) {

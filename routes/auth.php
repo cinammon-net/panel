@@ -32,9 +32,24 @@ Route::middleware('guest')->group(function () {
 
     Route::post('reset-password', [NewPasswordController::class, 'store'])
         ->name('password.store');
+
+    // Desafío 2FA durante el login
+    Route::get('two-factor-challenge', [\App\Http\Controllers\TwoFactorAuthController::class, 'showChallenge'])
+        ->name('two-factor.challenge');
+    Route::post('two-factor-challenge', [\App\Http\Controllers\TwoFactorAuthController::class, 'verifyChallenge'])
+        ->name('two-factor.challenge.verify');
 });
 
 Route::middleware('auth')->group(function () {
+    // Gestión del 2FA en ajustes
+    Route::post('user/two-factor-authentication', [\App\Http\Controllers\TwoFactorAuthController::class, 'enable'])
+        ->name('two-factor.enable');
+    Route::post('user/confirmed-two-factor-authentication', [\App\Http\Controllers\TwoFactorAuthController::class, 'confirm'])
+        ->name('two-factor.confirm');
+    Route::delete('user/two-factor-authentication', [\App\Http\Controllers\TwoFactorAuthController::class, 'disable'])
+        ->name('two-factor.disable');
+    Route::post('user/two-factor-recovery-codes', [\App\Http\Controllers\TwoFactorAuthController::class, 'regenerateRecoveryCodes'])
+        ->name('two-factor.recovery-codes');
     Route::get('verify-email', EmailVerificationPromptController::class)
         ->name('verification.notice');
 

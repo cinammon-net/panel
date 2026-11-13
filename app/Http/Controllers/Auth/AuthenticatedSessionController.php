@@ -36,6 +36,16 @@ class AuthenticatedSessionController extends Controller
     {
         $request->authenticate();
 
+        $user = Auth::user();
+        if ($user && $user->hasTwoFactorEnabled()) {
+            $remember = $request->boolean('remember');
+            Auth::guard('web')->logout();
+            $request->session()->put('login.two_factor_user_id', $user->id);
+            $request->session()->put('login.remember', $remember);
+
+            return redirect()->route('two-factor.challenge');
+        }
+
         $request->session()->regenerate();
 
         if ($this->onWingsHost($request)) {

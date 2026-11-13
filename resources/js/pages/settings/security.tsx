@@ -4,8 +4,8 @@ import SettingsLayout from '@/layouts/settings/layout';
 import { type BreadcrumbItem } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Head, useForm, usePage } from '@inertiajs/react';
-import { KeyRound, Lock, LockOpen, Monitor, ShieldCheck } from 'lucide-react';
-import { FormEventHandler } from 'react';
+import { Check, Copy, KeyRound, Lock, LockOpen, Monitor, QrCode, ShieldAlert, ShieldCheck, Smartphone } from 'lucide-react';
+import { FormEventHandler, useState } from 'react';
 
 import HeadingSmall from '@/components/heading-small';
 import { Button } from '@/components/ui/button';
@@ -41,6 +41,310 @@ const formatUntil = (value: string | null) =>
 
 const formatUnlockTime = (value?: string | null) =>
     value ? new Date(value).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '';
+
+function TwoFactorAuthSection() {
+    const { twoFactorEnabled: initialEnabled } = usePage<{ twoFactorEnabled?: boolean }>().props;
+    const [enabled, setEnabled] = useState(Boolean(initialEnabled));
+    const [loading, setLoading] = useState(false);
+    const [step, setStep] = useState<'idle' | 'enabling' | 'confirmed'>('idle');
+    const [qrData, setQrData] = useState<{ secret: string; qr_url: string; otpauth_url: string } | null>(null);
+    const [verificationCode, setVerificationCode] = useState('');
+    const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [copied, setCopied] = useState(false);
+
+    const [disablePassword, setDisablePassword] = useState('');
+    const [isDisabling, setIsDisabling] = useState(false);
+
+    const getCsrfToken = () => {
+        const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : '';
+    };
+
+    const startEnabling = async () => {
+        setLoading(true);
+        setErrorMsg(null);
+        try {
+            const res = await fetch('/user/two-factor-authentication', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-XSRF-TOKEN': getCsrfToken(),
+                    Accept: 'application/json',
+                },
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setQrData(data);
+                setStep('enabling');
+            } else {
+                setErrorMsg(data.error || 'No se pudo iniciar la activación de 2FA.');
+            }
+        } catch {
+            setErrorMsg('Error de red al conectar con el servidor.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const confirm2FA = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setErrorMsg(null);
+        try {
+            const res = await fetch('/user/confirmed-two-factor-authentication', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-XSRF-TOKEN': getCsrfToken(),
+                    Accept: 'application/json',
+                },
+                body: JSON.stringify({ code: verificationCode }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setEnabled(true);
+                setRecoveryCodes(data.recovery_codes || []);
+                setStep('confirmed');
+            } else {
+                setErrorMsg(data.error || 'El código introducido no es válido.');
+            }
+        } catch {
+            setErrorMsg('Error de red al verificar el código.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const disable2FA = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setErrorMsg(null);
+        try {
+            const res = await fetch('/user/two-factor-authentication', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-XSRF-TOKEN': getCsrfToken(),
+                    Accept: 'application/json',
+                },
+                body: JSON.stringify({ password: disablePassword }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setEnabled(false);
+                setIsDisabling(false);
+                setDisablePassword('');
+                setStep('idle');
+            } else {
+                setErrorMsg(data.error || 'La contraseña es incorrecta.');
+            }
+        } catch {
+            setErrorMsg('Error de conexión al desactivar.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const copyRecoveryCodes = () => {
+        navigator.clipboard.writeText(recoveryCodes.join('\n'));
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+        <div className="space-y-6">
+            <HeadingSmall
+                title="Autenticación en Dos Pasos (2FA)"
+                description="Añade una capa de máxima seguridad a tu cuenta exigiendo un código temporal generado por tu móvil (Google Authenticator, Authy, etc.) cada vez que inicies sesión."
+            />
+
+            {errorMsg && (
+                <div className="flex items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3.5 text-xs font-medium text-rose-300">
+                    <ShieldAlert className="h-4 w-4 shrink-0 text-rose-400" />
+                    <span>{errorMsg}</span>
+                </div>
+            )}
+
+            {!enabled && step === 'idle' && (
+                <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-neutral-800 bg-black/40 p-5 sm:flex-row sm:items-center">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-neutral-800 bg-neutral-900 text-neutral-400">
+                            <Smartphone className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <p className="font-semibold text-white">2FA Desactivado</p>
+                            <p className="text-xs text-neutral-400">
+                                Tu cuenta solo está protegida por tu contraseña y los inicios sociales.
+                            </p>
+                        </div>
+                    </div>
+                    <Button
+                        type="button"
+                        onClick={startEnabling}
+                        disabled={loading}
+                        className="bg-gradient-to-r from-pink-500 to-purple-600 font-semibold text-white shadow-md shadow-pink-500/20 hover:from-pink-600 hover:to-purple-700"
+                    >
+                        <QrCode className="mr-2 h-4 w-4" />
+                        {loading ? 'Generando...' : 'Activar 2FA con Código QR'}
+                    </Button>
+                </div>
+            )}
+
+            {step === 'enabling' && qrData && (
+                <div className="space-y-5 rounded-xl border border-pink-500/30 bg-neutral-950/70 p-6 backdrop-blur-sm">
+                    <div className="flex items-center gap-2 text-pink-400 font-semibold text-sm">
+                        <QrCode className="h-4 w-4" />
+                        Paso 1: Escanea este código QR con tu app de autenticación
+                    </div>
+
+                    <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
+                        <div className="overflow-hidden rounded-xl border-2 border-pink-500/30 bg-[#09090b] p-3 shadow-lg shadow-pink-500/10">
+                            <img src={qrData.qr_url} alt="Código QR 2FA" className="h-44 w-44" />
+                        </div>
+
+                        <div className="flex-1 space-y-4 text-xs text-neutral-300">
+                            <p>
+                                Abre <strong>Google Authenticator</strong>, <strong>Authy</strong> o cualquier app compatible y pulsa en <strong>«Escanear código QR»</strong>.
+                            </p>
+                            <div>
+                                <span className="block text-neutral-400 mb-1">¿No puedes escanear el QR? Escribe esta clave manualmente:</span>
+                                <div className="flex items-center gap-2">
+                                    <code className="rounded-lg border border-pink-500/30 bg-black/80 px-3 py-1.5 font-mono text-sm tracking-widest text-pink-300">
+                                        {qrData.secret}
+                                    </code>
+                                    <button
+                                        type="button"
+                                        onClick={() => navigator.clipboard.writeText(qrData.secret)}
+                                        className="rounded-lg border border-neutral-700 bg-neutral-800 p-2 text-neutral-300 hover:text-white"
+                                        title="Copiar clave"
+                                    >
+                                        <Copy className="h-3.5 w-3.5" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form onSubmit={confirm2FA} className="border-t border-neutral-800/80 pt-5">
+                        <div className="space-y-2">
+                            <Label htmlFor="two_factor_code" className="text-xs font-semibold text-white">
+                                Paso 2: Introduce el código de 6 dígitos generado por tu móvil
+                            </Label>
+                            <div className="flex max-w-xs items-center gap-3">
+                                <Input
+                                    id="two_factor_code"
+                                    type="text"
+                                    inputMode="numeric"
+                                    autoComplete="one-time-code"
+                                    value={verificationCode}
+                                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                    placeholder="000000"
+                                    className="border-pink-500/30 bg-neutral-900 text-center font-mono text-xl tracking-[0.25em] text-white focus:border-pink-500"
+                                />
+                                <Button
+                                    type="submit"
+                                    disabled={loading || verificationCode.length !== 6}
+                                    className="bg-pink-500 hover:bg-pink-600"
+                                >
+                                    {loading ? 'Comprobando...' : 'Confirmar'}
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setStep('idle')}
+                                    disabled={loading}
+                                >
+                                    Cancelar
+                                </Button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            )}
+
+            {enabled && (
+                <div className="space-y-4">
+                    <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-emerald-500/40 bg-emerald-500/5 p-5 sm:flex-row sm:items-center">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-400">
+                                <ShieldCheck className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <p className="font-semibold text-white">Autenticación en Dos Pasos Activada</p>
+                                <p className="text-xs text-neutral-400">
+                                    Tu cuenta está completamente protegida con código temporal por aplicación móvil.
+                                </p>
+                            </div>
+                        </div>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setIsDisabling(true)}
+                        >
+                            Desactivar 2FA
+                        </Button>
+                    </div>
+
+                    {step === 'confirmed' && recoveryCodes.length > 0 && (
+                        <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-5">
+                            <div className="flex items-center justify-between mb-3">
+                                <div>
+                                    <h4 className="font-bold text-amber-300 text-sm">¡Guarda tus códigos de recuperación!</h4>
+                                    <p className="text-xs text-neutral-400">
+                                        Si alguna vez pierdes o cambias de teléfono, necesitarás uno de estos códigos para poder entrar.
+                                    </p>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={copyRecoveryCodes}
+                                    className="gap-1.5 text-xs"
+                                >
+                                    {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                                    {copied ? '¡Copiados!' : 'Copiar códigos'}
+                                </Button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 font-mono text-xs sm:grid-cols-4">
+                                {recoveryCodes.map((code, idx) => (
+                                    <div key={idx} className="rounded-lg border border-neutral-800 bg-black/60 px-2.5 py-1.5 text-center text-amber-200">
+                                        {code}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {isDisabling && (
+                        <form onSubmit={disable2FA} className="rounded-xl border border-neutral-800 bg-black/50 p-5 space-y-4">
+                            <h4 className="font-semibold text-white text-sm">Confirma tu contraseña para desactivar el 2FA</h4>
+                            <div className="max-w-md space-y-2">
+                                <Input
+                                    type="password"
+                                    value={disablePassword}
+                                    onChange={(e) => setDisablePassword(e.target.value)}
+                                    placeholder="Introduce tu contraseña actual"
+                                    className="bg-neutral-900 border-neutral-700"
+                                />
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <Button type="submit" variant="destructive" disabled={loading || !disablePassword}>
+                                    {loading ? 'Desactivando...' : 'Confirmar desactivación'}
+                                </Button>
+                                <Button type="button" variant="outline" onClick={() => setIsDisabling(false)}>
+                                    Cancelar
+                                </Button>
+                            </div>
+                        </form>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+}
 
 function CodeField({ id, label, value, onChange, error }: { id: string; label: string; value: string; onChange: (v: string) => void; error?: string }) {
     return (
@@ -195,6 +499,8 @@ export default function Security() {
 
             <SettingsLayout>
                 <div className="space-y-10">
+                    <TwoFactorAuthSection />
+
                     <ServerLockSection />
 
                     {/* SESIONES ACTIVAS */}

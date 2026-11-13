@@ -19,6 +19,8 @@ class SecurityController extends Controller
     {
         return Inertia::render('settings/security', [
             'sessions' => $this->sessions($request),
+            'twoFactorEnabled' => $request->user()->hasTwoFactorEnabled(),
+            'twoFactorConfirmedAt' => $request->user()->two_factor_confirmed_at?->toIso8601String(),
             'loginHistory' => DB::table('login_logs')
                 ->where('user_id', $request->user()->id)
                 ->orderByDesc('id')

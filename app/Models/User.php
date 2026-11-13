@@ -25,7 +25,15 @@ class User extends Authenticatable
         'password',
         'remember_token',
         'lock_code',
+        'two_factor_secret',
+        'two_factor_recovery_codes',
     ];
+
+    /** Indica si el usuario tiene la verificación en dos pasos (2FA) activa y confirmada. */
+    public function hasTwoFactorEnabled(): bool
+    {
+        return filled($this->two_factor_secret) && ! is_null($this->two_factor_confirmed_at);
+    }
 
     /** La foto de perfil ya resuelta (URL) va con el usuario a todas las páginas. */
     protected $appends = ['avatar_url'];
