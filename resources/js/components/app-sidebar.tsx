@@ -288,15 +288,6 @@ const mainNavItems: NavItem[] = [
         roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin'],
         permissions: [],
     },
-    {
-        title: 'Estado de la red',
-        href: '/estado',
-        icon: Activity,
-        group: 'extra',
-        groupColor: 'text-yellow-400',
-        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin'],
-        permissions: [],
-    },
 ];
 
 // Logo de Discord con la misma firma que un icono de Lucide (solo usa className).

@@ -1,8 +1,9 @@
-import AppLayout from '@/layouts/app-layout';
+import { cinLogo } from '@/lib/brand';
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
     Activity,
     AlertCircle,
+    ArrowLeft,
     CheckCircle2,
     Clock,
     Database,
@@ -73,38 +74,17 @@ export default function Status() {
     const content = (
         <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
             {/* Header del monitor */}
-            <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-                <div>
-                    <div className="inline-flex items-center gap-2 rounded-full border border-pink-500/30 bg-pink-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-pink-400">
-                        <Radio className="h-3 w-3 animate-pulse" />
-                        Monitor de Infraestructura en Vivo
-                    </div>
-                    <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-                        Estado de Cinammon Network
-                    </h1>
-                    <p className="mt-1 text-sm text-neutral-400">
-                        Monitorización continua de nodos de juego, bases de datos y servicios en tiempo real.
-                    </p>
+            <div className="mb-8">
+                <div className="inline-flex items-center gap-2 rounded-full border border-pink-500/30 bg-pink-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-pink-400">
+                    <Radio className="h-3 w-3 animate-pulse" />
+                    Monitor de Infraestructura en Vivo
                 </div>
-
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={handleRefresh}
-                        disabled={isRefreshing}
-                        className="inline-flex items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-900/80 px-3.5 py-2 text-xs font-medium text-neutral-300 transition hover:border-pink-500/40 hover:text-white"
-                    >
-                        <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin text-pink-400' : ''}`} />
-                        Actualizar ahora
-                    </button>
-                    {!auth?.user && (
-                        <Link
-                            href="/login"
-                            className="inline-flex items-center rounded-xl bg-pink-500 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-pink-500/20 transition hover:bg-pink-600"
-                        >
-                            Entrar al Panel
-                        </Link>
-                    )}
-                </div>
+                <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                    Estado de Cinammon Network
+                </h1>
+                <p className="mt-1 text-sm text-neutral-400">
+                    Monitorización continua de nodos de juego, bases de datos y servicios en tiempo real.
+                </p>
             </div>
 
             {/* Banner de Estado Global */}
@@ -361,20 +341,48 @@ export default function Status() {
         </div>
     );
 
-    // Si el usuario está autenticado, lo mostramos dentro del AppLayout con su sidebar
-    if (auth?.user) {
-        return (
-            <AppLayout breadcrumbs={[{ title: 'Estado de la red', href: '/estado' }]}>
-                <Head title="Estado de la Red — Cinammon" />
-                {content}
-            </AppLayout>
-        );
-    }
-
-    // Si es un visitante público, lo mostramos limpio y a pantalla completa
     return (
-        <div className="min-h-screen bg-[#09090b] text-[#f4f4f5]">
-            <Head title="Estado de la Red — Cinammon" />
+        <div className="min-h-screen bg-[#08080a] text-[#f4f4f5] antialiased">
+            <Head title="Estado de la Red — Cinammon Network" />
+
+            {/* Barra superior de navegación independiente */}
+            <header className="sticky top-0 z-40 border-b border-neutral-800/80 bg-black/60 backdrop-blur-md">
+                <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
+                    <div className="flex items-center gap-4">
+                        <a href="https://cinammon.net" title="Volver a Cinammon.net" className="flex items-center gap-2.5 transition hover:opacity-80">
+                            <img src={cinLogo()} alt="Cinammon Logo" className="h-9 w-auto" />
+                            <span className="font-[Orbitron] text-base font-bold tracking-wide text-white">
+                                Cinammon<span className="text-pink-400">Status</span>
+                            </span>
+                        </a>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={handleRefresh}
+                            disabled={isRefreshing}
+                            className="inline-flex items-center gap-2 rounded-xl border border-neutral-800 bg-neutral-900/80 px-3 py-1.5 text-xs font-medium text-neutral-300 transition hover:border-pink-500/40 hover:text-white"
+                        >
+                            <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin text-pink-400' : ''}`} />
+                            <span className="hidden sm:inline">Actualizar</span>
+                        </button>
+                        <a
+                            href="https://cinammon.net"
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-neutral-800 px-3 py-1.5 text-xs text-neutral-300 transition hover:border-neutral-700 hover:text-white"
+                        >
+                            <ArrowLeft className="h-3 w-3" />
+                            <span className="hidden sm:inline">Web principal</span>
+                        </a>
+                        <a
+                            href="/dashboard"
+                            className="inline-flex items-center rounded-xl bg-pink-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-md shadow-pink-500/20 transition hover:bg-pink-600"
+                        >
+                            {auth?.user ? 'Ir al Panel' : 'Iniciar sesión'}
+                        </a>
+                    </div>
+                </div>
+            </header>
+
             {content}
         </div>
     );
