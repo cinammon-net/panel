@@ -43,6 +43,14 @@ const GUIDES: Guide[] = [
         v: 2,
     },
     {
+        key: 'gratis',
+        tag: 'Empieza aquí',
+        title: 'Tu servidor gratis con monedas',
+        text: 'Ganar monedas con la racha diaria, misiones e invitaciones, crear tu servidor gratis eligiendo recursos y renovarlo antes de que caduque.',
+        duration: '0:57',
+        thread: '1570619956721356800',
+    },
+    {
         key: 'buy',
         tag: 'Empieza aquí',
         title: 'Cómo comprar desde Discord',

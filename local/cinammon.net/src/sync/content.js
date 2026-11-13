@@ -189,6 +189,28 @@ const GUIDES = [
         ],
     },
     {
+        key: 'gratis', tag: 'Empieza aquí', title: 'Tu servidor gratis con monedas',
+        body: () => [
+            'Puedes tener un servidor **gratis**, sin tarjeta: ganas monedas y las canjeas por un servidor con los recursos que elijas.',
+            '',
+            '## 1. Gana monedas',
+            `- **Racha diaria:** en el panel, **Servidor gratis** (${env.BILLING}/coins) → **Recoger**, o \`/diario\` aquí. Cada día seguido da más; el séptimo, el premio gordo. Si te saltas un día, vuelve al día 1.`,
+            '- **Misiones:** foto de perfil, datos completos, verificación en dos pasos, racha de 7 días… Se cobran una vez.',
+            '- **Invita a tus amigos:** con tu enlace (lo ves en la web o con `/monedas`), cuando tu amigo empieza a usar la tienda ganáis los dos, y si compra, tú ganas más.',
+            '- **Comprar** también da monedas, y hay sorteos y eventos en el Discord.',
+            '',
+            '## 2. Crea tu servidor',
+            '1. En **Crea tu servidor gratis** elige el servicio: Minecraft, bots de Discord, webs, voz y muchos juegos.',
+            '2. Ajusta **RAM, CPU y disco** y la **duración** (3, 7 o 14 días). Ves el precio por día y el total.',
+            '3. Ponle nombre y pulsa **Crear por X monedas**. En un momento lo tienes en **Servers** del panel.',
+            '',
+            '## 3. Renuévalo o pásate a uno de pago',
+            '- Antes de que caduque, en **Tus servidores gratis** elige días y pulsa **Renovar**. Si caduca, se detiene.',
+            '- Uno gratis a la vez por cuenta, con recursos por debajo del plan de pago más barato. Los clientes de pago tienen prioridad.',
+            '- ¿Se te queda pequeño? **Pasar a plan de pago** y sigue sin caducar.',
+        ],
+    },
+    {
         key: 'buy', tag: 'Empieza aquí', title: 'Cómo comprar desde Discord, paso a paso',
         body: () => {
             const img = (n) => `![Paso ${n}](${env.BILLING}/discord/comprar-${n}.png?v=1)`;
@@ -457,7 +479,7 @@ const TAG_COLOR = {
     'Web y Dominios': 0xf59e0b, 'Bases de Datos': 0x06b6d4, 'Archivos y copias': 0xa855f7, Comunidad: 0x38bdf8,
 };
 const TAG_ICON = { 'Empieza aquí': 'rocket', Minecraft: 'pickaxe', Bots: 'bot', 'Web y Dominios': 'globe', 'Bases de Datos': 'database', 'Archivos y copias': 'folder', Comunidad: 'team' };
-const GUIDE_VIDEO = ['start', 'mc-optimize', 'mc-addons', 'bots', 'domains', 'databases', 'files', 'sftp-filezilla', 'team', 'dudas', 'amigos'];
+const GUIDE_VIDEO = ['start', 'gratis', 'mc-optimize', 'mc-addons', 'bots', 'domains', 'databases', 'files', 'sftp-filezilla', 'team', 'dudas', 'amigos'];
 const GUIDE_VIDEO_V = 1;
 // Paso a paso con fotos dentro de cada guía (capturas del vídeo con el elemento resaltado); también lo usa el panel en /guias
 // Textos del paso a paso: solo en el servidor (no se suben a GitHub)
@@ -466,7 +488,7 @@ try { GUIDE_STEPS = require('./guide-steps.json'); } catch {}
 const GUIDE_STEPS_V = 1;
 // Guías rehechas: versión propia para que Discord no muestre la foto o el vídeo antiguos de su caché
 const GUIDE_V = { start: 2, 'sftp-filezilla': 2, amigos: 2, dudas: 3 };
-const GUIDE_ICON = { buy: 'cart', team: 'team' };
+const GUIDE_ICON = { buy: 'cart', team: 'team', gratis: 'gift' };
 const readMinutes = (g) => Math.max(1, Math.round(g.body().filter((l) => !/^!\[/.test(l)).join(' ').split(/\s+/).length / 180));
 
 /** Portada de una guía (se dibuja con los colores de temporada; cambia de nombre si cambia la temporada). */
@@ -589,21 +611,17 @@ function indexPayload(threads) {
     const { text, sep, row, container } = env.ui;
     const L = env.ctx().layout;
     const comps = [
-        text('-# GUÍAS OFICIALES DE CINAMMON\n# Empieza aquí\nGuías escritas por el equipo con los nombres reales de las pestañas del panel. Elige la tuya y pulsa **Abrir**; también puedes usar la barra de búsqueda o filtrar por etiqueta.'),
+        text('-# GUÍAS OFICIALES DE CINAMMON\n# Empieza aquí\nGuías escritas por el equipo con los nombres reales de las pestañas del panel. Pulsa el nombre de la guía para abrirla; también puedes usar la barra de búsqueda o filtrar por etiqueta.'),
     ];
     for (const tag of GUIDE_TAGS) {
         const list = PUBLIC_GUIDES.filter((g) => g.tag === tag && threads[g.key]);
         if (!list.length) continue;
-        // Discord admite 40 componentes por mensaje (cada guía gasta 3): el título de la etiqueta va dentro de su primera guía
+        // Discord admite 40 componentes por mensaje: un solo texto por etiqueta con un enlace por guía, así caben todas
         comps.push(sep(1));
-        list.forEach((g, n) => {
+        comps.push(text(`### ${tag}\n` + list.map((g) => {
             const words = g.body().join(' ').split(/\s+/).length;
-            comps.push({
-                type: 9,
-                components: [text(`${n ? '' : `### ${tag}\n`}**${g.title}**\n-# ${Math.max(1, Math.round(words / 180))} min de lectura`)],
-                accessory: { type: 2, style: 5, label: 'Abrir', url: threadUrl(threads[g.key]) },
-            });
-        });
+            return `- [**${g.title}**](${threadUrl(threads[g.key])}) · ${Math.max(1, Math.round(words / 180))} min${GUIDE_VIDEO.includes(g.key) ? ' · con vídeo' : ''}`;
+        }).join('\n')));
     }
     // (sin separador aquí: con la portada, el índice va justo en el límite de 40 componentes de Discord)
     comps.push(text(`### ¿No encuentras lo tuyo?\nPregunta en <#${L.channels.help}>: si sale mucho, lo convertimos en guía.${L.channels.suggestions ? ` Para proponer una guía nueva, usa <#${L.channels.suggestions}>.` : ''}`));
