@@ -48,6 +48,10 @@ export default function CreateServer() {
         cpuLimit: 'unlimited',
         memoryLimit: 'unlimited',
         diskLimit: 'unlimited',
+        cpu: 0,
+        memory: 0,
+        disk: 0,
+        swap: 0,
         cpuPinning: false,
         swapMemory: 'unlimited',
         oomKiller: false,
@@ -106,9 +110,10 @@ export default function CreateServer() {
             start_after_install: server.startAfterInstall ? 1 : 0,
             startup: server.startupCommand,
     
-            cpu_limit: server.cpuLimit === 'unlimited' ? 0 : 1,
-            memory_limit: server.memoryLimit === 'unlimited' ? 0 : 1,
-            disk_limit: server.diskLimit === 'unlimited' ? 0 : 1,
+            cpu: server.cpuLimit === 'unlimited' ? 0 : (parseInt(server.cpu, 10) || 0),
+            memory: server.memoryLimit === 'unlimited' ? 0 : (parseInt(server.memory, 10) || 0),
+            disk: server.diskLimit === 'unlimited' ? 0 : (parseInt(server.disk, 10) || 0),
+            swap: parseInt(server.swap, 10) || 0,
             cpu_pinning: server.cpuPinning ? 1 : 0,
             swap_memory: server.swapMemory,
             oom_killer: server.oomKiller ? 1 : 0,
@@ -776,29 +781,114 @@ export default function CreateServer() {
                                 {/* Resource Limits */}
                                 <fieldset className="border border-cyan-700 rounded-lg p-4 shadow-sm">
                                     <legend className="text-lg font-bold text-cyan-400 mb-2">Resource Limits</legend>
-                                    <div className="grid grid-cols-1 sm:grid-cols-1 gap-6">
-                                        {['cpuLimit', 'memoryLimit', 'diskLimit'].map((key, idx) => (
-                                            <div key={key}>
-                                                <label className="mb-1 block text-sm font-semibold capitalize" htmlFor={key}>
-                                                    {['CPU', 'Memory', 'Disk Space'][idx]}
-                                                </label>
-                                                <div className="flex gap-2">
-                                                    {['unlimited', 'limited'].map((value) => (
-                                                        <button
-                                                            key={value}
-                                                            onClick={() => setServer({ ...server, [key]: value })}
-                                                            className={`px-4 py-2 rounded border font-medium ${
-                                                                server[key] === value
-                                                                    ? 'bg-cyan-500 text-black border-cyan-400'
-                                                                    : 'bg-black text-cyan-200 border-cyan-600'
-                                                            }`}
-                                                        >
-                                                            {value.charAt(0).toUpperCase() + value.slice(1)}
-                                                        </button>
-                                                    ))}
-                                                </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                        {/* CPU */}
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-semibold">Límite de CPU (%)</label>
+                                            <div className="flex gap-2">
+                                                {['unlimited', 'limited'].map((val) => (
+                                                    <button
+                                                        key={val}
+                                                        type="button"
+                                                        onClick={() => setServer({ ...server, cpuLimit: val, cpu: val === 'unlimited' ? 0 : (server.cpu || 100) })}
+                                                        className={`px-3 py-1.5 rounded text-xs font-semibold ${server.cpuLimit === val ? 'bg-cyan-500 text-black border border-cyan-400' : 'bg-black text-cyan-200 border border-cyan-700'}`}
+                                                    >
+                                                        {val === 'unlimited' ? 'Ilimitado (0)' : 'Limitado'}
+                                                    </button>
+                                                ))}
                                             </div>
-                                        ))}
+                                            {server.cpuLimit === 'limited' && (
+                                                <div className="mt-2">
+                                                    <input
+                                                        type="number"
+                                                        min={10}
+                                                        max={1600}
+                                                        step={10}
+                                                        value={server.cpu || 100}
+                                                        onChange={(e) => setServer({ ...server, cpu: parseInt(e.target.value, 10) || 0 })}
+                                                        placeholder="100% = 1 hilo, 200% = 2 hilos"
+                                                        className="w-full rounded border border-cyan-700 bg-black px-3 py-2 text-sm text-white focus:border-cyan-400 focus:outline-none"
+                                                    />
+                                                    <p className="mt-1 text-xs text-neutral-400">100% equivale a 1 hilo de procesador dedicado.</p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Memoria RAM */}
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <label className="block text-sm font-semibold">Memoria RAM (MiB)</label>
+                                                {server.memory > 0 && (
+                                                    <span className="font-mono text-xs text-amber-400">
+                                                        {server.memory >= 1024 ? `${(server.memory / 1024).toFixed(1)} GB` : `${server.memory} MB`}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex gap-2">
+                                                {['unlimited', 'limited'].map((val) => (
+                                                    <button
+                                                        key={val}
+                                                        type="button"
+                                                        onClick={() => setServer({ ...server, memoryLimit: val, memory: val === 'unlimited' ? 0 : (server.memory || 3072) })}
+                                                        className={`px-3 py-1.5 rounded text-xs font-semibold ${server.memoryLimit === val ? 'bg-cyan-500 text-black border border-cyan-400' : 'bg-black text-cyan-200 border border-cyan-700'}`}
+                                                    >
+                                                        {val === 'unlimited' ? 'Ilimitada (0)' : 'Limitada'}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            {server.memoryLimit === 'limited' && (
+                                                <div className="mt-2">
+                                                    <input
+                                                        type="number"
+                                                        min={256}
+                                                        step={256}
+                                                        value={server.memory || 3072}
+                                                        onChange={(e) => setServer({ ...server, memory: parseInt(e.target.value, 10) || 0 })}
+                                                        placeholder="3072 MiB (3 GB)"
+                                                        className="w-full rounded border border-cyan-700 bg-black px-3 py-2 text-sm text-white focus:border-cyan-400 focus:outline-none"
+                                                    />
+                                                    <p className="mt-1 text-xs text-neutral-400">1024 MiB = 1 GB. Ejemplo: 3072 MiB = 3 GB.</p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Disco */}
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <label className="block text-sm font-semibold">Espacio en Disco (MiB)</label>
+                                                {server.disk > 0 && (
+                                                    <span className="font-mono text-xs text-cyan-400">
+                                                        {server.disk >= 1024 ? `${(server.disk / 1024).toFixed(1)} GB` : `${server.disk} MB`}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex gap-2">
+                                                {['unlimited', 'limited'].map((val) => (
+                                                    <button
+                                                        key={val}
+                                                        type="button"
+                                                        onClick={() => setServer({ ...server, diskLimit: val, disk: val === 'unlimited' ? 0 : (server.disk || 10240) })}
+                                                        className={`px-3 py-1.5 rounded text-xs font-semibold ${server.diskLimit === val ? 'bg-cyan-500 text-black border border-cyan-400' : 'bg-black text-cyan-200 border border-cyan-700'}`}
+                                                    >
+                                                        {val === 'unlimited' ? 'Ilimitado (0)' : 'Limitado'}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            {server.diskLimit === 'limited' && (
+                                                <div className="mt-2">
+                                                    <input
+                                                        type="number"
+                                                        min={1024}
+                                                        step={1024}
+                                                        value={server.disk || 10240}
+                                                        onChange={(e) => setServer({ ...server, disk: parseInt(e.target.value, 10) || 0 })}
+                                                        placeholder="10240 MiB (10 GB)"
+                                                        className="w-full rounded border border-cyan-700 bg-black px-3 py-2 text-sm text-white focus:border-cyan-400 focus:outline-none"
+                                                    />
+                                                    <p className="mt-1 text-xs text-neutral-400">10240 MiB = 10 GB de almacenamiento NVMe.</p>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </fieldset>
 

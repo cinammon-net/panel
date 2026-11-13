@@ -283,6 +283,10 @@ class ServerController extends Controller
             'egg_id' => 'required|integer|exists:eggs,id',
             'startup' => 'required|string',
             'image' => 'required|string',
+            'cpu' => 'nullable|integer|min:0',
+            'memory' => 'nullable|integer|min:0',
+            'disk' => 'nullable|integer|min:0',
+            'swap' => 'nullable|integer|min:0',
             'run_install_script' => 'nullable|boolean',
             'start_after_install' => 'nullable|boolean',
             'cpu_pinning' => 'nullable|boolean',
@@ -314,6 +318,11 @@ class ServerController extends Controller
                 $this->claimAllocations($allocationIds, (int) $data['node_id'], $server, 'allocation_id');
                 $server->update($data);
             });
+            try {
+                app(\App\Services\Daemon\WingsClient::class)->provision($server);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('No se pudo sincronizar actualización en Wings: ' . $e->getMessage());
+            }
         } else {
             // ➕ Crear
             $data['uuid'] = (string) Str::uuid();
