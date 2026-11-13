@@ -106,10 +106,10 @@ export function CommandPalette({ isOpen, onClose }: { isOpen: boolean; onClose: 
             // Comunidad y soporte
             {
                 id: 'news',
-                title: 'Noticias & Comunicados',
-                description: 'Tablón de novedades oficiales, actualizaciones y anuncios',
+                title: 'El Diario de Cinammon (Periódico)',
+                description: 'Edición oficial de noticias, crónicas y anuncios en news.cinammon.net',
                 icon: Newspaper,
-                href: '/posts',
+                href: 'https://news.cinammon.net',
                 category: 'Comunidad',
             },
             {

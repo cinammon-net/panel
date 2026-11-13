@@ -317,12 +317,12 @@ export default function Dashboard() {
                                     </p>
                                 </div>
                             </div>
-                            <Link
-                                href="/posts"
+                            <a
+                                href="https://news.cinammon.net"
                                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-yellow-400 hover:text-yellow-300 transition"
                             >
-                                Ver todas →
-                            </Link>
+                                Leer el periódico →
+                            </a>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -44,8 +44,26 @@ if ($statusHost !== '') {
     });
 }
 
+// 📰 Periódico Digital Oficial en news.cinammon.net (debe registrarse antes de la portada)
+$newsHost = (string) config('panel.news_host', 'news.cinammon.net');
+if ($newsHost !== '') {
+    Route::domain($newsHost)->group(function () {
+        Route::get('/', [App\Http\Controllers\NewsPaperController::class, 'index'])->name('news.newspaper.index');
+        Route::get('/articulo/{post}', [App\Http\Controllers\NewsPaperController::class, 'show'])->whereNumber('post')->name('news.newspaper.show');
+        Route::get('/noticia/{post}', fn ($post) => redirect()->route('news.newspaper.show', $post))->whereNumber('post');
+        Route::get('/posts/{post}', fn ($post) => redirect()->route('news.newspaper.show', $post))->whereNumber('post');
+        Route::post('/posts/{post}/like', [App\Http\Controllers\PostController::class, 'toggleLike'])->whereNumber('post');
+    });
+}
+
 // 🌐 Rutas públicas
 Route::get('/', [WelcomeController::class, 'index'])->name('home');
+Route::get('/noticias', function (Request $request) use ($newsHost) {
+    if ($newsHost !== '' && strcasecmp($request->getHost(), $newsHost) !== 0 && !app()->environment('local')) {
+        return redirect()->away("https://{$newsHost}");
+    }
+    return app(App\Http\Controllers\NewsPaperController::class)->index($request);
+})->name('noticias.index');
 Route::get('/estado', function (Request $request) use ($statusHost) {
     if ($statusHost !== '' && strcasecmp($request->getHost(), $statusHost) !== 0 && !app()->environment('local')) {
         return redirect()->away("https://{$statusHost}");
