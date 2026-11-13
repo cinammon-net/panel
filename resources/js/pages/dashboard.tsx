@@ -338,7 +338,7 @@ export default function Dashboard() {
                                         </span>
                                         {news.is_pinned && (
                                             <span className="text-yellow-400 font-semibold flex items-center gap-0.5">
-                                                📌 Destacada
+                                                Destacada
                                             </span>
                                         )}
                                     </div>

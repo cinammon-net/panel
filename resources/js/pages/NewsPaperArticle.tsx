@@ -135,7 +135,7 @@ export default function NewsPaperArticle({
                             onClick={() => setPaperTheme(isVintage ? 'dark' : 'vintage')}
                             className="text-[11px] font-sans underline"
                         >
-                            {isVintage ? '🌙 Modo Noche' : '📜 Papel Prensa'}
+                            {isVintage ? 'Tinta Nocturna' : 'Papel Prensa'}
                         </button>
                         <button
                             onClick={handlePrint}

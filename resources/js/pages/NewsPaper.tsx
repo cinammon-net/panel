@@ -180,14 +180,14 @@ export default function NewsPaper({
                         {/* Selector de estilo de papel */}
                         <button
                             onClick={() => setPaperTheme(isVintage ? 'dark' : 'vintage')}
-                            className={`rounded px-2 py-0.5 text-[10px] font-sans font-semibold border transition ${
+                            className={`rounded px-2.5 py-1 text-[10px] font-sans font-semibold border transition ${
                                 isVintage
                                     ? 'border-[#b5a68c] bg-[#e2d7c0] text-[#2e261a]'
                                     : 'border-yellow-500/30 bg-neutral-900 text-yellow-400'
                             }`}
                             title="Cambiar entre papel periódico clásico y prensa nocturna"
                         >
-                            {isVintage ? '🌙 Tinta Nocturna' : '📜 Papel Prensa'}
+                            {isVintage ? 'Tinta Nocturna' : 'Papel Prensa'}
                         </button>
 
                         <a
@@ -276,12 +276,12 @@ export default function NewsPaper({
                     }`}
                 >
                     {[
-                        { id: 'todos', label: '📰 Portada' },
-                        { id: 'actualizacion', label: '🚀 Actualizaciones' },
-                        { id: 'anuncio', label: '📢 Comunicados' },
-                        { id: 'mantenimiento', label: '🔧 Infraestructura' },
-                        { id: 'evento', label: '🎁 Eventos & Promos' },
-                        { id: 'comunidad', label: '👥 Comunidad' },
+                        { id: 'todos', label: 'Portada' },
+                        { id: 'actualizacion', label: 'Actualizaciones' },
+                        { id: 'anuncio', label: 'Comunicados' },
+                        { id: 'mantenimiento', label: 'Infraestructura' },
+                        { id: 'evento', label: 'Eventos & Promos' },
+                        { id: 'comunidad', label: 'Comunidad' },
                     ].map((cat) => (
                         <button
                             key={cat.id}
