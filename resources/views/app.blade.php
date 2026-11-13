@@ -62,9 +62,20 @@
 
     <!-- 🖼️ Iconos -->
     @php
-        // Logo según el subdominio (cinammon.panel, .demo, .store, .billing); el dominio principal usa el original (.net).
         $cinSub = explode('.', request()->getHost())[0];
-        $cinLogo = in_array($cinSub, ['panel', 'demo', 'store', 'billing'], true) ? "/logos/cinammon-{$cinSub}.png" : '/favicon.ico';
+        $knownSubs = ['panel', 'demo', 'store', 'billing', 'news', 'status', 'admin', 'database', 'mail', 'nodo', 'wings'];
+        $cinLogo = in_array($cinSub, $knownSubs, true) ? "/logos/cinammon-{$cinSub}.png" : '/logos/cinammon-panel.png';
+
+        $loaderA = match ($cinSub) {
+            'news' => '#eab308',
+            'status' => '#10b981',
+            default => 'var(--color-pink-500, #ec4899)',
+        };
+        $loaderB = match ($cinSub) {
+            'news' => '#f59e0b',
+            'status' => '#06b6d4',
+            default => 'var(--color-amber-400, #fbbf24)',
+        };
     @endphp
     @include('partials.favicon')
 
@@ -98,7 +109,7 @@
 </head>
 
 <body class="font-sans antialiased">
-    @include('partials.loader', ['a' => 'var(--color-pink-500, #ec4899)', 'b' => 'var(--color-amber-400, #fbbf24)', 'logo' => $cinLogo])
+    @include('partials.loader', ['a' => $loaderA, 'b' => $loaderB, 'logo' => $cinLogo])
     @inertia
 </body>
 

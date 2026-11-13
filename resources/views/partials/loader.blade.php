@@ -83,7 +83,7 @@
         var el = document.getElementById('cin-loader');
         if (!el) return;
         var img = el.querySelector('.cin-ld-logo img'), bar = el.querySelector('.cin-ld-bar i'), pctEl = el.querySelector('.cin-ld-pct');
-        var SHOW = 2000; // tiempo mínimo que se ve el logo
+        var SHOW = 900; // tiempo óptimo y fluido para mostrar el logo sin retrasar la navegación
         var t0 = Date.now(), loaded = false, done = false, ready = false, readyAt = 0, p = 0;
 
         // Partículas con los colores de la temporada
