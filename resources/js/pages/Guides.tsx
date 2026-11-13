@@ -37,9 +37,10 @@ const GUIDES: Guide[] = [
         key: 'start',
         tag: 'Empieza aquí',
         title: 'Primeros pasos: tu primer servidor',
-        text: 'Dónde está cada cosa en el panel: tu lista de servidores, la consola, encender y apagar, y los datos para conectarte.',
-        duration: '0:42',
+        text: 'Un recorrido por todo el panel: la consola, archivos, jugadores, plugins, SFTP, bases de datos, copias, dominios, usuarios y cómo controlar tu servidor desde Discord.',
+        duration: '1:37',
         thread: '1570174592377557092',
+        v: 2,
     },
     {
         key: 'buy',

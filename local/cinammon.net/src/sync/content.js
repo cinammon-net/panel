@@ -173,13 +173,14 @@ const GUIDES = [
             '- **Archivos:** editor y subida de archivos (para muchos, mejor **Acceso SFTP**).',
             '- **Ajustes del juego:** las opciones típicas sin tocar archivos.',
             '- **Plugins / Mods:** instalar desde Modrinth en un clic.',
-            '- **Bases de Datos**, **Red y Puertos**, **Subdominios**, **Copias de Seguridad** y **Usuarios**.',
+            '- **Jugadores:** quién ha entrado, OP, whitelist y baneos sin comandos.',
+            '- **Bases de Datos**, **Red y Puertos**, **Dominios**, **Copias de Seguridad**, **Usuarios** y **Actividad**.',
             '',
             '## 3. Cómo se conecta la gente',
             'La dirección es la IP y el puerto que ves en la **Consola** (o en **Red y Puertos**). Si quieres algo como `play.tudominio.com`, mira la guía de dominios.',
             '',
             '## 4. Vincula Discord',
-            'Panel → **Ajustes → Perfil → Código para el bot**, y aquí `/vincular codigo:`. Con eso controlas tu servidor desde Discord (`/servidores`, `/consola`) y recibes tus roles.',
+            'Panel → **Ajustes → Perfil → Código para el bot**, y aquí `/vincular codigo:`. Con eso controlas tu servidor desde Discord (`/servidores`: encender, reiniciar y apagar) y recibes tus roles.',
             '',
             '## 5. Si algo falla',
             '1. Lee las últimas líneas de la **Consola**: casi siempre dicen el motivo.',
@@ -464,7 +465,7 @@ let GUIDE_STEPS = {};
 try { GUIDE_STEPS = require('./guide-steps.json'); } catch {}
 const GUIDE_STEPS_V = 1;
 // Guías rehechas: versión propia para que Discord no muestre la foto o el vídeo antiguos de su caché
-const GUIDE_V = { 'sftp-filezilla': 2, amigos: 2, dudas: 3 };
+const GUIDE_V = { start: 2, 'sftp-filezilla': 2, amigos: 2, dudas: 3 };
 const GUIDE_ICON = { buy: 'cart', team: 'team' };
 const readMinutes = (g) => Math.max(1, Math.round(g.body().filter((l) => !/^!\[/.test(l)).join(' ').split(/\s+/).length / 180));
 
