@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 
 \Illuminate\Support\Facades\Schedule::command('nodes:check-status')->everyMinute()->withoutOverlapping();
 \Illuminate\Support\Facades\Schedule::command('birthdays:celebrate')->hourlyAt(1)->withoutOverlapping();
+\Illuminate\Support\Facades\Schedule::command('gallery:update-captures')->dailyAt('04:00')->withoutOverlapping();

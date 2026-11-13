@@ -24,15 +24,15 @@ class WelcomeController extends Controller
             ->get(['id', 'title', 'summary', 'content', 'picture', 'category', 'views_count', 'likes_count', 'is_pinned', 'created_at']);
 
         $preferredOrder = [
-            'gallery/Console.png',
             'gallery/Dashboard.png',
             'gallery/Servers.png',
-            'gallery/Store.png',
-            'gallery/Billing.png',
+            'gallery/Console.png',
             'gallery/Nodes.png',
             'gallery/Database.png',
             'gallery/Health.png',
+            'gallery/News.png',
             'gallery/Eggs.png',
+            'gallery/Store.png',
             'gallery/Users.png',
         ];
         $files = collect(Storage::disk('public')->files('gallery'))
@@ -46,6 +46,11 @@ class WelcomeController extends Controller
             ->map(fn ($file) => Storage::url($file) . '?v=' . Storage::disk('public')->lastModified($file))
             ->values()
             ->all();
+
+        $seasonMeta = null;
+        if (Storage::disk('public')->exists('gallery/meta.json')) {
+            $seasonMeta = json_decode(Storage::disk('public')->get('gallery/meta.json'), true);
+        }
 
         $billingUrl = rtrim((string) config('services.billing.url'), '/');
 
@@ -104,6 +109,7 @@ class WelcomeController extends Controller
             'reviews' => $reviews,
             'posts' => $posts,
             'galleryImages' => $galleryImages,
+            'seasonMeta' => $seasonMeta,
             'billingUrl' => $billingUrl,
             'billingCategories' => $billingCategories,
             // Contador público de servidores gratis (pedidos de billing marcados como no pagados)

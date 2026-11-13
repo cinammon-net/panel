@@ -86,7 +86,7 @@ type BillingCategory = {
 };
 
 export default function WelcomePanel() {
-    const { auth, reviews, posts, galleryImages, stats, billingUrl, billingCategories, freeStats, discord } = usePage<
+    const { auth, reviews, posts, galleryImages, seasonMeta, stats, billingUrl, billingCategories, freeStats, discord } = usePage<
         SharedData & {
             reviews: { comment: string; rating: number; user: { name: string; avatar_url?: string | null } }[];
             posts: {
@@ -101,6 +101,7 @@ export default function WelcomePanel() {
                 created_at: string;
             }[];
             galleryImages?: string[];
+            seasonMeta?: { theme: string; season_name?: string; updated_at?: string } | null;
             stats?: { users: number; servers: number; nodes: number; eggs: number };
             billingUrl?: string;
             billingCategories?: BillingCategory[];
@@ -124,18 +125,42 @@ export default function WelcomePanel() {
             : [
                   '/storage/gallery/Dashboard.png',
                   '/storage/gallery/Servers.png',
+                  '/storage/gallery/Console.png',
                   '/storage/gallery/Nodes.png',
-                  '/storage/gallery/Create Node.png',
                   '/storage/gallery/Database.png',
+                  '/storage/gallery/Health.png',
+                  '/storage/gallery/News.png',
+                  '/storage/gallery/Eggs.png',
+                  '/storage/gallery/Store.png',
                   '/storage/gallery/Users.png',
               ],
     );
 
+    const GALLERY_TITLES: Record<string, string> = {
+        'Dashboard': 'Panel de Control Principal',
+        'dashboard-overview': 'Panel de Control Principal',
+        'Servers': 'Clúster de Servidores',
+        'servers-cluster': 'Clúster de Servidores',
+        'Console': 'Terminal & Consola en Vivo',
+        'console-terminal': 'Terminal & Consola en Vivo',
+        'Nodes': 'Nodos Wings & Aislamiento',
+        'nodes-wings': 'Nodos Wings & Aislamiento',
+        'Database': 'Bases de Datos NVMe',
+        'databases-cluster': 'Bases de Datos NVMe',
+        'Health': 'Telemetría & Red 40 Gbps',
+        'status-telemetry': 'Telemetría & Red 40 Gbps',
+        'News': 'Periódico Digital Oficial',
+        'news-portal': 'Periódico Digital Oficial',
+        'Eggs': 'Catálogo de Juegos y Software',
+        'Store': 'Tienda de Servicios y Promociones',
+        'Users': 'Gestión de Cuentas y Roles',
+        'Billing': 'Facturación y Suscripciones',
+    };
+
     const getImageTitle = (url: string, index: number) => {
         const cleanUrl = url.split('?')[0];
-        const fileName = decodeURIComponent(cleanUrl.split('/').pop() || '')
-            .replace(/\.(png|jpg|jpeg|webp|svg)$/i, '');
-        return fileName || `Vista ${index + 1}`;
+        const raw = decodeURIComponent(cleanUrl.split('/').pop() || '').replace(/\.(png|jpg|jpeg|webp|svg)$/i, '');
+        return GALLERY_TITLES[raw] || raw || `Vista ${index + 1}`;
     };
 
     // Estado para manejar la imagen seleccionada para el modal
@@ -607,11 +632,15 @@ export default function WelcomePanel() {
                 {/* SECCIÓN GALERÍA */}
                 <section className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
                     <div className="space-y-3" data-aos="fade-up">
-                        <h2 className="flex items-center justify-center gap-3 text-3xl font-bold text-pink-400 sm:text-4xl">
-                            <Images className="h-7 w-7 shrink-0 sm:h-9 sm:w-9" aria-hidden /> Galería de Cinammon
+                        <div className="inline-flex items-center gap-2 rounded-full border border-pink-500/30 bg-pink-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-pink-300 backdrop-blur-md">
+                            <Images className="h-4 w-4 shrink-0 text-pink-400" aria-hidden />
+                            <span>Capturas en vivo {seasonMeta?.season_name ? `· Ambientación ${seasonMeta.season_name}` : '· Infraestructura en tiempo real'}</span>
+                        </div>
+                        <h2 className="flex items-center justify-center gap-3 font-orbitron text-3xl font-extrabold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-pink-300 via-fuchsia-400 to-purple-400 sm:text-4xl lg:text-5xl">
+                            Galería de Cinammon
                         </h2>
-                        <p className="mx-auto max-w-2xl text-sm text-neutral-400 sm:text-base">
-                            Explora las vistas reales de nuestro panel de control para servidores, nodos, bases de datos y monitoreo en tiempo real.
+                        <p className="mx-auto max-w-2xl text-xs sm:text-sm text-neutral-300">
+                            Explora las vistas reales de nuestro panel de control para servidores, nodos, bases de datos y monitoreo en tiempo real, actualizadas con la ambientación estacional.
                         </p>
                     </div>
 
@@ -625,7 +654,7 @@ export default function WelcomePanel() {
                                     onClick={() => openModal(imageUrl)}
                                     className="group cursor-pointer overflow-hidden rounded-xl border border-pink-500/30 bg-neutral-950/95 shadow-[0_10px_30px_rgba(0,0,0,0.6)] transition-all duration-300 hover:-translate-y-1 hover:border-pink-500/70 hover:shadow-[0_0_25px_rgba(236,72,153,0.25)]"
                                     data-aos="zoom-in"
-                                    data-aos-delay={index * 80}
+                                    data-aos-delay={(index % 3) * 80}
                                 >
                                     <div className="flex items-center justify-between border-b border-white/10 bg-neutral-900/90 px-4 py-2.5 text-xs">
                                         <div className="flex items-center gap-1.5">
@@ -633,14 +662,15 @@ export default function WelcomePanel() {
                                             <span className="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
                                             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/80" />
                                         </div>
-                                        <span className="font-mono font-medium tracking-wide text-pink-300">{title}</span>
-                                        <span className="text-[11px] text-neutral-400 transition group-hover:text-pink-400">Ampliar ↗</span>
+                                        <span className="font-mono text-xs font-medium tracking-wide text-pink-300 truncate max-w-[180px] sm:max-w-[220px]">{title}</span>
+                                        <span className="text-[11px] text-neutral-400 transition group-hover:text-pink-300">Ampliar ↗</span>
                                     </div>
-                                    <div className="aspect-video w-full overflow-hidden bg-black">
+                                    <div className="aspect-[16/10] w-full overflow-hidden bg-black">
                                         <img
                                             src={imageUrl}
                                             alt={`Cinammon - ${title}`}
                                             className="h-full w-full object-cover object-left-top transition-transform duration-500 group-hover:scale-[1.03]"
+                                            loading="lazy"
                                         />
                                     </div>
                                 </div>
