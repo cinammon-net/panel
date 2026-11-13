@@ -91,5 +91,18 @@
     { "title": "Tu servidor, listo", "text": "Aparece aquí y en Servers, con su dirección para conectarte, y te llega un aviso por correo y por Discord. Sigue activo mientras tengas el rol." },
     { "title": "Deja una nota en el muro", "text": "El muro lo ven todos los amigos: escribe algo, elige un color y pulsa Pegar. Hasta 3 notas al día; puedes borrar las tuyas." },
     { "title": "Pide un deseo", "text": "En el pozo de los deseos pides algo en privado (más recursos, una función, una idea) y pulsas Lanzar moneda. Solo lo leéis tú y el Owner; cuando lo cumpla verás su respuesta." }
+  ],
+  "dudas": [
+    { "title": "Entra en Dudas de la comunidad", "text": "Está en el menú de la izquierda. Son preguntas de otros usuarios con sus respuestas, y solo se ven con tu cuenta." },
+    { "title": "Busca antes de preguntar", "text": "Escribe unas palabras (java, plugins, sftp, dominio…) y pulsa Buscar. Lo más probable es que alguien ya lo haya resuelto." },
+    { "title": "Mira las parecidas", "text": "Pulsa Hacer una pregunta y escribe tu duda en una frase. Si hay alguna parecida ya respondida, te sale aquí debajo." },
+    { "title": "Cuenta los detalles y publica", "text": "Pon el juego y la versión, el error exacto de la consola y qué has probado. Elige la categoría y pulsa Publicar pregunta. Nada de contraseñas ni datos de pago." },
+    { "title": "Lee las respuestas", "text": "Responden el asistente, la comunidad y el equipo. Las que más han ayudado salen arriba." },
+    { "title": "Marca la que te sirvió", "text": "Si es tu pregunta, pulsa Esta me sirvió en la respuesta buena: queda marcada en verde y la duda pasa a Resuelta. En las de otros, pulsa Me sirvió." },
+    { "title": "También está en Discord", "text": "Cada duda abre su hilo en #soporte. Lo que respondan allí sale aquí y al revés. Con Ver en Discord vas directo al hilo." },
+    { "title": "Ayuda a los demás", "text": "Si sabes la respuesta a una duda, escríbela abajo y pulsa Responder. Así le sirve a quien pregunta y a los siguientes." },
+    { "title": "Sugerencias", "text": "En el menú tienes Sugerencias: ideas para mejorar Cinammon (juegos nuevos, cosas del panel, la tienda o Discord)." },
+    { "title": "Vota las ideas", "text": "Flecha arriba si la quieres, abajo si no. Las más votadas salen primero y el equipo les pone estado: En estudio, Aceptada, Implementada o Descartada." },
+    { "title": "Propón la tuya", "text": "Pulsa Proponer una idea, escribe la idea en una frase, elige la categoría y explícala. Sale también en #sugerencias de Discord y te avisamos cuando cambie de estado." }
   ]
 }

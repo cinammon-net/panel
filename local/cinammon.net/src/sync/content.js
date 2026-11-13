@@ -155,7 +155,7 @@ function channelPosts() {
 
 /* ------------------------------------------------------------------ guías */
 
-const GUIDE_TAGS = ['Empieza aquí', 'Minecraft', 'Bots', 'Web y Dominios', 'Bases de Datos', 'Archivos y copias'];
+const GUIDE_TAGS = ['Empieza aquí', 'Minecraft', 'Bots', 'Web y Dominios', 'Bases de Datos', 'Archivos y copias', 'Comunidad'];
 
 // `legacy`: título de la guía antigua equivalente, para editarla en su sitio en lugar de duplicarla.
 const GUIDES = [
@@ -388,6 +388,46 @@ const GUIDES = [
         ],
     },
     {
+        // Solo para el rol Amigo de Cinammon: va en su foro privado, no en #guias
+        key: 'amigos', tag: 'Comunidad', private: true, title: 'Rincón de Amigos: tu servidor gratis, el muro y los deseos',
+        body: () => [
+            '## Qué es',
+            `Con el rol **Amigo de Cinammon** tienes en el panel el **Rincón de Amigos** (${env.PANEL}/amigos). Solo lo veis los amigos.`,
+            '',
+            '## Tu servidor de amigo',
+            '- En **Tu servidor de amigo** eliges el juego, bot o app, ajustas RAM, CPU y disco dentro de los límites, le pones nombre y pulsas **Crear**.',
+            '- Aparece también en **Servers** y te avisamos por correo y por Discord. Sigue activo mientras tengas el rol.',
+            '',
+            '## El muro',
+            '- Notas que ven todos los amigos: escribe, elige color y pulsa **Pegar**. Hasta 3 al día; puedes borrar las tuyas.',
+            '',
+            '## El pozo de los deseos',
+            '- Pide algo en privado (más recursos, una función, una idea) y pulsa **Lanzar moneda**. Solo lo leéis tú y el Owner; cuando lo cumpla verás su respuesta.',
+            '',
+            '## Tu carné',
+            '- Tu número de amigo y desde cuándo lo eres. Tócalo para girarlo y leer tu dedicatoria.',
+        ],
+    },
+    {
+        key: 'dudas', tag: 'Comunidad', title: 'Dudas de la comunidad y sugerencias',
+        body: () => [
+            '## Dudas de la comunidad',
+            `- En el panel: **Dudas de la comunidad** (${env.PANEL}/dudas). Preguntas de otros usuarios con sus respuestas; solo se ven con cuenta.`,
+            '- **Busca antes de preguntar.** Al escribir tu pregunta te salen las parecidas que ya están resueltas.',
+            '- Cuenta el juego y la versión, el error exacto y qué has probado. Nada de contraseñas, correos ni datos de pago: eso va por ticket.',
+            '- Quien pregunta marca **Esta me sirvió** en la respuesta buena; los demás pulsan **Me sirvió** y las mejores suben.',
+            '',
+            '## Conectado con #soporte',
+            `- Cada duda de la web abre su hilo en <#${env.ctx().layout.channels.help}> y lo que se responde en un sitio sale en el otro.`,
+            '- Las preguntas de #soporte que se marcan como resueltas se guardan en la web, resumidas y sin datos personales.',
+            '',
+            '## Sugerencias',
+            `- En el panel: **Sugerencias** (${env.PANEL}/sugerencias), o \`/sugerir\` aquí. Salen en las dos partes.`,
+            '- Vota a favor o en contra: un voto por persona. `/top-sugerencias` muestra las más apoyadas.',
+            '- El equipo les pone estado (En estudio, Aceptada, Implementada o Descartada) y te avisa por privado.',
+        ],
+    },
+    {
         key: 'team', tag: 'Empieza aquí', title: 'Dar acceso a tu equipo sin compartir tu contraseña',
         body: () => [
             '## Usuarios del servidor',
@@ -410,18 +450,19 @@ const GUIDES = [
     },
 ];
 
+const PUBLIC_GUIDES = GUIDES.filter((g) => !g.private);
 const TAG_COLOR = {
     'Empieza aquí': 0xec4899, Minecraft: 0x22c55e, Bots: 0x5865f2,
-    'Web y Dominios': 0xf59e0b, 'Bases de Datos': 0x06b6d4, 'Archivos y copias': 0xa855f7,
+    'Web y Dominios': 0xf59e0b, 'Bases de Datos': 0x06b6d4, 'Archivos y copias': 0xa855f7, Comunidad: 0x38bdf8,
 };
-const TAG_ICON = { 'Empieza aquí': 'rocket', Minecraft: 'pickaxe', Bots: 'bot', 'Web y Dominios': 'globe', 'Bases de Datos': 'database', 'Archivos y copias': 'folder' };
-const GUIDE_VIDEO = ['start', 'mc-optimize', 'mc-addons', 'bots', 'domains', 'databases', 'files', 'sftp-filezilla', 'team'];
+const TAG_ICON = { 'Empieza aquí': 'rocket', Minecraft: 'pickaxe', Bots: 'bot', 'Web y Dominios': 'globe', 'Bases de Datos': 'database', 'Archivos y copias': 'folder', Comunidad: 'team' };
+const GUIDE_VIDEO = ['start', 'mc-optimize', 'mc-addons', 'bots', 'domains', 'databases', 'files', 'sftp-filezilla', 'team', 'dudas', 'amigos'];
 const GUIDE_VIDEO_V = 1;
 // Paso a paso con fotos dentro de cada guía (capturas del vídeo con el elemento resaltado); también lo usa el panel en /guias
 const GUIDE_STEPS = require('./guide-steps.json');
 const GUIDE_STEPS_V = 1;
 // Guías rehechas: versión propia para que Discord no muestre la foto o el vídeo antiguos de su caché
-const GUIDE_V = { 'sftp-filezilla': 2 };
+const GUIDE_V = { 'sftp-filezilla': 2, amigos: 2, dudas: 2 };
 const GUIDE_ICON = { buy: 'cart', team: 'team' };
 const readMinutes = (g) => Math.max(1, Math.round(g.body().filter((l) => !/^!\[/.test(l)).join(' ').split(/\s+/).length / 180));
 
@@ -535,7 +576,7 @@ function indexPayload(threads) {
         text('-# GUÍAS OFICIALES DE CINAMMON\n# Empieza aquí\nGuías escritas por el equipo con los nombres reales de las pestañas del panel. Elige la tuya y pulsa **Abrir**; también puedes usar la barra de búsqueda o filtrar por etiqueta.'),
     ];
     for (const tag of GUIDE_TAGS) {
-        const list = GUIDES.filter((g) => g.tag === tag && threads[g.key]);
+        const list = PUBLIC_GUIDES.filter((g) => g.tag === tag && threads[g.key]);
         if (!list.length) continue;
         // Discord admite 40 componentes por mensaje (cada guía gasta 3): el título de la etiqueta va dentro de su primera guía
         comps.push(sep(1));
@@ -654,12 +695,12 @@ async function syncGuides() {
 
     const existing = await allThreads(forum.id);
     // Enlaces conocidos (para los botones de navegación); si se crea alguna guía, segunda pasada.
-    const threads = Object.fromEntries(GUIDES.filter((g) => S.guides[g.key]?.thread).map((g) => [g.key, S.guides[g.key].thread]));
+    const threads = Object.fromEntries(PUBLIC_GUIDES.filter((g) => S.guides[g.key]?.thread).map((g) => [g.key, S.guides[g.key].thread]));
     if (S.pins.guides?.thread) threads.__index = S.pins.guides.thread;
     const before = JSON.stringify(threads);
     for (const pass of [1, 2]) {
     if (pass === 2 && JSON.stringify(threads) === before) break;
-    for (const g of GUIDES) {
+    for (const g of PUBLIC_GUIDES) {
         const known = g.legacy && !S.guides[g.key] ? existing.find((t) => t.name === g.legacy) : null;
         try {
             threads[g.key] = await upsertThread(forum, {
@@ -686,6 +727,43 @@ async function syncGuides() {
         }
     } catch (e) {
         env.log(`[SYNC] índice de guías: ${e.message}`);
+    }
+}
+
+/* ------------------------------------------------- guía privada de Amigos */
+
+/** Foro privado "amigos" (solo el rol Amigo de Cinammon) con su guía. Los amigos responden dentro, no abren publicaciones. */
+async function syncFriendsGuide() {
+    const L = env.ctx().layout;
+    const role = L.roles?.['rank:Amigo de Cinammon'];
+    const g = GUIDES.find((x) => x.key === 'amigos');
+    if (!role || !g) return;
+    const S = state();
+    let forum = S.friendsForum ? await env.discord('GET', `/channels/${S.friendsForum}`).catch((e) => (e.status === 404 ? null : Promise.reject(e))) : null;
+    if (!forum) {
+        forum = await env.discord('POST', `/guilds/${env.ctx().guild}/channels`, {
+            name: '├・amigos', type: 15, parent_id: L.categories?.community,
+            topic: 'Solo para los Amigos de Cinammon: la guía del Rincón de Amigos. Pregunta dentro de la guía si tienes dudas.',
+            default_auto_archive_duration: 10080,
+            permission_overwrites: [
+                { id: env.ctx().guild, type: 0, allow: '0', deny: String(VIEW) },
+                { id: role, type: 0, allow: String(VIEW | SEND_THREADS), deny: String(SEND) },
+                { id: env.ctx().appId, type: 1, allow: String(VIEW | SEND | SEND_THREADS | PUBLIC_THREADS | (1n << 34n)), deny: '0' },
+            ],
+        }, 'Foro privado de los Amigos de Cinammon');
+        S.friendsForum = forum.id;
+        delete S.pins.friendsGuide;
+        env.saveState();
+        env.log(`[SYNC] Foro privado de amigos creado (${forum.id}).`);
+    }
+    const tid = await upsertThread(forum, {
+        get: () => S.pins.friendsGuide,
+        set: (v) => { S.pins.friendsGuide = v; },
+    }, { name: g.title, payload: guidePayload(g, {}), tagIds: [], cover: guideCover(g) });
+    if (S.pins.friendsPinned !== tid) {
+        await env.discord('PATCH', `/channels/${tid}`, { flags: 2 }, 'Fijar la guía de amigos').catch(() => {});
+        S.pins.friendsPinned = tid;
+        env.saveState();
     }
 }
 
@@ -813,6 +891,7 @@ async function sync(data) {
     await tuneChannels().catch((e) => env.log(`[SYNC] ajustes de canales: ${e.message}`));
     await syncGuides().catch((e) => env.log(`[SYNC] guías: ${e.message}`));
     await syncSuggestions().catch((e) => env.log(`[SYNC] sugerencias: ${e.message}`));
+    await syncFriendsGuide().catch((e) => env.log(`[SYNC] guía de amigos: ${e.message}`));
     await backfill(data).catch((e) => env.log(`[SYNC] relleno inicial: ${e.message}`));
 }
 

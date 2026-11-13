@@ -105,6 +105,15 @@ const GUIDES: Guide[] = [
         v: 2,
     },
     {
+        key: 'dudas',
+        tag: 'Comunidad',
+        title: 'Dudas de la comunidad y sugerencias',
+        text: 'Buscar si tu duda ya está resuelta, preguntar, marcar la respuesta que te sirvió, ayudar a otros y proponer o votar ideas para Cinammon.',
+        duration: '0:59',
+        thread: '1570605273154846720',
+        v: 2,
+    },
+    {
         key: 'team',
         tag: 'Empieza aquí',
         title: 'Dar acceso a tu equipo',
@@ -137,6 +146,7 @@ const TAG_COLOR: Record<string, string> = {
     'Bases de Datos': 'bg-amber-500/15 text-amber-400 ring-amber-500/30',
     'Archivos y copias': 'bg-cyan-500/15 text-cyan-400 ring-cyan-500/30',
     Amigos: 'bg-sky-500/15 text-sky-300 ring-sky-400/40',
+    Comunidad: 'bg-sky-500/15 text-sky-400 ring-sky-500/30',
 };
 
 function Tag({ name }: { name: string }) {
