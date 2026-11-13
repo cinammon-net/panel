@@ -29,7 +29,7 @@ class SocialAuthController extends Controller
         'google' => ['Google', ['openid', 'profile', 'email']],
         'microsoft' => ['Microsoft', ['User.Read']],
         'github' => ['GitHub', ['read:user', 'user:email']],
-        'cloudflare' => ['Cloudflare', ['openid', 'email', 'profile']],
+        'cloudflare' => ['Cloudflare', ['openid', 'email', 'profile', 'groups']],
         'gitlab' => ['GitLab', ['read_user']],
         'twitch' => ['Twitch', ['user:read:email']],
     ];
@@ -170,7 +170,7 @@ class SocialAuthController extends Controller
             'client_id' => $cfg['client_id'],
             'redirect_uri' => $cfg['redirect'],
             'response_type' => 'code',
-            'scope' => 'openid email profile',
+            'scope' => 'openid email profile groups',
             'state' => $state,
         ]);
 
@@ -247,6 +247,16 @@ class SocialAuthController extends Controller
             {
                 return $this->user['picture'] ?? null;
             }
+
+            public function getGroups(): array
+            {
+                $groups = $this->user['groups'] ?? [];
+                if (is_string($groups)) {
+                    $groups = array_filter(array_map('trim', explode(',', $groups)));
+                }
+
+                return is_array($groups) ? $groups : [];
+            }
         };
     }
 
@@ -257,6 +267,62 @@ class SocialAuthController extends Controller
             $user->avatar = $social->getAvatar();
         }
         $user->save();
+
+        if ($provider === 'cloudflare' && method_exists($social, 'getGroups')) {
+            $this->syncCloudflareRoles($user, $social->getGroups());
+        }
+    }
+
+    /**
+     * Sincroniza automáticamente los roles de Cinammon con los grupos de Cloudflare Zero Trust.
+     */
+    private function syncCloudflareRoles(User $user, array $groups): void
+    {
+        if (empty($groups)) {
+            return;
+        }
+
+        $normalized = array_map(fn ($g) => strtolower(trim((string) $g)), $groups);
+
+        $roleMap = [
+            'cinammon-owner' => 'Owner',
+            'owner' => 'Owner',
+            'cinammon-admin' => 'Admin',
+            'cinammon-admins' => 'Admin',
+            'admin' => 'Admin',
+            'admins' => 'Admin',
+            'cinammon-moderator' => 'Moderator',
+            'cinammon-moderators' => 'Moderator',
+            'moderator' => 'Moderator',
+            'moderators' => 'Moderator',
+            'cinammon-helper' => 'Helper',
+            'cinammon-helpers' => 'Helper',
+            'helper' => 'Helper',
+            'helpers' => 'Helper',
+            'cinammon-sponsor' => 'Sponsors',
+            'cinammon-sponsors' => 'Sponsors',
+            'sponsor' => 'Sponsors',
+            'sponsors' => 'Sponsors',
+            'cinammon-member' => 'Members',
+            'cinammon-members' => 'Members',
+            'member' => 'Members',
+            'members' => 'Members',
+        ];
+
+        $matchedRoles = [];
+        foreach ($normalized as $group) {
+            if (isset($roleMap[$group])) {
+                $matchedRoles[] = $roleMap[$group];
+            }
+        }
+
+        if (! empty($matchedRoles)) {
+            // El rol Owner de máxima jerarquía nunca se revoca por un grupo externo
+            if ($user->hasRole('Owner') && ! in_array('Owner', $matchedRoles, true)) {
+                $matchedRoles[] = 'Owner';
+            }
+            $user->syncRoles(array_values(array_unique($matchedRoles)));
+        }
     }
 
     /**
