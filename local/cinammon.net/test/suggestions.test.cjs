@@ -70,7 +70,7 @@ test('suggestions: votes, similar ideas, staff status and closing', async () => 
     await sug.component({ type: 5, data: { custom_id: m.data.custom_id, components: [{ components: [{ custom_id: 'note', value: 'Ya está en el panel' }] }] }, member: { user: { id: 'staff' }, staff: true } }, respond);
     assert.equal(p.status, 'done');
     assert.ok(calls.some((c) => c.method === 'PATCH' && c.route === `/channels/${id}` && c.body.locked === true && c.body.archived === true), 'closed');
-    assert.ok(calls.some((c) => c.method === 'POST' && c.route === `/channels/${id}/messages` && /Implementada/.test(c.body.content || '')), 'author notified');
+    assert.ok(calls.some((c) => c.method === 'POST' && c.route === `/channels/${id}/messages` && /Implementada/.test(JSON.stringify(c.body.components || c.body.content || ''))), 'author notified');
     assert.match((await sug.component(click(`sug:up:${id}`, 'u6'), respond)).data.content, /cerrada/);
     assert.equal(sug.top(5).length, 0, 'closed ideas leave the ranking');
 });

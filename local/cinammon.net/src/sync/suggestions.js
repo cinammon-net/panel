@@ -126,14 +126,12 @@ async function register(threadId, author, title) {
     env.saveState();
 }
 
-/** Envía un mensaje directo (DM) a un usuario si tiene mensajes privados habilitados. */
-async function sendDM(userId, content) {
+/** Envía una tarjeta por mensaje privado (si la persona los tiene abiertos). */
+async function sendDM(userId, payload) {
     if (!userId || !/^\d{5,25}$/.test(userId)) return;
     try {
         const dm = await env.discord('POST', '/users/@me/channels', { recipient_id: userId });
-        if (dm?.id) {
-            await env.discord('POST', `/channels/${dm.id}/messages`, { content });
-        }
+        if (dm?.id) await env.discord('POST', `/channels/${dm.id}/messages`, payload);
     } catch (_) {}
 }
 
@@ -260,15 +258,29 @@ async function changeStatus(threadId, status, note, staffId) {
     if (p.archived) await env.discord('PATCH', `/channels/${threadId}`, { archived: false, locked: false }).catch(() => {});
     await refreshCard(threadId);
 
-    const authorMention = /^\d{5,25}$/.test(p.author) ? `<@${p.author}>` : `**${p.author}**`;
+    const linked = /^\d{5,25}$/.test(p.author);
+    const { text, row, container } = env.ui;
+    const quote = (n) => (note ? `\n> ${cut(note, n).replace(/\n/g, '\n> ')}` : '');
+    const by = staffId === 'Panel' ? 'Cambiado desde el panel' : `Cambiado por <@${staffId}>`;
     await env.discord('POST', `/channels/${threadId}/messages`, {
-        content: `${authorMention}, tu sugerencia pasa a **${STATUS[status].label}**: ${NOTICE[status]}.${note ? `\n> ${cut(note, 900).replace(/\n/g, '\n> ')}` : ''}\n-# ${staffId === 'Panel' ? 'Cambiado desde el panel' : `Cambiado por <@${staffId}>`}.`,
-        allowed_mentions: /^\d{5,25}$/.test(p.author) ? { users: [p.author] } : { parse: [] },
+        flags: V2,
+        components: [container(STATUS[status].color, [
+            text(`### ${STATUS[status].label}\n${linked ? `<@${p.author}>` : `**${cut(p.author, 60)}**`}, tu sugerencia ${NOTICE[status]}.${quote(900)}\n-# ${by}.`),
+        ])],
+        allowed_mentions: linked ? { users: [p.author] } : { parse: [] },
     }).catch((e) => env.log(`[SUGERENCIAS] aviso: ${e.message}`));
 
-    // Notificación por Mensaje Directo (DM) al autor
-    if (/^\d{5,25}$/.test(p.author)) {
-        sendDM(p.author, `**Novedades de tu sugerencia en Cinammon**\nTu idea **"${cut(p.title, 80)}"** ha pasado a estado **${STATUS[status].label}**: ${NOTICE[status]}.${note ? `\n> ${cut(note, 400).replace(/\n/g, '\n> ')}` : ''}\n\nPuedes verla en <#${threadId}> o en https://panel.cinammon.net/sugerencias`).catch(() => {});
+    // Aviso por privado al autor, en tarjeta
+    if (linked) {
+        const link = (label, url) => ({ type: 2, style: 5, label, url });
+        sendDM(p.author, {
+            flags: V2,
+            components: [container(STATUS[status].color, [
+                text(`### Tu sugerencia: ${STATUS[status].label}\n**${cut(p.title, 100)}**\n${NOTICE[status].charAt(0).toUpperCase() + NOTICE[status].slice(1)}.${quote(400)}`),
+                row(link('Ver la sugerencia', `https://discord.com/channels/${env.ctx().guild}/${threadId}`), link('Ver en la web', 'https://panel.cinammon.net/sugerencias')),
+            ])],
+            allowed_mentions: { parse: [] },
+        }).catch(() => {});
     }
 
     // Sincronizar cambio de estado hacia el panel

@@ -139,6 +139,8 @@ async function openWebQuestion(S, q) {
         S.threads[thread.id] = t;
         env.saveState();
         entry = [thread.id, t];
+        // El panel tiene que conocer el hilo antes de recibir respuestas de él
+        await env.panel('POST', `/api/bot/community/questions/${q.id}/thread`, { thread_id: thread.id }).catch(() => {});
     }
     const [threadId, t] = entry;
     if (!t.webPosted) {
