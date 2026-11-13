@@ -68,10 +68,10 @@ class NewsPaperController extends Controller
         // Teletipo de última hora (Ticker) dinámico con los titulares más recientes
         $postHeadlines = $posts->take(4)->pluck('title')->map(fn ($t) => 'ÚLTIMA HORA: ' . $t)->all();
         $breakingNews = array_merge($postHeadlines, [
-            'INFRAESTRUCTURA: Troncal de 40 Gbps activa en Madrid y Frankfurt con latencia ultrabaja.',
-            'COMUNIDAD: Despliegue de servidores gratuitos con monedas disponible las 24 horas.',
-            'BLACK FRIDAY: -30% en planes Premium de alto rendimiento con código promocional activo.',
-            'SEGURIDAD: Filtrado autónomo Anycast operando al 100% sin pérdida de paquetes.',
+            'NODO: Nodo Cinammon 1 operativo con demonio Wings y conectividad SSL activa.',
+            'SOPORTE: Acceso SFTP disponible en sftp.cinammon.net puerto 2022.',
+            'SERVIDORES: Plantillas listas para Minecraft Paper, Multi Theft Auto y Node.js.',
+            'BASES DE DATOS: Gestor phpMyAdmin disponible para servidores y aplicaciones.',
         ]);
 
         // Anuncios por palabras / Clasificados de época

@@ -218,7 +218,7 @@ export default function NewsPaper({
                         <div className="flex items-center justify-center gap-3 mb-2">
                             <span className="h-[1px] w-12 sm:w-24 bg-yellow-600/50"></span>
                             <span className={`font-mono text-[10px] sm:text-xs uppercase tracking-[0.25em] font-bold ${isVintage ? 'text-yellow-700' : 'text-yellow-400'}`}>
-                                LA VOZ INDEPENDIENTE DE LA INFRAESTRUCTURA & EL GAMING
+                                PORTAL OFICIAL DE NOVEDADES & COMUNIDAD DE CINAMMON
                             </span>
                             <span className="h-[1px] w-12 sm:w-24 bg-yellow-600/50"></span>
                         </div>
@@ -239,7 +239,7 @@ export default function NewsPaper({
                         <span className={`font-bold ${isVintage ? 'text-yellow-700' : 'text-yellow-400'}`}>
                             EDICIÓN DIGITAL VERIFICADA
                         </span>
-                        <span>MADRID · SERVIDORES GLOBALES</span>
+                        <span>CINAMMON NETWORK · NODO 1</span>
                     </div>
                 </header>
 

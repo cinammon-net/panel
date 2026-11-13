@@ -187,7 +187,7 @@ export default function NewsPaperArticle({
                                 POR <strong className="uppercase">{article.author?.name || 'Redacción Cinammon'}</strong>
                             </span>
                             <span>·</span>
-                            <span>MADRID</span>
+                            <span>CINAMMON NETWORK</span>
                         </div>
 
                         <div className="flex items-center gap-4 text-[11px]">
