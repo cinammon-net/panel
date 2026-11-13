@@ -48,11 +48,11 @@ export function AppSidebarHeader({ breadcrumbs = [] }: { breadcrumbs?: Breadcrum
                         type="button"
                         onClick={() => setPaletteOpen(true)}
                         title="Buscar rápidamente en todo el panel (⌘ + K)"
-                        className="inline-flex items-center gap-2 rounded-lg border border-pink-500/20 bg-neutral-900/80 px-3 py-1.5 text-xs text-neutral-400 transition hover:border-pink-500/40 hover:text-white"
+                        className="inline-flex items-center gap-2 rounded-xl border border-yellow-500/25 bg-neutral-900/90 px-3 py-1.5 text-xs text-neutral-300 transition hover:border-yellow-500/50 hover:text-yellow-300 hover:shadow-[0_0_12px_rgba(250,204,21,0.15)]"
                     >
-                        <Search className="h-3.5 w-3.5 text-pink-400" />
-                        <span className="hidden md:inline">Buscar...</span>
-                        <kbd className="hidden rounded border border-neutral-700 bg-neutral-800 px-1.5 py-0.5 text-[10px] font-semibold text-neutral-400 sm:inline-block">
+                        <Search className="h-3.5 w-3.5 text-yellow-400" />
+                        <span className="hidden md:inline font-medium">Buscar...</span>
+                        <kbd className="hidden rounded-md border border-neutral-700 bg-neutral-800/90 px-1.5 py-0.5 text-[10px] font-semibold text-neutral-300 sm:inline-block">
                             ⌘K
                         </kbd>
                     </button>

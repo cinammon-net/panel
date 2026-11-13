@@ -17,280 +17,313 @@ import {
     Activity,
     BadgeInfo,
     BookOpenCheck,
-    Bookmark,
+    Coins,
     CreditCard,
     Database,
     Egg,
     FolderGit2,
+    Globe,
     HeartPulse,
     KeyRound,
     LayoutGrid,
+    Lightbulb,
+    Mail,
     Megaphone,
+    MessagesSquare,
+    Newspaper,
+    PlayCircle,
     Radio,
+    Rocket,
     Server,
     Settings,
     ShieldCheck,
+    Sparkles,
+    Star,
     Ticket,
     Users,
     Webhook,
     Wrench,
-    Coins,
-    Sparkles,
-    PlayCircle,
-    Mail,
-    Lightbulb,
-    MessagesSquare,
 } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
-    // ——— Nivel raíz: Dashboard, Health, Facturación y Settings ———
+    // ═══════════════════════════════════════════════════════════════
+    // 1. PRINCIPAL (Accesos cotidianos clave de cada cliente y staff)
+    // ═══════════════════════════════════════════════════════════════
     {
         title: 'Dashboard',
         href: '/dashboard',
         icon: LayoutGrid,
-        group: 'main',
-        groupColor: 'text-purple-400',
+        group: 'principal',
+        groupColor: 'text-yellow-400',
         roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin', 'Owner'],
         permissions: ['view_server'],
     },
     {
-        title: 'Health',
-        href: '/health',
-        icon: HeartPulse,
-        group: 'main',
-        groupColor: 'text-orange-400',
-        roles: ['Admin', 'Moderator', 'Helper', 'Sponsors'],
-        permissions: ['view_health'],
+        title: 'Mis Servidores',
+        href: '/servers',
+        icon: Server,
+        group: 'principal',
+        groupColor: 'text-cyan-400',
+        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin', 'Owner'],
+        permissions: ['view_server'],
     },
     {
-        title: 'Facturación / Tienda',
+        title: 'Tienda & Facturación',
         href: '/billing/redirect',
         external: true,
         icon: CreditCard,
-        group: 'main',
+        group: 'principal',
         groupColor: 'text-pink-400',
         roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin', 'Owner'],
         permissions: [],
     },
     {
-        title: 'Servidor gratis',
+        title: 'Servidores Gratis',
         href: '/billing/redirect?to=coins',
         external: true,
         icon: Coins,
-        group: 'main',
-        groupColor: 'text-yellow-400',
+        group: 'principal',
+        groupColor: 'text-amber-400',
         roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin', 'Owner'],
         permissions: [],
     },
     {
-        title: 'Mis correos',
+        title: 'Buzón de Correos',
         href: '/correos',
         icon: Mail,
-        group: 'main',
-        groupColor: 'text-fuchsia-400',
+        group: 'principal',
+        groupColor: 'text-indigo-400',
         roles: [],
         permissions: [],
     },
-    {
-        title: 'Guías en vídeo',
-        href: '/guias',
-        icon: PlayCircle,
-        group: 'main',
-        groupColor: 'text-emerald-400',
-        roles: [],
-        permissions: [],
-    },
-    {
-        title: 'Dudas de la comunidad',
-        href: '/dudas',
-        icon: MessagesSquare,
-        group: 'main',
-        groupColor: 'text-sky-400',
-        roles: [],
-        permissions: [],
-    },
-    {
-        // Solo quien tiene el rol "Amigo de Cinammon" (el Owner lo ve siempre)
-        title: 'Rincón de Amigos',
-        href: '/amigos',
-        icon: Sparkles,
-        group: 'main',
-        groupColor: 'text-sky-400',
-        roles: ['Amigo de Cinammon'],
-        permissions: [],
-    },
-    {
-        title: 'Mantenimiento',
-        href: '/maintenance',
-        icon: Wrench,
-        group: 'main',
-        groupColor: 'text-amber-400',
-        roles: ['Admin'],
-        permissions: [],
-    },
-    {
-        title: 'Anuncios',
-        href: '/announcements',
-        icon: Megaphone,
-        group: 'main',
-        groupColor: 'text-pink-400',
-        roles: ['Admin'],
-        permissions: [],
-    },
-    {
-        title: 'Settings',
-        href: '/settings',
-        icon: Settings,
-        group: 'main',
-        groupColor: 'text-purple-400',
-        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin'],
-        permissions: [],
-    },
 
-    // ——— Server: todo lo que toca infraestructura ———
+    // ═══════════════════════════════════════════════════════════════
+    // 2. COMUNIDAD & SOPORTE (Interacción, tickets, guías y feedback)
+    // ═══════════════════════════════════════════════════════════════
     {
-        title: 'Servers',
-        href: '/servers',
-        icon: Server,
-        group: 'servers',
-        groupColor: 'text-blue-400',
-        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin'],
-        permissions: ['view_server'],
-    },
-    {
-        title: 'Nodes',
-        href: '/nodes',
-        icon: Activity,
-        group: 'servers',
-        groupColor: 'text-blue-400',
-        roles: ['Admin'],
-        permissions: ['view_list_node'],
-    },
-    {
-        title: 'Wings',
-        href: '/wings',
-        icon: ShieldCheck,
-        group: 'servers',
-        groupColor: 'text-blue-400',
-        roles: ['Admin'],
-        permissions: ['view_list_node'],
-    },
-    {
-        title: 'Eggs',
-        href: '/eggs',
-        icon: Egg,
-        group: 'servers',
-        groupColor: 'text-blue-400',
-        roles: ['Admin'],
-        permissions: ['view_list_egg'],
-    },
-    {
-        title: 'Database Host',
-        href: '/database',
-        icon: Database,
-        group: 'servers',
-        groupColor: 'text-blue-400',
-        roles: ['Admin'],
-        permissions: ['view_settings'],
-    },
-    {
-        title: 'Mounts',
-        href: '/mounts',
-        icon: Radio,
-        group: 'servers',
-        groupColor: 'text-blue-400',
-        roles: ['Admin'],
-        permissions: ['view_mount'],
-    },
-
-    // ——— User: cuentas y acceso ———
-    {
-        title: 'Users',
-        href: '/users',
-        icon: Users,
-        group: 'users',
-        groupColor: 'text-pink-400',
-        roles: ['Admin', 'Moderator', 'Helper'],
-        permissions: ['view_list_user'],
-    },
-    {
-        title: 'Roles',
-        href: '/roles',
-        icon: BadgeInfo,
-        group: 'users',
-        groupColor: 'text-pink-400',
-        roles: ['Admin'],
-        permissions: ['view_user'],
-    },
-    {
-        title: 'API Keys',
-        href: '/api-keys',
-        icon: KeyRound,
-        group: 'users',
-        groupColor: 'text-pink-400',
-        roles: ['Admin'],
-        permissions: ['view_settings'],
-    },
-    {
-        title: 'Webhooks',
-        href: '/webhooks',
-        icon: Webhook,
-        group: 'users',
-        groupColor: 'text-pink-400',
-        roles: ['Admin'],
-        permissions: ['view_webhook'],
-    },
-    {
-        title: 'Inicio Social',
-        href: '/auth-providers',
-        icon: ShieldCheck,
-        group: 'users',
-        groupColor: 'text-pink-400',
-        roles: ['Admin'],
-        permissions: [],
-    },
-
-    // ——— Extra (comunidad) ———
-    {
-        title: 'Posts',
-        href: '/posts',
-        icon: Bookmark,
-        group: 'extra',
-        groupColor: 'text-yellow-400',
-        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin'],
-        permissions: [],
-    },
-    {
-        title: 'Tickets',
+        title: 'Tickets de Soporte',
         href: '/tickets',
         icon: Ticket,
-        group: 'extra',
-        groupColor: 'text-yellow-400',
-        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin'],
-        permissions: [],
-    },
-    {
-        title: 'Reviews',
-        href: '/reviews',
-        icon: HeartPulse,
-        group: 'extra',
-        groupColor: 'text-yellow-400',
-        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin'],
+        group: 'comunidad',
+        groupColor: 'text-amber-400',
+        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin', 'Owner'],
         permissions: [],
     },
     {
         title: 'Sugerencias',
         href: '/sugerencias',
         icon: Lightbulb,
-        group: 'extra',
+        group: 'comunidad',
         groupColor: 'text-yellow-400',
-        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin'],
+        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin', 'Owner'],
+        permissions: [],
+    },
+    {
+        title: 'Noticias & Novedades',
+        href: '/posts',
+        icon: Newspaper,
+        group: 'comunidad',
+        groupColor: 'text-emerald-400',
+        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin', 'Owner'],
+        permissions: [],
+    },
+    {
+        title: 'Valoraciones & Reseñas',
+        href: '/reviews',
+        icon: Star,
+        group: 'comunidad',
+        groupColor: 'text-yellow-400',
+        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin', 'Owner'],
+        permissions: [],
+    },
+    {
+        title: 'Dudas de la Comunidad',
+        href: '/dudas',
+        icon: MessagesSquare,
+        group: 'comunidad',
+        groupColor: 'text-sky-400',
+        roles: [],
+        permissions: [],
+    },
+    {
+        title: 'Guías en Vídeo',
+        href: '/guias',
+        icon: PlayCircle,
+        group: 'comunidad',
+        groupColor: 'text-rose-400',
+        roles: [],
+        permissions: [],
+    },
+    {
+        title: 'Rincón de Amigos',
+        href: '/amigos',
+        icon: Sparkles,
+        group: 'comunidad',
+        groupColor: 'text-fuchsia-400',
+        roles: ['Amigo de Cinammon', 'Owner'],
+        permissions: [],
+    },
+
+    // ═══════════════════════════════════════════════════════════════
+    // 3. INFRAESTRUCTURA & SERVIDORES (Nodos, Wings, Eggs, bases)
+    // ═══════════════════════════════════════════════════════════════
+    {
+        title: 'Nodos de Juego',
+        href: '/nodes',
+        icon: Activity,
+        group: 'infraestructura',
+        groupColor: 'text-cyan-400',
+        roles: ['Admin', 'Owner'],
+        permissions: ['view_list_node'],
+    },
+    {
+        title: 'Wings Daemon',
+        href: '/wings',
+        icon: ShieldCheck,
+        group: 'infraestructura',
+        groupColor: 'text-cyan-400',
+        roles: ['Admin', 'Owner'],
+        permissions: ['view_list_node'],
+    },
+    {
+        title: 'Eggs & Plantillas',
+        href: '/eggs',
+        icon: Egg,
+        group: 'infraestructura',
+        groupColor: 'text-orange-400',
+        roles: ['Admin', 'Owner'],
+        permissions: ['view_list_egg'],
+    },
+    {
+        title: 'Host Bases de Datos',
+        href: '/database',
+        icon: Database,
+        group: 'infraestructura',
+        groupColor: 'text-blue-400',
+        roles: ['Admin', 'Owner'],
+        permissions: ['view_settings'],
+    },
+    {
+        title: 'Puntos de Montaje',
+        href: '/mounts',
+        icon: Radio,
+        group: 'infraestructura',
+        groupColor: 'text-violet-400',
+        roles: ['Admin', 'Owner'],
+        permissions: ['view_mount'],
+    },
+    {
+        title: 'Estado de Salud (Health)',
+        href: '/health',
+        icon: HeartPulse,
+        group: 'infraestructura',
+        groupColor: 'text-rose-400',
+        roles: ['Admin', 'Moderator', 'Helper', 'Sponsors', 'Owner'],
+        permissions: ['view_health'],
+    },
+    {
+        title: 'Mantenimiento',
+        href: '/maintenance',
+        icon: Wrench,
+        group: 'infraestructura',
+        groupColor: 'text-amber-400',
+        roles: ['Admin', 'Owner'],
+        permissions: [],
+    },
+
+    // ═══════════════════════════════════════════════════════════════
+    // 4. GESTIÓN & ADMINISTRACIÓN (Cuentas, roles, API y seguridad)
+    // ═══════════════════════════════════════════════════════════════
+    {
+        title: 'Usuarios',
+        href: '/users',
+        icon: Users,
+        group: 'gestion',
+        groupColor: 'text-pink-400',
+        roles: ['Admin', 'Moderator', 'Helper', 'Owner'],
+        permissions: ['view_list_user'],
+    },
+    {
+        title: 'Roles y Permisos',
+        href: '/roles',
+        icon: BadgeInfo,
+        group: 'gestion',
+        groupColor: 'text-purple-400',
+        roles: ['Admin', 'Owner'],
+        permissions: ['view_user'],
+    },
+    {
+        title: 'API Keys',
+        href: '/api-keys',
+        icon: KeyRound,
+        group: 'gestion',
+        groupColor: 'text-amber-400',
+        roles: ['Admin', 'Owner'],
+        permissions: ['view_settings'],
+    },
+    {
+        title: 'Webhooks',
+        href: '/webhooks',
+        icon: Webhook,
+        group: 'gestion',
+        groupColor: 'text-sky-400',
+        roles: ['Admin', 'Owner'],
+        permissions: ['view_webhook'],
+    },
+    {
+        title: 'Inicio Social (SSO)',
+        href: '/auth-providers',
+        icon: ShieldCheck,
+        group: 'gestion',
+        groupColor: 'text-indigo-400',
+        roles: ['Admin', 'Owner'],
+        permissions: [],
+    },
+    {
+        title: 'Anuncios Globales',
+        href: '/announcements',
+        icon: Megaphone,
+        group: 'gestion',
+        groupColor: 'text-pink-400',
+        roles: ['Admin', 'Owner'],
+        permissions: [],
+    },
+
+    // ═══════════════════════════════════════════════════════════════
+    // 5. SISTEMA & AJUSTES (Configuración personal, updates y estado)
+    // ═══════════════════════════════════════════════════════════════
+    {
+        title: 'Ajustes de Cuenta',
+        href: '/settings',
+        icon: Settings,
+        group: 'ajustes',
+        groupColor: 'text-neutral-400',
+        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin', 'Owner'],
+        permissions: [],
+    },
+    {
+        title: 'Actualizaciones',
+        href: '/updates',
+        icon: Rocket,
+        group: 'ajustes',
+        groupColor: 'text-fuchsia-400',
+        roles: ['Admin', 'Owner'],
+        permissions: [],
+    },
+    {
+        title: 'Estado de la Red',
+        href: '/estado',
+        external: true,
+        icon: Globe,
+        group: 'ajustes',
+        groupColor: 'text-emerald-400',
+        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin', 'Owner'],
         permissions: [],
     },
 ];
 
-// Logo de Discord con la misma firma que un icono de Lucide (solo usa className).
+// Logo de Discord con la misma firma que un icono de Lucide
 const DiscordLogo = (({ className }: { className?: string }) => <BrandIcon provider="discord" className={className} />) as unknown as LucideIcon;
 
 const footerNavItems: NavItem[] = [
@@ -298,34 +331,34 @@ const footerNavItems: NavItem[] = [
         title: 'Repository',
         href: 'https://github.com/cinammon-net/panel',
         icon: FolderGit2,
-        group: 'extra',
-        groupColor: 'text-yellow-400',
+        group: 'ajustes',
+        groupColor: 'text-neutral-400',
     },
     {
-        title: 'Documentation',
+        title: 'Documentación',
         href: 'https://cinammon.net/docs/panel',
         icon: BookOpenCheck,
-        group: 'extra',
-        groupColor: 'text-yellow-400',
+        group: 'ajustes',
+        groupColor: 'text-neutral-400',
     },
 ];
 
 export function AppSidebar() {
     const { discordInvite } = usePage<{ discordInvite?: string }>().props;
     const footerItems: NavItem[] = discordInvite
-        ? [{ title: 'Discord', href: discordInvite, icon: DiscordLogo, group: 'extra', groupColor: 'text-yellow-400' }, ...footerNavItems]
+        ? [{ title: 'Discord', href: discordInvite, icon: DiscordLogo, group: 'ajustes', groupColor: 'text-indigo-400' }, ...footerNavItems]
         : footerNavItems;
 
     return (
         <Sidebar
             collapsible="icon"
             variant="floating"
-            className="border-r border-neutral-300 bg-white font-[Orbitron] transition-colors dark:border-pink-500 dark:bg-black"
+            className="border-r border-neutral-800/80 bg-neutral-950/95 font-[Orbitron] backdrop-blur transition-all dark:border-neutral-800 dark:bg-black"
         >
-            <SidebarHeader className="border-b border-neutral-300 dark:border-pink-500">
+            <SidebarHeader className="border-b border-neutral-800/80 px-3 py-3">
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
+                        <SidebarMenuButton size="lg" asChild className="hover:bg-neutral-900/80 transition-all rounded-xl">
                             <Link href="/dashboard" prefetch>
                                 <div className="flex items-center justify-center gap-2">
                                     <AppLogo />
@@ -336,17 +369,15 @@ export function AppSidebar() {
                 </SidebarMenu>
             </SidebarHeader>
 
-            <SidebarContent className="pt-6">
-                <div className="space-y-2 [&_a]:flex [&_a]:items-center [&_a]:gap-3 [&_a]:rounded-md [&_a]:px-3 [&_a]:py-2 [&_a]:transition-all [&_a]:hover:bg-neutral-100 [&_a]:hover:text-black dark:[&_a]:hover:bg-pink-500/10 dark:[&_a]:hover:text-pink-400">
-                    <NavMain items={mainNavItems} />
-                </div>
+            <SidebarContent className="pt-2 px-1">
+                <NavMain items={mainNavItems} />
             </SidebarContent>
 
-            <SidebarFooter className="mt-auto border-t border-neutral-300 dark:border-pink-500">
-                <div className="space-y-2 [&_a]:flex [&_a]:items-center [&_a]:gap-3 [&_a]:rounded-md [&_a]:px-3 [&_a]:py-2 [&_a]:transition-all [&_a]:hover:bg-neutral-100 [&_a]:hover:text-black dark:[&_a]:hover:bg-pink-500/10 dark:[&_a]:hover:text-pink-400">
-                    <NavFooter items={footerItems} />
+            <SidebarFooter className="mt-auto border-t border-neutral-800/80 pt-2 pb-3 px-2">
+                <NavFooter items={footerItems} />
+                <div className="pt-2">
+                    <NavUser />
                 </div>
-                <NavUser />
             </SidebarFooter>
         </Sidebar>
     );
