@@ -27,10 +27,13 @@ class BotSyncController extends Controller
         $members = User::visible()
             ->whereNotNull('discord_id')
             ->with('roles:id,name')
+            ->withCount(['servers as active_servers_count' => fn ($q) => $q->where('active', 1)])
             ->get(['id', 'discord_id'])
             ->map(fn (User $u) => [
                 'discord_id' => (string) $u->discord_id,
                 'roles' => $u->roles->pluck('name')->values(),
+                'is_customer' => $u->active_servers_count > 0,
+                'active_servers_count' => (int) $u->active_servers_count,
             ]);
 
         $tickets = Ticket::with('user:id,name,discord_id')

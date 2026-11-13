@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { cinLogo } from '@/lib/brand';
 import NewsletterForm from '@/components/newsletter-form';
 import { BrandIcon } from '@/components/social-login';
+import ResourceCalculator from '@/components/ResourceCalculator';
 
 const categoryStyles: Record<string, { label: string; bg: string; text: string; border: string }> = {
     mantenimiento: { label: 'Mantenimiento', bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/30' },
@@ -125,9 +126,9 @@ export default function WelcomePanel() {
             : [
                   '/storage/gallery/Dashboard.png',
                   '/storage/gallery/Servers.png',
-                  '/storage/gallery/Console.png',
+                  '/storage/gallery/Console-Live.png',
                   '/storage/gallery/Nodes.png',
-                  '/storage/gallery/Database.png',
+                  '/storage/gallery/Database-Cluster.png',
                   '/storage/gallery/Health.png',
                   '/storage/gallery/News.png',
                   '/storage/gallery/Eggs.png',
@@ -142,11 +143,14 @@ export default function WelcomePanel() {
         'Servers': 'Clúster de Servidores',
         'servers-cluster': 'Clúster de Servidores',
         'Console': 'Terminal & Consola en Vivo',
+        'Console-Live': 'Terminal & Consola en Vivo',
+        'console-live': 'Terminal & Consola en Vivo',
         'console-terminal': 'Terminal & Consola en Vivo',
         'Nodes': 'Nodos Wings & Aislamiento',
         'nodes-wings': 'Nodos Wings & Aislamiento',
         'Database': 'Bases de Datos NVMe',
-        'databases-cluster': 'Bases de Datos NVMe',
+        'Database-Cluster': 'Bases de Datos NVMe',
+        'database-cluster': 'Bases de Datos NVMe',
         'Health': 'Telemetría & Red 40 Gbps',
         'status-telemetry': 'Telemetría & Red 40 Gbps',
         'News': 'Periódico Digital Oficial',
@@ -224,6 +228,24 @@ export default function WelcomePanel() {
                         >
                             Planes
                         </a>
+                        <a
+                            href="#calculadora"
+                            className="hidden items-center rounded-md border border-fuchsia-400/60 bg-fuchsia-400/10 px-3.5 py-1.5 text-xs font-semibold text-fuchsia-300 transition hover:bg-fuchsia-400 hover:text-black xl:flex"
+                        >
+                            Calculadora
+                        </a>
+                        <Link
+                            href="/check"
+                            className="hidden items-center rounded-md border border-cyan-400/60 bg-cyan-400/10 px-3.5 py-1.5 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-400 hover:text-black md:flex"
+                        >
+                            Checker
+                        </Link>
+                        <Link
+                            href="/guias"
+                            className="hidden items-center rounded-md border border-white/20 bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-neutral-300 transition hover:bg-white/10 hover:text-white lg:flex"
+                        >
+                            Guías
+                        </Link>
                         <a
                             href="#galeria"
                             className="hidden items-center rounded-md border border-pink-500/60 bg-pink-500/10 px-3.5 py-1.5 text-xs font-semibold text-pink-300 transition hover:bg-pink-500 hover:text-white md:flex"
@@ -500,6 +522,9 @@ export default function WelcomePanel() {
                         </div>
                     </div>
                 </section>
+
+                {/* CALCULADORA DE RECURSOS & SLOTS */}
+                <ResourceCalculator />
 
                 {/* 1. SECCIÓN GALERÍA (Muestra el producto real inmediatamente tras las características) */}
                 <section id="galeria" className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
@@ -908,6 +933,15 @@ export default function WelcomePanel() {
                         <h3 className="mb-1 font-semibold text-white">Secciones</h3>
                         <Link href={route('home')} className="hover:text-white hover:underline">
                             Inicio
+                        </Link>
+                        <Link href="/check" className="hover:text-white hover:underline">
+                            Checker de Servidores
+                        </Link>
+                        <Link href="/guias" className="hover:text-white hover:underline">
+                            Guías Técnicas
+                        </Link>
+                        <Link href="/changelog" className="hover:text-white hover:underline">
+                            Changelog
                         </Link>
                         <a href="https://panel.cinammon.net/servers" className="hover:text-white hover:underline">
                             Panel

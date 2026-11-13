@@ -84,6 +84,18 @@ Route::get('/estado', function (Request $request) use ($statusHost) {
     return app(App\Http\Controllers\StatusController::class)->index($request);
 })->name('status.index');
 Route::get('/status', fn () => redirect()->route('status.index'));
+
+// Comprobador de servidores y puertos (Minecraft, MTA, Web, TCP)
+Route::get('/check', [App\Http\Controllers\ServerQueryController::class, 'index'])->name('check.index');
+Route::post('/api/check/ping', [App\Http\Controllers\ServerQueryController::class, 'ping'])->name('check.ping');
+Route::get('/api/servers/{server}/badge.svg', [App\Http\Controllers\ServerQueryController::class, 'badge'])->name('servers.badge');
+
+// Guias tecnicas oficiales
+Route::get('/guias', [App\Http\Controllers\GuidesController::class, 'index'])->name('guides.index');
+Route::get('/guias/{slug}', [App\Http\Controllers\GuidesController::class, 'show'])->name('guides.show');
+
+// Historial de versiones y changelog
+Route::get('/changelog', [App\Http\Controllers\ChangelogController::class, 'index'])->name('changelog.index');
 Route::get('/demo', function (Request $request) {
     $demoHost = (string) config('panel.demo_host', 'demo.cinammon.net');
     if ($demoHost !== '' && strcasecmp($request->getHost(), $demoHost) !== 0) {

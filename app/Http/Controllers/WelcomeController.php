@@ -26,9 +26,9 @@ class WelcomeController extends Controller
         $preferredOrder = [
             'gallery/Dashboard.png',
             'gallery/Servers.png',
-            'gallery/Console.png',
+            'gallery/Console-Live.png',
             'gallery/Nodes.png',
-            'gallery/Database.png',
+            'gallery/Database-Cluster.png',
             'gallery/Health.png',
             'gallery/News.png',
             'gallery/Eggs.png',
