@@ -2,7 +2,7 @@
 const SUBS = ['panel', 'demo', 'store', 'billing', 'news', 'status', 'admin', 'database', 'mail', 'nodo', 'wings'];
 
 export function cinLogo(): string {
-    if (typeof window === 'undefined') return '/logos/cinammon-panel.png';
+    if (typeof window === 'undefined') return '/logos/cinammon-panel.png?v=2';
     const sub = window.location.hostname.split('.')[0];
-    return SUBS.includes(sub) ? `/logos/cinammon-${sub}.png` : '/logos/cinammon-panel.png';
+    return SUBS.includes(sub) ? `/logos/cinammon-${sub}.png?v=2` : '/logos/cinammon-panel.png?v=2';
 }
