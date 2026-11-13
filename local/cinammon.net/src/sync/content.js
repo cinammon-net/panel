@@ -732,8 +732,9 @@ async function syncSuggestions() {
             sep(),
             text(`### Más apoyadas\n${top.length ? top.map((p, n) => `**${n + 1}.** <#${p.id}> · +${p.score} · ${env.suggestions.STATUS[p.status].label}`).join('\n') : 'Todavía ninguna tiene votos. ¡Estrénalas!'}`),
             text(`-# Los fallos y problemas de tu cuenta no van aquí: ticket en <#${L.channels.tickets}>.`),
+            text(`-# También puedes proponer y votar desde la web, en **Sugerencias** del panel: lo de allí sale aquí y los votos se suman.`),
             sep(2),
-            row({ type: 2, style: 1, label: 'Proponer una idea', custom_id: 'sug:ask' }),
+            row({ type: 2, style: 1, label: 'Proponer una idea', custom_id: 'sug:ask' }, env.ui.linkBtn('Ver en la web', `${env.PANEL}/sugerencias`)),
         ])],
         allowed_mentions: { parse: [] },
     };
@@ -741,7 +742,14 @@ async function syncSuggestions() {
         const tid = await upsertThread(forum, {
             get: () => S.pins.suggestions,
             set: (v) => { S.pins.suggestions = v; },
-        }, { name: 'Lee esto antes de proponer', payload, tagIds: [] });
+        }, {
+            name: 'Lee esto antes de proponer', payload, tagIds: [],
+            cover: {
+                key: `${env.pal().key}:${env.ART_VERSION}:s1`,
+                name: 'sugerencias.png',
+                render: () => env.art.guideCover({ kicker: 'COMUNIDAD', title: 'Sugerencias', icon: 'idea', color: 0xfacc15, meta: 'Propón ideas y vota las de los demás' }, env.pal()),
+            },
+        });
         if (S.pins.suggestionsPinned !== tid) {
             await env.discord('PATCH', `/channels/${tid}`, { flags: 2 }, 'Fijar guía de sugerencias');
             S.pins.suggestionsPinned = tid;
