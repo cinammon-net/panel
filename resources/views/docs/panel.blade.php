@@ -34,23 +34,25 @@
         <div class="notice"><strong>Antes de empezar:</strong> necesitas acceso administrativo al servidor, un dominio que apunte a su IP y un certificado TLS. Sustituye los dominios y rutas de ejemplo por los tuyos.</div>
 
         <h2 id="requisitos">1. Requisitos</h2>
-        <ul><li>Linux de 64 bits, PHP 8.2 o posterior con extensiones habituales de Laravel: CLI, FPM, SQLite o MySQL, mbstring, XML, cURL, ZIP y BCMath.</li><li>Composer 2, Node.js 20 o posterior, npm, Git y Nginx.</li><li>Docker Engine en cada máquina que vaya a ejecutar Wings.</li></ul>
-        <p>El panel usa Laravel 12 y compila la interfaz con Vite. Comprueba las versiones instaladas antes de seguir:</p>
+        <ul><li>Linux de 64 bits (Ubuntu 22.04 / 24.04 o Debian 12 recomendados).</li><li>PHP 8.2 o posterior con extensiones habituales de Laravel: CLI, FPM, SQLite3 o MySQL, mbstring, XML, cURL, ZIP y BCMath.</li><li>Servidor web Nginx y herramientas básicas (curl, tar).</li><li>Docker Engine en cada máquina que vaya a ejecutar Wings.</li></ul>
+        <p>No necesitas instalar Git, Node.js ni compilar código en tu máquina: el paquete oficial de Cinammon Panel viene pre-construido con la interfaz compilada y dependencias optimizadas.</p>
         <pre><code>php -v
-composer --version
-node --version
-npm --version</code></pre>
+nginx -v
+curl --version</code></pre>
 
-        <h2 id="archivos">2. Descarga y dependencias</h2>
-        <p>Usa una copia del repositorio. La ruta mostrada coincide con la usada por el actualizador del proyecto.</p>
-        <pre><code>sudo mkdir -p /var/www
-cd /var/www
-sudo git clone https://github.com/cinammon-net/panel.git cinammon-panel
-cd cinammon-panel
-sudo composer install --no-dev --optimize-autoloader
-sudo npm ci
-sudo npm run build</code></pre>
-        <p>Si instalas desde un release que ya incluye <code>vendor/</code> y <code>public/build/</code>, no necesitas repetir esos pasos de compilación.</p>
+        <h2 id="archivos">2. Descarga del paquete oficial</h2>
+        <p>Puedes desplegar el panel automáticamente con el instalador oficial o descargando directamente el paquete comprimido de producción:</p>
+        
+        <p><strong>Opción A: Instalador automático en un solo comando:</strong></p>
+        <pre><code>curl -sSL https://docs.cinammon.net/install.sh | sudo bash</code></pre>
+
+        <p><strong>Opción B: Despliegue manual del paquete oficial:</strong></p>
+        <p>Descarga la última versión pre-empaquetada en <code>/var/www/cinammon-panel</code> y descomprímela:</p>
+        <pre><code>sudo mkdir -p /var/www/cinammon-panel
+cd /var/www/cinammon-panel
+sudo curl -Lo panel.tar.gz https://github.com/cinammon-net/panel/releases/latest/download/panel.tar.gz
+sudo tar -xzvf panel.tar.gz
+sudo rm -f panel.tar.gz</code></pre>
 
         <h2 id="entorno">3. Entorno y base de datos</h2>
         <pre><code>cd /var/www/cinammon-panel
