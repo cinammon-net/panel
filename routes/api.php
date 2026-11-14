@@ -87,6 +87,11 @@ Route::middleware('bot.secret')->group(function () {
         Route::get('/servers/{server}/subusers', 'subusers');
         Route::post('/redeem', 'redeem');
         Route::post('/claim-boost', 'claimBoost');
+        Route::get('/affiliates', 'affiliates');
+        Route::get('/servers/{server}/plugins', 'searchPlugins');
+        Route::post('/servers/{server}/plugins/install', 'installPlugin');
+        Route::post('/servers/{server}/upload-url', 'uploadFromUrl');
+        Route::post('/servers/{server}/boost-event', 'boostEvent');
         Route::post('/servers/{server}/power', 'power');
         Route::post('/servers/{server}/command', 'command');
         Route::post('/servers/{server}/info', 'info');

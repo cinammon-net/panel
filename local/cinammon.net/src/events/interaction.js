@@ -70,6 +70,8 @@ async function onInteraction({ interaction, token, applicationId, log }) {
                 responsePayload = await commands.get('monedas')?.execute({ user, log });
             } else if (customId === 'btn:boost' || customId === 'v2_cmd:boost') {
                 responsePayload = await commands.get('reclamar-boost')?.execute({ user, log });
+            } else if (customId === 'btn:afiliado' || customId === 'v2_cmd:afiliado') {
+                responsePayload = await commands.get('afiliado')?.execute({ user, log });
             } else if (customId.startsWith('metrics:')) {
                 const sId = Number(customId.split(':')[1]);
                 responsePayload = await commands.get('metricas')?.execute({ options: [{ name: 'id', value: sId }], user, log });

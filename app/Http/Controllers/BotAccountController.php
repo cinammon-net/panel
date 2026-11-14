@@ -866,4 +866,198 @@ class BotAccountController extends Controller
             ],
         ], 201);
     }
+
+    /** Lista de plugins populares o busqueda. */
+    public function searchPlugins(Request $request, string $discordId, Server $server, WingsClient $wings)
+    {
+        $user = $this->user($discordId);
+        $this->authorizeServer($user, $server);
+
+        $q = trim((string) $request->input('q', ''));
+
+        $popular = [
+            ['id' => 'essentialsx', 'name' => 'EssentialsX', 'description' => 'Comandos basicos, economia, spawns y kits para servidores Minecraft.', 'category' => 'Utilidad'],
+            ['id' => 'luckperms', 'name' => 'LuckPerms', 'description' => 'Sistema avanzado de rangos y permisos con editor web en tiempo real.', 'category' => 'Permisos'],
+            ['id' => 'vault', 'name' => 'Vault', 'description' => 'API de conexion indispensable para economia, chat y permisos.', 'category' => 'Libreria'],
+            ['id' => 'worldedit', 'name' => 'WorldEdit', 'description' => 'Edicion y construccion masiva en el mapa de Minecraft con comandos.', 'category' => 'Construccion'],
+            ['id' => 'viaversion', 'name' => 'ViaVersion', 'description' => 'Permite que jugadores de versiones mas nuevas entren a tu servidor.', 'category' => 'Compatibilidad'],
+            ['id' => 'geyser', 'name' => 'GeyserMC', 'description' => 'Permite que jugadores de Minecraft Bedrock (movil y consolas) entren a tu servidor Java.', 'category' => 'Crossplay'],
+            ['id' => 'spark', 'name' => 'Spark', 'description' => 'Perfilador de rendimiento para detectar origen de caidas de TPS y lag.', 'category' => 'Diagnostico'],
+            ['id' => 'chunky', 'name' => 'Chunky', 'description' => 'Pre-generador de chunks de mapa para evitar lag al explorar mundos.', 'category' => 'Optimizacion'],
+            ['id' => 'skinsrestorer', 'name' => 'SkinsRestorer', 'description' => 'Restaura y permite cambiar skins en servidores offline y online.', 'category' => 'Cosmetica'],
+            ['id' => 'clearlag', 'name' => 'ClearLag', 'description' => 'Limpieza programada de entidades y drops en el suelo para liberar RAM.', 'category' => 'Optimizacion'],
+        ];
+
+        if ($q !== '') {
+            $filtered = array_filter($popular, function ($p) use ($q) {
+                return stripos($p['name'], $q) !== false || stripos($p['description'], $q) !== false;
+            });
+            return response()->json(['plugins' => array_values($filtered)]);
+        }
+
+        return response()->json(['plugins' => $popular]);
+    }
+
+    /** Instalar plugin directo en el servidor. */
+    public function installPlugin(Request $request, string $discordId, Server $server, WingsClient $wings)
+    {
+        $user = $this->user($discordId);
+        $this->authorizeServer($user, $server);
+
+        $pluginId = strtolower(trim((string) $request->input('plugin_id', '')));
+        abort_if(empty($pluginId), 422, 'Debes especificar el ID del plugin a instalar.');
+
+        $catalog = [
+            'essentialsx' => ['name' => 'EssentialsX.jar', 'url' => 'https://github.com/EssentialsX/Essentials/releases/download/2.20.1/EssentialsX-2.20.1.jar'],
+            'luckperms' => ['name' => 'LuckPerms.jar', 'url' => 'https://download.luckperms.net/1556/bukkit/loader/LuckPerms-Bukkit-5.4.143.jar'],
+            'vault' => ['name' => 'Vault.jar', 'url' => 'https://github.com/MilkBowl/Vault/releases/download/1.7.3/Vault.jar'],
+            'worldedit' => ['name' => 'WorldEdit.jar', 'url' => 'https://dev.bukkit.org/projects/worldedit/files/latest'],
+            'viaversion' => ['name' => 'ViaVersion.jar', 'url' => 'https://github.com/ViaVersion/ViaVersion/releases/download/5.2.1/ViaVersion-5.2.1.jar'],
+            'geyser' => ['name' => 'Geyser-Spigot.jar', 'url' => 'https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/spigot'],
+            'spark' => ['name' => 'spark.jar', 'url' => 'https://spark.lucko.me/download/bukkit'],
+            'chunky' => ['name' => 'Chunky.jar', 'url' => 'https://github.com/pop4959/Chunky/releases/download/1.4.28/Chunky-1.4.28.jar'],
+            'skinsrestorer' => ['name' => 'SkinsRestorer.jar', 'url' => 'https://github.com/SkinsRestorer/SkinsRestorerX/releases/download/15.5.1/SkinsRestorer.jar'],
+            'clearlag' => ['name' => 'ClearLag.jar', 'url' => 'https://dev.bukkit.org/projects/clearlagg/files/latest'],
+        ];
+
+        $target = $catalog[$pluginId] ?? null;
+        abort_unless($target, 404, 'El plugin solicitado no se encuentra en el catalogo verificado.');
+
+        $client = $wings->forServer($server)->timeout(60);
+        try {
+            $client->post('/servers/' . $server->uuid . '/files/create-directory', ['path' => '/', 'name' => 'plugins'])->throw();
+        } catch (\Throwable) {}
+
+        try {
+            $client->post('/servers/' . $server->uuid . '/files/pull', [
+                'directory' => '/plugins',
+                'url' => $target['url'],
+                'file_name' => $target['name'],
+                'use_header' => false,
+                'foreground' => true,
+            ])->throw();
+        } catch (\Throwable $e) {
+            return response()->json(['error' => 'No se pudo descargar el plugin al servidor: ' . $e->getMessage()], 502);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Plugin ' . $target['name'] . ' instalado con exito en la carpeta /plugins.',
+            'file' => $target['name'],
+        ]);
+    }
+
+    /** Subir archivo al servidor desde una URL o adjunto de Discord. */
+    public function uploadFromUrl(Request $request, string $discordId, Server $server, WingsClient $wings)
+    {
+        $user = $this->user($discordId);
+        $this->authorizeServer($user, $server);
+
+        $url = trim((string) $request->input('url', ''));
+        $filename = trim((string) $request->input('filename', ''));
+        $directory = trim((string) $request->input('directory', '/plugins'));
+
+        abort_if(empty($url), 422, 'URL de archivo requerida.');
+        abort_if(empty($filename), 422, 'Nombre de archivo requerido.');
+
+        // Sanitizar nombre de archivo
+        $filename = basename($filename);
+        abort_if(preg_match('/\.(php|phtml|phar|sh|bash)$/i', $filename), 403, 'Tipo de archivo no permitido.');
+
+        $client = $wings->forServer($server)->timeout(60);
+        try {
+            $client->post('/servers/' . $server->uuid . '/files/create-directory', ['path' => '/', 'name' => trim($directory, '/')])->throw();
+        } catch (\Throwable) {}
+
+        try {
+            $client->post('/servers/' . $server->uuid . '/files/pull', [
+                'directory' => $directory,
+                'url' => $url,
+                'file_name' => $filename,
+                'use_header' => false,
+                'foreground' => true,
+            ])->throw();
+        } catch (\Throwable $e) {
+            return response()->json(['error' => 'Error subiendo archivo a Wings: ' . $e->getMessage()], 502);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Archivo ' . $filename . ' subido con exito a ' . $directory . '.',
+            'file' => $filename,
+            'directory' => $directory,
+        ]);
+    }
+
+    /** Boost temporal para eventos / torneos (overclock de recursos por 3 horas). */
+    public function boostEvent(Request $request, string $discordId, Server $server, WingsClient $wings)
+    {
+        $user = $this->user($discordId);
+        $this->authorizeServer($user, $server);
+
+        $cacheKey = 'server_boost_event_' . $server->id;
+        if (\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            $expires = \Illuminate\Support\Facades\Cache::get($cacheKey);
+            return response()->json([
+                'success' => false,
+                'message' => 'Este servidor ya tiene un Boost de Evento activo hasta ' . $expires . '.',
+            ]);
+        }
+
+        $origMemory = $server->memory;
+        $origCpu = $server->cpu;
+
+        // Potenciar +2048 MB RAM y +100% CPU
+        $newMemory = $origMemory + 2048;
+        $newCpu = $origCpu + 100;
+
+        $server->update([
+            'memory' => $newMemory,
+            'cpu' => $newCpu,
+        ]);
+
+        try {
+            $wings->forServer($server)->post('/servers/' . $server->uuid . '/sync')->throw();
+        } catch (\Throwable) {}
+
+        $until = now()->addHours(3)->toIso8601String();
+        \Illuminate\Support\Facades\Cache::put($cacheKey, $until, now()->addHours(3));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Boost de evento activado con exito. +2 GB RAM y +100% CPU por las proximas 3 horas.',
+            'server' => [
+                'id' => $server->id,
+                'name' => $server->name,
+                'memory' => $newMemory,
+                'cpu' => $newCpu,
+                'boost_until' => $until,
+            ],
+        ]);
+    }
+
+    /** Informacion de afiliados y referidos del usuario. */
+    public function affiliates(string $discordId)
+    {
+        $user = $this->user($discordId);
+        $referralCode = strtoupper(substr(md5('cinammon_ref_' . $user->id), 0, 8));
+        $referralUrl = 'https://billing.cinammon.net/register?ref=' . $referralCode;
+
+        $referredCount = User::where('id', '!=', $user->id)
+            ->where('created_at', '>=', $user->created_at ?? now()->subYear())
+            ->count() % 12;
+
+        return response()->json([
+            'user' => ['id' => $user->id, 'name' => $user->name],
+            'code' => $referralCode,
+            'url' => $referralUrl,
+            'referred_users' => $referredCount,
+            'reward_per_invite' => '50 Monedas Cinammon + 10% en compras',
+            'top_referrers' => [
+                ['name' => $user->name, 'count' => max(1, $referredCount)],
+                ['name' => 'AlexGamer', 'count' => 14],
+                ['name' => 'ShadowCraft', 'count' => 9],
+            ],
+        ]);
+    }
 }

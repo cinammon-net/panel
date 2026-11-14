@@ -161,6 +161,76 @@ const SLASH_COMMANDS = [
         name: 'reclamar-boost',
         description: 'Canjea tu servidor gratuito de hosting por dar Server Boost a Cinammon Network',
     },
+    {
+        name: 'instalar',
+        description: 'Instala plugins o mods verificados directamente en tu servidor de juego',
+        options: [
+            {
+                name: 'servidor_id',
+                description: 'ID o numero de tu servidor',
+                type: 4,
+                required: true,
+            },
+            {
+                name: 'plugin_id',
+                description: 'Nombre del plugin (ej. essentialsx, luckperms, vault, worldedit, viaversion)',
+                type: 3,
+                required: false,
+            },
+        ],
+    },
+    {
+        name: 'subir',
+        description: 'Sube un archivo o plugin directamente a tu servidor desde Discord',
+        options: [
+            {
+                name: 'servidor_id',
+                description: 'ID o numero de tu servidor',
+                type: 4,
+                required: true,
+            },
+            {
+                name: 'archivo',
+                description: 'URL directa del archivo adjunto a subir',
+                type: 3,
+                required: true,
+            },
+            {
+                name: 'carpeta',
+                description: 'Carpeta de destino (por defecto /plugins)',
+                type: 3,
+                required: false,
+            },
+        ],
+    },
+    {
+        name: 'afiliado',
+        description: 'Consulta tu enlace de referido, amigos invitados y recompensas en Cinammon Network',
+    },
+    {
+        name: 'boost-evento',
+        description: 'Activa un boost temporal de recursos (+2 GB RAM y +100% CPU) para torneos o eventos',
+        options: [
+            {
+                name: 'servidor_id',
+                description: 'ID o numero de tu servidor',
+                type: 4,
+                required: true,
+            },
+        ],
+    },
+    {
+        name: 'banner',
+        description: 'Genera una tarjeta interactiva en vivo del estado de tu servidor para compartir',
+        options: [
+            {
+                name: 'servidor_id',
+                description: 'ID o numero de tu servidor',
+                type: 4,
+                required: true,
+            },
+        ],
+    },
 ];
 
 async function registerSlashCommands(token, appId, guildId, log) {

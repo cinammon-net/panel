@@ -17,6 +17,9 @@ module.exports = {
                     `• \`/jugadores [id]\` *(alias: !query, !online)* - Jugadores conectados en tiempo real\n` +
                     `• \`/consola <id> <comando>\` *(alias: !cmd)* - Ejecutar ordenes en la consola del juego\n` +
                     `• \`/energia <id> <accion>\` *(alias: !power)* - Iniciar, detener o reiniciar\n` +
+                    `• \`/instalar <id> [plugin]\` *(alias: !plugin)* - Instalar plugins o mods verificados\n` +
+                    `• \`/subir <id> <url>\` *(alias: !upload)* - Subir archivos directamente al servidor\n` +
+                    `• \`/boost-evento <id>\` *(alias: !overclock)* - +2 GB RAM y +100% CPU por 3 horas\n` +
                     `• \`/backups [id]\` *(alias: !copias)* - Respaldos manuales y automáticos\n` +
                     `• \`/diagnostico [id]\` *(alias: !diag)* - Deteccion de caidas y salud del servidor\n` +
                     `• \`/reinstalar <id>\` *(alias: !rebuild)* - Reinstalacion asistida del motor\n` +
@@ -35,6 +38,7 @@ module.exports = {
                 v2Separator(false, 1),
                 v2Section([
                     `**Economia y Tienda:**\n` +
+                    `• \`/afiliado\` *(alias: !referidos)* - Enlace de referido y comisiones ganadas\n` +
                     `• \`/reclamar-boost\` *(alias: !boost-server)* - Servidor de hosting gratis por Server Boost\n` +
                     `• \`/diario\` *(alias: !daily)* - Reclama tus monedas diarias gratuitas\n` +
                     `• \`/monedas\` *(alias: !coins)* - Consulta tu saldo acumulado y racha\n` +
