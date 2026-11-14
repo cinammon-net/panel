@@ -58,6 +58,7 @@ if ($newsHost !== '') {
 }
 
 // Rutas publicas
+Route::view('/docs/panel', 'docs.panel')->name('docs.panel');
 Route::get('/', [WelcomeController::class, 'index'])->name('home');
 Route::get('/noticias', function (Request $request) use ($newsHost) {
     if ($newsHost !== '' && strcasecmp($request->getHost(), $newsHost) !== 0 && !app()->environment('local')) {

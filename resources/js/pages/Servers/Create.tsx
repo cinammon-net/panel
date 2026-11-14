@@ -777,428 +777,278 @@ export default function CreateServer() {
 
                         {/* Step 3 */}
                         {activeTab === 'env' && (
-                                <div className="space-y-6">
-                                    {/* Resource Limits */}
-                                    <fieldset className="border border-amber-500/30 rounded-xl p-6 bg-black/40 backdrop-blur-sm shadow-lg">
-                                        <legend className="text-sm font-bold uppercase tracking-wider text-amber-400 px-3 font-orbitron">
-                                            Resource Limits
-                                        </legend>
+                            <div className="space-y-8">
+                                {/* Resource Limits */}
+                                <fieldset className="border border-cyan-700 rounded-lg p-4 shadow-sm">
+                                    <legend className="text-lg font-bold text-cyan-400 mb-2">Resource Limits</legend>
+                                    <div className="grid grid-cols-1 sm:grid-cols-1 gap-6">
+                                        {['cpuLimit', 'memoryLimit', 'diskLimit'].map((key, idx) => {
+                                            const label = ['CPU', 'Memory', 'Disk Space'][idx];
+                                            const numKey = ['cpu', 'memory', 'disk'][idx];
+                                            const unit = ['%', 'MiB', 'MiB'][idx];
+                                            const defaultVal = [100, 3072, 10240][idx];
 
-                                        <div className="space-y-6">
-                                            {/* CPU */}
-                                            <div className="space-y-2">
-                                                <div className="flex items-center justify-between">
-                                                    <label className="text-sm font-bold text-white font-orbitron">CPU</label>
-                                                    {server.cpuLimit === 'limited' && server.cpu > 0 && (
-                                                        <span className="font-mono text-xs font-bold text-amber-400">
-                                                            {server.cpu}% ({Math.max(1, Math.round(server.cpu / 100))} Hilos)
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="flex flex-wrap items-center gap-3">
-                                                    <div className="flex rounded-lg border border-white/10 bg-black/80 p-1">
-                                                        {[
-                                                            { id: 'unlimited', label: 'Unlimited' },
-                                                            { id: 'limited', label: 'Limited' },
-                                                        ].map(({ id, label }) => (
-                                                            <button
-                                                                key={id}
-                                                                type="button"
-                                                                onClick={() => setServer({ ...server, cpuLimit: id, cpu: id === 'unlimited' ? 0 : (server.cpu || 100) })}
-                                                                className={`px-4 py-1.5 rounded-md text-xs font-bold font-orbitron transition ${
-                                                                    server.cpuLimit === id
-                                                                        ? 'bg-amber-400 text-black shadow-md'
-                                                                        : 'text-neutral-400 hover:text-white'
-                                                                }`}
-                                                            >
-                                                                {label}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                    {server.cpuLimit === 'limited' && (
-                                                        <div className="flex items-center gap-2 rounded-lg border border-white/15 bg-black/80 px-3.5 py-1.5 focus-within:border-amber-400">
-                                                            <input
-                                                                type="number"
-                                                                min={10}
-                                                                step={50}
-                                                                value={server.cpu || 100}
-                                                                onChange={(e) => setServer({ ...server, cpu: parseInt(e.target.value, 10) || 0 })}
-                                                                className="w-24 bg-transparent font-mono text-sm font-bold text-amber-300 outline-none"
-                                                                placeholder="100"
-                                                            />
-                                                            <span className="font-mono text-xs text-neutral-400">%</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            {/* Memory */}
-                                            <div className="space-y-2">
-                                                <div className="flex items-center justify-between">
-                                                    <label className="text-sm font-bold text-white font-orbitron">Memory</label>
-                                                    {server.memoryLimit === 'limited' && server.memory > 0 && (
-                                                        <span className="font-mono text-xs font-bold text-amber-400">
-                                                            {server.memory >= 1024 ? `${(server.memory / 1024).toFixed(1)} GB` : `${server.memory} MiB`}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="flex flex-wrap items-center gap-3">
-                                                    <div className="flex rounded-lg border border-white/10 bg-black/80 p-1">
-                                                        {[
-                                                            { id: 'unlimited', label: 'Unlimited' },
-                                                            { id: 'limited', label: 'Limited' },
-                                                        ].map(({ id, label }) => (
-                                                            <button
-                                                                key={id}
-                                                                type="button"
-                                                                onClick={() => setServer({ ...server, memoryLimit: id, memory: id === 'unlimited' ? 0 : (server.memory || 3072) })}
-                                                                className={`px-4 py-1.5 rounded-md text-xs font-bold font-orbitron transition ${
-                                                                    server.memoryLimit === id
-                                                                        ? 'bg-amber-400 text-black shadow-md'
-                                                                        : 'text-neutral-400 hover:text-white'
-                                                                }`}
-                                                            >
-                                                                {label}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                    {server.memoryLimit === 'limited' && (
-                                                        <div className="flex items-center gap-2 rounded-lg border border-white/15 bg-black/80 px-3.5 py-1.5 focus-within:border-amber-400">
-                                                            <input
-                                                                type="number"
-                                                                min={256}
-                                                                step={512}
-                                                                value={server.memory || 3072}
-                                                                onChange={(e) => setServer({ ...server, memory: parseInt(e.target.value, 10) || 0 })}
-                                                                className="w-28 bg-transparent font-mono text-sm font-bold text-amber-300 outline-none"
-                                                                placeholder="3072"
-                                                            />
-                                                            <span className="font-mono text-xs text-neutral-400">MiB</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            {/* Disk Space */}
-                                            <div className="space-y-2">
-                                                <div className="flex items-center justify-between">
-                                                    <label className="text-sm font-bold text-white font-orbitron">Disk Space</label>
-                                                    {server.diskLimit === 'limited' && server.disk > 0 && (
-                                                        <span className="font-mono text-xs font-bold text-amber-400">
-                                                            {server.disk >= 1024 ? `${(server.disk / 1024).toFixed(1)} GB` : `${server.disk} MiB`}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="flex flex-wrap items-center gap-3">
-                                                    <div className="flex rounded-lg border border-white/10 bg-black/80 p-1">
-                                                        {[
-                                                            { id: 'unlimited', label: 'Unlimited' },
-                                                            { id: 'limited', label: 'Limited' },
-                                                        ].map(({ id, label }) => (
-                                                            <button
-                                                                key={id}
-                                                                type="button"
-                                                                onClick={() => setServer({ ...server, diskLimit: id, disk: id === 'unlimited' ? 0 : (server.disk || 10240) })}
-                                                                className={`px-4 py-1.5 rounded-md text-xs font-bold font-orbitron transition ${
-                                                                    server.diskLimit === id
-                                                                        ? 'bg-amber-400 text-black shadow-md'
-                                                                        : 'text-neutral-400 hover:text-white'
-                                                                }`}
-                                                            >
-                                                                {label}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                    {server.diskLimit === 'limited' && (
-                                                        <div className="flex items-center gap-2 rounded-lg border border-white/15 bg-black/80 px-3.5 py-1.5 focus-within:border-amber-400">
-                                                            <input
-                                                                type="number"
-                                                                min={1024}
-                                                                step={1024}
-                                                                value={server.disk || 10240}
-                                                                onChange={(e) => setServer({ ...server, disk: parseInt(e.target.value, 10) || 0 })}
-                                                                className="w-28 bg-transparent font-mono text-sm font-bold text-amber-300 outline-none"
-                                                                placeholder="10240"
-                                                            />
-                                                            <span className="font-mono text-xs text-neutral-400">MiB</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </fieldset>
-
-                                    {/* Advanced Limits */}
-                                    <fieldset className="border border-amber-500/30 rounded-xl p-6 bg-black/40 backdrop-blur-sm shadow-lg">
-                                        <legend className="text-sm font-bold uppercase tracking-wider text-amber-400 px-3 font-orbitron">
-                                            Advanced Limits
-                                        </legend>
-                                        <div className="space-y-6">
-                                            {/* CPU Pinning */}
-                                            <div className="space-y-2">
-                                                <label className="text-sm font-bold text-white font-orbitron">CPU Pinning</label>
-                                                <div className="flex rounded-lg border border-white/10 bg-black/80 p-1 w-fit">
-                                                    {[
-                                                        { val: false, label: 'Disabled' },
-                                                        { val: true, label: 'Enabled' },
-                                                    ].map(({ val, label }) => (
-                                                        <button
-                                                            key={label}
-                                                            type="button"
-                                                            onClick={() => setServer({ ...server, cpuPinning: val })}
-                                                            className={`px-4 py-1.5 rounded-md text-xs font-bold font-orbitron transition ${
-                                                                server.cpuPinning === val
-                                                                    ? 'bg-amber-400 text-black shadow-md'
-                                                                    : 'text-neutral-400 hover:text-white'
-                                                            }`}
-                                                        >
-                                                            {label}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            {/* Swap Memory */}
-                                            <div className="space-y-2">
-                                                <label className="text-sm font-bold text-white font-orbitron">Swap Memory</label>
-                                                <div className="flex flex-wrap items-center gap-3">
-                                                    <div className="flex rounded-lg border border-white/10 bg-black/80 p-1 w-fit">
-                                                        {[
-                                                            { val: 'unlimited', label: 'Unlimited' },
-                                                            { val: 'limited', label: 'Limited' },
-                                                            { val: 'disabled', label: 'Disabled' },
-                                                        ].map(({ val, label }) => (
-                                                            <button
-                                                                key={val}
-                                                                type="button"
-                                                                onClick={() => setServer({ ...server, swapMemory: val, swap: val === 'disabled' ? 0 : val === 'unlimited' ? -1 : (server.swap || 0) })}
-                                                                className={`px-4 py-1.5 rounded-md text-xs font-bold font-orbitron transition ${
-                                                                    server.swapMemory === val
-                                                                        ? 'bg-amber-400 text-black shadow-md'
-                                                                        : 'text-neutral-400 hover:text-white'
-                                                                }`}
-                                                            >
-                                                                {label}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                    {server.swapMemory === 'limited' && (
-                                                        <div className="flex items-center gap-2 rounded-lg border border-white/15 bg-black/80 px-3.5 py-1.5 focus-within:border-amber-400">
-                                                            <input
-                                                                type="number"
-                                                                min={0}
-                                                                step={256}
-                                                                value={server.swap ?? 0}
-                                                                onChange={(e) => setServer({ ...server, swap: parseInt(e.target.value, 10) || 0 })}
-                                                                className="w-24 bg-transparent font-mono text-sm font-bold text-amber-300 outline-none"
-                                                                placeholder="0"
-                                                            />
-                                                            <span className="font-mono text-xs text-neutral-400">MiB</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            {/* OOM Killer */}
-                                            <div className="space-y-2">
-                                                <label className="text-sm font-bold text-white font-orbitron">OOM Killer</label>
-                                                <div className="flex rounded-lg border border-white/10 bg-black/80 p-1 w-fit">
-                                                    {[
-                                                        { val: false, label: 'Disabled' },
-                                                        { val: true, label: 'Enabled' },
-                                                    ].map(({ val, label }) => (
-                                                        <button
-                                                            key={label}
-                                                            type="button"
-                                                            onClick={() => setServer({ ...server, oomKiller: val })}
-                                                            className={`px-4 py-1.5 rounded-md text-xs font-bold font-orbitron transition ${
-                                                                server.oomKiller === val
-                                                                    ? 'bg-amber-400 text-black shadow-md'
-                                                                    : 'text-neutral-400 hover:text-white'
-                                                            }`}
-                                                        >
-                                                            {label}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </fieldset>
-
-                                    {/* Feature Limits */}
-                                    <fieldset className="border border-amber-500/30 rounded-xl p-6 bg-black/40 backdrop-blur-sm shadow-lg">
-                                        <legend className="text-sm font-bold uppercase tracking-wider text-amber-400 px-3 font-orbitron">
-                                            Feature Limits
-                                        </legend>
-                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                                            {/* Allocations */}
-                                            <div>
-                                                <label className="mb-1 block text-sm font-semibold text-white font-orbitron" htmlFor="allocations">
-                                                    Allocations <span className="text-red-400">*</span>
-                                                </label>
-                                                <input
-                                                    id="allocations"
-                                                    type="number"
-                                                    min={0}
-                                                    value={server.allocations ?? 0}
-                                                    onChange={(e) => setServer({ ...server, allocations: parseInt(e.target.value, 10) || 0 })}
-                                                    className="w-full rounded-lg border border-white/15 bg-black/80 px-4 py-2 font-mono text-sm font-bold text-white focus:border-amber-400 focus:outline-none"
-                                                />
-                                            </div>
-
-                                            {/* Databases */}
-                                            <div>
-                                                <label className="mb-1 block text-sm font-semibold text-white font-orbitron" htmlFor="databases">
-                                                    Databases <span className="text-red-400">*</span>
-                                                </label>
-                                                <input
-                                                    id="databases"
-                                                    type="number"
-                                                    min={0}
-                                                    value={server.database_limit ?? 0}
-                                                    onChange={(e) => setServer({ ...server, database_limit: parseInt(e.target.value, 10) || 0 })}
-                                                    className="w-full rounded-lg border border-white/15 bg-black/80 px-4 py-2 font-mono text-sm font-bold text-white focus:border-amber-400 focus:outline-none"
-                                                />
-                                            </div>
-
-                                            {/* Backups */}
-                                            <div>
-                                                <label className="mb-1 block text-sm font-semibold text-white font-orbitron" htmlFor="backups">
-                                                    Backups <span className="text-red-400">*</span>
-                                                </label>
-                                                <input
-                                                    id="backups"
-                                                    type="number"
-                                                    min={0}
-                                                    value={server.backups ?? 0}
-                                                    onChange={(e) => setServer({ ...server, backups: parseInt(e.target.value, 10) || 0 })}
-                                                    className="w-full rounded-lg border border-white/15 bg-black/80 px-4 py-2 font-mono text-sm font-bold text-white focus:border-amber-400 focus:outline-none"
-                                                />
-                                            </div>
-                                        </div>
-                                    </fieldset>
-
-                                    {/* Docker Settings */}
-                                    <fieldset className="border border-amber-500/30 rounded-xl p-6 bg-black/40 backdrop-blur-sm shadow-lg">
-                                        <legend className="text-sm font-bold uppercase tracking-wider text-amber-400 px-3 font-orbitron">
-                                            Docker Settings
-                                        </legend>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                            {/* Image Name como SELECT */}
-                                            <div>
-                                                <label className="mb-1 block text-sm font-semibold text-white font-orbitron">Image Name</label>
-                                                <div className="relative">
-                                                    <select
-                                                        className="w-full appearance-none rounded-lg border border-white/15 bg-black/80 px-4 py-2 pr-8 text-sm text-neutral-200 focus:border-amber-400 focus:outline-none"
-                                                        value={server.dockerImage}
-                                                        onChange={(e) => setServer({ ...server, dockerImage: e.target.value })}
-                                                    >
-                                                        <option value="">Select Image</option>
-                                                        {server.dockerImageOptions &&
-                                                            Object.entries(server.dockerImageOptions).map(([name, url]) => (
-                                                                <option key={name} value={url as string}>
-                                                                    {name}
-                                                                </option>
+                                            return (
+                                                <div key={key}>
+                                                    <label className="mb-1 block text-sm font-semibold capitalize" htmlFor={key}>
+                                                        {label}
+                                                    </label>
+                                                    <div className="flex flex-wrap items-center gap-3">
+                                                        <div className="flex gap-2">
+                                                            {['unlimited', 'limited'].map((value) => (
+                                                                <button
+                                                                    key={value}
+                                                                    type="button"
+                                                                    onClick={() => setServer({
+                                                                        ...server,
+                                                                        [key]: value,
+                                                                        [numKey]: value === 'unlimited' ? 0 : (server[numKey] || defaultVal)
+                                                                    })}
+                                                                    className={`px-4 py-2 rounded border font-medium ${server[key] === value
+                                                                        ? 'bg-cyan-500 text-black border-cyan-400'
+                                                                        : 'bg-black text-cyan-200 border-cyan-600'
+                                                                        }`}
+                                                                >
+                                                                    {value.charAt(0).toUpperCase() + value.slice(1)}
+                                                                </button>
                                                             ))}
-                                                    </select>
-                                                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400 pointer-events-none" />
-                                                </div>
-                                            </div>
-
-                                            {/* Campo para la URL de la imagen */}
-                                            <div>
-                                                <label className="mb-1 block text-sm font-semibold text-white font-orbitron">
-                                                    Image <span className="text-red-400">*</span>
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    className="w-full rounded-lg border border-white/15 bg-black/80 px-4 py-2 text-sm text-amber-300 focus:border-amber-400 focus:outline-none"
-                                                    value={server.dockerImage || ''}
-                                                    onChange={(e) => setServer({ ...server, dockerImage: e.target.value })}
-                                                />
-                                            </div>
-
-                                            {/* Tabla de container labels */}
-                                            <div className="sm:col-span-2">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <label className="block text-sm font-semibold text-white font-orbitron">Container Labels</label>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const updated = [...(server.labels || [])];
-                                                            updated.push({ title: '', description: '' });
-                                                            setServer({ ...server, labels: updated });
-                                                        }}
-                                                        className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-300 hover:bg-amber-500/20 transition"
-                                                    >
-                                                        + Add row
-                                                    </button>
-                                                </div>
-                                                <table className="w-full border-collapse border border-white/10 text-sm text-neutral-200">
-                                                    <thead>
-                                                        <tr className="bg-white/5 font-orbitron text-xs text-neutral-400">
-                                                            <th className="border border-white/10 px-3 py-2 text-left">Title</th>
-                                                            <th className="border border-white/10 px-3 py-2 text-left">Description</th>
-                                                            <th className="border border-white/10 px-2 py-2 text-center w-12"></th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {server.labels?.map((label: any, index: number) => (
-                                                            <tr key={index}>
-                                                                <td className="border border-white/10 p-1.5">
-                                                                    <input
-                                                                        type="text"
-                                                                        className="w-full bg-black/60 rounded px-2 py-1 text-sm text-white border border-white/10 focus:border-amber-400 focus:outline-none"
-                                                                        value={label.title}
-                                                                        placeholder="Label Title"
-                                                                        onChange={(e) => {
-                                                                            const updated = [...server.labels];
-                                                                            updated[index].title = e.target.value;
-                                                                            setServer({ ...server, labels: updated });
-                                                                        }}
-                                                                    />
-                                                                </td>
-                                                                <td className="border border-white/10 p-1.5">
-                                                                    <input
-                                                                        type="text"
-                                                                        className="w-full bg-black/60 rounded px-2 py-1 text-sm text-white border border-white/10 focus:border-amber-400 focus:outline-none"
-                                                                        value={label.description}
-                                                                        placeholder="Label Value / Description"
-                                                                        onChange={(e) => {
-                                                                            const updated = [...server.labels];
-                                                                            updated[index].description = e.target.value;
-                                                                            setServer({ ...server, labels: updated });
-                                                                        }}
-                                                                    />
-                                                                </td>
-                                                                <td className="border border-white/10 p-1.5 text-center">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            const updated = [...server.labels];
-                                                                            updated.splice(index, 1);
-                                                                            setServer({ ...server, labels: updated });
-                                                                        }}
-                                                                        className="text-rose-400 hover:text-rose-300 p-1 transition"
-                                                                    >
-                                                                        <Trash size={16} />
-                                                                    </button>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                        {(!server.labels || server.labels.length === 0) && (
-                                                            <tr>
-                                                                <td colSpan={3} className="py-3 text-center text-xs text-neutral-500 border border-white/10 italic">
-                                                                    No container labels defined.
-                                                                </td>
-                                                            </tr>
+                                                        </div>
+                                                        {server[key] === 'limited' && (
+                                                            <div className="flex items-center gap-2">
+                                                                <input
+                                                                    type="number"
+                                                                    value={server[numKey] ?? 0}
+                                                                    onChange={(e) => setServer({ ...server, [numKey]: parseInt(e.target.value, 10) || 0 })}
+                                                                    className="w-32 rounded border border-cyan-600 bg-black px-4 py-2 text-sm text-cyan-200 focus:outline-none"
+                                                                />
+                                                                <span className="text-sm font-semibold text-cyan-400">{unit}</span>
+                                                            </div>
                                                         )}
-                                                    </tbody>
-                                                </table>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </fieldset>
+
+                                {/* Advanced Limits */}
+                                <fieldset className="border border-cyan-700 rounded-lg p-4 shadow-sm">
+                                    <legend className="text-lg font-bold text-cyan-400 mb-2">Advanced Limits</legend>
+                                    <div className="grid grid-cols-1 sm:grid-cols-1 gap-6">
+                                        {/* CPU Pinning */}
+                                        <div>
+                                            <label className="mb-1 block text-sm font-semibold">CPU Pinning</label>
+                                            <div className="flex gap-2">
+                                                {[false, true].map((val) => (
+                                                    <button
+                                                        key={val.toString()}
+                                                        type="button"
+                                                        onClick={() => setServer({ ...server, cpuPinning: val })}
+                                                        className={`px-4 py-2 rounded border font-medium ${server.cpuPinning === val
+                                                            ? 'bg-green-500 text-black border-green-400'
+                                                            : 'bg-black text-cyan-200 border-cyan-600'
+                                                            }`}
+                                                    >
+                                                        {val ? 'Enabled' : 'Disabled'}
+                                                    </button>
+                                                ))}
                                             </div>
                                         </div>
-                                    </fieldset>
-                                                                    {/* Botones */}
+
+                                        {/* Swap Memory */}
+                                        <div>
+                                            <label className="mb-1 block text-sm font-semibold">Swap Memory</label>
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex gap-2">
+                                                    {['unlimited', 'limited', 'disabled'].map((value) => (
+                                                        <button
+                                                            key={value}
+                                                            type="button"
+                                                            onClick={() => setServer({ ...server, swapMemory: value })}
+                                                            className={`px-4 py-2 rounded border font-medium ${server.swapMemory === value
+                                                                ? value === 'disabled'
+                                                                    ? 'bg-red-500 text-white border-red-400'
+                                                                    : 'bg-cyan-500 text-black border-cyan-400'
+                                                                : 'bg-black text-cyan-200 border-cyan-600'
+                                                                }`}
+                                                        >
+                                                            {value.charAt(0).toUpperCase() + value.slice(1)}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                {server.swapMemory === 'limited' && (
+                                                    <div className="flex items-center gap-2">
+                                                        <input
+                                                            type="number"
+                                                            value={server.swap ?? 0}
+                                                            onChange={(e) => setServer({ ...server, swap: parseInt(e.target.value, 10) || 0 })}
+                                                            className="w-32 rounded border border-cyan-600 bg-black px-4 py-2 text-sm text-cyan-200 focus:outline-none"
+                                                        />
+                                                        <span className="text-sm font-semibold text-cyan-400">MiB</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* OOM Killer */}
+                                        <div>
+                                            <label className="mb-1 block text-sm font-semibold">OOM Killer</label>
+                                            <div className="flex gap-2">
+                                                {[false, true].map((val) => (
+                                                    <button
+                                                        key={val.toString()}
+                                                        type="button"
+                                                        onClick={() => setServer({ ...server, oomKiller: val })}
+                                                        className={`px-4 py-2 rounded border font-medium ${server.oomKiller === val
+                                                            ? 'bg-green-500 text-black border-green-400'
+                                                            : 'bg-black text-cyan-200 border-cyan-600'
+                                                            }`}
+                                                    >
+                                                        {val ? 'Enabled' : 'Disabled'}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </fieldset>
+
+                                {/* Feature Limits */}
+                                <fieldset className="border border-cyan-700 rounded-lg p-4 shadow-sm">
+                                    <legend className="text-lg font-bold text-cyan-400 mb-2">Feature Limits</legend>
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                        {[
+                                            { label: 'Allocations', key: 'allocations' },
+                                            { label: 'Databases', key: 'database_limit' },
+                                            { label: 'Backups', key: 'backups' },
+                                        ].map(({ label, key }) => (
+                                            <div key={label}>
+                                                <label className="mb-1 block text-sm font-semibold">
+                                                    {label} <span className="text-red-400">*</span>
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    min={0}
+                                                    className="w-full rounded border border-cyan-600 bg-black px-4 py-2 text-sm text-cyan-200 focus:outline-none"
+                                                    value={server[key] ?? 0}
+                                                    onChange={(e) =>
+                                                        setServer({ ...server, [key]: parseInt(e.target.value) || 0 })
+                                                    }
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </fieldset>
+
+                                {/* Docker Settings */}
+                                <fieldset className="border border-cyan-700 rounded-lg p-4 shadow-sm mt-6">
+                                    <legend className="text-lg font-bold text-cyan-400 mb-2">Docker Settings</legend>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        {/* Image Name como SELECT */}
+                                        <div>
+                                            <label className="mb-1 block text-sm font-semibold text-white">Image Name</label>
+                                            <select
+                                                className="w-full rounded border border-cyan-600 bg-black px-4 py-2 text-sm text-cyan-200 focus:outline-none"
+                                                value={server.dockerImage}
+                                                onChange={(e) => setServer({ ...server, dockerImage: e.target.value })}
+                                            >
+                                                <option value="">Select Image</option>
+                                                {server.dockerImageOptions &&
+                                                    Object.entries(server.dockerImageOptions).map(([name, url]) => (
+                                                        <option key={name} value={url as string}>
+                                                            {name}
+                                                        </option>
+                                                    ))}
+                                            </select>
+                                        </div>
+
+                                        {/* Campo para la URL de la imagen */}
+                                        <div>
+                                            <label className="mb-1 block text-sm font-semibold text-white">
+                                                Image <span className="text-red-400">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                className="w-full rounded border border-cyan-600 bg-black px-4 py-2 text-sm text-cyan-200 focus:outline-none"
+                                                value={server.dockerImage || ''}
+                                                onChange={(e) => setServer({ ...server, dockerImage: e.target.value })}
+                                            />
+                                        </div>
+
+                                        {/* Tabla de container labels */}
+                                        <div className="sm:col-span-2">
+                                            <label className="mb-1 block text-sm font-semibold text-white">Container Labels</label>
+                                            <table className="w-full border-collapse border border-cyan-700 text-sm text-cyan-200">
+                                                <thead>
+                                                    <tr>
+                                                        <th className="border border-cyan-600 px-2 py-1 text-left">Title</th>
+                                                        <th className="border border-cyan-600 px-2 py-1 text-left">Description</th>
+                                                        <th className="border border-cyan-600 px-2 py-1 text-left w-12"></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {server.labels?.map((label: any, index: number) => (
+                                                        <tr key={index}>
+                                                            <td className="border border-cyan-600 p-1">
+                                                                <input
+                                                                    type="text"
+                                                                    className="w-full bg-black px-1 py-1 text-cyan-200 border-none focus:outline-none"
+                                                                    value={label.title}
+                                                                    onChange={(e) => {
+                                                                        const updated = [...server.labels];
+                                                                        updated[index].title = e.target.value;
+                                                                        setServer({ ...server, labels: updated });
+                                                                    }}
+                                                                />
+                                                            </td>
+                                                            <td className="border border-cyan-600 p-1">
+                                                                <input
+                                                                    type="text"
+                                                                    className="w-full bg-black px-1 py-1 text-cyan-200 border-none focus:outline-none"
+                                                                    value={label.description}
+                                                                    onChange={(e) => {
+                                                                        const updated = [...server.labels];
+                                                                        updated[index].description = e.target.value;
+                                                                        setServer({ ...server, labels: updated });
+                                                                    }}
+                                                                />
+                                                            </td>
+                                                            <td className="border rounded border-cyan-600 p-1">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const updated = [...server.labels];
+                                                                        updated.splice(index, 1);
+                                                                        setServer({ ...server, labels: updated });
+                                                                    }}
+                                                                    className="text-red-500 hover:text-red-700"
+                                                                >
+                                                                    <Trash size={16} />
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                    <tr>
+                                                        <td colSpan={3} className="text-center py-2">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const updated = [...(server.labels || [])];
+                                                                    updated.push({ title: '', description: '' });
+                                                                    setServer({ ...server, labels: updated });
+                                                                }}
+                                                                className="text-cyan-400 hover:underline"
+                                                            >
+                                                                Add row
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </fieldset>
+                                {/* Botones */}
                                     <div className="flex justify-between pt-4">
                                         <button
                                             type="button"

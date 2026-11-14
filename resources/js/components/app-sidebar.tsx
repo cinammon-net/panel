@@ -337,7 +337,7 @@ const footerNavItems: NavItem[] = [
     },
     {
         title: 'Documentación',
-        href: 'https://cinammon.net/docs/panel',
+        href: '/docs/panel',
         icon: BookOpenCheck,
         group: 'ajustes',
         groupColor: 'text-neutral-400',
