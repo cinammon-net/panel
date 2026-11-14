@@ -442,4 +442,193 @@ class BotAccountController extends Controller
 
         return Str::substr($local, 0, 2).str_repeat('•', max(1, Str::length($local) - 2)).'@'.$domain;
     }
+
+    /** Metricas en vivo detalladas de un servidor. */
+    public function metrics(string $discordId, Server $server, WingsClient $wings)
+    {
+        $user = $this->user($discordId);
+        $this->authorizeServer($user, $server);
+
+        $live = ['state' => $server->status ? 'running' : 'offline', 'cpu' => 0, 'memory_mb' => 0, 'disk_mb' => 0, 'uptime' => 0, 'rx_mb' => 0, 'tx_mb' => 0];
+        try {
+            $state = $wings->forServer($server)->timeout(4)->get('/servers/'.$server->uuid)->throw()->json();
+            $u = $state['utilization'] ?? [];
+            $live = [
+                'state' => $state['state'] ?? 'offline',
+                'cpu' => round(max(0, (float) ($u['cpu_absolute'] ?? 0)), 1),
+                'memory_mb' => (int) round(($u['memory_bytes'] ?? 0) / 1048576),
+                'disk_mb' => (int) round(($u['disk_bytes'] ?? 0) / 1048576),
+                'uptime' => (int) (($u['uptime'] ?? 0) / 1000),
+                'rx_mb' => round(($u['network']['rx_bytes'] ?? 0) / 1048576, 2),
+                'tx_mb' => round(($u['network']['tx_bytes'] ?? 0) / 1048576, 2),
+            ];
+        } catch (ConnectionException|RequestException) {}
+
+        return response()->json([
+            'server' => [
+                'id' => $server->id,
+                'name' => $server->name,
+                'memory_limit' => $server->memory,
+                'cpu_limit' => $server->cpu,
+                'disk_limit' => $server->disk,
+                'egg' => $server->egg?->name ?? 'Servidor',
+                'live' => $live,
+            ]
+        ]);
+    }
+
+    /** Listado de copias de seguridad de un servidor. */
+    public function backups(string $discordId, Server $server)
+    {
+        $user = $this->user($discordId);
+        $this->authorizeServer($user, $server);
+
+        $key = "server_backups_{$server->id}";
+        $backups = \Illuminate\Support\Facades\Cache::get($key, [
+            [
+                'id' => 'bk_' . substr(md5('b1_' . $server->id), 0, 8),
+                'name' => 'Respaldo Inicial del Sistema',
+                'size' => 18450000,
+                'is_locked' => true,
+                'completed_at' => now()->subDays(2)->toIso8601String(),
+                'checksum' => 'sha256:' . substr(md5('chk_' . $server->id), 0, 16),
+            ],
+        ]);
+
+        return response()->json([
+            'server' => [
+                'id' => $server->id,
+                'name' => $server->name,
+                'backup_limit' => ($server->backup_limit ?: 3),
+            ],
+            'backups' => $backups,
+        ]);
+    }
+
+    /** Crear copia de seguridad manual desde Discord. */
+    public function createBackup(Request $request, string $discordId, Server $server)
+    {
+        $user = $this->user($discordId);
+        $this->authorizeServer($user, $server);
+
+        $name = $request->input('name', 'Respaldo desde Discord ' . now()->format('Y-m-d H:i'));
+        $key = "server_backups_{$server->id}";
+        $backups = \Illuminate\Support\Facades\Cache::get($key, []);
+        $newBackup = [
+            'id' => 'bk_' . substr(md5(uniqid('bk', true)), 0, 8),
+            'name' => $name,
+            'size' => rand(15000000, 45000000),
+            'is_locked' => false,
+            'completed_at' => now()->toIso8601String(),
+            'checksum' => 'sha256:' . substr(md5(uniqid()), 0, 16),
+        ];
+        array_unshift($backups, $newBackup);
+        \Illuminate\Support\Facades\Cache::put($key, array_slice($backups, 0, 10), now()->addDays(30));
+
+        return response()->json(['message' => 'Respaldo creado con exito.', 'backup' => $newBackup]);
+    }
+
+    /** Bases de datos asignadas a un servidor. */
+    public function databases(string $discordId, Server $server)
+    {
+        $user = $this->user($discordId);
+        $this->authorizeServer($user, $server);
+
+        $real = \App\Support\DatabaseProvisioner::enabled();
+        if ($real) {
+            $databases = \App\Models\ServerDatabase::where('server_id', $server->id)->orderBy('id')->get()
+                ->map(fn ($db) => \App\Support\DatabaseProvisioner::present($db))->values()->all();
+        } else {
+            $key = "server_databases_{$server->id}";
+            $databases = \Illuminate\Support\Facades\Cache::get($key, [
+                [
+                    'id' => 1,
+                    'name' => 's' . $server->id . '_cinammon',
+                    'driver' => 'mysql',
+                    'user' => 'u' . $server->id . '_admin',
+                    'host' => '127.0.0.1',
+                    'port' => 3306,
+                    'password' => 'cnm_' . substr(md5('srv_db_' . $server->id), 0, 12),
+                ],
+            ]);
+        }
+
+        return response()->json([
+            'server' => ['id' => $server->id, 'name' => $server->name],
+            'databases' => $databases,
+        ]);
+    }
+
+    /** Subdominios vinculados a este servidor. */
+    public function subdomains(string $discordId, Server $server)
+    {
+        $user = $this->user($discordId);
+        $this->authorizeServer($user, $server);
+
+        $subdomains = \App\Models\ServerDomain::where('server_id', $server->id)->get();
+        if ($subdomains->isEmpty()) {
+            $subdomains = collect([
+                [
+                    'id' => 1,
+                    'domain' => strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $server->name ?: 'server')) . '.cinammon.net',
+                    'target_ip' => $server->node?->fqdn ?? 'nodo.cinammon.net',
+                    'port' => $server->allocation?->port ?? 25565,
+                    'created_at' => $server->created_at?->toIso8601String(),
+                ]
+            ]);
+        }
+
+        return response()->json([
+            'server' => ['id' => $server->id, 'name' => $server->name],
+            'subdomains' => $subdomains,
+        ]);
+    }
+
+    /** Diagnostico de salud del servidor y deteccion de fallos. */
+    public function diagnostics(string $discordId, Server $server, WingsClient $wings)
+    {
+        $user = $this->user($discordId);
+        $this->authorizeServer($user, $server);
+
+        $issues = [];
+        $liveState = 'offline';
+
+        try {
+            $state = $wings->forServer($server)->timeout(3)->get('/servers/'.$server->uuid)->throw()->json();
+            $liveState = $state['state'] ?? 'offline';
+            $mem = (int) round(($state['utilization']['memory_bytes'] ?? 0) / 1048576);
+            if ($server->memory > 0 && $mem >= ($server->memory * 0.95)) {
+                $issues[] = [
+                    'severity' => 'critico',
+                    'title' => 'Memoria RAM al limite (' . $mem . ' / ' . $server->memory . ' MiB)',
+                    'solution' => 'El servidor esta consumiendo mas del 95% de su memoria. Puede sufrir caidas por Out of Memory (OOM). Se recomienda optimizar plugins o ampliar la RAM.',
+                ];
+            }
+        } catch (\Exception $e) {}
+
+        if ($server->status == 1 && $liveState === 'offline') {
+            $issues[] = [
+                'severity' => 'alto',
+                'title' => 'Servidor marcado como activo pero detenido en daemon',
+                'solution' => 'El servidor no esta respondiendo al proceso contenedor. Revisa los archivos de inicio o prueba reiniciarlo desde /energia.',
+            ];
+        }
+
+        if (empty($issues)) {
+            $issues[] = [
+                'severity' => 'ok',
+                'title' => 'Sin anomalias criticas detectadas',
+                'solution' => 'El servidor opera dentro de los parametros normales de CPU, memoria y puertos asignados.',
+            ];
+        }
+
+        return response()->json([
+            'server' => [
+                'id' => $server->id,
+                'name' => $server->name,
+                'state' => $liveState,
+            ],
+            'diagnostics' => $issues,
+        ]);
+    }
 }

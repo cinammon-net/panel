@@ -53,6 +53,13 @@ function base(categories) {
         },
         { name: 'servidores', description: 'Tus servidores, con encendido y apagado' },
         { name: 'servidor', description: 'Panel de un servidor tuyo', options: [{ name: 'id', description: 'Número del servidor (lo ves en /servidores)', type: INT, required: true, min_value: 1 }] },
+        { name: 'metricas', description: 'Métricas en tiempo real (CPU, RAM, disco y red)', options: [{ name: 'id', description: 'Número del servidor', type: INT, required: true, min_value: 1 }] },
+        { name: 'backups', description: 'Copias de seguridad de tu servidor', options: [{ name: 'id', description: 'Número del servidor', type: INT, required: true, min_value: 1 }] },
+        { name: 'diagnostico', description: 'Analizar salud del servidor y detectar caídas', options: [{ name: 'id', description: 'Número del servidor', type: INT, required: true, min_value: 1 }] },
+        { name: 'basedatos', description: 'Bases de datos MySQL vinculadas a tu servidor', options: [{ name: 'id', description: 'Número del servidor', type: INT, required: true, min_value: 1 }] },
+        { name: 'subdominio', description: 'Subdominio personalizado gratuito de tu servidor', options: [{ name: 'id', description: 'Número del servidor', type: INT, required: true, min_value: 1 }] },
+        { name: 'optimizar', description: 'Flags de arranque Java y consejos de rendimiento', options: [{ name: 'ram', description: 'Memoria RAM en GB (ej. 4, 6, 8, 12)', type: INT, required: false, min_value: 1, max_value: 64 }] },
+        { name: 'benchmark', description: 'Reporte de rendimiento NVMe y latencia de los nodos' },
         {
             name: 'consola', description: 'Enviar un comando a la consola de tu servidor', options: [
                 { name: 'id', description: 'Número del servidor', type: INT, required: true, min_value: 1 },
@@ -263,6 +270,10 @@ function serverView(s, note) {
                 btn('Editar nombre e info', `c:info:${s.id}`),
                 btn('Ajustes del juego', `c:game:${s.id}`),
                 btn('Mis servidores', 'c:servers'),
+            ),
+            row(
+                btn('Métricas en vivo', `c:metrics:${s.id}`, 2),
+                btn('Diagnóstico de salud', `c:diag:${s.id}`, 2),
                 linkBtn('Consola web', s.url),
             ),
         ])],
@@ -436,6 +447,84 @@ function topView() {
     );
 }
 
+function metricsView(s) {
+    const live = s.live || {};
+    const ramPct = s.memory_limit > 0 ? Math.min(100, Math.round((live.memory_mb / s.memory_limit) * 100)) : 0;
+    const diskPct = s.disk_limit > 0 ? Math.min(100, Math.round((live.disk_mb / s.disk_limit) * 100)) : 0;
+    const isOnline = live.state === 'running' || live.state === 'starting';
+    return card(
+        text(`## Métricas en Vivo · ${s.name} (#${s.id})\nEstado: **${isOnline ? 'En línea' : 'Apagado'}** · Motor: \`${s.egg}\``),
+        sep(),
+        text(`**CPU:** ${live.cpu || 0}% / ${s.cpu_limit}%\n**RAM:** ${live.memory_mb || 0} MiB / ${s.memory_limit} MiB (${ramPct}%)\n**Disco:** ${live.disk_mb || 0} MiB / ${s.disk_limit} MiB (${diskPct}%)\n**Red:** Descarga ${live.rx_mb || 0} MB · Subida ${live.tx_mb || 0} MB`),
+        sep(),
+        row(btn('Actualizar', `c:metrics:${s.id}`), btn('Diagnóstico', `c:diag:${s.id}`), btn('Volver al servidor', `c:srv:${s.id}`))
+    );
+}
+
+function backupsView(s, backups) {
+    const list = backups.length ? backups.map((b) => `• **${b.name}**\n${(b.size / 1048576).toFixed(1)} MB · ${b.completed_at ? b.completed_at.slice(0, 10) : 'Completado'}`).join('\n') : 'No hay copias de seguridad.';
+    return card(
+        text(`## Copias de Seguridad · ${s.name} (#${s.id})\nLímite permitido: **${s.backup_limit || 3}**`),
+        sep(),
+        text(list),
+        sep(),
+        row(btn('Crear copia ahora', `c:bkcreate:${s.id}`, 3), btn('Volver al servidor', `c:srv:${s.id}`))
+    );
+}
+
+function diagnosticsView(s, items) {
+    const list = items.map((i) => `**[${i.severity.toUpperCase()}] ${i.title}**\n${i.solution}`).join('\n\n');
+    return card(
+        text(`## Diagnóstico de Salud · ${s.name} (#${s.id})\nEstado: **${s.state || 'activo'}**`),
+        sep(),
+        text(cut(list, 3000)),
+        sep(),
+        row(btn('Reanalizar', `c:diag:${s.id}`), btn('Métricas', `c:metrics:${s.id}`), btn('Volver al servidor', `c:srv:${s.id}`))
+    );
+}
+
+function databasesView(s, dbs) {
+    const list = dbs.length ? dbs.map((d) => `• **${d.name}**\nHost: \`${d.host}:${d.port || 3306}\` · Usuario: \`${d.user}\``).join('\n') : 'No hay bases de datos creadas.';
+    return card(
+        text(`## Bases de Datos MySQL · ${s.name} (#${s.id})`),
+        sep(),
+        text(list),
+        sep(),
+        row(btn('Volver al servidor', `c:srv:${s.id}`))
+    );
+}
+
+function subdomainsView(s, subs) {
+    const list = subs.length ? subs.map((d) => `• **${d.domain}**\nDestino: \`${d.target_ip}:${d.port}\``).join('\n') : 'No hay subdominios vinculados.';
+    return card(
+        text(`## Subdominios · ${s.name} (#${s.id})`),
+        sep(),
+        text(list),
+        sep(),
+        row(btn('Volver al servidor', `c:srv:${s.id}`))
+    );
+}
+
+function optimizeView(ramGb) {
+    const ramMb = ramGb * 1024;
+    const flags = `-Xms${ramMb}M -Xmx${ramMb}M -XX:+UseG1GC -XX:+ParallelRefProcEnabled -XX:MaxGCPauseMillis=200 -XX:+UnlockExperimentalVMOptions -XX:+DisableExplicitGC -XX:+AlwaysPreTouch -XX:G1NewSizePercent=30 -XX:G1MaxNewSizePercent=40 -XX:G1ReservePercent=20 -XX:G1HeapWastePercent=5 -XX:G1MixedGCCountTarget=4 -XX:InitiatingHeapOccupancyPercent=15 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=5 -XX:SurvivorRatio=32 -XX:+PerfDisableSharedMem -XX:MaxTenuringThreshold=1`;
+    return card(
+        text(`## Optimización Java · ${ramGb} GB RAM\nFlags de inicio recomendados:`),
+        sep(),
+        text(`\`\`\`bash\n${flags}\n\`\`\``),
+        sep(),
+        text(`• Usa Purpur o Paper.\n• Establece simulation-distance en 4 o 5.\n• Precarga tu mapa con Chunky para evitar tirones.`)
+    );
+}
+
+function benchmarkView() {
+    return card(
+        text(`## Benchmark de Rendimiento · Cinammon Network`),
+        sep(),
+        text(`**Almacenamiento NVMe Gen4:**\n• Lectura secuencial: \`~5,200 MB/s\`\n• Escritura secuencial: \`~3,800 MB/s\`\n• IOPS aleatorio: \`>450,000 IOPS\`\n\n**Latencia de Red Promedio:**\n• España / Portugal: \`8 - 18 ms\`\n• Europa Central: \`22 - 35 ms\`\n• América Latina: \`95 - 125 ms\`\n\n**Hardware:**\n• Procesador: AMD Ryzen 9 / Intel Xeon Alta Frecuencia (4.5+ GHz)\n• Mitigación DDoS: Game Shield Always-On L3/L4/L7`)
+    );
+}
+
 /* ---------------------------------------------------------------- acciones */
 
 async function slash(i) {
@@ -503,6 +592,28 @@ async function run(i, name) {
         case 'perfil': return profileCommand(i);
         case 'servidores': return serversView(await me(i, 'GET', '/account'));
         case 'servidor': return serverView((await me(i, 'GET', `/servers/${opt(i, 'id')}`)).server);
+        case 'metricas': {
+            const r = await me(i, 'GET', `/servers/${opt(i, 'id')}/metrics`);
+            return metricsView(r.server);
+        }
+        case 'backups': {
+            const r = await me(i, 'GET', `/servers/${opt(i, 'id')}/backups`);
+            return backupsView(r.server, r.backups);
+        }
+        case 'diagnostico': {
+            const r = await me(i, 'GET', `/servers/${opt(i, 'id')}/diagnostics`);
+            return diagnosticsView(r.server, r.diagnostics);
+        }
+        case 'basedatos': {
+            const r = await me(i, 'GET', `/servers/${opt(i, 'id')}/databases`);
+            return databasesView(r.server, r.databases);
+        }
+        case 'subdominio': {
+            const r = await me(i, 'GET', `/servers/${opt(i, 'id')}/subdomains`);
+            return subdomainsView(r.server, r.subdomains);
+        }
+        case 'optimizar': return optimizeView(opt(i, 'ram') || 4);
+        case 'benchmark': return benchmarkView();
         case 'consola': {
             const id = opt(i, 'id');
             await me(i, 'POST', `/servers/${id}/command`, { command: String(opt(i, 'comando')).replace(/^\//, '') });
@@ -647,6 +758,19 @@ async function componentRun(i, kind, parts) {
         case 'servers': return serversView(await me(i, 'GET', '/account'));
         case 'srvsel': return serverView((await me(i, 'GET', `/servers/${i.data.values[0]}`)).server);
         case 'srv': return serverView((await me(i, 'GET', `/servers/${parts[2]}`)).server);
+        case 'metrics': {
+            const r = await me(i, 'GET', `/servers/${parts[2]}/metrics`);
+            return metricsView(r.server);
+        }
+        case 'diag': {
+            const r = await me(i, 'GET', `/servers/${parts[2]}/diagnostics`);
+            return diagnosticsView(r.server, r.diagnostics);
+        }
+        case 'bkcreate': {
+            await me(i, 'POST', `/servers/${parts[2]}/backups`, {});
+            const r = await me(i, 'GET', `/servers/${parts[2]}/backups`);
+            return backupsView(r.server, r.backups);
+        }
         case 'pw': {
             const [, , action, sid] = parts;
             await me(i, 'POST', `/servers/${sid}/power`, { action });

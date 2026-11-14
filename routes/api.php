@@ -74,6 +74,12 @@ Route::middleware('bot.secret')->group(function () {
         Route::post('/link', 'link')->middleware('throttle:10,1');
         Route::post('/referral', 'referral')->middleware('throttle:30,1');
         Route::get('/servers/{server}', 'server');
+        Route::get('/servers/{server}/metrics', 'metrics');
+        Route::get('/servers/{server}/backups', 'backups');
+        Route::post('/servers/{server}/backups', 'createBackup');
+        Route::get('/servers/{server}/databases', 'databases');
+        Route::get('/servers/{server}/subdomains', 'subdomains');
+        Route::get('/servers/{server}/diagnostics', 'diagnostics');
         Route::post('/servers/{server}/power', 'power');
         Route::post('/servers/{server}/command', 'command');
         Route::post('/servers/{server}/info', 'info');

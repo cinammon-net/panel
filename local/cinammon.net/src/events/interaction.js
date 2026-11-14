@@ -64,6 +64,26 @@ async function onInteraction({ interaction, token, applicationId, log }) {
                 responsePayload = await commands.get('perfil')?.execute({ user, log });
             } else if (customId === 'btn:ayuda' || customId === 'v2_cmd:ayuda') {
                 responsePayload = await commands.get('ayuda')?.execute({ user, log });
+            } else if (customId === 'btn:diario' || customId === 'v2_cmd:diario') {
+                responsePayload = await commands.get('diario')?.execute({ user, log });
+            } else if (customId === 'btn:monedas' || customId === 'v2_cmd:monedas') {
+                responsePayload = await commands.get('monedas')?.execute({ user, log });
+            } else if (customId.startsWith('metrics:')) {
+                const sId = Number(customId.split(':')[1]);
+                responsePayload = await commands.get('metricas')?.execute({ options: [{ name: 'id', value: sId }], user, log });
+            } else if (customId.startsWith('diag:')) {
+                const sId = Number(customId.split(':')[1]);
+                responsePayload = await commands.get('diagnostico')?.execute({ options: [{ name: 'id', value: sId }], user, log });
+            } else if (customId.startsWith('backup:list:')) {
+                const sId = Number(customId.split(':')[2]);
+                responsePayload = await commands.get('backups')?.execute({ options: [{ name: 'id', value: sId }], user, log });
+            } else if (customId.startsWith('backup:create:')) {
+                const sId = Number(customId.split(':')[2]);
+                await callPanelApi(`/api/bot/discord/${user.id || 'system'}/servers/${sId}/backups`, 'POST', {});
+                responsePayload = await commands.get('backups')?.execute({ options: [{ name: 'id', value: sId }], user, log });
+            } else if (customId.startsWith('db:list:')) {
+                const sId = Number(customId.split(':')[2]);
+                responsePayload = await commands.get('basedatos')?.execute({ options: [{ name: 'id', value: sId }], user, log });
             } else if (customId.startsWith('power:') || customId.startsWith('v2_power:')) {
                 const parts = customId.split(':');
                 const action = parts[1];
