@@ -148,12 +148,12 @@ const mainNavItems: NavItem[] = [
         permissions: [],
     },
     {
-        title: 'Guías en Vídeo',
+        title: 'Guías & Tutoriales',
         href: '/guias',
-        icon: PlayCircle,
+        icon: BookOpenCheck,
         group: 'comunidad',
-        groupColor: 'text-rose-400',
-        roles: [],
+        groupColor: 'text-pink-400',
+        roles: ['Members', 'Sponsors', 'Helper', 'Moderator', 'Admin', 'Owner'],
         permissions: [],
     },
     {

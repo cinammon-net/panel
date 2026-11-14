@@ -40,16 +40,16 @@ import { ServerSection } from '@/layouts/server-layout';
 
 const footerNavItems = [
     {
-        title: 'Repository',
-        href: 'https://github.com/cinammon-es/panel',
-        icon: FolderGit2,
+        title: 'Guías & Tutoriales',
+        href: '/guias',
+        icon: BookOpenCheck,
         group: 'extra' as const,
-        groupColor: 'text-yellow-400',
+        groupColor: 'text-pink-400',
     },
     {
-        title: 'Documentation',
+        title: 'Documentación',
         href: '/docs/panel',
-        icon: BookOpenCheck,
+        icon: FolderGit2,
         group: 'extra' as const,
         groupColor: 'text-yellow-400',
     },
@@ -255,6 +255,19 @@ export default function ServerSidebar({
                     icon: Settings,
                     color: 'text-cyan-400',
                     show: isAdmin,
+                },
+            ],
+        },
+        {
+            title: 'Ayuda & Tutoriales',
+            items: [
+                {
+                    key: 'guias',
+                    title: 'Guías & Vídeos',
+                    href: '/guias',
+                    icon: BookOpenCheck,
+                    color: 'text-pink-400',
+                    show: true,
                 },
             ],
         },

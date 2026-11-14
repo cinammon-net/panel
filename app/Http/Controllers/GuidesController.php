@@ -23,17 +23,31 @@ class GuidesController extends Controller
      */
     public function show(string $slug): Response
     {
-        $guides = $this->getGuides();
-        $guide = collect($guides)->firstWhere('slug', $slug);
+        $validKeys = [
+            'start', 'gratis', 'buy', 'mc-optimize', 'mc-addons', 'bots',
+            'domains', 'databases', 'files', 'sftp-filezilla', 'dudas', 'amigos', 'team',
+            'sftp-filezilla-puerto-2022', 'mariadb-phpmyadmin-gestion',
+            'dominios-propios-cloudflare-dns', 'minecraft-paper-optimizaciones-aikar',
+            'despliegue-web-nodejs-vitepress',
+        ];
 
-        if (!$guide) {
+        // Mapeo de slugs largos a keys cortas
+        $alias = [
+            'sftp-filezilla-puerto-2022' => 'sftp-filezilla',
+            'mariadb-phpmyadmin-gestion' => 'databases',
+            'dominios-propios-cloudflare-dns' => 'domains',
+            'minecraft-paper-optimizaciones-aikar' => 'mc-optimize',
+            'despliegue-web-nodejs-vitepress' => 'bots',
+        ];
+
+        $targetKey = $alias[$slug] ?? $slug;
+
+        if (!in_array($slug, $validKeys, true)) {
             abort(404);
         }
 
         return Inertia::render('Guides', [
-            'guides' => $guides,
-            'currentSlug' => $slug,
-            'guide' => $guide,
+            'currentSlug' => $targetKey,
         ]);
     }
 

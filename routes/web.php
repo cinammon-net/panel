@@ -434,8 +434,6 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
     Route::get('/correos/{source}/{uuid}', [App\Http\Controllers\MailArchiveController::class, 'show'])
         ->whereIn('source', ['panel', 'billing'])->whereUuid('uuid')->middleware('throttle:60,1')->name('mails.show');
 
-    // Guías en vídeo (grabadas en el panel real; la guía completa vive en el foro #guias de Discord)
-    Route::get('/guias', fn () => Inertia::render('Guides'))->name('guides.index');
 
     // Dudas de la comunidad (con cuenta; se sincroniza con #soporte de Discord)
     Route::controller(App\Http\Controllers\CommunityController::class)->prefix('/dudas')->group(function () {
