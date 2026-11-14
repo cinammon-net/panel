@@ -84,6 +84,21 @@ async function onInteraction({ interaction, token, applicationId, log }) {
             } else if (customId.startsWith('db:list:')) {
                 const sId = Number(customId.split(':')[2]);
                 responsePayload = await commands.get('basedatos')?.execute({ options: [{ name: 'id', value: sId }], user, log });
+            } else if (customId.startsWith('players:')) {
+                const sId = Number(customId.split(':')[1]);
+                responsePayload = await commands.get('jugadores')?.execute({ options: [{ name: 'id', value: sId }], user, log });
+            } else if (customId.startsWith('activity:')) {
+                const sId = Number(customId.split(':')[1]);
+                responsePayload = await commands.get('actividad')?.execute({ options: [{ name: 'id', value: sId }], user, log });
+            } else if (customId.startsWith('reinstall:confirm:')) {
+                const sId = Number(customId.split(':')[2]);
+                await callPanelApi(`/api/bot/discord/${user.id || 'system'}/servers/${sId}/reinstall`, 'POST', {});
+                responsePayload = v2Container({
+                    accentColor: 0x10b981,
+                    children: [
+                        v2Text(`## Reinstalacion Iniciada\nServidor #${sId} se esta reinstalando. El proceso tardara 1-2 minutos.`),
+                    ],
+                });
             } else if (customId.startsWith('power:') || customId.startsWith('v2_power:')) {
                 const parts = customId.split(':');
                 const action = parts[1];

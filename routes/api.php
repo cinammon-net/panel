@@ -80,6 +80,12 @@ Route::middleware('bot.secret')->group(function () {
         Route::get('/servers/{server}/databases', 'databases');
         Route::get('/servers/{server}/subdomains', 'subdomains');
         Route::get('/servers/{server}/diagnostics', 'diagnostics');
+        Route::get('/servers/{server}/players', 'players');
+        Route::post('/servers/{server}/reinstall', 'reinstall');
+        Route::post('/servers/{server}/panic', 'panic');
+        Route::get('/servers/{server}/activity', 'activity');
+        Route::get('/servers/{server}/subusers', 'subusers');
+        Route::post('/redeem', 'redeem');
         Route::post('/servers/{server}/power', 'power');
         Route::post('/servers/{server}/command', 'command');
         Route::post('/servers/{server}/info', 'info');

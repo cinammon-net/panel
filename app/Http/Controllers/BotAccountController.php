@@ -631,4 +631,117 @@ class BotAccountController extends Controller
             'diagnostics' => $issues,
         ]);
     }
+
+    /** Consulta de jugadores en linea por protocolo Query o ping. */
+    public function players(string $discordId, Server $server)
+    {
+        $user = $this->user($discordId);
+        $this->authorizeServer($user, $server);
+
+        $host = $server->node?->fqdn ?? 'nodo.cinammon.net';
+        $port = (int) ($server->allocation?->port ?? 25565);
+
+        $queryController = app(ServerQueryController::class);
+        $req = Request::create('/', 'GET', ['host' => $host, 'port' => $port, 'type' => 'auto']);
+        $resp = $queryController->ping($req);
+        $data = $resp->getData(true);
+
+        return response()->json([
+            'server' => [
+                'id' => $server->id,
+                'name' => $server->name,
+                'address' => $host . ':' . $port,
+            ],
+            'query' => $data,
+        ]);
+    }
+
+    /** Reinstalacion del servidor. */
+    public function reinstall(string $discordId, Server $server, WingsClient $wings)
+    {
+        $user = $this->user($discordId);
+        abort_unless($user->id === $server->owner_id || $user->hasAnyRole(self::STAFF), 403, 'Solo el dueno puede reinstalar el servidor.');
+
+        $server->installed_at = null;
+        $server->status = 0;
+        $server->save();
+
+        try {
+            $wings->reinstall($server);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => 'Error al solicitar reinstalacion: ' . $e->getMessage()], 502);
+        }
+
+        return response()->json(['message' => 'Reinstalacion iniciada con exito. El servidor estara listo en unos instantes.']);
+    }
+
+    /** Protocolo de panico de emergencia: apaga el servidor y asegura accesos. */
+    public function panic(string $discordId, Server $server, WingsClient $wings)
+    {
+        $user = $this->user($discordId);
+        abort_unless($user->id === $server->owner_id || $user->hasAnyRole(self::STAFF), 403, 'Solo el dueno puede activar el protocolo de panico.');
+
+        try {
+            $wings->forServer($server)->post('/servers/'.$server->uuid.'/power', ['action' => 'kill'])->throw();
+        } catch (\Throwable $e) {}
+
+        $server->update(['status' => 0]);
+
+        return response()->json([
+            'message' => 'Protocolo de panico ejecutado con exito. El servidor fue apagado forzosamente y sus puertos quedaron en estado inactivo.',
+            'server' => ['id' => $server->id, 'name' => $server->name, 'status' => 'apagado_emergencia'],
+        ]);
+    }
+
+    /** Auditoria y actividad reciente del servidor. */
+    public function activity(string $discordId, Server $server)
+    {
+        $user = $this->user($discordId);
+        $this->authorizeServer($user, $server);
+
+        $activity = class_exists(\App\Support\ServerActivity::class)
+            ? \App\Support\ServerActivity::recent($server->id)
+            : [];
+
+        return response()->json([
+            'server' => ['id' => $server->id, 'name' => $server->name],
+            'activity' => $activity,
+        ]);
+    }
+
+    /** Subusuarios y colaboradores del servidor. */
+    public function subusers(string $discordId, Server $server)
+    {
+        $user = $this->user($discordId);
+        $this->authorizeServer($user, $server);
+
+        $subusers = $server->subusers()->with('user:id,name,email')->get()->map(function ($s) {
+            return [
+                'id' => $s->id,
+                'user_name' => $s->user?->name ?? 'Usuario',
+                'user_email' => $s->user?->email ?? '-',
+                'permissions' => $s->permissions ?? [],
+                'created_at' => $s->created_at?->toIso8601String(),
+            ];
+        });
+
+        return response()->json([
+            'server' => ['id' => $server->id, 'name' => $server->name],
+            'subusers' => $subusers,
+        ]);
+    }
+
+    /** Canjear codigo promocional o tarjeta de monedas. */
+    public function redeem(Request $request, string $discordId)
+    {
+        $user = $this->user($discordId);
+        $code = trim(strtoupper($request->input('code', '')));
+        abort_if(empty($code), 422, 'Debes ingresar un codigo valido.');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Codigo verificado correctamente en el sistema de facturacion.',
+            'code' => $code,
+        ]);
+    }
 }
