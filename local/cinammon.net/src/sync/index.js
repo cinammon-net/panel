@@ -1349,8 +1349,77 @@ async function onEvent(t, d) {
         else if (t === 'THREAD_CREATE') await suggestions.onThreadCreate(d);
         else if (t === 'INVITE_DELETE') members.onInviteDelete(d);
         else if (t === 'VOICE_STATE_UPDATE') await community.onVoiceStateUpdate(d);
+        else if (t === 'GUILD_MEMBER_UPDATE' && d.premium_since) {
+            await handleBoostReward(d.user || { id: d.user_id }, d.premium_since);
+        }
     } catch (e) {
         log(`[SYNC] ${t}: ${e.message}`);
+    }
+}
+
+/** Canje y recompensa automática por Server Boost en Discord. */
+async function handleBoostReward(user, since, sourceChannelId = null) {
+    const userId = user?.id;
+    if (!userId || user.bot) return;
+
+    st.boosts_processed ??= {};
+    // Si ya fue procesado en las ultimas 24 horas, no repetir
+    const last = st.boosts_processed[userId];
+    if (last && (Date.now() - new Date(last).getTime() < 24 * 3600 * 1000)) {
+        return;
+    }
+
+    try {
+        const res = await panel('POST', `/api/bot/discord/${userId}/claim-boost`, {});
+        st.boosts_processed[userId] = new Date().toISOString();
+        saveState();
+
+        if (res.success && !res.already_has_server) {
+            log(`[BOOST] Servidor aprovisionado para @${user.username} (${userId})`);
+
+            // Anuncio publico en #compras o canal de sistema
+            const targetChannel = sourceChannelId || ctx.layout?.channels?.purchases || ctx.layout?.channels?.general;
+            if (targetChannel) {
+                const publicCard = msg(container(0xec4899, [
+                    text(`### Recompensa por Server Boost\nMuchisimas gracias a <@${userId}> por apoyar a Cinammon Network con su Server Boost.\nSe ha aprovisionado su servidor de recompensa en su cuenta.`),
+                    text(`✦ Servidor: **${cut(res.server.name, 60)}**\n✦ Recursos: **4 GB RAM** · **15 GB NVMe** · **200% CPU**`),
+                    text(`-# Recompensa automatica exclusiva para Boosters`),
+                    row(linkBtn('Abrir Servidor', res.server.url || PANEL_PUBLIC)),
+                ]));
+                await discord('POST', `/channels/${targetChannel}/messages`, publicCard).catch((e) => log(`[BOOST] Error anuncio publico: ${e.message}`));
+            }
+
+            // Mensaje directo (DM) al usuario
+            try {
+                const dm = await discord('POST', '/users/@me/channels', { recipient_id: userId });
+                const dmCard = msg(container(0xec4899, [
+                    text(`### Tu Servidor por Server Boost esta Listo\nHola **${cut(user.global_name || user.username, 50)}**, ¡gracias por impulsar la comunidad con tu Server Boost!\n\nHemos creado tu servidor de hosting gratuito con las siguientes especificaciones:`),
+                    text(`✦ Nombre: **${cut(res.server.name, 60)}**\n✦ Memoria RAM: **4 GB**\n✦ Disco: **15 GB NVMe**\n✦ CPU: **200%**\n✦ Direccion: \`${res.server.address || 'Asignando puerto...'}\``),
+                    text(`Ya puedes administrar tu servidor desde el panel web o usar comandos como \`/servidores\` o \`/energia\` aqui en Discord.`),
+                    row(linkBtn('Ir a la Consola', res.server.url || PANEL_PUBLIC)),
+                ]));
+                await discord('POST', `/channels/${dm.id}/messages`, dmCard);
+            } catch (dmErr) {
+                log(`[BOOST] DM no enviado a ${userId}: ${dmErr.message}`);
+            }
+        }
+    } catch (err) {
+        log(`[BOOST] Intento para ${userId}: ${err.message}`);
+        if (err.status === 404 || err.message?.includes('not_linked') || err.message?.includes('vinculada')) {
+            st.boosts_processed[userId] = new Date().toISOString();
+            saveState();
+
+            try {
+                const dm = await discord('POST', '/users/@me/channels', { recipient_id: userId });
+                const dmCard = msg(container(0xf59e0b, [
+                    text(`### ¡Gracias por tu Server Boost en Cinammon Network!\nHola **${cut(user.global_name || user.username, 50)}**, detectamos tu Boost en nuestro servidor de Discord.\n\nPara recibir tu **Servidor Gratuito (4 GB RAM, 15 GB NVMe, 200% CPU)**, necesitas vincular tu cuenta del panel:\n\n1. Entra a **${PANEL_PUBLIC}** y crea o inicia tu cuenta.\n2. Ejecuta el comando **/vincular** aqui en Discord.\n3. Una vez vinculado, ejecuta **/reclamar-boost** para recibir tu servidor de inmediato.`),
+                    row(linkBtn('Ir al Panel', PANEL_PUBLIC)),
+                ]));
+                await discord('POST', `/channels/${dm.id}/messages`, dmCard);
+            } catch (dmErr) {
+                log(`[BOOST] DM vinculacion no enviado a ${userId}: ${dmErr.message}`);
+            }
+        }
     }
 }
 
@@ -1361,7 +1430,16 @@ async function onEvent(t, d) {
  * mensajes de los hilos de ticket (se guardan en el panel).
  */
 async function onMessage(message) {
-    if (!ctx || message.author?.bot || message.webhook_id) return;
+    if (!ctx) return;
+    // Deteccion de Server Boost por mensaje de sistema nativo de Discord (tipos 8, 9, 10, 11)
+    if ([8, 9, 10, 11].includes(message.type)) {
+        const u = message.author;
+        if (u && !u.bot) {
+            await handleBoostReward(u, new Date().toISOString(), message.channel_id);
+        }
+        return;
+    }
+    if (message.author?.bot || message.webhook_id) return;
     const entry = Object.entries(st?.tickets || {}).find(([, t]) => t.thread === message.channel_id);
     if (message.guild_id === ctx.guild) {
         try {

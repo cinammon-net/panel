@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Allocation;
 use App\Models\Announcement;
+use App\Models\Egg;
 use App\Models\Maintenance;
+use App\Models\Node;
 use App\Models\Server;
 use App\Models\Ticket;
 use App\Models\User;
@@ -743,5 +746,124 @@ class BotAccountController extends Controller
             'message' => 'Codigo verificado correctamente en el sistema de facturacion.',
             'code' => $code,
         ]);
+    }
+
+    /** Reclamar servidor gratuito de hosting por Server Boost en Discord. */
+    public function claimBoost(Request $request, string $discordId, WingsClient $wings)
+    {
+        $user = $this->user($discordId);
+
+        // Verificar si ya tiene un servidor de recompensa por boost activo
+        $existing = Server::where('owner_id', $user->id)
+            ->where(function ($q) {
+                $q->where('description', 'like', '%Server Boost%')
+                  ->orWhere('external_id', 'like', 'boost_%');
+            })
+            ->where('active', 1)
+            ->first();
+
+        if ($existing) {
+            return response()->json([
+                'success' => true,
+                'already_has_server' => true,
+                'message' => 'Ya posees un servidor de recompensa por Server Boost activo en tu cuenta.',
+                'server' => [
+                    'id' => $existing->id,
+                    'name' => $existing->name,
+                    'memory' => $existing->memory,
+                    'disk' => $existing->disk,
+                    'cpu' => $existing->cpu,
+                    'address' => $existing->publicAddress(),
+                    'url' => url('/servers/' . $existing->id . '/console'),
+                ],
+            ]);
+        }
+
+        // Buscar nodo disponible sin modo de mantenimiento
+        $node = Node::where('maintenance_mode', false)->orderBy('id')->first() ?? Node::orderBy('id')->first();
+        abort_unless($node, 503, 'No hay nodos disponibles para aprovisionar el servidor en este momento.');
+
+        // Buscar egg predeterminado (Minecraft Paper o el primero disponible)
+        $egg = Egg::where('name', 'like', '%Paper%')->first()
+            ?? Egg::where('category', 'minecraft')->first()
+            ?? Egg::orderBy('id')->first();
+        abort_unless($egg, 503, 'No se encontro una plantilla valida.');
+
+        // Asignar o crear allocation
+        $allocation = Allocation::whereNull('server_id')
+            ->where('node_id', $node->id)
+            ->whereNotIn('id', Server::whereNotNull('allocation_id')->pluck('allocation_id'))
+            ->orderBy('port')
+            ->first();
+
+        if (! $allocation) {
+            $nextPort = max(25565, (int) Allocation::where('node_id', $node->id)->max('port') + 1);
+            $allocation = Allocation::create([
+                'node_id' => $node->id,
+                'ip' => Allocation::where('node_id', $node->id)->value('ip') ?? '0.0.0.0',
+                'port' => $nextPort,
+            ]);
+        }
+
+        $images = json_decode($egg->docker_images ?? '{}', true) ?: [];
+        $serverName = 'Boost Server · ' . $user->name;
+
+        $server = Server::create([
+            'uuid' => (string) Str::uuid(),
+            'uuid_short' => substr((string) Str::uuid(), 0, 8),
+            'node_id' => $node->id,
+            'allocation_id' => $allocation->id,
+            'name' => $serverName,
+            'description' => 'Servidor de recompensa por Server Boost en Discord',
+            'active' => 1,
+            'owner_id' => $user->id,
+            'memory' => 4096, // 4 GB RAM
+            'swap' => 0,
+            'disk' => 15360, // 15 GB NVMe
+            'io' => 500,
+            'cpu' => 200, // 200% CPU
+            'egg_id' => $egg->id,
+            'startup' => $egg->startup ?? '',
+            'image' => reset($images) ?: '',
+            'status' => 0,
+        ]);
+
+        $server->forceFill([
+            'external_id' => 'boost_' . $user->id . '_' . time(),
+            'billing_paid' => true,
+        ])->save();
+
+        $allocation->forceFill(['server_id' => $server->id])->save();
+
+        try {
+            $wings->provision($server);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('ClaimBoost Wings: ' . $e->getMessage());
+        }
+
+        try {
+            \App\Support\Ranks::sync($user);
+        } catch (\Throwable) {
+        }
+
+        return response()->json([
+            'success' => true,
+            'already_has_server' => false,
+            'message' => 'Servidor de recompensa por Server Boost creado y aprovisionado con exito.',
+            'server' => [
+                'id' => $server->id,
+                'name' => $server->name,
+                'memory' => $server->memory,
+                'disk' => $server->disk,
+                'cpu' => $server->cpu,
+                'address' => $server->fresh()->publicAddress(),
+                'url' => url('/servers/' . $server->id . '/console'),
+            ],
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $this->maskEmail($user->email),
+            ],
+        ], 201);
     }
 }

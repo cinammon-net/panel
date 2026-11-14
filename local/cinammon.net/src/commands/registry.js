@@ -157,6 +157,10 @@ const SLASH_COMMANDS = [
         name: 'ayuda',
         description: 'Muestra el centro de control interactivo en formato Discord Components V2',
     },
+    {
+        name: 'reclamar-boost',
+        description: 'Canjea tu servidor gratuito de hosting por dar Server Boost a Cinammon Network',
+    },
 ];
 
 async function registerSlashCommands(token, appId, guildId, log) {

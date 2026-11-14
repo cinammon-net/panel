@@ -35,6 +35,7 @@ module.exports = {
                 v2Separator(false, 1),
                 v2Section([
                     `**Economia y Tienda:**\n` +
+                    `• \`/reclamar-boost\` *(alias: !boost-server)* - Servidor de hosting gratis por Server Boost\n` +
                     `• \`/diario\` *(alias: !daily)* - Reclama tus monedas diarias gratuitas\n` +
                     `• \`/monedas\` *(alias: !coins)* - Consulta tu saldo acumulado y racha\n` +
                     `• \`/canjear <codigo>\` *(alias: !cupon)* - Validar codigos de descuento\n` +

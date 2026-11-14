@@ -86,6 +86,7 @@ Route::middleware('bot.secret')->group(function () {
         Route::get('/servers/{server}/activity', 'activity');
         Route::get('/servers/{server}/subusers', 'subusers');
         Route::post('/redeem', 'redeem');
+        Route::post('/claim-boost', 'claimBoost');
         Route::post('/servers/{server}/power', 'power');
         Route::post('/servers/{server}/command', 'command');
         Route::post('/servers/{server}/info', 'info');
