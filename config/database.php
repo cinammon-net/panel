@@ -97,6 +97,20 @@ return [
             ]) : [],
         ],
 
+        'bot_server' => [
+            'driver' => 'mysql',
+            'host' => env('DB_BOT_SERVER_HOST', '127.0.0.1'),
+            'port' => env('DB_BOT_SERVER_PORT', '3306'),
+            'database' => env('DB_BOT_SERVER_DATABASE', 'srv2_cinammon'),
+            'username' => env('DB_BOT_SERVER_USERNAME', env('DB_USERNAME', 'cinammon')),
+            'password' => env('DB_BOT_SERVER_PASSWORD', env('DB_PASSWORD', '')),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'strict' => true,
+            'engine' => null,
+        ],
+
         'pgsql' => [
             'driver' => 'pgsql',
             'url' => env('DB_URL'),

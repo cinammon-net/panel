@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class UserBoosterCore extends Model
 {
+    protected $connection = 'bot_server';
     protected $table = 'user_booster_cores';
 
     protected $fillable = [

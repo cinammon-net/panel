@@ -17,7 +17,8 @@
   "description": "Bot de Discord de Cinammon: sincronización con el panel, tickets, moderación y comunidad.",
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
-    "@napi-rs/canvas": "^1.1.0"
+    "@napi-rs/canvas": "^1.1.0",
+    "mysql2": "^3.11.5"
   },
   "engines": {
     "node": ">=22"
