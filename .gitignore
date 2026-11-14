@@ -26,6 +26,7 @@ database/migrations/db/*
 
 /local/*.credentials
 /local/config.yml
+/local/cinammon.net/
 /database/*.sqlite*
 
 node_modules/
