@@ -59,9 +59,9 @@ cd "$INSTALL_DIR"
 
 # 4. Descarga del paquete oficial empaquetado (build de produccion)
 echo -e "${CYAN}-> [3/6] Descargando paquete oficial pre-construido...${NC}"
-if ! curl -sSL -f -o panel.tar.gz "$PRIMARY_URL"; then
-    echo -e "${YELLOW}Descargando desde mirror secundario (GitHub Releases)...${NC}"
-    curl -sSL -f -o panel.tar.gz "$FALLBACK_URL"
+if ! curl -sSL --fail -o panel.tar.gz "$PRIMARY_URL"; then
+    echo -e "${YELLOW}Descargando desde espejo alternativo...${NC}"
+    curl -sSL --fail -o panel.tar.gz "$FALLBACK_URL"
 fi
 
 echo -e "${CYAN}-> [4/6] Desempaquetando archivos del panel...${NC}"
