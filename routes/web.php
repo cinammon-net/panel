@@ -57,8 +57,31 @@ if ($newsHost !== '') {
     });
 }
 
+// Documentación Técnica Oficial en docs.cinammon.net
+$docsHost = (string) config('panel.docs_host', 'docs.cinammon.net');
+if ($docsHost !== '') {
+    Route::domain($docsHost)->group(function () {
+        Route::get('/', fn () => view('docs.panel'))->name('docs.subdomain.index');
+        Route::get('/panel', fn () => redirect()->to('/'));
+        Route::view('/instalacion', 'docs.panel')->name('docs.subdomain.install');
+        Route::get('/{any}', fn () => view('docs.panel'))->where('any', '.*');
+    });
+}
+
 // Rutas publicas
-Route::view('/docs/panel', 'docs.panel')->name('docs.panel');
+Route::get('/docs/panel', function (Request $request) use ($docsHost) {
+    if ($docsHost !== '' && strcasecmp($request->getHost(), $docsHost) !== 0 && !app()->environment('local')) {
+        return redirect()->away("https://{$docsHost}");
+    }
+    return view('docs.panel');
+})->name('docs.panel');
+
+Route::get('/docs', function (Request $request) use ($docsHost) {
+    if ($docsHost !== '' && strcasecmp($request->getHost(), $docsHost) !== 0 && !app()->environment('local')) {
+        return redirect()->away("https://{$docsHost}");
+    }
+    return view('docs.panel');
+})->name('docs.index');
 Route::get('/', [WelcomeController::class, 'index'])->name('home');
 Route::get('/noticias', function (Request $request) use ($newsHost) {
     if ($newsHost !== '' && strcasecmp($request->getHost(), $newsHost) !== 0 && !app()->environment('local')) {

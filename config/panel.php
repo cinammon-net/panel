@@ -73,6 +73,9 @@ return [
     // Dominio del periódico digital y noticias oficiales
     'news_host' => env('PANEL_NEWS_HOST', 'news.cinammon.net'),
 
+    // Dominio de documentación técnica oficial
+    'docs_host' => env('PANEL_DOCS_HOST', 'docs.cinammon.net'),
+
     // Cuentas de demostración que solo pueden iniciar sesión y usarse en modo demo
     'demo_emails' => [
         'demo-owner@cinammon.net',

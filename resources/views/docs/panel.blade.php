@@ -3,14 +3,26 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Guía de instalación de Cinammon Panel y Wings en un servidor Linux.">
+    <meta name="description" content="Documentación técnica y guía de instalación oficial de Cinammon Panel y Wings en Linux.">
     <title>Instalación del panel · Cinammon Docs</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,sans-serif;background:#080c18;color:#e9edf8;line-height:1.65}*{box-sizing:border-box}body{margin:0}a{color:#73d9ee}header{position:sticky;top:0;background:#0c1220ed;border-bottom:1px solid #26304a;z-index:2;padding:14px max(24px,calc((100vw - 1160px)/2));display:flex;justify-content:space-between;gap:20px;align-items:center}header a{text-decoration:none}header strong{color:#fff;letter-spacing:.04em}header span{color:#93a5c8}main{max-width:1160px;margin:auto;padding:48px 24px;display:grid;grid-template-columns:235px minmax(0,1fr);gap:56px}nav{position:sticky;top:90px;align-self:start}nav a{display:block;padding:8px 12px;text-decoration:none;color:#aebbd3;border-left:2px solid transparent}nav a:hover{color:#77dce9;border-color:#77dce9}article{max-width:780px}h1{font-size:clamp(2rem,5vw,3.4rem);line-height:1.15;margin:8px 0 16px}h2{margin-top:64px;border-top:1px solid #26304a;padding-top:28px;font-size:1.65rem}h3{margin-top:30px}p,li{color:#b8c3d8}.eyebrow{color:#79d7e8;font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.16em}.lead{font-size:1.15rem}.notice{border:1px solid #35516b;background:#111f32;padding:16px 20px;border-radius:12px;margin:24px 0}.notice strong{color:#9be9f3}pre{background:#10182a;border:1px solid #293850;border-radius:12px;overflow:auto;padding:20px;color:#d9eff4;line-height:1.5}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em}p code,li code{background:#1d2940;padding:2px 5px;border-radius:4px}ol{padding-left:24px}li{margin:8px 0}.next{margin:60px 0;padding:24px;border:1px solid #35516b;border-radius:14px;background:#101a2a}@media(max-width:760px){main{display:block;padding-top:30px}nav{position:static;display:flex;overflow:auto;white-space:nowrap;margin-bottom:35px}nav a{border-left:0;border-bottom:2px solid transparent}header span{display:none}}
+        :root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,sans-serif;background:#080c18;color:#e9edf8;line-height:1.65}*{box-sizing:border-box}body{margin:0}a{color:#73d9ee}header{position:sticky;top:0;background:#0c1220ed;border-bottom:1px solid #26304a;z-index:2;padding:14px max(24px,calc((100vw - 1160px)/2));display:flex;justify-content:space-between;gap:20px;align-items:center}header a{text-decoration:none}header strong{font-family:Orbitron,sans-serif;color:#fff;letter-spacing:.04em}header span{color:#93a5c8}main{max-width:1160px;margin:auto;padding:48px 24px;display:grid;grid-template-columns:235px minmax(0,1fr);gap:56px}nav{position:sticky;top:90px;align-self:start}nav a{display:block;padding:8px 12px;text-decoration:none;color:#aebbd3;border-left:2px solid transparent}nav a:hover{color:#77dce9;border-color:#77dce9}article{max-width:780px}h1{font-family:Orbitron,sans-serif;font-size:clamp(2rem,5vw,3.2rem);line-height:1.15;margin:8px 0 16px}h2{font-family:Orbitron,sans-serif;margin-top:64px;border-top:1px solid #26304a;padding-top:28px;font-size:1.5rem}h3{margin-top:30px}p,li{color:#b8c3d8}.eyebrow{color:#79d7e8;font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.16em}.lead{font-size:1.15rem}.notice{border:1px solid #35516b;background:#111f32;padding:16px 20px;border-radius:12px;margin:24px 0}.notice strong{color:#9be9f3}pre{background:#10182a;border:1px solid #293850;border-radius:12px;overflow:auto;padding:20px;color:#d9eff4;line-height:1.5}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em}p code,li code{background:#1d2940;padding:2px 5px;border-radius:4px}ol{padding-left:24px}li{margin:8px 0}.next{margin:60px 0;padding:24px;border:1px solid #35516b;border-radius:14px;background:#101a2a}@media(max-width:760px){main{display:block;padding-top:30px}nav{position:static;display:flex;overflow:auto;white-space:nowrap;margin-bottom:35px}nav a{border-left:0;border-bottom:2px solid transparent}header span{display:none}}
     </style>
 </head>
 <body>
-<header><a href="/"><strong>✦ CINAMMON</strong> <span>/ DOCUMENTACIÓN</span></a><a href="https://github.com/cinammon-net/panel">GitHub ↗</a></header>
+<header>
+    <a href="https://cinammon.net"><strong>✦ CINAMMON</strong> <span>/ DOCS</span></a>
+    <div style="display:flex;gap:18px;align-items:center;font-size:0.9rem">
+        <a href="https://cinammon.net/guias">Guías & Vídeos ↗</a>
+        <a href="https://panel.cinammon.net">Panel ↗</a>
+        <a href="https://status.cinammon.net">Estado ↗</a>
+        <a href="https://github.com/cinammon-net/panel">GitHub ↗</a>
+    </div>
+</header>
 <main>
     <nav aria-label="Contenido">
         <a href="#inicio">Introducción</a><a href="#requisitos">Requisitos</a><a href="#archivos">Archivos</a><a href="#entorno">Entorno y base de datos</a><a href="#web">Servidor web</a><a href="#procesos">Colas y tareas</a><a href="#wings">Wings</a><a href="#comprobar">Comprobación</a><a href="#actualizar">Actualizaciones</a>
@@ -93,7 +105,7 @@ sudo nginx -t</code></pre>
         <pre><code>sudo php artisan migrate --force
 sudo php artisan optimize:clear
 sudo php artisan queue:restart</code></pre>
-        <div class="next">¿Necesitas ayuda con un nodo? Consulta <a href="https://github.com/cinammon-net/wings">Cinammon Wings</a> o vuelve al <a href="/">panel</a>.</div>
+        <div class="next">¿Necesitas ayuda con un nodo o servidor? Consulta el repositorio de <a href="https://github.com/cinammon-net/wings">Cinammon Wings</a>, las <a href="https://cinammon.net/guias">Guías & Tutoriales en Vídeo</a> o accede al <a href="https://panel.cinammon.net">Panel de Control</a>.</div>
     </article>
 </main>
 </body>

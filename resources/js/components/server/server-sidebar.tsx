@@ -48,7 +48,7 @@ const footerNavItems = [
     },
     {
         title: 'Documentación',
-        href: '/docs/panel',
+        href: 'https://docs.cinammon.net',
         icon: FolderGit2,
         group: 'extra' as const,
         groupColor: 'text-yellow-400',
