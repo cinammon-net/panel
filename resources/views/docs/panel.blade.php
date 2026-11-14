@@ -59,9 +59,12 @@ sudo php artisan key:generate</code></pre>
         <p>Edita <code>.env</code> y configura al menos <code>APP_NAME</code>, <code>APP_ENV=production</code>, <code>APP_DEBUG=false</code>, <code>APP_URL=https://panel.tudominio.com</code> y <code>DB_CONNECTION</code>. Para comenzar con SQLite:</p>
         <pre><code>sudo touch database/database.sqlite
 sudo php artisan migrate --force
+sudo php artisan db:seed
 sudo php artisan storage:link
 sudo chown -R www-data:www-data storage bootstrap/cache database/database.sqlite
 sudo chmod -R ug+rwX storage bootstrap/cache</code></pre>
+        <p>El comando <code>db:seed</code> instala el catálogo de plantillas oficiales de juegos (Minecraft, MTA, bots, bases de datos) y la jerarquía de roles (Owner, Admin, Moderator, Helper, Sponsors, Members). Para crear tu cuenta inicial con rango Owner:</p>
+        <pre><code>sudo php artisan tinker --execute="\$u = App\Models\User::create(['name' => 'Administrador', 'email' => 'admin@tudominio.com', 'password' => 'tu_clave_segura', 'email_verified_at' => now()]); \$u->syncRoles(['Owner']);"</code></pre>
         <p>Para MySQL o MariaDB, crea antes una base de datos y un usuario propios y configura <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_DATABASE</code>, <code>DB_USERNAME</code> y <code>DB_PASSWORD</code> en <code>.env</code>. Configura también un transporte de correo real para enviar mensajes.</p>
 
         <h2 id="web">4. Nginx y HTTPS</h2>
