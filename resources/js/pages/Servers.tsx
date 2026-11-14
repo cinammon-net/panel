@@ -70,6 +70,8 @@ interface ServerItem {
     disk?: number;
     folder_id?: number | null;
     folder_path?: string | null;
+    is_booster_overclocked?: boolean;
+    booster_shield?: boolean;
 }
 
 interface FolderItem {
@@ -316,6 +318,17 @@ function ServerCard({ item, onOpenFolderModal }: { item: ServerItem; onOpenFolde
                                 >
                                     <Folder size={11} /> Sin carpeta
                                 </button>
+                            )}
+
+                            {item.is_booster_overclocked && (
+                                <span className="inline-flex items-center gap-1 rounded bg-pink-950/80 border border-pink-500/80 px-2 py-0.5 text-[10px] font-bold text-pink-300 font-mono tracking-wider shadow-[0_0_10px_rgba(236,72,153,0.3)]" title="Servidor potenciado por Nucleo Booster">
+                                    <Zap size={11} className="text-pink-400" /> BOOSTER OVERCLOCK
+                                </span>
+                            )}
+                            {item.booster_shield && (
+                                <span className="inline-flex items-center gap-1 rounded bg-emerald-950/80 border border-emerald-500/80 px-2 py-0.5 text-[10px] font-bold text-emerald-300 font-mono tracking-wider shadow-[0_0_10px_rgba(16,185,129,0.25)]" title="Protegido por Escudo Anti-Suspension Booster">
+                                    <Sparkles size={11} className="text-emerald-400" /> ESCUDO BOOSTER
+                                </span>
                             )}
                         </div>
                     </div>
@@ -1578,6 +1591,16 @@ export default function Servers() {
                                                                         <span className="truncate">{item.folder_path}</span>
                                                                     </div>
                                                                 )}
+                                                                {item.is_booster_overclocked && (
+                                                                    <div className="text-[10px] text-pink-400 font-bold font-mono flex items-center gap-1 mt-0.5">
+                                                                        <Zap size={9} /> BOOSTER OVERCLOCK
+                                                                    </div>
+                                                                )}
+                                                                {item.booster_shield && (
+                                                                    <div className="text-[10px] text-emerald-400 font-bold font-mono flex items-center gap-1 mt-0.5">
+                                                                        <Sparkles size={9} /> ESCUDO BOOSTER
+                                                                    </div>
+                                                                )}
                                                             </td>
                                                             <td className="hidden sm:table-cell px-3 py-3">
                                                                 <span className="flex items-center gap-2 text-xs text-neutral-700 dark:text-cyan-300 max-w-[170px]" title={item.egg}>
@@ -1708,6 +1731,16 @@ export default function Servers() {
                                                                             <div className="text-[10px] text-cyan-400 truncate font-mono flex items-center gap-1 mt-0.5" title={`Carpeta: ${item.folder_path}`}>
                                                                                 <Folder size={10} className="shrink-0" />
                                                                                 <span className="truncate">{item.folder_path}</span>
+                                                                            </div>
+                                                                        )}
+                                                                        {item.is_booster_overclocked && (
+                                                                            <div className="text-[10px] text-pink-400 font-bold font-mono flex items-center gap-1 mt-0.5">
+                                                                                <Zap size={9} /> BOOSTER OVERCLOCK
+                                                                            </div>
+                                                                        )}
+                                                                        {item.booster_shield && (
+                                                                            <div className="text-[10px] text-emerald-400 font-bold font-mono flex items-center gap-1 mt-0.5">
+                                                                                <Sparkles size={9} /> ESCUDO BOOSTER
                                                                             </div>
                                                                         )}
                                                                     </td>

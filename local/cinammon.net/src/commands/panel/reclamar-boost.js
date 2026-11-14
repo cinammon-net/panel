@@ -4,7 +4,7 @@ const { callPanelApi } = require('../../api/panel');
 module.exports = {
     name: 'reclamar-boost',
     aliases: ['reclamarboost', 'boost-server', 'claim-boost', 'boostserver', 'reclamar'],
-    description: 'Reclama tu servidor gratuito de hosting por dar Server Boost a Cinammon Network',
+    description: 'Gestiona tu Nucleo Cinammon Booster y elige como canjear tu recompensa de Server Boost',
     options: [],
     async execute({ user = {}, log } = {}) {
         const userId = user.id;
@@ -12,53 +12,75 @@ module.exports = {
             return v2Container({
                 accentColor: 0xef4444,
                 children: [
-                    v2Text('## Reclamar Servidor Boost\nNo se pudo identificar tu usuario de Discord.'),
+                    v2Text('## Reclamar Nucleo Boost\nNo se pudo identificar tu usuario de Discord.'),
                 ],
             });
         }
 
         try {
-            const res = await callPanelApi(`/api/bot/discord/${userId}/claim-boost`, 'POST', {});
+            const data = await callPanelApi(`/api/bot/discord/${userId}/booster-core`, 'GET');
+            const { core, target_server, allocated_server, user_servers } = data;
 
-            if (res.already_has_server) {
+            // Si el nucleo ya esta asignado y activo en algun modo
+            if (core && core.mode !== 'none') {
+                let modeTitle = 'Nucleo Booster Activo';
+                let modeDesc = '';
+                let activeServer = target_server || allocated_server;
+
+                if (core.mode === 'overclock') {
+                    modeTitle = 'Overclock Dinamico Activo';
+                    modeDesc = `✦ Servidor: **${activeServer?.name || 'Servidor asignado'}**\n` +
+                        `✦ Recursos Inyectados: **+3 GB RAM** · **+150% CPU Turbo** · **+10 GB NVMe**\n` +
+                        `✦ Estado: **Potenciado y Sincronizado**\n\n` +
+                        `Tu servidor cuenta con potencia adicional transferible y backups prioritarios.`;
+                } else if (core.mode === 'pod') {
+                    modeTitle = 'Pod Booster a la Carta Activo';
+                    modeDesc = `✦ Servidor Pod: **${activeServer?.name || 'Pod creado'}**\n` +
+                        `✦ Recursos: **4 GB RAM** · **15 GB NVMe** · **200% CPU**\n` +
+                        `✦ Direccion: \`${activeServer?.address || 'Asignada en panel'}\`\n\n` +
+                        `Servidor dedicado exclusivo en linea y gestionable desde el panel.`;
+                } else if (core.mode === 'shield') {
+                    modeTitle = 'Escudo de Inmunidad Activo';
+                    modeDesc = `✦ Servidor Protegido: **${activeServer?.name || 'Servidor asignado'}**\n` +
+                        `✦ Estado: **Blindado contra suspension e inactividad**\n\n` +
+                        `Tu servidor esta protegido mientras mantengas tu Server Boost activo en Discord.`;
+                }
+
                 return v2Container({
-                    accentColor: 0x3b82f6,
+                    accentColor: 0xec4899,
                     children: [
-                        v2Text('## Servidor Boost Activo\nYa dispones de un servidor de recompensa por Server Boost activo en tu cuenta.'),
+                        v2Text(`## ${modeTitle}\nTu Nucleo Cinammon Booster esta asignado y funcionando.`),
                         v2Separator(true, 1),
-                        v2Section([
-                            `✦ Nombre: **${res.server.name}**\n` +
-                            `✦ Direccion: \`${res.server.address || 'Asignada en panel'}\`\n` +
-                            `✦ Recursos: **${res.server.memory} MB RAM** · **${res.server.disk} MB Disco** · **${res.server.cpu}% CPU**\n\n` +
-                            `Puedes administrarlo encendiendolo, apagandolo o accediendo a la consola desde el panel web.`
-                        ]),
+                        v2Section([modeDesc]),
                         v2Separator(true, 1),
                         v2ActionRow([
-                            v2Button({ label: 'Abrir Servidor', url: res.server.url, style: ButtonStyle.LINK }),
-                            v2Button({ label: 'Mis Servidores', custom_id: 'btn:servidores', style: ButtonStyle.PRIMARY }),
+                            v2Button({ label: 'Abrir Consola', url: activeServer?.url || 'https://panel.cinammon.net', style: ButtonStyle.LINK }),
+                            v2Button({ label: 'Reasignar / Transferir Nucleo', custom_id: 'btn:boost:reset', style: ButtonStyle.SECONDARY }),
                         ]),
                     ],
                 });
             }
 
+            // Si el nucleo esta disponible para elegir modo
             return v2Container({
                 accentColor: 0xec4899,
                 children: [
-                    v2Text('## Servidor Boost Aprovisionado con Exito\n¡Muchas gracias por apoyar a Cinammon Network con tu Server Boost!'),
+                    v2Text('## NUCLEO CINAMMON BOOSTER DISPONIBLE\n¡Muchas gracias por apoyar a Cinammon Network con tu Server Boost!'),
                     v2Separator(true, 1),
                     v2Section([
-                        `Hemos creado tu servidor de recompensa:\n` +
-                        `✦ Servidor: **${res.server.name}**\n` +
-                        `✦ Memoria RAM: **4 GB (4096 MB)**\n` +
-                        `✦ Almacenamiento: **15 GB (15360 MB NVMe)**\n` +
-                        `✦ Procesador: **200% CPU**\n` +
-                        `✦ Direccion: \`${res.server.address || 'Asignando puerto...'}\`\n\n` +
-                        `El servidor se encuentra en instalacion. Podras gestionarlo en unos instantes desde el panel.`
+                        `Dispones de **1 Nucleo de Potencia Transferible** en tu cuenta.\n` +
+                        `✦ Estado: **Activo (Disponible para elegir)**\n` +
+                        `✦ Potencia: **+3 GB RAM / 4 GB Pod · 150% - 200% CPU**\n` +
+                        `✦ Servidores disponibles en tu cuenta: **${user_servers?.length || 0} servidores**\n\n` +
+                        `Selecciona abajo la opcion que deseas aplicar:`
                     ]),
                     v2Separator(true, 1),
                     v2ActionRow([
-                        v2Button({ label: 'Abrir en el Panel', url: res.server.url, style: ButtonStyle.LINK }),
-                        v2Button({ label: 'Mis Servidores', custom_id: 'btn:servidores', style: ButtonStyle.PRIMARY }),
+                        v2Button({ label: '1. Sobrecargar Servidor (Overclock)', custom_id: 'btn:boost:overclock', style: ButtonStyle.PRIMARY }),
+                    ]),
+                    v2ActionRow([
+                        v2Button({ label: '2. Desplegar Pod a Medida (Nuevo)', custom_id: 'btn:boost:pod', style: ButtonStyle.SECONDARY }),
+                        v2Button({ label: '3. Activar Escudo Anti-Suspension', custom_id: 'btn:boost:shield', style: ButtonStyle.SECONDARY }),
                     ]),
                 ],
             });
@@ -68,7 +90,7 @@ module.exports = {
                 return v2Container({
                     accentColor: 0xf59e0b,
                     children: [
-                        v2Text('## Cuenta no Vinculada\nPara reclamar tu servidor gratuito por Server Boost debes vincular tu cuenta de Discord.'),
+                        v2Text('## Cuenta no Vinculada\nPara acceder a tu Nucleo Booster debes vincular tu cuenta de Discord.'),
                         v2Separator(true, 1),
                         v2Section([
                             `Pasos para vincular:\n` +
@@ -87,7 +109,7 @@ module.exports = {
             return v2Container({
                 accentColor: 0xef4444,
                 children: [
-                    v2Text(`## Error al Reclamar Servidor Boost\nNo se pudo procesar la solicitud.\nDetalle: \`${err.message}\``),
+                    v2Text(`## Error al Gestionar Nucleo Booster\nNo se pudo procesar la solicitud.\nDetalle: \`${err.message}\``),
                 ],
             });
         }

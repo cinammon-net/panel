@@ -72,6 +72,20 @@ function v2ActionRow(buttons) {
     };
 }
 
+function v2StringSelect({ custom_id, placeholder = 'Selecciona una opcion...', options = [] }) {
+    return {
+        type: ComponentType.ACTION_ROW,
+        components: [
+            {
+                type: ComponentType.STRING_SELECT,
+                custom_id,
+                placeholder,
+                options,
+            },
+        ],
+    };
+}
+
 function v2Container({ accentColor = 0x06b6d4, children = [] }) {
     return {
         flags: IS_COMPONENTS_V2,
@@ -95,6 +109,7 @@ module.exports = {
     v2Section,
     v2Button,
     v2ActionRow,
+    v2StringSelect,
     v2Container,
 };
 

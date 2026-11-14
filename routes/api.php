@@ -87,6 +87,11 @@ Route::middleware('bot.secret')->group(function () {
         Route::get('/servers/{server}/subusers', 'subusers');
         Route::post('/redeem', 'redeem');
         Route::post('/claim-boost', 'claimBoost');
+        Route::get('/booster-core', 'boosterCoreStatus');
+        Route::post('/booster-core/overclock', 'boosterCoreOverclock');
+        Route::post('/booster-core/pod', 'boosterCorePod');
+        Route::post('/booster-core/shield', 'boosterCoreShield');
+        Route::post('/booster-core/reset', 'boosterCoreReset');
         Route::get('/affiliates', 'affiliates');
         Route::get('/servers/{server}/plugins', 'searchPlugins');
         Route::post('/servers/{server}/plugins/install', 'installPlugin');

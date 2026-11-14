@@ -10,6 +10,7 @@ use App\Models\Node;
 use App\Models\Server;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Models\UserBoosterCore;
 use App\Services\Daemon\WingsClient;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
@@ -748,48 +749,189 @@ class BotAccountController extends Controller
         ]);
     }
 
-    /** Reclamar servidor gratuito de hosting por Server Boost en Discord. */
-    public function claimBoost(Request $request, string $discordId, WingsClient $wings)
+    /** Estado y configuracion del Nucleo Cinammon Booster. */
+    public function boosterCoreStatus(Request $request, string $discordId)
     {
         $user = $this->user($discordId);
 
-        // Verificar si ya tiene un servidor de recompensa por boost activo
-        $existing = Server::where('owner_id', $user->id)
-            ->where(function ($q) {
-                $q->where('description', 'like', '%Server Boost%')
-                  ->orWhere('external_id', 'like', 'boost_%');
-            })
-            ->where('active', 1)
-            ->first();
+        $core = UserBoosterCore::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'discord_id' => $discordId,
+                'mode' => 'none',
+                'boost_active' => true,
+                'boost_since' => now(),
+                'extra_ram' => 3072,
+                'extra_cpu' => 150,
+                'extra_disk' => 10240,
+            ]
+        );
 
-        if ($existing) {
+        $userServers = Server::where('owner_id', $user->id)
+            ->where('active', 1)
+            ->select('id', 'name', 'memory', 'cpu', 'disk', 'is_booster_overclocked', 'booster_shield')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'core' => [
+                'id' => $core->id,
+                'mode' => $core->mode,
+                'boost_active' => $core->boost_active,
+                'extra_ram' => $core->extra_ram,
+                'extra_cpu' => $core->extra_cpu,
+                'extra_disk' => $core->extra_disk,
+                'target_server_id' => $core->target_server_id,
+                'allocated_server_id' => $core->allocated_server_id,
+                'last_reassigned_at' => $core->last_reassigned_at?->toIso8601String(),
+            ],
+            'target_server' => $core->targetServer ? [
+                'id' => $core->targetServer->id,
+                'name' => $core->targetServer->name,
+                'memory' => $core->targetServer->memory,
+                'cpu' => $core->targetServer->cpu,
+                'address' => $core->targetServer->publicAddress(),
+                'url' => url('/servers/' . $core->targetServer->id . '/console'),
+            ] : null,
+            'allocated_server' => $core->allocatedServer ? [
+                'id' => $core->allocatedServer->id,
+                'name' => $core->allocatedServer->name,
+                'memory' => $core->allocatedServer->memory,
+                'cpu' => $core->allocatedServer->cpu,
+                'address' => $core->allocatedServer->publicAddress(),
+                'url' => url('/servers/' . $core->allocatedServer->id . '/console'),
+            ] : null,
+            'user_servers' => $userServers,
+        ]);
+    }
+
+    /** Aplicar Overclock Dinamico a un servidor existente del usuario. */
+    public function boosterCoreOverclock(Request $request, string $discordId)
+    {
+        $user = $this->user($discordId);
+        $serverId = (int) $request->input('server_id');
+        $server = Server::where('id', $serverId)->where('owner_id', $user->id)->firstOrFail();
+
+        $core = UserBoosterCore::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'discord_id' => $discordId,
+                'mode' => 'none',
+                'boost_active' => true,
+                'boost_since' => now(),
+            ]
+        );
+
+        $core->applyOverclock($server);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Overclock aplicado con exito a {$server->name}.",
+            'server' => [
+                'id' => $server->id,
+                'name' => $server->name,
+                'memory' => $server->memory,
+                'cpu' => $server->cpu,
+                'disk' => $server->disk,
+                'address' => $server->publicAddress(),
+                'url' => url('/servers/' . $server->id . '/console'),
+            ],
+        ]);
+    }
+
+    /** Aplicar Escudo de Inmunidad Anti-Suspension a un servidor. */
+    public function boosterCoreShield(Request $request, string $discordId)
+    {
+        $user = $this->user($discordId);
+        $serverId = (int) $request->input('server_id');
+        $server = Server::where('id', $serverId)->where('owner_id', $user->id)->firstOrFail();
+
+        $core = UserBoosterCore::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'discord_id' => $discordId,
+                'mode' => 'none',
+                'boost_active' => true,
+                'boost_since' => now(),
+            ]
+        );
+
+        $core->applyShield($server);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Escudo de inmunidad anti-suspension aplicado con exito a {$server->name}.",
+            'server' => [
+                'id' => $server->id,
+                'name' => $server->name,
+                'address' => $server->publicAddress(),
+                'url' => url('/servers/' . $server->id . '/console'),
+            ],
+        ]);
+    }
+
+    /** Desplegar un Pod a la Carta (servidor nuevo con la categoria/juego elegido). */
+    public function boosterCorePod(Request $request, string $discordId, WingsClient $wings)
+    {
+        $user = $this->user($discordId);
+
+        $core = UserBoosterCore::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'discord_id' => $discordId,
+                'mode' => 'none',
+                'boost_active' => true,
+                'boost_since' => now(),
+            ]
+        );
+
+        // Si ya tiene un pod asignado y activo, devolverlo
+        if ($core->allocated_server_id && ($srv = Server::find($core->allocated_server_id))) {
             return response()->json([
                 'success' => true,
-                'already_has_server' => true,
-                'message' => 'Ya posees un servidor de recompensa por Server Boost activo en tu cuenta.',
+                'already_exists' => true,
+                'message' => 'Ya posees un Pod Booster activo en tu cuenta.',
                 'server' => [
-                    'id' => $existing->id,
-                    'name' => $existing->name,
-                    'memory' => $existing->memory,
-                    'disk' => $existing->disk,
-                    'cpu' => $existing->cpu,
-                    'address' => $existing->publicAddress(),
-                    'url' => url('/servers/' . $existing->id . '/console'),
+                    'id' => $srv->id,
+                    'name' => $srv->name,
+                    'memory' => $srv->memory,
+                    'cpu' => $srv->cpu,
+                    'disk' => $srv->disk,
+                    'address' => $srv->publicAddress(),
+                    'url' => url('/servers/' . $srv->id . '/console'),
                 ],
             ]);
         }
 
-        // Buscar nodo disponible sin modo de mantenimiento
+        $category = $request->input('category', 'bots'); // bots, games, minecraft, web
+        $eggId = $request->input('egg_id');
+
+        $egg = null;
+        if ($eggId) {
+            $egg = Egg::find($eggId);
+        }
+        if (!$egg) {
+            if ($category === 'bots') {
+                $egg = Egg::where('name', 'like', '%node.js%')->orWhere('name', 'like', '%python%')->first()
+                    ?? Egg::where('category', 'bots')->first();
+            } elseif ($category === 'games') {
+                $egg = Egg::where('name', 'like', '%SA-MP%')->orWhere('name', 'like', '%Rust%')->first()
+                    ?? Egg::where('category', 'games')->first();
+            } elseif ($category === 'web') {
+                $egg = Egg::where('name', 'like', '%WebHost%')->first()
+                    ?? Egg::where('category', 'web')->first();
+            } else {
+                $egg = Egg::where('name', 'like', '%Paper%')->first()
+                    ?? Egg::where('category', 'minecraft')->first();
+            }
+        }
+        if (!$egg) {
+            $egg = Egg::orderBy('id')->firstOrFail();
+        }
+
         $node = Node::where('maintenance_mode', false)->orderBy('id')->first() ?? Node::orderBy('id')->first();
         abort_unless($node, 503, 'No hay nodos disponibles para aprovisionar el servidor en este momento.');
 
-        // Buscar egg predeterminado (Minecraft Paper o el primero disponible)
-        $egg = Egg::where('name', 'like', '%Paper%')->first()
-            ?? Egg::where('category', 'minecraft')->first()
-            ?? Egg::orderBy('id')->first();
-        abort_unless($egg, 503, 'No se encontro una plantilla valida.');
-
-        // Asignar o crear allocation
         $allocation = Allocation::whereNull('server_id')
             ->where('node_id', $node->id)
             ->whereNotIn('id', Server::whereNotNull('allocation_id')->pluck('allocation_id'))
@@ -806,7 +948,7 @@ class BotAccountController extends Controller
         }
 
         $images = json_decode($egg->docker_images ?? '{}', true) ?: [];
-        $serverName = 'Boost Server · ' . $user->name;
+        $serverName = 'Pod Booster · ' . $user->name;
 
         $server = Server::create([
             'uuid' => (string) Str::uuid(),
@@ -814,22 +956,23 @@ class BotAccountController extends Controller
             'node_id' => $node->id,
             'allocation_id' => $allocation->id,
             'name' => $serverName,
-            'description' => 'Servidor de recompensa por Server Boost en Discord',
+            'description' => 'Pod exclusivo por Server Boost en Discord',
             'active' => 1,
             'owner_id' => $user->id,
-            'memory' => 4096, // 4 GB RAM
+            'memory' => 4096,
             'swap' => 0,
-            'disk' => 15360, // 15 GB NVMe
+            'disk' => 15360,
             'io' => 500,
-            'cpu' => 200, // 200% CPU
+            'cpu' => 200,
             'egg_id' => $egg->id,
             'startup' => $egg->startup ?? '',
             'image' => reset($images) ?: '',
             'status' => 0,
+            'is_booster_overclocked' => true,
         ]);
 
         $server->forceFill([
-            'external_id' => 'boost_' . $user->id . '_' . time(),
+            'external_id' => 'pod_boost_' . $user->id . '_' . time(),
             'billing_paid' => true,
         ])->save();
 
@@ -838,33 +981,48 @@ class BotAccountController extends Controller
         try {
             $wings->provision($server);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('ClaimBoost Wings: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::warning('PodBoost Wings: ' . $e->getMessage());
         }
 
-        try {
-            \App\Support\Ranks::sync($user);
-        } catch (\Throwable) {
-        }
+        $core->mode = 'pod';
+        $core->allocated_server_id = $server->id;
+        $core->last_reassigned_at = now();
+        $core->save();
 
         return response()->json([
             'success' => true,
-            'already_has_server' => false,
-            'message' => 'Servidor de recompensa por Server Boost creado y aprovisionado con exito.',
+            'message' => 'Pod Booster creado y aprovisionado con exito.',
             'server' => [
                 'id' => $server->id,
                 'name' => $server->name,
                 'memory' => $server->memory,
-                'disk' => $server->disk,
                 'cpu' => $server->cpu,
+                'disk' => $server->disk,
                 'address' => $server->fresh()->publicAddress(),
                 'url' => url('/servers/' . $server->id . '/console'),
             ],
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $this->maskEmail($user->email),
-            ],
-        ], 201);
+        ]);
+    }
+
+    /** Reiniciar asignacion del Nucleo Booster para permitir transferencia. */
+    public function boosterCoreReset(Request $request, string $discordId)
+    {
+        $user = $this->user($discordId);
+        $core = UserBoosterCore::where('user_id', $user->id)->first();
+        if ($core) {
+            $core->resetCore();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Nucleo Booster reiniciado y disponible para nueva asignacion.',
+        ]);
+    }
+
+    /** Reclamar servidor gratuito de hosting por Server Boost en Discord (compatibilidad). */
+    public function claimBoost(Request $request, string $discordId, WingsClient $wings)
+    {
+        return $this->boosterCoreStatus($request, $discordId);
     }
 
     /** Lista de plugins populares o busqueda. */

@@ -1370,38 +1370,35 @@ async function handleBoostReward(user, since, sourceChannelId = null) {
     }
 
     try {
-        const res = await panel('POST', `/api/bot/discord/${userId}/claim-boost`, {});
+        const res = await panel('GET', `/api/bot/discord/${userId}/booster-core`);
         st.boosts_processed[userId] = new Date().toISOString();
         saveState();
 
-        if (res.success && !res.already_has_server) {
-            log(`[BOOST] Servidor aprovisionado para @${user.username} (${userId})`);
+        log(`[BOOST] Nucleo Booster activado para @${user.username} (${userId})`);
 
-            // Anuncio publico en #compras o canal de sistema
-            const targetChannel = sourceChannelId || ctx.layout?.channels?.purchases || ctx.layout?.channels?.general;
-            if (targetChannel) {
-                const publicCard = msg(container(0xec4899, [
-                    text(`### Recompensa por Server Boost\nMuchisimas gracias a <@${userId}> por apoyar a Cinammon Network con su Server Boost.\nSe ha aprovisionado su servidor de recompensa en su cuenta.`),
-                    text(`✦ Servidor: **${cut(res.server.name, 60)}**\n✦ Recursos: **4 GB RAM** · **15 GB NVMe** · **200% CPU**`),
-                    text(`-# Recompensa automatica exclusiva para Boosters`),
-                    row(linkBtn('Abrir Servidor', res.server.url || PANEL_PUBLIC)),
-                ]));
-                await discord('POST', `/channels/${targetChannel}/messages`, publicCard).catch((e) => log(`[BOOST] Error anuncio publico: ${e.message}`));
-            }
+        // Anuncio publico en #compras o canal de sistema
+        const targetChannel = sourceChannelId || ctx.layout?.channels?.purchases || ctx.layout?.channels?.general;
+        if (targetChannel) {
+            const publicCard = msg(container(0xec4899, [
+                text(`### Recompensa por Server Boost\nMuchisimas gracias a <@${userId}> por apoyar a Cinammon Network con su Server Boost.\nSe ha activado su **Nucleo Cinammon Booster** transferible.`),
+                text(`✦ Opciones: **Overclock (+3 GB RAM)** · **Pod a la Carta (4 GB)** · **Escudo Anti-Suspension**\n✦ Usa **/reclamar-boost** para canjear o transferir tu potencia.`),
+                text(`-# Recompensa modular exclusiva para Boosters`),
+            ]));
+            await discord('POST', `/channels/${targetChannel}/messages`, publicCard).catch((e) => log(`[BOOST] Error anuncio publico: ${e.message}`));
+        }
 
-            // Mensaje directo (DM) al usuario
-            try {
-                const dm = await discord('POST', '/users/@me/channels', { recipient_id: userId });
-                const dmCard = msg(container(0xec4899, [
-                    text(`### Tu Servidor por Server Boost esta Listo\nHola **${cut(user.global_name || user.username, 50)}**, ¡gracias por impulsar la comunidad con tu Server Boost!\n\nHemos creado tu servidor de hosting gratuito con las siguientes especificaciones:`),
-                    text(`✦ Nombre: **${cut(res.server.name, 60)}**\n✦ Memoria RAM: **4 GB**\n✦ Disco: **15 GB NVMe**\n✦ CPU: **200%**\n✦ Direccion: \`${res.server.address || 'Asignando puerto...'}\``),
-                    text(`Ya puedes administrar tu servidor desde el panel web o usar comandos como \`/servidores\` o \`/energia\` aqui en Discord.`),
-                    row(linkBtn('Ir a la Consola', res.server.url || PANEL_PUBLIC)),
-                ]));
-                await discord('POST', `/channels/${dm.id}/messages`, dmCard);
-            } catch (dmErr) {
-                log(`[BOOST] DM no enviado a ${userId}: ${dmErr.message}`);
-            }
+        // Mensaje directo (DM) al usuario
+        try {
+            const dm = await discord('POST', '/users/@me/channels', { recipient_id: userId });
+            const dmCard = msg(container(0xec4899, [
+                text(`### ¡Tu Nucleo Cinammon Booster esta Listo!\nHola **${cut(user.global_name || user.username, 50)}**, ¡muchas gracias por apoyar a Cinammon Network con tu Server Boost!\n\nTu **Nucleo de Potencia Transferible** ya esta disponible en tu cuenta. En lugar de imponerte un servidor predeterminado, puedes elegir tu recompensa:`),
+                text(`1. **Sobrecargar Servidor Existente (Overclock):** Suma +3 GB RAM, +150% CPU y backups a tu servidor actual.\n2. **Desplegar Pod a Medida:** Crea un servidor nuevo eligiendo entre Bots de Discord, Minecraft, GTA SA-MP, Rust, Web, etc.\n3. **Activar Escudo Anti-Suspension:** Inmunidad contra suspension por saldo o inactividad.`),
+                text(`Ejecuta el comando **/reclamar-boost** aqui en Discord para elegir tu opcion.`),
+                row(linkBtn('Ir al Panel', PANEL_PUBLIC)),
+            ]));
+            await discord('POST', `/channels/${dm.id}/messages`, dmCard);
+        } catch (dmErr) {
+            log(`[BOOST] DM no enviado a ${userId}: ${dmErr.message}`);
         }
     } catch (err) {
         log(`[BOOST] Intento para ${userId}: ${err.message}`);
@@ -1412,7 +1409,7 @@ async function handleBoostReward(user, since, sourceChannelId = null) {
             try {
                 const dm = await discord('POST', '/users/@me/channels', { recipient_id: userId });
                 const dmCard = msg(container(0xf59e0b, [
-                    text(`### ¡Gracias por tu Server Boost en Cinammon Network!\nHola **${cut(user.global_name || user.username, 50)}**, detectamos tu Boost en nuestro servidor de Discord.\n\nPara recibir tu **Servidor Gratuito (4 GB RAM, 15 GB NVMe, 200% CPU)**, necesitas vincular tu cuenta del panel:\n\n1. Entra a **${PANEL_PUBLIC}** y crea o inicia tu cuenta.\n2. Ejecuta el comando **/vincular** aqui en Discord.\n3. Una vez vinculado, ejecuta **/reclamar-boost** para recibir tu servidor de inmediato.`),
+                    text(`### ¡Gracias por tu Server Boost en Cinammon Network!\nHola **${cut(user.global_name || user.username, 50)}**, detectamos tu Boost en nuestro servidor de Discord.\n\nPara activar tu **Nucleo Cinammon Booster (Overclock transferible, Pod a medida o Escudo)**, necesitas vincular tu cuenta del panel:\n\n1. Entra a **${PANEL_PUBLIC}** y crea o inicia tu cuenta.\n2. Ejecuta el comando **/vincular** aqui en Discord.\n3. Una vez vinculado, ejecuta **/reclamar-boost** para elegir tu recompensa.`),
                     row(linkBtn('Ir al Panel', PANEL_PUBLIC)),
                 ]));
                 await discord('POST', `/channels/${dm.id}/messages`, dmCard);

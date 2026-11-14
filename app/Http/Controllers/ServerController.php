@@ -214,6 +214,8 @@ class ServerController extends Controller
                 'backups' => $server->backup_limit ?? 0,
                 'folder_id' => $serverFolderMap[$server->id] ?? null,
                 'folder_path' => isset($serverFolderMap[$server->id]) ? ($folderPaths[$serverFolderMap[$server->id]] ?? null) : null,
+                'is_booster_overclocked' => (bool) ($server->is_booster_overclocked ?? false),
+                'booster_shield' => (bool) ($server->booster_shield ?? false),
             ];
         });
 

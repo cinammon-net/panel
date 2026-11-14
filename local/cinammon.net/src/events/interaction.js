@@ -1,5 +1,5 @@
 const { commands } = require('../commands');
-const { v2Container, v2Text } = require('../components/v2');
+const { v2Container, v2Text, v2Separator, v2Section, v2Button, v2ActionRow, v2StringSelect, ButtonStyle } = require('../components/v2');
 const { callPanelApi } = require('../api/panel');
 
 async function onInteraction({ interaction, token, applicationId, log }) {
@@ -69,6 +69,179 @@ async function onInteraction({ interaction, token, applicationId, log }) {
             } else if (customId === 'btn:monedas' || customId === 'v2_cmd:monedas') {
                 responsePayload = await commands.get('monedas')?.execute({ user, log });
             } else if (customId === 'btn:boost' || customId === 'v2_cmd:boost') {
+                responsePayload = await commands.get('reclamar-boost')?.execute({ user, log });
+            } else if (customId === 'btn:boost:overclock') {
+                const data = await callPanelApi(`/api/bot/discord/${user.id}/booster-core`, 'GET');
+                const servers = data.user_servers || [];
+                if (servers.length === 0) {
+                    responsePayload = v2Container({
+                        accentColor: 0xf59e0b,
+                        children: [
+                            v2Text('## No Tienes Servidores Propios\nNo encontramos servidores activos en tu cuenta para aplicar Overclock.\n\nPuedes usar la **Opcion 2: Desplegar Pod a Medida** para crear uno nuevo con tus 4 GB de RAM de Booster.'),
+                            v2Separator(true, 1),
+                            v2ActionRow([
+                                v2Button({ label: 'Desplegar Pod a Medida', custom_id: 'btn:boost:pod', style: ButtonStyle.PRIMARY }),
+                                v2Button({ label: 'Volver', custom_id: 'btn:boost', style: ButtonStyle.SECONDARY }),
+                            ]),
+                        ],
+                    });
+                } else {
+                    const options = servers.map((s) => ({
+                        label: `${s.name}`.slice(0, 50),
+                        value: String(s.id),
+                        description: `RAM: ${s.memory} MB -> ${s.memory + 3072} MB | CPU: ${s.cpu}% -> ${s.cpu + 150}%`.slice(0, 95),
+                    }));
+                    responsePayload = v2Container({
+                        accentColor: 0x34d399,
+                        children: [
+                            v2Text('## Selecciona el Servidor para Overclock\nElige cual de tus servidores recibira **+3 GB RAM**, **+150% CPU Turbo** y **+10 GB NVMe**:'),
+                            v2Separator(true, 1),
+                            v2StringSelect({
+                                custom_id: 'select:boost:overclock',
+                                placeholder: 'Elige tu servidor a potenciar...',
+                                options,
+                            }),
+                            v2Separator(true, 1),
+                            v2ActionRow([
+                                v2Button({ label: 'Cancelar / Volver', custom_id: 'btn:boost', style: ButtonStyle.SECONDARY }),
+                            ]),
+                        ],
+                    });
+                }
+            } else if (customId === 'select:boost:overclock') {
+                const serverId = interaction.data?.values?.[0];
+                const res = await callPanelApi(`/api/bot/discord/${user.id}/booster-core/overclock`, 'POST', { server_id: serverId });
+                responsePayload = v2Container({
+                    accentColor: 0x10b981,
+                    children: [
+                        v2Text('## OVERCLOCK APLICADO CON EXITO\nTu Nucleo Cinammon Booster ha potenciado tu servidor.'),
+                        v2Separator(true, 1),
+                        v2Section([
+                            `✦ Servidor: **${res.server.name}**\n` +
+                            `✦ Memoria RAM: **${res.server.memory} MB**\n` +
+                            `✦ Procesador: **${res.server.cpu}% CPU**\n` +
+                            `✦ Almacenamiento: **${res.server.disk} MB NVMe**\n` +
+                            `✦ Direccion: \`${res.server.address || 'En panel'}\`\n\n` +
+                            `Este beneficio es transferible. Puedes reasignar la potencia a otro servidor cuando lo desees.`
+                        ]),
+                        v2Separator(true, 1),
+                        v2ActionRow([
+                            v2Button({ label: 'Abrir Consola', url: res.server.url, style: ButtonStyle.LINK }),
+                            v2Button({ label: 'Mis Servidores', custom_id: 'btn:servidores', style: ButtonStyle.PRIMARY }),
+                            v2Button({ label: 'Reasignar Nucleo', custom_id: 'btn:boost:reset', style: ButtonStyle.SECONDARY }),
+                        ]),
+                    ],
+                });
+            } else if (customId === 'btn:boost:shield') {
+                const data = await callPanelApi(`/api/bot/discord/${user.id}/booster-core`, 'GET');
+                const servers = data.user_servers || [];
+                if (servers.length === 0) {
+                    responsePayload = v2Container({
+                        accentColor: 0xf59e0b,
+                        children: [
+                            v2Text('## No Tienes Servidores para Proteger\nNo encontramos servidores activos en tu cuenta para aplicar el Escudo de Inmunidad.\n\nCrea primero un servidor o despliega un Pod a Medida con tu boost.'),
+                            v2Separator(true, 1),
+                            v2ActionRow([
+                                v2Button({ label: 'Desplegar Pod a Medida', custom_id: 'btn:boost:pod', style: ButtonStyle.PRIMARY }),
+                                v2Button({ label: 'Volver', custom_id: 'btn:boost', style: ButtonStyle.SECONDARY }),
+                            ]),
+                        ],
+                    });
+                } else {
+                    const options = servers.map((s) => ({
+                        label: `${s.name}`.slice(0, 50),
+                        value: String(s.id),
+                        description: `Inmunidad total anti-suspension y borrado por inactividad`.slice(0, 95),
+                    }));
+                    responsePayload = v2Container({
+                        accentColor: 0x06b6d4,
+                        children: [
+                            v2Text('## Selecciona el Servidor para el Escudo de Inmunidad\nEl servidor seleccionado nunca se suspendera ni se borrara por inactividad mientras mantengas tu Boost:'),
+                            v2Separator(true, 1),
+                            v2StringSelect({
+                                custom_id: 'select:boost:shield',
+                                placeholder: 'Elige tu servidor a blindar...',
+                                options,
+                            }),
+                            v2Separator(true, 1),
+                            v2ActionRow([
+                                v2Button({ label: 'Cancelar / Volver', custom_id: 'btn:boost', style: ButtonStyle.SECONDARY }),
+                            ]),
+                        ],
+                    });
+                }
+            } else if (customId === 'select:boost:shield') {
+                const serverId = interaction.data?.values?.[0];
+                const res = await callPanelApi(`/api/bot/discord/${user.id}/booster-core/shield`, 'POST', { server_id: serverId });
+                responsePayload = v2Container({
+                    accentColor: 0x06b6d4,
+                    children: [
+                        v2Text('## ESCUDO DE INMUNIDAD ACTIVADO\nTu servidor ha quedado blindado con exito.'),
+                        v2Separator(true, 1),
+                        v2Section([
+                            `✦ Servidor Protegido: **${res.server.name}**\n` +
+                            `✦ Proteccion: **Inmune a suspension por saldo, creditos o inactividad**\n` +
+                            `✦ Vigencia: **Activa mientras mantengas tu Server Boost**\n\n` +
+                            `Puedes administrarlo o transferir el escudo cuando lo desees.`
+                        ]),
+                        v2Separator(true, 1),
+                        v2ActionRow([
+                            v2Button({ label: 'Abrir Consola', url: res.server.url, style: ButtonStyle.LINK }),
+                            v2Button({ label: 'Mis Servidores', custom_id: 'btn:servidores', style: ButtonStyle.PRIMARY }),
+                            v2Button({ label: 'Reasignar Nucleo', custom_id: 'btn:boost:reset', style: ButtonStyle.SECONDARY }),
+                        ]),
+                    ],
+                });
+            } else if (customId === 'btn:boost:pod') {
+                responsePayload = v2Container({
+                    accentColor: 0x06b6d4,
+                    children: [
+                        v2Text('## CONFIGURAR POD BOOSTER A LA CARTA\nElige el tipo de entorno que deseas desplegar para tu servidor nuevo (4 GB RAM, 15 GB NVMe, 200% CPU):'),
+                        v2Separator(true, 1),
+                        v2ActionRow([
+                            v2Button({ label: 'Bots & Codigo 24/7 (NodeJS / Python / Bun)', custom_id: 'btn:boost:pod_cat:bots', style: ButtonStyle.PRIMARY }),
+                        ]),
+                        v2ActionRow([
+                            v2Button({ label: 'Minecraft Dedicado (Paper / Fabric / Bedrock)', custom_id: 'btn:boost:pod_cat:minecraft', style: ButtonStyle.SECONDARY }),
+                        ]),
+                        v2ActionRow([
+                            v2Button({ label: 'Juegos (GTA SA-MP / MTA / Rust / Palworld)', custom_id: 'btn:boost:pod_cat:games', style: ButtonStyle.SECONDARY }),
+                        ]),
+                        v2ActionRow([
+                            v2Button({ label: 'Web, Cloud & DB (Nginx+PHP / Uptime / SQL)', custom_id: 'btn:boost:pod_cat:web', style: ButtonStyle.SECONDARY }),
+                        ]),
+                        v2Separator(true, 1),
+                        v2ActionRow([
+                            v2Button({ label: 'Volver al Menu Principal', custom_id: 'btn:boost', style: ButtonStyle.SECONDARY }),
+                        ]),
+                    ],
+                });
+            } else if (customId.startsWith('btn:boost:pod_cat:')) {
+                const category = customId.split(':')[3];
+                const res = await callPanelApi(`/api/bot/discord/${user.id}/booster-core/pod`, 'POST', { category });
+                responsePayload = v2Container({
+                    accentColor: 0xec4899,
+                    children: [
+                        v2Text('## POD BOOSTER APROVISIONADO CON EXITO\nTu nuevo servidor a la carta ha sido creado.'),
+                        v2Separator(true, 1),
+                        v2Section([
+                            `✦ Nombre: **${res.server.name}**\n` +
+                            `✦ Memoria RAM: **4 GB (4096 MB)**\n` +
+                            `✦ Almacenamiento: **15 GB NVMe**\n` +
+                            `✦ Procesador: **200% CPU**\n` +
+                            `✦ Direccion: \`${res.server.address || 'Asignando puerto...'}\`\n\n` +
+                            `El servidor se encuentra en instalacion. Puedes gestionarlo de inmediato desde el panel web.`
+                        ]),
+                        v2Separator(true, 1),
+                        v2ActionRow([
+                            v2Button({ label: 'Abrir en Panel', url: res.server.url, style: ButtonStyle.LINK }),
+                            v2Button({ label: 'Mis Servidores', custom_id: 'btn:servidores', style: ButtonStyle.PRIMARY }),
+                            v2Button({ label: 'Reasignar Nucleo', custom_id: 'btn:boost:reset', style: ButtonStyle.SECONDARY }),
+                        ]),
+                    ],
+                });
+            } else if (customId === 'btn:boost:reset') {
+                await callPanelApi(`/api/bot/discord/${user.id}/booster-core/reset`, 'POST', {});
                 responsePayload = await commands.get('reclamar-boost')?.execute({ user, log });
             } else if (customId === 'btn:afiliado' || customId === 'v2_cmd:afiliado') {
                 responsePayload = await commands.get('afiliado')?.execute({ user, log });
