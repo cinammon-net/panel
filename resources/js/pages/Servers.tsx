@@ -33,6 +33,7 @@ import {
     Power,
     Radio,
     Server,
+    Shield,
     Sparkles,
     Terminal,
     Trash2,
@@ -63,6 +64,7 @@ interface ServerItem {
     database: string | number;
     backups?: number;
     allocation: string;
+    owner_id?: number;
     username: string;
     user_avatar?: string | null;
     cpu?: number;
@@ -82,6 +84,19 @@ interface FolderItem {
     color?: string | null;
     icon?: string | null;
     servers_count?: number;
+}
+
+interface BoosterCoreItem {
+    id: number;
+    mode: 'none' | 'overclock' | 'pod' | 'shield';
+    boost_active: boolean;
+    extra_ram: number;
+    extra_cpu: number;
+    extra_disk: number;
+    target_server_id?: number | null;
+    allocated_server_id?: number | null;
+    target_server?: { id: number; name: string } | null;
+    allocated_server?: { id: number; name: string } | null;
 }
 
 interface Pagination<T> {
@@ -597,7 +612,8 @@ function ServerCard({ item, onOpenFolderModal }: { item: ServerItem; onOpenFolde
 }
 
 export default function Servers() {
-    const { servers, filters, categoryCounts, statusCounts, scopeCounts, folders = [], folderPaths = {} } = usePage<{
+    const { auth, servers, filters, categoryCounts, statusCounts, scopeCounts, folders = [], folderPaths = {}, boosterCore = null } = usePage<{
+        auth?: { user?: { id: number; name?: string } };
         servers: Pagination<ServerItem>;
         filters: { search?: string; sort?: string; direction?: string; per_page?: number; category?: string; status?: string; scope?: string; folder?: string };
         categoryCounts?: Record<string, number>;
@@ -605,6 +621,7 @@ export default function Servers() {
         scopeCounts?: { all: number; mine: number; others: number };
         folders?: FolderItem[];
         folderPaths?: Record<number, string>;
+        boosterCore?: BoosterCoreItem | null;
     }>().props;
 
     const [search, setSearch] = useState(filters.search || '');
@@ -632,6 +649,13 @@ export default function Servers() {
     const [targetFolderId, setTargetFolderId] = useState<number | null>(null);
     const [isSavingAssign, setIsSavingAssign] = useState(false);
 
+    // Modal Núcleo Cinammon Booster
+    const [isBoosterModalOpen, setIsBoosterModalOpen] = useState(false);
+    const [boosterTab, setBoosterTab] = useState<'overclock' | 'pod' | 'shield'>('overclock');
+    const [boosterTargetServerId, setBoosterTargetServerId] = useState<number | ''>('');
+    const [boosterPodCategory, setBoosterPodCategory] = useState<'bots' | 'minecraft' | 'games' | 'web'>('bots');
+    const [isSavingBooster, setIsSavingBooster] = useState(false);
+
     const [selectedMcSubcat, setSelectedMcSubcat] = useState<string>('all');
     const [isMcExpanded, setIsMcExpanded] = useState<boolean>(true);
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
@@ -654,6 +678,11 @@ export default function Servers() {
         });
         return map;
     }, [folders]);
+
+    const myOwnedServers = useMemo(() => {
+        if (!auth?.user) return servers.data || [];
+        return (servers.data || []).filter((s) => s.owner_id === auth.user?.id);
+    }, [servers.data, auth]);
 
     const handleOpenCreateFolder = (parentId: number | null = null) => {
         setFolderModalMode('create');
@@ -760,6 +789,73 @@ export default function Servers() {
 
     const handleSelectFolder = (folderId: string) => {
         applyFilters(selectedCategory, selectedStatus, selectedScope, folderId);
+    };
+
+    const handleApplyBoosterOverclock = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!boosterTargetServerId) return;
+        setIsSavingBooster(true);
+        router.post(
+            '/booster-core/overclock',
+            { server_id: boosterTargetServerId },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    setIsSavingBooster(false);
+                    setIsBoosterModalOpen(false);
+                },
+            }
+        );
+    };
+
+    const handleApplyBoosterShield = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!boosterTargetServerId) return;
+        setIsSavingBooster(true);
+        router.post(
+            '/booster-core/shield',
+            { server_id: boosterTargetServerId },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    setIsSavingBooster(false);
+                    setIsBoosterModalOpen(false);
+                },
+            }
+        );
+    };
+
+    const handleApplyBoosterPod = (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSavingBooster(true);
+        router.post(
+            '/booster-core/pod',
+            { category: boosterPodCategory },
+            {
+                preserveScroll: true,
+                onFinish: () => {
+                    setIsSavingBooster(false);
+                    setIsBoosterModalOpen(false);
+                },
+            }
+        );
+    };
+
+    const handleResetBoosterCore = () => {
+        if (confirm('¿Deseas reiniciar la asignación de tu Núcleo Booster para transferirlo o cambiar de opción?')) {
+            setIsSavingBooster(true);
+            router.post(
+                '/booster-core/reset',
+                {},
+                {
+                    preserveScroll: true,
+                    onFinish: () => {
+                        setIsSavingBooster(false);
+                        setIsBoosterModalOpen(false);
+                    },
+                }
+            );
+        }
     };
 
     // Categorías principales
@@ -1066,6 +1162,26 @@ export default function Servers() {
                             </span>
                             {showFolderDrawer ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                         </button>
+
+                        {/* Botón Núcleo Cinammon Booster */}
+                        <button
+                            type="button"
+                            onClick={() => setIsBoosterModalOpen(true)}
+                            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold border transition ${
+                                boosterCore && boosterCore.mode !== 'none'
+                                    ? 'border-pink-500 bg-pink-950/60 text-pink-300 shadow-[0_0_12px_rgba(236,72,153,0.3)]'
+                                    : 'border-neutral-800 bg-neutral-900/80 text-neutral-400 hover:text-pink-300 hover:border-pink-800'
+                            }`}
+                            title="Gestionar Núcleo Cinammon Booster en la web"
+                        >
+                            <Zap size={13} className={boosterCore && boosterCore.mode !== 'none' ? 'text-pink-400' : ''} />
+                            <span>
+                                Núcleo Booster
+                                {boosterCore && boosterCore.mode !== 'none'
+                                    ? ` (${boosterCore.mode === 'overclock' ? 'Overclock' : boosterCore.mode === 'pod' ? 'Pod' : 'Escudo'})`
+                                    : ''}
+                            </span>
+                        </button>
                     </div>
                 </div>
 
@@ -1332,6 +1448,39 @@ export default function Servers() {
 
                 {/* CONTENIDO PRINCIPAL: ANCHO COMPLETO */}
                 <div className="w-full min-w-0">
+                        {/* Banner de Núcleo Booster Activo */}
+                        {boosterCore && boosterCore.mode !== 'none' && (
+                            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-pink-500/50 bg-pink-950/30 p-3.5 shadow-lg backdrop-blur-md">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-pink-500/20 border border-pink-500/50 text-pink-400">
+                                        <Zap size={18} />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-bold text-white tracking-wide uppercase">Núcleo Booster Activo</span>
+                                            <span className="rounded bg-pink-500 px-2 py-0.2 text-[10px] font-bold text-black font-mono uppercase">
+                                                {boosterCore.mode}
+                                            </span>
+                                        </div>
+                                        <p className="text-[11px] text-pink-200/80 font-mono">
+                                            {boosterCore.mode === 'overclock' && `Potenciando a ${boosterCore.target_server?.name || 'servidor'} con +3 GB RAM y +150% CPU`}
+                                            {boosterCore.mode === 'pod' && `Pod dedicado: ${boosterCore.allocated_server?.name || 'en linea'}`}
+                                            {boosterCore.mode === 'shield' && `Escudo de inmunidad activo en ${boosterCore.target_server?.name || 'servidor'}`}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsBoosterModalOpen(true)}
+                                        className="rounded-lg border border-pink-500/60 bg-pink-900/40 hover:bg-pink-800/60 px-3 py-1.5 text-xs font-bold text-pink-200 transition"
+                                    >
+                                        Gestionar / Transferir
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="overflow-hidden rounded-lg border border-cyan-300 bg-white shadow-none transition dark:border-cyan-700 dark:bg-neutral-950">
                             {/* Barra de Filtros, Agrupación y Búsqueda */}
                             <form
@@ -2148,6 +2297,452 @@ export default function Servers() {
                                     </div>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Modal Núcleo Cinammon Booster */}
+                {isBoosterModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="relative w-full max-w-2xl rounded-2xl border border-pink-500/40 bg-gradient-to-b from-[#160b1e] via-[#0d0f17] to-[#090a0f] p-6 shadow-[0_0_50px_rgba(236,72,153,0.2)] text-white overflow-hidden">
+                            {/* Ambient Glow */}
+                            <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-pink-600/15 blur-3xl" />
+                            <div className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-cyan-600/15 blur-3xl" />
+
+                            {/* Header */}
+                            <div className="relative flex items-start justify-between gap-4 pb-4 border-b border-neutral-800/80">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-pink-500/20 border border-pink-500/50 text-pink-400 shadow-[0_0_15px_rgba(236,72,153,0.3)] shrink-0">
+                                        <Zap size={22} className="text-pink-400" />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="text-base font-bold text-white tracking-wide">
+                                                Núcleo Cinammon Booster
+                                            </h3>
+                                            {boosterCore && boosterCore.mode !== 'none' ? (
+                                                <span className="rounded-full bg-pink-500/20 border border-pink-500/60 px-2.5 py-0.5 text-[10px] font-bold text-pink-300 font-mono tracking-wider uppercase shadow-[0_0_10px_rgba(236,72,153,0.25)]">
+                                                    Activo ({boosterCore.mode})
+                                                </span>
+                                            ) : boosterCore ? (
+                                                <span className="rounded-full bg-cyan-500/20 border border-cyan-500/60 px-2.5 py-0.5 text-[10px] font-bold text-cyan-300 font-mono tracking-wider uppercase">
+                                                    Disponible
+                                                </span>
+                                            ) : (
+                                                <span className="rounded-full bg-neutral-800 border border-neutral-700 px-2.5 py-0.5 text-[10px] font-semibold text-neutral-400 font-mono">
+                                                    Sin Boost Activo
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-neutral-400 mt-0.5">
+                                            Potencia modular y transferible para benefactores de la comunidad
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setIsBoosterModalOpen(false)}
+                                    className="rounded-lg p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-800 transition"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            {/* Contenido según estado */}
+                            {!boosterCore ? (
+                                /* Caso 1: Usuario no tiene Boost */
+                                <div className="relative py-6 space-y-4">
+                                    <div className="rounded-xl border border-pink-500/30 bg-pink-950/20 p-5 space-y-3">
+                                        <div className="flex items-center gap-2 text-pink-300 font-semibold text-sm">
+                                            <Sparkles size={16} /> Beneficio exclusivo para Boosters
+                                        </div>
+                                        <p className="text-xs text-neutral-300 leading-relaxed">
+                                            El Núcleo Booster se activa de manera automática cuando impulsas con tu Server Boost a nuestro servidor oficial de Discord. Con este núcleo podrás transferir recursos libremente entre tres modalidades:
+                                        </p>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1 text-xs">
+                                            <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-3 space-y-1">
+                                                <div className="flex items-center gap-1.5 font-bold text-pink-400">
+                                                    <Zap size={14} /> Overclock
+                                                </div>
+                                                <p className="text-[11px] text-neutral-400">+3 GB RAM, +150% CPU y +10 GB NVMe en cualquier servidor.</p>
+                                            </div>
+                                            <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-3 space-y-1">
+                                                <div className="flex items-center gap-1.5 font-bold text-cyan-400">
+                                                    <Box size={14} /> Pod a la Carta
+                                                </div>
+                                                <p className="text-[11px] text-neutral-400">Nuevo servidor de 4 GB RAM autónomo en la categoría que elijas.</p>
+                                            </div>
+                                            <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-3 space-y-1">
+                                                <div className="flex items-center gap-1.5 font-bold text-emerald-400">
+                                                    <Shield size={14} /> Escudo Inmune
+                                                </div>
+                                                <p className="text-[11px] text-neutral-400">Protección permanente contra suspensiones por inactividad.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4 space-y-2">
+                                        <div className="text-xs font-semibold text-neutral-300 uppercase tracking-wider font-mono">
+                                            Pasos para activarlo:
+                                        </div>
+                                        <ol className="text-xs text-neutral-400 space-y-1.5 list-decimal list-inside">
+                                            <li>Únete al servidor oficial de Discord de Cinammon.</li>
+                                            <li>Aplica tu Server Boost a la comunidad.</li>
+                                            <li>Ejecuta el comando <code className="bg-neutral-800 px-1.5 py-0.5 rounded text-pink-300 font-mono text-[11px]">/reclamar-boost</code> en Discord o vincula tu cuenta.</li>
+                                        </ol>
+                                    </div>
+
+                                    <div className="flex items-center justify-end gap-2 pt-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsBoosterModalOpen(false)}
+                                            className="rounded-lg border border-neutral-700 px-4 py-2 text-xs font-semibold text-neutral-300 hover:text-white"
+                                        >
+                                            Entendido
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : boosterCore.mode !== 'none' ? (
+                                /* Caso 2: Núcleo asignado actualmente */
+                                <div className="relative py-6 space-y-4">
+                                    <div className="rounded-xl border border-pink-500/40 bg-pink-950/20 p-5 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-mono uppercase tracking-wider text-pink-400 font-bold">
+                                                Asignación actual del núcleo
+                                            </span>
+                                            <span className="rounded bg-pink-500 px-2 py-0.5 text-[10px] font-bold text-black font-mono uppercase">
+                                                {boosterCore.mode}
+                                            </span>
+                                        </div>
+
+                                        <div className="rounded-lg border border-neutral-800 bg-neutral-900/80 p-3.5 space-y-1.5">
+                                            <div className="text-sm font-bold text-white flex items-center gap-2">
+                                                {boosterCore.mode === 'overclock' && <Zap size={16} className="text-pink-400" />}
+                                                {boosterCore.mode === 'pod' && <Box size={16} className="text-cyan-400" />}
+                                                {boosterCore.mode === 'shield' && <Shield size={16} className="text-emerald-400" />}
+                                                {boosterCore.mode === 'overclock' && `Overclock en ${boosterCore.target_server?.name || 'servidor'}`}
+                                                {boosterCore.mode === 'pod' && `Pod dedicado: ${boosterCore.allocated_server?.name || 'servidor'}`}
+                                                {boosterCore.mode === 'shield' && `Escudo activo en ${boosterCore.target_server?.name || 'servidor'}`}
+                                            </div>
+                                            <p className="text-xs text-neutral-400">
+                                                {boosterCore.mode === 'overclock' && 'Recursos adicionales: +3072 MB RAM, +150% CPU, +10240 MB Disco NVMe.'}
+                                                {boosterCore.mode === 'pod' && 'Servidor autónomo con 4096 MB RAM, 200% CPU, 15360 MB Disco NVMe.'}
+                                                {boosterCore.mode === 'shield' && 'Inmunidad total a suspensión por inactividad o falta de créditos.'}
+                                            </p>
+                                        </div>
+
+                                        <p className="text-xs text-neutral-400 leading-relaxed">
+                                            Puedes liberar tu núcleo en cualquier instante para reasignar la potencia a otro servidor o cambiar la modalidad (Overclock, Pod o Escudo) sin penalizaciones ni pérdida de datos.
+                                        </p>
+                                    </div>
+
+                                    <div className="flex items-center justify-between gap-3 pt-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsBoosterModalOpen(false)}
+                                            className="rounded-lg border border-neutral-700 px-4 py-2 text-xs font-semibold text-neutral-400 hover:text-white"
+                                        >
+                                            Cerrar
+                                        </button>
+                                        <button
+                                            type="button"
+                                            disabled={isSavingBooster}
+                                            onClick={handleResetBoosterCore}
+                                            className="rounded-lg bg-pink-600 hover:bg-pink-500 px-5 py-2 text-xs font-bold text-white transition shadow-[0_0_20px_rgba(236,72,153,0.35)] disabled:opacity-40"
+                                        >
+                                            {isSavingBooster ? 'Liberando núcleo...' : 'Liberar y Reasignar Núcleo'}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                /* Caso 3: Núcleo disponible para asignar (3 pestañas) */
+                                <div className="relative py-4 space-y-4">
+                                    {/* Selector de pestañas */}
+                                    <div className="grid grid-cols-3 gap-2 p-1 rounded-xl bg-neutral-900/80 border border-neutral-800">
+                                        <button
+                                            type="button"
+                                            onClick={() => setBoosterTab('overclock')}
+                                            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition ${
+                                                boosterTab === 'overclock'
+                                                    ? 'bg-pink-600 text-white shadow-md'
+                                                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800/60'
+                                            }`}
+                                        >
+                                            <Zap size={14} /> Overclock
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setBoosterTab('pod')}
+                                            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition ${
+                                                boosterTab === 'pod'
+                                                    ? 'bg-cyan-600 text-white shadow-md'
+                                                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800/60'
+                                            }`}
+                                        >
+                                            <Box size={14} /> Pod a la Carta
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setBoosterTab('shield')}
+                                            className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs font-bold transition ${
+                                                boosterTab === 'shield'
+                                                    ? 'bg-emerald-600 text-white shadow-md'
+                                                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800/60'
+                                            }`}
+                                        >
+                                            <Shield size={14} /> Escudo Inmune
+                                        </button>
+                                    </div>
+
+                                    {/* Pestaña 1: Overclock Dinámico */}
+                                    {boosterTab === 'overclock' && (
+                                        <form onSubmit={handleApplyBoosterOverclock} className="space-y-4">
+                                            <div className="rounded-xl border border-pink-500/30 bg-pink-950/20 p-4 space-y-2">
+                                                <div className="flex items-center gap-2 text-pink-300 font-semibold text-xs">
+                                                    <Zap size={14} /> Potencia Adicional al Servidor Elegido
+                                                </div>
+                                                <p className="text-xs text-neutral-300">
+                                                    Inyecta al instante <strong>+3 GB de RAM</strong>, <strong>+150% de CPU</strong> y <strong>+10 GB de disco NVMe</strong> en tu servidor seleccionado.
+                                                </p>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-semibold text-neutral-300 block">
+                                                    Selecciona el servidor a potenciar:
+                                                </label>
+                                                {myOwnedServers.length === 0 ? (
+                                                    <p className="text-xs text-neutral-500 italic p-3 bg-neutral-900/40 rounded-lg border border-neutral-800">
+                                                        No tienes servidores propios disponibles para Overclock. Despliega un Pod a la carta o crea un servidor primero.
+                                                    </p>
+                                                ) : (
+                                                    <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1">
+                                                        {myOwnedServers.map((srv) => {
+                                                            const isSelected = boosterTargetServerId === srv.id;
+                                                            return (
+                                                                <label
+                                                                    key={srv.id}
+                                                                    className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition ${
+                                                                        isSelected
+                                                                            ? 'border-pink-500 bg-pink-950/40 shadow-sm'
+                                                                            : 'border-neutral-800/80 bg-neutral-900/40 hover:bg-neutral-900 hover:border-neutral-700'
+                                                                    }`}
+                                                                >
+                                                                    <div className="flex items-center gap-3">
+                                                                        <input
+                                                                            type="radio"
+                                                                            name="boosterTarget"
+                                                                            value={srv.id}
+                                                                            checked={isSelected}
+                                                                            onChange={() => setBoosterTargetServerId(srv.id)}
+                                                                            className="text-pink-500 focus:ring-pink-400"
+                                                                        />
+                                                                        <div>
+                                                                            <div className="text-xs font-bold text-white flex items-center gap-2">
+                                                                                {srv.name}
+                                                                                <span className="text-[10px] text-neutral-400 font-mono font-normal">#{srv.id}</span>
+                                                                            </div>
+                                                                            <div className="text-[11px] text-neutral-400 font-mono">
+                                                                                {srv.egg} · {srv.memory || 0} MB RAM · {srv.cpu || 0}% CPU
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    {isSelected && (
+                                                                        <span className="text-[10px] font-bold text-pink-400 font-mono">
+                                                                            +3 GB RAM
+                                                                        </span>
+                                                                    )}
+                                                                </label>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="flex items-center justify-between gap-3 pt-2 border-t border-neutral-800/80">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsBoosterModalOpen(false)}
+                                                    className="rounded-lg border border-neutral-700 px-4 py-2 text-xs text-neutral-400 hover:text-white"
+                                                >
+                                                    Cancelar
+                                                </button>
+                                                <button
+                                                    type="submit"
+                                                    disabled={isSavingBooster || !boosterTargetServerId}
+                                                    className="rounded-lg bg-pink-600 hover:bg-pink-500 px-5 py-2 text-xs font-bold text-white transition shadow-[0_0_20px_rgba(236,72,153,0.35)] disabled:opacity-40"
+                                                >
+                                                    {isSavingBooster ? 'Aplicando...' : 'Aplicar Overclock (+3 GB RAM)'}
+                                                </button>
+                                            </div>
+                                        </form>
+                                    )}
+
+                                    {/* Pestaña 2: Pod a la Carta */}
+                                    {boosterTab === 'pod' && (
+                                        <form onSubmit={handleApplyBoosterPod} className="space-y-4">
+                                            <div className="rounded-xl border border-cyan-500/30 bg-cyan-950/20 p-4 space-y-2">
+                                                <div className="flex items-center gap-2 text-cyan-300 font-semibold text-xs">
+                                                    <Box size={14} /> Nuevo Servidor Autónomo Dedicado
+                                                </div>
+                                                <p className="text-xs text-neutral-300">
+                                                    Despliega al instante un pod autónomo equipado con <strong>4 GB de RAM</strong>, <strong>200% de CPU</strong> y <strong>15 GB NVMe</strong>. Selecciona el tipo de entorno:
+                                                </p>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                                {[
+                                                    {
+                                                        id: 'bots' as const,
+                                                        title: 'Bots & Código',
+                                                        desc: 'Node.js, Python, Java, Rust, Go y automatizaciones.',
+                                                    },
+                                                    {
+                                                        id: 'minecraft' as const,
+                                                        title: 'Minecraft Dedicado',
+                                                        desc: 'Paper, Fabric, Purpur, Forge o Bedrock.',
+                                                    },
+                                                    {
+                                                        id: 'games' as const,
+                                                        title: 'Juegos Comunitarios',
+                                                        desc: 'Rust, Palworld, Terraria, CS2, Enshrouded, etc.',
+                                                    },
+                                                    {
+                                                        id: 'web' as const,
+                                                        title: 'Web & Cloud',
+                                                        desc: 'Nginx, Docker, PostgreSQL, Redis, APIs y dashboards.',
+                                                    },
+                                                ].map((cat) => {
+                                                    const isSelected = boosterPodCategory === cat.id;
+                                                    return (
+                                                        <label
+                                                            key={cat.id}
+                                                            className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition ${
+                                                                isSelected
+                                                                    ? 'border-cyan-400 bg-cyan-950/40 shadow-sm'
+                                                                    : 'border-neutral-800/80 bg-neutral-900/40 hover:bg-neutral-900 hover:border-neutral-700'
+                                                            }`}
+                                                        >
+                                                            <input
+                                                                type="radio"
+                                                                name="boosterPodCat"
+                                                                value={cat.id}
+                                                                checked={isSelected}
+                                                                onChange={() => setBoosterPodCategory(cat.id)}
+                                                                className="text-cyan-500 focus:ring-cyan-400 mt-0.5"
+                                                            />
+                                                            <div className="space-y-0.5">
+                                                                <div className="text-xs font-bold text-white">{cat.title}</div>
+                                                                <p className="text-[11px] text-neutral-400 leading-tight">{cat.desc}</p>
+                                                            </div>
+                                                        </label>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            <div className="flex items-center justify-between gap-3 pt-2 border-t border-neutral-800/80">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsBoosterModalOpen(false)}
+                                                    className="rounded-lg border border-neutral-700 px-4 py-2 text-xs text-neutral-400 hover:text-white"
+                                                >
+                                                    Cancelar
+                                                </button>
+                                                <button
+                                                    type="submit"
+                                                    disabled={isSavingBooster}
+                                                    className="rounded-lg bg-cyan-500 hover:bg-cyan-400 px-5 py-2 text-xs font-bold text-black transition shadow-[0_0_20px_rgba(34,211,238,0.35)] disabled:opacity-40"
+                                                >
+                                                    {isSavingBooster ? 'Desplegando pod...' : 'Desplegar Pod Autónomo (4 GB RAM)'}
+                                                </button>
+                                            </div>
+                                        </form>
+                                    )}
+
+                                    {/* Pestaña 3: Escudo Anti-Suspensión */}
+                                    {boosterTab === 'shield' && (
+                                        <form onSubmit={handleApplyBoosterShield} className="space-y-4">
+                                            <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-4 space-y-2">
+                                                <div className="flex items-center gap-2 text-emerald-300 font-semibold text-xs">
+                                                    <Shield size={14} /> Inmunidad Anti-Suspensión
+                                                </div>
+                                                <p className="text-xs text-neutral-300">
+                                                    Tu servidor no se suspenderá por inactividad o temporizadores de créditos mientras mantengas el boost de Discord activo.
+                                                </p>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-semibold text-neutral-300 block">
+                                                    Selecciona el servidor a proteger:
+                                                </label>
+                                                {myOwnedServers.length === 0 ? (
+                                                    <p className="text-xs text-neutral-500 italic p-3 bg-neutral-900/40 rounded-lg border border-neutral-800">
+                                                        No tienes servidores disponibles para proteger. Crea uno primero.
+                                                    </p>
+                                                ) : (
+                                                    <div className="max-h-52 overflow-y-auto space-y-1.5 pr-1">
+                                                        {myOwnedServers.map((srv) => {
+                                                            const isSelected = boosterTargetServerId === srv.id;
+                                                            return (
+                                                                <label
+                                                                    key={srv.id}
+                                                                    className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition ${
+                                                                        isSelected
+                                                                            ? 'border-emerald-500 bg-emerald-950/40 shadow-sm'
+                                                                            : 'border-neutral-800/80 bg-neutral-900/40 hover:bg-neutral-900 hover:border-neutral-700'
+                                                                    }`}
+                                                                >
+                                                                    <div className="flex items-center gap-3">
+                                                                        <input
+                                                                            type="radio"
+                                                                            name="boosterShieldTarget"
+                                                                            value={srv.id}
+                                                                            checked={isSelected}
+                                                                            onChange={() => setBoosterTargetServerId(srv.id)}
+                                                                            className="text-emerald-500 focus:ring-emerald-400"
+                                                                        />
+                                                                        <div>
+                                                                            <div className="text-xs font-bold text-white flex items-center gap-2">
+                                                                                {srv.name}
+                                                                                <span className="text-[10px] text-neutral-400 font-mono font-normal">#{srv.id}</span>
+                                                                            </div>
+                                                                            <div className="text-[11px] text-neutral-400 font-mono">
+                                                                                {srv.egg} · {srv.memory || 0} MB RAM · {srv.cpu || 0}% CPU
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    {isSelected && (
+                                                                        <span className="text-[10px] font-bold text-emerald-400 font-mono">
+                                                                            Inmunidad
+                                                                        </span>
+                                                                    )}
+                                                                </label>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="flex items-center justify-between gap-3 pt-2 border-t border-neutral-800/80">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsBoosterModalOpen(false)}
+                                                    className="rounded-lg border border-neutral-700 px-4 py-2 text-xs text-neutral-400 hover:text-white"
+                                                >
+                                                    Cancelar
+                                                </button>
+                                                <button
+                                                    type="submit"
+                                                    disabled={isSavingBooster || !boosterTargetServerId}
+                                                    className="rounded-lg bg-emerald-600 hover:bg-emerald-500 px-5 py-2 text-xs font-bold text-white transition shadow-[0_0_20px_rgba(16,185,129,0.35)] disabled:opacity-40"
+                                                >
+                                                    {isSavingBooster ? 'Activando...' : 'Activar Escudo de Inmunidad'}
+                                                </button>
+                                            </div>
+                                        </form>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

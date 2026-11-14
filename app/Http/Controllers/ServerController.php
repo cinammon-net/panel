@@ -248,6 +248,10 @@ class ServerController extends Controller
                 : ($userId ? Server::whereHas('subusers', fn($q) => $q->where('user_id', $userId))->count() : 0),
         ];
 
+        $boosterCore = $userId
+            ? \App\Models\UserBoosterCore::with(['targetServer:id,name', 'allocatedServer:id,name'])->where('user_id', $userId)->first()
+            : null;
+
         return Inertia::render('Servers', [
             'servers' => $paginated,
             'filters' => array_merge($request->only('search', 'sort', 'direction', 'per_page'), [
@@ -261,6 +265,7 @@ class ServerController extends Controller
             'statusCounts' => $statusCounts,
             'folders' => $userFolders,
             'folderPaths' => $folderPaths,
+            'boosterCore' => $boosterCore,
             'availableTags' => [],
         ]);
     }

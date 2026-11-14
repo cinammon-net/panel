@@ -652,6 +652,10 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
     Route::put('/server-folders/{folder}', [App\Http\Controllers\ServerFolderController::class, 'update'])->name('server-folders.update');
     Route::delete('/server-folders/{folder}', [App\Http\Controllers\ServerFolderController::class, 'destroy'])->name('server-folders.destroy');
     Route::post('/server-folders/assign', [App\Http\Controllers\ServerFolderController::class, 'assign'])->name('server-folders.assign');
+    Route::post('/booster-core/overclock', [App\Http\Controllers\BoosterCoreController::class, 'applyOverclock'])->name('booster-core.overclock');
+    Route::post('/booster-core/shield', [App\Http\Controllers\BoosterCoreController::class, 'applyShield'])->name('booster-core.shield');
+    Route::post('/booster-core/pod', [App\Http\Controllers\BoosterCoreController::class, 'applyPod'])->name('booster-core.pod');
+    Route::post('/booster-core/reset', [App\Http\Controllers\BoosterCoreController::class, 'reset'])->name('booster-core.reset');
     Route::get('/servers/edit', fn() => redirect('/servers'));
     // Crear, configurar y borrar servidores (nodo, propietario, recursos): solo Owner/Admin.
     Route::get('/servers', [ServerController::class, 'index'])->name('servers.index');
