@@ -97,6 +97,9 @@ Route::get('/guias/{slug}', [App\Http\Controllers\GuidesController::class, 'show
 
 // Historial de versiones y changelog
 Route::get('/changelog', [App\Http\Controllers\ChangelogController::class, 'index'])->name('changelog.index');
+
+// Calculadora de recursos interactiva
+Route::get('/calculadora', fn () => redirect('/#calculadora'))->name('calculator.index');
 Route::get('/demo', function (Request $request) {
     $demoHost = (string) config('panel.demo_host', 'demo.cinammon.net');
     if ($demoHost !== '' && strcasecmp($request->getHost(), $demoHost) !== 0) {

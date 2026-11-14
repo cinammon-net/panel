@@ -8,7 +8,7 @@ import 'aos/dist/aos.css';
 import 'aos/dist/aos.js';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Activity, ArrowRight, BarChart3, Bot, Clock, Gauge, Heart, Images, LifeBuoy, Megaphone, MessageSquareQuote, Newspaper, Palette, SlidersHorizontal, Ticket, Zap } from 'lucide-react';
+import { Activity, ArrowRight, BarChart3, Bot, ChevronDown, ChevronUp, Clock, Gauge, Heart, Images, LifeBuoy, Megaphone, Menu, MessageSquareQuote, Newspaper, Palette, ShieldCheck, SlidersHorizontal, Ticket, Wrench, X, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { cinLogo } from '@/lib/brand';
 import NewsletterForm from '@/components/newsletter-form';
@@ -112,6 +112,8 @@ export default function WelcomePanel() {
     >().props;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [toolsOpen, setToolsOpen] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     useEffect(() => {
         aos.init({
             duration: 800,
@@ -211,126 +213,358 @@ export default function WelcomePanel() {
                 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet" />
             </Head>
 
-            <div id="top" className="relative flex min-h-screen flex-col overflow-x-hidden scroll-smooth bg-black font-[Orbitron] text-white">
+            <div id="top" className="relative flex min-h-screen flex-col overflow-x-hidden scroll-smooth bg-black font-sans text-white antialiased">
                 <div className="pointer-events-none absolute top-0 left-0 z-0 h-full w-full bg-[radial-gradient(circle,#ffffff_1px,transparent_1px)] bg-[length:22px_22px] opacity-20" />
 
                 {/* NAVBAR FIJO (con la barra de ofertas y novedades encima) */}
                 <div className="fixed top-0 z-50 w-full">
-                <AnnouncementBar place="web" />
-                <header className="animate-fade-in flex w-full items-center justify-between gap-2 border-b border-pink-600 bg-black/70 px-4 py-3 backdrop-blur-md sm:gap-4 sm:p-6">
-                    <Link href={route('home')} data-aos="fade-right">
-                        <img src={cinLogo()} alt="Cinammon Logo" className="h-8 shrink-0 transition hover:opacity-80 sm:h-12" draggable={false} />
-                    </Link>
-                    <nav className="flex shrink-0 items-center gap-2 sm:gap-3" data-aos="fade-left">
-                        <a
-                            href="#planes"
-                            className="hidden items-center rounded-md border border-amber-400/60 bg-amber-400/10 px-3.5 py-1.5 text-xs font-semibold text-amber-300 transition hover:bg-amber-400 hover:text-black md:flex"
-                        >
-                            Planes
-                        </a>
-                        <a
-                            href="#calculadora"
-                            className="hidden items-center rounded-md border border-fuchsia-400/60 bg-fuchsia-400/10 px-3.5 py-1.5 text-xs font-semibold text-fuchsia-300 transition hover:bg-fuchsia-400 hover:text-black xl:flex"
-                        >
-                            Calculadora
-                        </a>
-                        <Link
-                            href="/check"
-                            className="hidden items-center rounded-md border border-cyan-400/60 bg-cyan-400/10 px-3.5 py-1.5 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-400 hover:text-black md:flex"
-                        >
-                            Checker
+                    <AnnouncementBar place="web" />
+                    <header className="animate-fade-in flex w-full items-center justify-between border-b border-white/10 bg-black/80 px-4 py-3 backdrop-blur-xl sm:px-8">
+                        <Link href={route('home')} className="flex items-center gap-2">
+                            <img src={cinLogo()} alt="Cinammon Logo" className="h-8 shrink-0 transition hover:opacity-80 sm:h-10" draggable={false} />
                         </Link>
-                        <Link
-                            href="/guias"
-                            className="hidden items-center rounded-md border border-white/20 bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-neutral-300 transition hover:bg-white/10 hover:text-white lg:flex"
-                        >
-                            Guías
-                        </Link>
-                        <a
-                            href="#galeria"
-                            className="hidden items-center rounded-md border border-pink-500/60 bg-pink-500/10 px-3.5 py-1.5 text-xs font-semibold text-pink-300 transition hover:bg-pink-500 hover:text-white md:flex"
-                        >
-                            Galería
-                        </a>
-                        <a
-                            href="#testimonios"
-                            className="hidden items-center rounded-md border border-white/20 bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-neutral-300 transition hover:bg-white/10 hover:text-white lg:flex"
-                        >
-                            Opiniones
-                        </a>
-                        <a
-                            href="#noticias"
-                            className="hidden items-center rounded-md border border-white/20 bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-neutral-300 transition hover:bg-white/10 hover:text-white lg:flex"
-                        >
-                            Noticias
-                        </a>
-                        {auth?.user ? (
+
+                        {/* Menú de Navegación Principal para Escritorio */}
+                        <nav className="hidden items-center gap-1 md:flex">
                             <a
-                                href="https://panel.cinammon.net/servers"
-                                className="inline-flex items-center gap-2 rounded-md bg-pink-500 px-3 py-1.5 text-sm font-semibold text-white shadow transition hover:bg-pink-600 sm:px-4 sm:py-2 sm:text-base"
+                                href="#planes"
+                                className="rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-300 transition hover:bg-white/5 hover:text-white"
                             >
-                                <UserAvatar name={auth.user.name} src={(auth.user as { avatar?: string | null }).avatar} size={20} fallbackClassName="bg-pink-800 text-white" />
-                                Panel
+                                Planes
                             </a>
-                        ) : (
-                            <>
-                                <a
-                                    href="https://panel.cinammon.net/login"
-                                    className="rounded-md bg-gradient-to-r from-pink-500 to-fuchsia-600 px-3 py-1.5 text-sm font-semibold whitespace-nowrap text-white shadow hover:from-pink-600 hover:to-fuchsia-700 sm:px-4 sm:py-2 sm:text-base"
+                            <a
+                                href="#galeria"
+                                className="rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-300 transition hover:bg-white/5 hover:text-white"
+                            >
+                                Galería
+                            </a>
+                            <a
+                                href="#caracteristicas"
+                                className="rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-300 transition hover:bg-white/5 hover:text-white"
+                            >
+                                Características
+                            </a>
+
+                            {/* Desplegable de Herramientas */}
+                            <div
+                                className="relative"
+                                onMouseEnter={() => setToolsOpen(true)}
+                                onMouseLeave={() => setToolsOpen(false)}
+                            >
+                                <button
+                                    type="button"
+                                    onClick={() => setToolsOpen((prev) => !prev)}
+                                    className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-300 transition hover:bg-white/5 hover:text-white"
                                 >
-                                    Iniciar sesión
+                                    <span>Herramientas</span>
+                                    <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${toolsOpen ? 'rotate-180 text-pink-400' : 'text-neutral-400'}`} />
+                                </button>
+
+                                {toolsOpen && (
+                                    <div className="absolute top-full left-0 z-50 mt-1 w-64 rounded-xl border border-white/10 bg-neutral-950/95 p-2 shadow-2xl backdrop-blur-xl">
+                                        <a
+                                            href="#calculadora"
+                                            onClick={() => setToolsOpen(false)}
+                                            className="flex items-start gap-2.5 rounded-lg p-2.5 transition hover:bg-white/5 group"
+                                        >
+                                            <div className="mt-0.5 rounded-md bg-fuchsia-500/10 p-1.5 text-fuchsia-400 border border-fuchsia-500/20 group-hover:bg-fuchsia-500/20">
+                                                <Wrench className="h-4 w-4" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-semibold text-white group-hover:text-pink-300">Calculadora de Recursos</p>
+                                                <p className="text-[11px] text-neutral-400">Simula RAM, vCPU y NVMe</p>
+                                            </div>
+                                        </a>
+
+                                        <Link
+                                            href="/check"
+                                            onClick={() => setToolsOpen(false)}
+                                            className="flex items-start gap-2.5 rounded-lg p-2.5 transition hover:bg-white/5 group"
+                                        >
+                                            <div className="mt-0.5 rounded-md bg-cyan-500/10 p-1.5 text-cyan-400 border border-cyan-500/20 group-hover:bg-cyan-500/20">
+                                                <ShieldCheck className="h-4 w-4" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-semibold text-white group-hover:text-cyan-300">Checker de Servidores</p>
+                                                <p className="text-[11px] text-neutral-400">Comprobador de puertos y latencia</p>
+                                            </div>
+                                        </Link>
+
+                                        <Link
+                                            href="/guias"
+                                            onClick={() => setToolsOpen(false)}
+                                            className="flex items-start gap-2.5 rounded-lg p-2.5 transition hover:bg-white/5 group"
+                                        >
+                                            <div className="mt-0.5 rounded-md bg-pink-500/10 p-1.5 text-pink-400 border border-pink-500/20 group-hover:bg-pink-500/20">
+                                                <LifeBuoy className="h-4 w-4" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-semibold text-white group-hover:text-pink-300">Guías Técnicas</p>
+                                                <p className="text-[11px] text-neutral-400">Documentación y tutoriales</p>
+                                            </div>
+                                        </Link>
+
+                                        <Link
+                                            href="/changelog"
+                                            onClick={() => setToolsOpen(false)}
+                                            className="flex items-start gap-2.5 rounded-lg p-2.5 transition hover:bg-white/5 group"
+                                        >
+                                            <div className="mt-0.5 rounded-md bg-amber-500/10 p-1.5 text-amber-400 border border-amber-500/20 group-hover:bg-amber-500/20">
+                                                <Clock className="h-4 w-4" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-semibold text-white group-hover:text-amber-300">Changelog</p>
+                                                <p className="text-[11px] text-neutral-400">Novedades y notas de versión</p>
+                                            </div>
+                                        </Link>
+
+                                        <a
+                                            href="https://status.cinammon.net"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            onClick={() => setToolsOpen(false)}
+                                            className="flex items-start gap-2.5 rounded-lg p-2.5 transition hover:bg-white/5 group border-t border-white/5 mt-1"
+                                        >
+                                            <div className="mt-0.5 rounded-md bg-emerald-500/10 p-1.5 text-emerald-400 border border-emerald-500/20 group-hover:bg-emerald-500/20">
+                                                <Activity className="h-4 w-4" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-semibold text-white group-hover:text-emerald-300">Estado de la Red ↗</p>
+                                                <p className="text-[11px] text-neutral-400">Monitor de nodos y servicios en vivo</p>
+                                            </div>
+                                        </a>
+                                    </div>
+                                )}
+                            </div>
+
+                            <a
+                                href="#testimonios"
+                                className="rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-300 transition hover:bg-white/5 hover:text-white"
+                            >
+                                Opiniones
+                            </a>
+                            <a
+                                href="#noticias"
+                                className="rounded-lg px-3 py-1.5 text-sm font-medium text-neutral-300 transition hover:bg-white/5 hover:text-white"
+                            >
+                                Noticias
+                            </a>
+                        </nav>
+
+                        {/* Botones de Autenticación / Acceso al Panel */}
+                        <div className="flex items-center gap-3">
+                            {auth?.user ? (
+                                <a
+                                    href="https://panel.cinammon.net/servers"
+                                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-fuchsia-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_0_15px_rgba(236,72,153,0.3)] transition hover:from-pink-600 hover:to-fuchsia-700"
+                                >
+                                    <UserAvatar name={auth.user.name} src={(auth.user as { avatar?: string | null }).avatar} size={20} fallbackClassName="bg-pink-800 text-white" />
+                                    <span>Panel</span>
+                                </a>
+                            ) : (
+                                <div className="hidden sm:flex items-center gap-2">
+                                    <a
+                                        href="https://panel.cinammon.net/login"
+                                        className="rounded-lg px-3.5 py-2 text-sm font-medium text-neutral-300 transition hover:text-white hover:bg-white/5"
+                                    >
+                                        Iniciar sesión
+                                    </a>
+                                    <a
+                                        href="https://panel.cinammon.net/register"
+                                        className="rounded-xl bg-gradient-to-r from-pink-500 to-fuchsia-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_0_20px_rgba(236,72,153,0.3)] transition hover:from-pink-600 hover:to-fuchsia-700 hover:shadow-[0_0_25px_rgba(236,72,153,0.5)] active:scale-95"
+                                    >
+                                        Registrarse
+                                    </a>
+                                </div>
+                            )}
+
+                            {/* Botón menú móvil */}
+                            <button
+                                type="button"
+                                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                                className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-neutral-400 transition hover:bg-white/10 hover:text-white md:hidden"
+                                aria-label="Abrir menú"
+                            >
+                                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                            </button>
+                        </div>
+                    </header>
+
+                    {/* Menú Móvil Desplegable */}
+                    {mobileMenuOpen && (
+                        <div className="border-b border-white/10 bg-neutral-950/95 px-5 py-4 backdrop-blur-2xl md:hidden animate-in fade-in slide-in-from-top-3">
+                            <div className="flex flex-col gap-2">
+                                <a
+                                    href="#planes"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    className="rounded-lg px-3 py-2 text-sm font-medium text-neutral-300 hover:bg-white/5 hover:text-white"
+                                >
+                                    Planes y Precios
                                 </a>
                                 <a
-                                    href="https://panel.cinammon.net/register"
-                                    className="rounded-md border border-pink-400 px-3 py-1.5 text-sm font-semibold whitespace-nowrap text-pink-300 transition hover:bg-pink-400 hover:text-black sm:px-4 sm:py-2 sm:text-base"
+                                    href="#galeria"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    className="rounded-lg px-3 py-2 text-sm font-medium text-neutral-300 hover:bg-white/5 hover:text-white"
                                 >
-                                    Registrarse
+                                    Galería
                                 </a>
-                            </>
-                        )}
-                    </nav>
-                </header>
+                                <a
+                                    href="#caracteristicas"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    className="rounded-lg px-3 py-2 text-sm font-medium text-neutral-300 hover:bg-white/5 hover:text-white"
+                                >
+                                    Características
+                                </a>
+                                <a
+                                    href="#calculadora"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    className="rounded-lg px-3 py-2 text-sm font-medium text-neutral-300 hover:bg-white/5 hover:text-white"
+                                >
+                                    Calculadora de Recursos
+                                </a>
+                                <Link
+                                    href="/check"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    className="rounded-lg px-3 py-2 text-sm font-medium text-neutral-300 hover:bg-white/5 hover:text-white"
+                                >
+                                    Checker de Servidores
+                                </Link>
+                                <Link
+                                    href="/guias"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    className="rounded-lg px-3 py-2 text-sm font-medium text-neutral-300 hover:bg-white/5 hover:text-white"
+                                >
+                                    Guías Técnicas
+                                </Link>
+                                <Link
+                                    href="/changelog"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    className="rounded-lg px-3 py-2 text-sm font-medium text-neutral-300 hover:bg-white/5 hover:text-white"
+                                >
+                                    Changelog
+                                </Link>
+                                <a
+                                    href="https://status.cinammon.net"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    className="rounded-lg px-3 py-2 text-sm font-medium text-emerald-400 hover:bg-white/5"
+                                >
+                                    Estado de la Red ↗
+                                </a>
+                                <a
+                                    href="#testimonios"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    className="rounded-lg px-3 py-2 text-sm font-medium text-neutral-300 hover:bg-white/5 hover:text-white"
+                                >
+                                    Opiniones
+                                </a>
+                                <a
+                                    href="#noticias"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    className="rounded-lg px-3 py-2 text-sm font-medium text-neutral-300 hover:bg-white/5 hover:text-white"
+                                >
+                                    Noticias
+                                </a>
+
+                                {!auth?.user && (
+                                    <div className="mt-3 flex flex-col gap-2 border-t border-white/10 pt-3">
+                                        <a
+                                            href="https://panel.cinammon.net/login"
+                                            className="w-full rounded-lg border border-white/15 px-3 py-2 text-center text-sm font-medium text-white hover:bg-white/5"
+                                        >
+                                            Iniciar sesión
+                                        </a>
+                                        <a
+                                            href="https://panel.cinammon.net/register"
+                                            className="w-full rounded-lg bg-gradient-to-r from-pink-500 to-fuchsia-600 px-3 py-2 text-center text-sm font-bold text-white shadow"
+                                        >
+                                            Registrarse
+                                        </a>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
                 <AnnouncementPopup place="web" />
 
-                {/* SECCIÓN 1 */}
+                {/* HERO SECTION MODERNA */}
                 <section
-                    className="relative z-10 mt-16 flex min-h-screen flex-col sm:mt-28 items-center justify-center px-6 py-20 text-center sm:px-10"
+                    className="relative z-10 mt-20 flex min-h-[90vh] flex-col items-center justify-center px-6 py-20 text-center sm:px-10"
                     data-aos="fade-up"
                     data-aos-anchor-placement="top-bottom"
                 >
-                    <div
-                        className="w-full max-w-3xl rounded-xl border-2 border-pink-500 bg-black/60 px-6 py-12 shadow-[0_0_30px_5px_rgba(255,0,150,0.3)] backdrop-blur-sm sm:px-10 sm:py-16"
-                        data-aos="zoom-in"
-                    >
-                        <h1 className="mb-4 break-words text-3xl font-extrabold tracking-wider text-pink-400 sm:text-5xl sm:tracking-widest" data-aos="fade-up">
-                            <span className="text-fuchsia-400">cinammon</span>.net
+                    <div className="mx-auto max-w-4xl space-y-6">
+                        {/* Badge de estado del clúster */}
+                        <div className="inline-flex items-center gap-2 rounded-full border border-pink-500/30 bg-pink-500/10 px-4 py-1.5 text-xs font-mono tracking-wider text-pink-300 backdrop-blur-md">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            </span>
+                            <span>CLÚSTER MIAMI & EUROPA // INFRAESTRUCTURA DE ALTO RENDIMIENTO</span>
+                        </div>
+
+                        {/* Título Principal */}
+                        <h1 className="font-orbitron text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white leading-tight" data-aos="fade-up">
+                            Tu red. Tu dominio. <br className="hidden sm:inline" />
+                            <span className="bg-gradient-to-r from-pink-400 via-fuchsia-400 to-amber-300 bg-clip-text text-transparent">Tu juego.</span>
                         </h1>
-                        <p className="text-xl font-semibold text-pink-300 sm:text-2xl" data-aos="fade-up" data-aos-delay="100">
-                            Tu red. Tu dominio. Tu juego.
+
+                        {/* Descripción clara y legible */}
+                        <p className="mx-auto max-w-2xl text-base sm:text-lg text-neutral-300 leading-relaxed font-sans" data-aos="fade-up" data-aos-delay="100">
+                            Despliega y controla tus servidores de juego en segundos. Procesadores de alta frecuencia, aislamiento con Docker Wings, protección Anti-DDoS y monitoreo en tiempo real.
                         </p>
-                        <p className="mt-4 text-sm text-pink-400 sm:text-base" data-aos="fade-up" data-aos-delay="200">
-                            ¡Únete a nosotros y forma parte de la comunidad desplegando tu panel!
-                        </p>
-                        <div className="mt-6 sm:mt-8" data-aos="zoom-in" data-aos-delay="300">
+
+                        {/* Botones de acción */}
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4" data-aos="zoom-in" data-aos-delay="200">
+                            <a
+                                href="#planes"
+                                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-fuchsia-600 px-8 py-3.5 text-sm font-bold text-white shadow-[0_0_25px_rgba(236,72,153,0.35)] transition hover:from-pink-600 hover:to-fuchsia-700 hover:shadow-[0_0_35px_rgba(236,72,153,0.5)] active:scale-95"
+                            >
+                                <span>Ver Planes & Precios</span>
+                                <ArrowRight className="h-4 w-4" />
+                            </a>
                             <a
                                 href="https://demo.cinammon.net"
-                                className="inline-block rounded-md bg-gradient-to-r from-pink-500 to-fuchsia-600 px-8 py-3 text-sm font-bold tracking-wider text-white shadow-[0_0_20px_rgba(255,0,128,0.4)] transition hover:from-pink-600 hover:to-fuchsia-700 hover:shadow-[0_0_30px_rgba(255,0,128,0.6)] active:scale-95"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/5 px-8 py-3.5 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/10 hover:border-white/30 active:scale-95"
                             >
-                                PROBAR DEMO →
+                                <Zap className="h-4 w-4 text-amber-300" />
+                                <span>Probar Demo en Vivo</span>
                             </a>
+                        </div>
+
+                        {/* Matriz de Especificaciones Técnicas */}
+                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 max-w-3xl mx-auto pt-10 border-t border-white/10 text-center" data-aos="fade-up" data-aos-delay="300">
+                            <div className="rounded-xl border border-white/5 bg-black/40 p-3">
+                                <span className="block font-orbitron text-lg font-bold text-pink-400">40 Gbps</span>
+                                <span className="text-xs text-neutral-400">Anti-DDoS Perimetral</span>
+                            </div>
+                            <div className="rounded-xl border border-white/5 bg-black/40 p-3">
+                                <span className="block font-orbitron text-lg font-bold text-fuchsia-400">5.0+ GHz</span>
+                                <span className="text-xs text-neutral-400">Procesadores NVMe</span>
+                            </div>
+                            <div className="rounded-xl border border-white/5 bg-black/40 p-3">
+                                <span className="block font-orbitron text-lg font-bold text-amber-300">Docker Wings</span>
+                                <span className="text-xs text-neutral-400">Aislamiento Total</span>
+                            </div>
+                            <div className="rounded-xl border border-white/5 bg-black/40 p-3">
+                                <span className="block font-orbitron text-lg font-bold text-emerald-400">&lt; 15 ms</span>
+                                <span className="text-xs text-neutral-400">Latencia Red Miami</span>
+                            </div>
                         </div>
                     </div>
 
-                    {/* FLECHA HACIA ABAJO */}
-                    <div className="mt-10 flex justify-center" data-aos="zoom-in" data-aos-delay="400">
-                        <a href="#planes">
-                            <img
-                                src="https://img.icons8.com/?size=100&id=44002&format=png&color=ff4da6"
-                                alt="Desplazar hacia abajo"
-                                className="h-10 w-10 animate-bounce drop-shadow-[0_0_6px_#ff4da6] sm:h-10 sm:w-12"
-                                draggable={false}
-                            />
+                    {/* Flecha indicadora de scroll suave */}
+                    <div className="mt-14 flex justify-center" data-aos="zoom-in" data-aos-delay="400">
+                        <a
+                            href="#planes"
+                            aria-label="Desplazar hacia abajo"
+                            className="group flex h-10 w-10 items-center justify-center rounded-full border border-pink-500/30 bg-pink-500/10 text-pink-400 transition hover:border-pink-500 hover:bg-pink-500/20 hover:scale-110"
+                        >
+                            <ChevronDown className="h-5 w-5 animate-bounce group-hover:text-white" />
                         </a>
                     </div>
                 </section>
@@ -472,61 +706,10 @@ export default function WelcomePanel() {
                     </section>
                 )}
 
-                {/* SECCIÓN DESCRIPCIÓN */}
-                <section
-                    id="caracteristicas"
-                    className="relative z-10 flex flex-col items-center justify-center gap-10 px-6 py-20 text-center text-white sm:px-10"
-                >
-                    <h1 className="mb-6 text-3xl font-bold text-pink-400 sm:text-4xl" data-aos="fade-up">
-                        ¿Por qué elegir el Panel Cinammon?
-                    </h1>
-                    <p className="text-lg font-semibold text-pink-300 sm:text-xl" data-aos="fade-up" data-aos-delay="100">
-                        El Panel Cinammon es la solución perfecta para gestionar tu red de forma rápida y sencilla. Con un diseño moderno y una
-                        interfaz intuitiva, podrás administrar usuarios, roles y configuraciones del sistema sin complicaciones. Además, su
-                        rendimiento optimizado garantiza una experiencia fluida y rápida, con estadísticas en tiempo real para que siempre estés al
-                        tanto de la actividad de tu red.
-                    </p>
-                    <div
-                        className="w-full max-w-4xl rounded-xl border-2 border-fuchsia-600 bg-black/50 px-6 py-12 shadow-[0_0_30px_5px_rgba(255,0,150,0.3)] backdrop-blur-md"
-                        data-aos="zoom-in"
-                        data-aos-delay="200"
-                    >
-                        <h2 className="mb-6 text-3xl font-bold text-pink-400 sm:text-4xl" data-aos="fade-up" data-aos-delay="300">
-                            Características del Panel Cinammon
-                        </h2>
-                        <div className="grid grid-cols-1 gap-8 text-left text-sm text-pink-100 sm:grid-cols-2 sm:text-base">
-                            <div data-aos="fade-up" data-aos-delay="400">
-                                <h3 className="mb-1 flex items-center gap-2 text-lg font-semibold text-pink-400"><SlidersHorizontal className="h-5 w-5 shrink-0" aria-hidden /> Control total</h3>
-                                <p>Gestiona usuarios, roles y configuraciones del sistema con una interfaz clara y rápida.</p>
-                            </div>
-                            <div data-aos="fade-up" data-aos-delay="500">
-                                <h3 className="mb-1 flex items-center gap-2 text-lg font-semibold text-pink-400"><Palette className="h-5 w-5 shrink-0" aria-hidden /> Personalización visual</h3>
-                                <p>Cambia colores, temas y diseño con un solo clic. Estilo cyber garantizado.</p>
-                            </div>
-                            <div data-aos="fade-up" data-aos-delay="600">
-                                <h3 className="mb-1 flex items-center gap-2 text-lg font-semibold text-pink-400"><Gauge className="h-5 w-5 shrink-0" aria-hidden /> Rendimiento extremo</h3>
-                                <p>Panel optimizado para ofrecerte velocidad, fluidez y animaciones suaves.</p>
-                            </div>
-                            <div data-aos="fade-up" data-aos-delay="700">
-                                <h3 className="mb-1 flex items-center gap-2 text-lg font-semibold text-pink-400"><Activity className="h-5 w-5 shrink-0" aria-hidden /> Estadísticas en vivo</h3>
-                                <p>Consulta actividad en tiempo real con gráficos, logs y métricas clave.</p>
-                            </div>
-                        </div>
-                        <div className="mt-10" data-aos="zoom-in" data-aos-delay="800">
-                            <Link
-                                href={route('dashboard')}
-                                className="rounded-md bg-gradient-to-r from-fuchsia-600 to-pink-500 px-6 py-2 font-semibold text-white shadow hover:from-fuchsia-700 hover:to-pink-600"
-                            >
-                                Acceder al Panel
-                            </Link>
-                        </div>
-                    </div>
-                </section>
-
                 {/* CALCULADORA DE RECURSOS & SLOTS */}
                 <ResourceCalculator />
 
-                {/* 1. SECCIÓN GALERÍA (Muestra el producto real inmediatamente tras las características) */}
+                {/* 1. SECCIÓN GALERÍA (Muestra el producto real) */}
                 <section id="galeria" className="relative z-10 flex flex-col items-center justify-center gap-12 px-6 py-20 text-center text-white sm:px-10">
                     <div className="space-y-3" data-aos="fade-up">
                         <div className="inline-flex items-center gap-2 rounded-full border border-pink-500/30 bg-pink-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-pink-300 backdrop-blur-md">
@@ -573,6 +756,76 @@ export default function WelcomePanel() {
                                 </div>
                             );
                         })}
+                    </div>
+                </section>
+
+                {/* 2. SECCIÓN CARACTERÍSTICAS DEL PANEL */}
+                <section
+                    id="caracteristicas"
+                    className="relative z-10 flex flex-col items-center justify-center gap-10 px-6 py-20 text-center text-white sm:px-10"
+                >
+                    <div className="space-y-3" data-aos="fade-up">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-pink-500/30 bg-pink-500/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-pink-300 backdrop-blur-md">
+                            <Gauge className="h-4 w-4 text-pink-400" />
+                            <span>ARQUITECTURA DE PRÓXIMA GENERACIÓN</span>
+                        </div>
+                        <h2 className="font-orbitron text-3xl font-extrabold tracking-wide text-white sm:text-4xl lg:text-5xl">
+                            ¿Por qué elegir el <span className="bg-gradient-to-r from-pink-400 via-fuchsia-400 to-amber-300 bg-clip-text text-transparent">Panel Cinammon</span>?
+                        </h2>
+                        <p className="mx-auto max-w-2xl text-xs sm:text-sm text-neutral-300 font-sans">
+                            Diseñado desde cero para máxima velocidad, aislamiento seguro con Docker Wings y control granular de cada servidor y nodo en tiempo real.
+                        </p>
+                    </div>
+
+                    <div
+                        className="w-full max-w-5xl rounded-2xl border border-white/10 bg-neutral-950/80 p-8 shadow-2xl backdrop-blur-xl sm:p-12"
+                        data-aos="zoom-in"
+                        data-aos-delay="100"
+                    >
+                        <div className="grid grid-cols-1 gap-8 text-left sm:grid-cols-2">
+                            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-5 transition hover:border-pink-500/30" data-aos="fade-up" data-aos-delay="200">
+                                <h3 className="mb-2 flex items-center gap-2.5 font-orbitron text-base font-bold text-pink-400">
+                                    <SlidersHorizontal className="h-5 w-5 shrink-0" aria-hidden /> Control total
+                                </h3>
+                                <p className="text-xs sm:text-sm text-neutral-300 font-sans leading-relaxed">
+                                    Gestiona usuarios, subusuarios con permisos SFTP granulares y puertos adicionales sin complicaciones.
+                                </p>
+                            </div>
+                            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-5 transition hover:border-fuchsia-500/30" data-aos="fade-up" data-aos-delay="300">
+                                <h3 className="mb-2 flex items-center gap-2.5 font-orbitron text-base font-bold text-fuchsia-400">
+                                    <Palette className="h-5 w-5 shrink-0" aria-hidden /> Personalización visual
+                                </h3>
+                                <p className="text-xs sm:text-sm text-neutral-300 font-sans leading-relaxed">
+                                    Diseño Cyberpunk con adaptación temática estacional automática y modo de alto contraste para máxima legibilidad.
+                                </p>
+                            </div>
+                            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-5 transition hover:border-amber-400/30" data-aos="fade-up" data-aos-delay="400">
+                                <h3 className="mb-2 flex items-center gap-2.5 font-orbitron text-base font-bold text-amber-300">
+                                    <Gauge className="h-5 w-5 shrink-0" aria-hidden /> Rendimiento extremo
+                                </h3>
+                                <p className="text-xs sm:text-sm text-neutral-300 font-sans leading-relaxed">
+                                    Aislamiento completo en contenedores Docker Wings con límites de cgroups estrictos para evitar ruidos de vecinos.
+                                </p>
+                            </div>
+                            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-5 transition hover:border-emerald-400/30" data-aos="fade-up" data-aos-delay="500">
+                                <h3 className="mb-2 flex items-center gap-2.5 font-orbitron text-base font-bold text-emerald-400">
+                                    <Activity className="h-5 w-5 shrink-0" aria-hidden /> Estadísticas en vivo
+                                </h3>
+                                <p className="text-xs sm:text-sm text-neutral-300 font-sans leading-relaxed">
+                                    Telemetría en tiempo real: CPU, memoria, I/O de disco NVMe y logs de consola con reconexión por WebSocket.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="mt-10 text-center" data-aos="zoom-in" data-aos-delay="600">
+                            <a
+                                href="https://panel.cinammon.net/servers"
+                                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-fuchsia-600 px-7 py-3 text-xs sm:text-sm font-bold text-white shadow-[0_0_20px_rgba(236,72,153,0.35)] transition hover:from-pink-600 hover:to-fuchsia-700"
+                            >
+                                <span>Explorar Panel en Vivo</span>
+                                <ArrowRight className="h-4 w-4" />
+                            </a>
+                        </div>
                     </div>
                 </section>
 
@@ -910,13 +1163,12 @@ export default function WelcomePanel() {
                 </style>
 
                 {/* FLECHA PARA SUBIR */}
-                <a href="#top" aria-label="Subir arriba" className="fixed right-2 bottom-3 z-50 animate-bounce p-3 transition hover:opacity-90 sm:right-6 sm:bottom-6 sm:p-7">
-                    <img
-                        src="https://img.icons8.com/?size=100&id=71020&format=png&color=ff4da6"
-                        alt="Subir arriba"
-                        className="h-8 w-8 drop-shadow-[0_0_6px_#ff4da6] sm:h-9 sm:w-9"
-                        draggable={false}
-                    />
+                <a
+                    href="#top"
+                    aria-label="Subir arriba"
+                    className="fixed right-4 bottom-4 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-pink-500/40 bg-black/80 backdrop-blur-md text-pink-400 shadow-[0_0_20px_rgba(236,72,153,0.3)] transition hover:bg-pink-500 hover:text-white hover:scale-110 sm:right-6 sm:bottom-6 sm:h-12 sm:w-12"
+                >
+                    <ChevronUp className="h-5 w-5" />
                 </a>
             </div>
 

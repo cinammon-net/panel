@@ -1,6 +1,7 @@
+import { ChevronUp } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-/** Flecha para volver arriba (la misma de la página principal). Aparece al bajar un poco. */
+/** Flecha para volver arriba con diseño cyber glassmorphism. Aparece al bajar un poco. */
 export default function ScrollTopArrow() {
     const [visible, setVisible] = useState(false);
 
@@ -19,16 +20,11 @@ export default function ScrollTopArrow() {
             aria-label="Subir arriba"
             title="Subir arriba"
             onClick={() => window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' })}
-            className={`fixed right-4 bottom-4 z-50 p-3 transition-all duration-300 hover:opacity-90 sm:right-6 sm:bottom-6 ${
-                visible ? 'pointer-events-auto translate-y-0 animate-bounce opacity-100' : 'pointer-events-none translate-y-4 opacity-0'
+            className={`fixed right-4 bottom-4 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-pink-500/40 bg-black/80 backdrop-blur-md text-pink-400 shadow-[0_0_20px_rgba(236,72,153,0.3)] transition-all duration-300 hover:bg-pink-500 hover:text-white hover:scale-110 sm:right-6 sm:bottom-6 sm:h-12 sm:w-12 ${
+                visible ? 'pointer-events-auto translate-y-0 opacity-100' : 'pointer-events-none translate-y-4 opacity-0'
             }`}
         >
-            <img
-                src="https://img.icons8.com/?size=100&id=71020&format=png&color=ff4da6"
-                alt=""
-                className="h-8 w-8 drop-shadow-[0_0_6px_#ff4da6] sm:h-9 sm:w-9"
-                draggable={false}
-            />
+            <ChevronUp className="h-5 w-5" />
         </button>
     );
 }
