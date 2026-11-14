@@ -65,6 +65,18 @@ class ServerController extends Controller
             $query->where('servers.status', 0);
         }
 
+        // Filtro por carpeta
+        $selectedFolder = $request->input('folder', 'all');
+        if ($user && $selectedFolder === 'unorganized') {
+            $query->whereNotIn('servers.id', \App\Models\ServerFolderMember::where('user_id', $user->id)->pluck('server_id'));
+        } elseif ($user && $selectedFolder !== 'all' && is_numeric($selectedFolder)) {
+            $folderIds = \App\Models\ServerFolder::descendantIdsAndSelf((int) $selectedFolder, $user->id);
+            $serverIdsInFolders = \App\Models\ServerFolderMember::where('user_id', $user->id)
+                ->whereIn('folder_id', $folderIds)
+                ->pluck('server_id');
+            $query->whereIn('servers.id', $serverIdsInFolders);
+        }
+
         // Orden dinámico
         $sort = $request->input('sort', 'name');
         $direction = $request->input('direction', 'asc');
@@ -133,8 +145,50 @@ class ServerController extends Controller
             ->get()
             ->keyBy('id');
 
+        // Carpetas del usuario
+        $userFolders = [];
+        $serverFolderMap = [];
+        $folderPaths = [];
+        if ($user) {
+            $rawFolders = \App\Models\ServerFolder::where('user_id', $user->id)
+                ->withCount('servers')
+                ->orderBy('name')
+                ->get();
+
+            foreach ($rawFolders as $f) {
+                $folderPaths[$f->id] = $f->name;
+            }
+            // Segunda pasada para jerarquías (subcarpetas)
+            for ($i = 0; $i < 4; $i++) {
+                foreach ($rawFolders as $f) {
+                    if ($f->parent_id && isset($folderPaths[$f->parent_id])) {
+                        $parentPath = $folderPaths[$f->parent_id];
+                        if (!str_starts_with($folderPaths[$f->id], $parentPath . ' / ')) {
+                            $folderPaths[$f->id] = $parentPath . ' / ' . $f->name;
+                        }
+                    }
+                }
+            }
+
+            $userFolders = $rawFolders->map(function ($f) use ($folderPaths) {
+                return [
+                    'id' => $f->id,
+                    'name' => $f->name,
+                    'parent_id' => $f->parent_id,
+                    'path' => $folderPaths[$f->id] ?? $f->name,
+                    'color' => $f->color,
+                    'icon' => $f->icon,
+                    'servers_count' => $f->servers_count,
+                ];
+            });
+
+            $serverFolderMap = \App\Models\ServerFolderMember::where('user_id', $user->id)
+                ->pluck('folder_id', 'server_id')
+                ->toArray();
+        }
+
         // Formatear salida
-        $servers = $paginated->getCollection()->map(function ($server) use ($relatedServers) {
+        $servers = $paginated->getCollection()->map(function ($server) use ($relatedServers, $serverFolderMap, $folderPaths) {
             $full = $relatedServers[$server->id] ?? null;
 
             return [
@@ -158,6 +212,8 @@ class ServerController extends Controller
                 'memory' => $server->memory ?? 0,
                 'disk' => $server->disk ?? 0,
                 'backups' => $server->backup_limit ?? 0,
+                'folder_id' => $serverFolderMap[$server->id] ?? null,
+                'folder_path' => isset($serverFolderMap[$server->id]) ? ($folderPaths[$serverFolderMap[$server->id]] ?? null) : null,
             ];
         });
 
@@ -196,10 +252,13 @@ class ServerController extends Controller
                 'category' => $selectedCategory,
                 'status' => $selectedStatus,
                 'scope' => $selectedScope,
+                'folder' => $selectedFolder,
             ]),
             'scopeCounts' => $scopeCounts,
             'categoryCounts' => $categoryCounts,
             'statusCounts' => $statusCounts,
+            'folders' => $userFolders,
+            'folderPaths' => $folderPaths,
             'availableTags' => [],
         ]);
     }

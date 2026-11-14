@@ -648,6 +648,10 @@ Route::middleware(['auth', 'server.lock'])->group(function () {
     Route::post('/servers/{server}/subusers', [App\Http\Controllers\ServerSubusersController::class, 'store'])->name('servers.subusers.store');
     Route::put('/servers/{server}/subusers/{subuser}', [App\Http\Controllers\ServerSubusersController::class, 'update'])->name('servers.subusers.update');
     Route::delete('/servers/{server}/subusers/{subuser}', [App\Http\Controllers\ServerSubusersController::class, 'destroy'])->name('servers.subusers.destroy');
+    Route::post('/server-folders', [App\Http\Controllers\ServerFolderController::class, 'store'])->name('server-folders.store');
+    Route::put('/server-folders/{folder}', [App\Http\Controllers\ServerFolderController::class, 'update'])->name('server-folders.update');
+    Route::delete('/server-folders/{folder}', [App\Http\Controllers\ServerFolderController::class, 'destroy'])->name('server-folders.destroy');
+    Route::post('/server-folders/assign', [App\Http\Controllers\ServerFolderController::class, 'assign'])->name('server-folders.assign');
     Route::get('/servers/edit', fn() => redirect('/servers'));
     // Crear, configurar y borrar servidores (nodo, propietario, recursos): solo Owner/Admin.
     Route::get('/servers', [ServerController::class, 'index'])->name('servers.index');

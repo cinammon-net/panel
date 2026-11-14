@@ -17,6 +17,9 @@ import {
     Egg,
     Filter,
     Folder,
+    FolderPlus,
+    FolderTree,
+    FolderOpen,
     Gamepad2,
     HardDrive,
     Image as ImageIcon,
@@ -26,6 +29,7 @@ import {
     MapPin,
     Mic,
     Pencil,
+    Plus,
     Power,
     Radio,
     Server,
@@ -33,6 +37,7 @@ import {
     Terminal,
     Trash2,
     User,
+    X,
     Zap,
     ExternalLink,
     Users,
@@ -63,6 +68,18 @@ interface ServerItem {
     cpu?: number;
     memory?: number;
     disk?: number;
+    folder_id?: number | null;
+    folder_path?: string | null;
+}
+
+interface FolderItem {
+    id: number;
+    name: string;
+    parent_id?: number | null;
+    path: string;
+    color?: string | null;
+    icon?: string | null;
+    servers_count?: number;
 }
 
 interface Pagination<T> {
@@ -145,7 +162,7 @@ function useLiveUsage(id: number, enabled: boolean): LiveUsage | null {
     return usage;
 }
 
-function ServerCard({ item }: { item: ServerItem }) {
+function ServerCard({ item, onOpenFolderModal }: { item: ServerItem; onOpenFolderModal?: (item: ServerItem) => void }) {
     const isOnline = item.status === 'online';
     const usage = useLiveUsage(item.id, isOnline);
     // Datos para la pantalla de entrada al servidor (se muestran antes de que cargue su página).
@@ -274,11 +291,46 @@ function ServerCard({ item }: { item: ServerItem }) {
                             <span className="text-neutral-300 font-mono text-[11px] flex items-center gap-1 bg-black/60 px-2.5 py-0.5 rounded border border-neutral-800">
                                 <UserAvatar name={item.username} src={item.user_avatar} size={13} fallbackClassName="bg-purple-700 text-white" /> {item.username}
                             </span>
+                            {item.folder_path ? (
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onOpenFolderModal?.(item);
+                                    }}
+                                    className="text-cyan-300 font-mono text-[11px] flex items-center gap-1 bg-cyan-950/60 hover:bg-cyan-900/80 px-2.5 py-0.5 rounded border border-cyan-700/80 transition"
+                                    title="Carpeta del servidor (clic para mover)"
+                                >
+                                    <Folder size={11} className="text-cyan-400" />
+                                    <span className="truncate max-w-[150px]">{item.folder_path}</span>
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onOpenFolderModal?.(item);
+                                    }}
+                                    className="text-neutral-400 hover:text-cyan-300 font-mono text-[11px] flex items-center gap-1 bg-black/60 hover:bg-cyan-950/40 px-2.5 py-0.5 rounded border border-neutral-800 hover:border-cyan-800 transition"
+                                    title="Organizar en una carpeta"
+                                >
+                                    <Folder size={11} /> Sin carpeta
+                                </button>
+                            )}
                         </div>
                     </div>
 
                     {/* Acciones Rápidas */}
                     <div className="flex items-center gap-1.5 shrink-0 pl-1 sm:pl-0" onClick={(e) => e.stopPropagation()}>
+                        {/* Botón Organizar en Carpeta */}
+                        <button
+                            type="button"
+                            onClick={() => onOpenFolderModal?.(item)}
+                            className="p-2 rounded-lg border border-cyan-800/80 bg-cyan-950/40 text-cyan-400 hover:border-cyan-400 hover:bg-cyan-900/60 transition shadow-sm"
+                            title="Organizar en carpetas o subcarpetas"
+                        >
+                            <Folder size={16} />
+                        </button>
                         {/* Botón Cambiar Fondo */}
                         <button
                             type="button"
@@ -532,12 +584,14 @@ function ServerCard({ item }: { item: ServerItem }) {
 }
 
 export default function Servers() {
-    const { servers, filters, categoryCounts, statusCounts, scopeCounts } = usePage<{
+    const { servers, filters, categoryCounts, statusCounts, scopeCounts, folders = [], folderPaths = {} } = usePage<{
         servers: Pagination<ServerItem>;
-        filters: { search?: string; sort?: string; direction?: string; per_page?: number; category?: string; status?: string; scope?: string };
+        filters: { search?: string; sort?: string; direction?: string; per_page?: number; category?: string; status?: string; scope?: string; folder?: string };
         categoryCounts?: Record<string, number>;
         statusCounts?: { all: number; online: number; offline: number };
         scopeCounts?: { all: number; mine: number; others: number };
+        folders?: FolderItem[];
+        folderPaths?: Record<number, string>;
     }>().props;
 
     const [search, setSearch] = useState(filters.search || '');
@@ -548,11 +602,152 @@ export default function Servers() {
     const [selectedScope, setSelectedScope] = useState<'mine' | 'others' | 'all'>(
         ((filters as any).scope as any) || 'all',
     );
+    const [selectedFolder, setSelectedFolder] = useState<string>(filters.folder || 'all');
+    const [showFolderDrawer, setShowFolderDrawer] = useState<boolean>(Boolean(filters.folder && filters.folder !== 'all'));
+
+    // Modal Crear/Editar Carpeta
+    const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
+    const [folderModalMode, setFolderModalMode] = useState<'create' | 'edit'>('create');
+    const [folderEditingId, setFolderEditingId] = useState<number | null>(null);
+    const [folderParentId, setFolderParentId] = useState<number | null>(null);
+    const [folderNameInput, setFolderNameInput] = useState('');
+    const [isSavingFolder, setIsSavingFolder] = useState(false);
+
+    // Modal Asignar Servidor a Carpeta
+    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+    const [serverToAssign, setServerToAssign] = useState<ServerItem | null>(null);
+    const [targetFolderId, setTargetFolderId] = useState<number | null>(null);
+    const [isSavingAssign, setIsSavingAssign] = useState(false);
+
     const [selectedMcSubcat, setSelectedMcSubcat] = useState<string>('all');
     const [isMcExpanded, setIsMcExpanded] = useState<boolean>(true);
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
     const [groupBy, setGroupBy] = useState<'none' | 'category' | 'status' | 'node' | 'username' | 'egg'>('none');
     const [groupDirection, setGroupDirection] = useState<'asc' | 'desc'>('asc');
+
+    // Carpetas raíz (parent_id === null o no tiene parent)
+    const rootFolders = useMemo(() => {
+        return (folders || []).filter((f) => !f.parent_id);
+    }, [folders]);
+
+    // Subcarpetas agrupadas por parent_id
+    const subfolderMap = useMemo(() => {
+        const map = new Map<number, FolderItem[]>();
+        (folders || []).forEach((f) => {
+            if (f.parent_id) {
+                if (!map.has(f.parent_id)) map.set(f.parent_id, []);
+                map.get(f.parent_id)!.push(f);
+            }
+        });
+        return map;
+    }, [folders]);
+
+    const handleOpenCreateFolder = (parentId: number | null = null) => {
+        setFolderModalMode('create');
+        setFolderParentId(parentId);
+        setFolderEditingId(null);
+        setFolderNameInput('');
+        setIsFolderModalOpen(true);
+    };
+
+    const handleOpenEditFolder = (folder: FolderItem) => {
+        setFolderModalMode('edit');
+        setFolderParentId(folder.parent_id || null);
+        setFolderEditingId(folder.id);
+        setFolderNameInput(folder.name);
+        setIsFolderModalOpen(true);
+    };
+
+    const handleSaveFolder = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!folderNameInput.trim()) return;
+        setIsSavingFolder(true);
+        if (folderModalMode === 'create') {
+            router.post(
+                '/server-folders',
+                { name: folderNameInput.trim(), parent_id: folderParentId },
+                {
+                    preserveScroll: true,
+                    preserveState: true,
+                    onFinish: () => {
+                        setIsSavingFolder(false);
+                        setIsFolderModalOpen(false);
+                    },
+                }
+            );
+        } else if (folderEditingId) {
+            router.put(
+                `/server-folders/${folderEditingId}`,
+                { name: folderNameInput.trim(), parent_id: folderParentId },
+                {
+                    preserveScroll: true,
+                    preserveState: true,
+                    onFinish: () => {
+                        setIsSavingFolder(false);
+                        setIsFolderModalOpen(false);
+                    },
+                }
+            );
+        }
+    };
+
+    const handleDeleteFolder = (folderId: number, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (confirm('¿Deseas eliminar esta carpeta? Las subcarpetas también se eliminarán y los servidores quedarán sin carpeta.')) {
+            router.delete(`/server-folders/${folderId}`, {
+                preserveScroll: true,
+                preserveState: true,
+            });
+        }
+    };
+
+    const handleOpenAssign = (server: ServerItem) => {
+        setServerToAssign(server);
+        setTargetFolderId(server.folder_id || null);
+        setIsAssignModalOpen(true);
+    };
+
+    const handleSaveAssign = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!serverToAssign) return;
+        setIsSavingAssign(true);
+        router.post(
+            '/server-folders/assign',
+            { server_id: serverToAssign.id, folder_id: targetFolderId },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onFinish: () => {
+                    setIsSavingAssign(false);
+                    setIsAssignModalOpen(false);
+                },
+            }
+        );
+    };
+
+    const applyFilters = (newCategory: string, newStatus: string, newScope: string = selectedScope, newFolder: string = selectedFolder) => {
+        setSelectedCategory(newCategory);
+        setSelectedStatus(newStatus);
+        setSelectedScope(newScope as any);
+        setSelectedFolder(newFolder);
+        router.get(
+            '/servers',
+            {
+                ...filters,
+                category: newCategory,
+                status: newStatus,
+                scope: newScope,
+                folder: newFolder,
+                search,
+                page: 1,
+            },
+            { preserveScroll: true, preserveState: true },
+        );
+    };
+
+    const handleSelectFolder = (folderId: string) => {
+        applyFilters(selectedCategory, selectedStatus, selectedScope, folderId);
+    };
 
     // Categorías principales
     const categoryTabs = [
@@ -613,24 +808,6 @@ export default function Servers() {
             return 'vanilla';
         }
         return 'mods';
-    };
-
-    const applyFilters = (newCategory: string, newStatus: string, newScope: string = selectedScope) => {
-        setSelectedCategory(newCategory);
-        setSelectedStatus(newStatus);
-        setSelectedScope(newScope as any);
-        router.get(
-            '/servers',
-            {
-                ...filters,
-                category: newCategory,
-                status: newStatus,
-                scope: newScope,
-                search,
-                page: 1,
-            },
-            { preserveScroll: true, preserveState: true },
-        );
     };
 
     const handleSelectCategory = (catId: string) => {
@@ -855,8 +1032,217 @@ export default function Servers() {
                             <span>Categorías {selectedCategory !== 'all' ? `(${selectedCategory})` : ''}</span>
                             {showFilters ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                         </button>
+
+                        {/* Botón para desplegar organizador de Carpetas */}
+                        <button
+                            type="button"
+                            onClick={() => setShowFolderDrawer(!showFolderDrawer)}
+                            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold border transition ${
+                                showFolderDrawer || (selectedFolder && selectedFolder !== 'all')
+                                    ? 'border-cyan-400 bg-cyan-950/60 text-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.25)]'
+                                    : 'border-neutral-800 bg-neutral-900/80 text-neutral-400 hover:text-cyan-300 hover:border-cyan-800'
+                            }`}
+                            title="Organizar y filtrar servidores por carpetas y subcarpetas"
+                        >
+                            <Folder size={13} className={selectedFolder !== 'all' ? 'text-cyan-400' : ''} />
+                            <span>
+                                Carpetas
+                                {selectedFolder !== 'all'
+                                    ? ` (${selectedFolder === 'unorganized' ? 'Sin carpeta' : (folders.find((f) => String(f.id) === selectedFolder)?.name || 'Filtrada')})`
+                                    : ''}
+                            </span>
+                            {showFolderDrawer ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                        </button>
                     </div>
                 </div>
+
+                {/* Cajón de Carpetas y Subcarpetas Desplegable */}
+                {showFolderDrawer && (
+                    <div className="mb-5 rounded-xl border border-cyan-800/60 bg-neutral-950/90 p-4 shadow-xl backdrop-blur-md space-y-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-cyan-950 pb-2.5">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-cyan-400 tracking-wider uppercase flex items-center gap-1.5">
+                                    <FolderTree size={14} /> Carpetas y Subcarpetas
+                                </span>
+                                <span className="text-[11px] text-neutral-400 font-mono">
+                                    ({folders?.length || 0} carpetas)
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {selectedFolder !== 'all' && (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSelectFolder('all')}
+                                        className="text-[11px] text-cyan-500 hover:underline hover:text-cyan-300"
+                                    >
+                                        Ver todos los servidores
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    onClick={() => handleOpenCreateFolder(null)}
+                                    className="flex items-center gap-1 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black px-3 py-1 text-xs font-semibold shadow-sm transition"
+                                >
+                                    <Plus size={13} />
+                                    <span>Nueva Carpeta</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Filtros rápidos: Todos / Sin Carpeta */}
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                            <button
+                                type="button"
+                                onClick={() => handleSelectFolder('all')}
+                                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                                    selectedFolder === 'all'
+                                        ? 'border border-cyan-400 bg-cyan-500 text-black shadow-sm'
+                                        : 'border border-neutral-800 bg-neutral-900 text-neutral-300 hover:border-cyan-700 hover:text-cyan-300'
+                                }`}
+                            >
+                                <Folder size={13} />
+                                <span>Todas</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleSelectFolder('unorganized')}
+                                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                                    selectedFolder === 'unorganized'
+                                        ? 'border border-cyan-400 bg-cyan-500 text-black shadow-sm'
+                                        : 'border border-neutral-800 bg-neutral-900 text-neutral-300 hover:border-cyan-700 hover:text-cyan-300'
+                                }`}
+                            >
+                                <Folder size={13} />
+                                <span>Sin carpeta</span>
+                            </button>
+                        </div>
+
+                        {/* Árbol de carpetas y subcarpetas */}
+                        {rootFolders.length === 0 ? (
+                            <div className="rounded-lg border border-neutral-800/80 bg-neutral-900/40 p-4 text-center">
+                                <p className="text-xs text-neutral-400">
+                                    Aún no has creado ninguna carpeta para organizar tus servidores.
+                                </p>
+                                <p className="text-[11px] text-neutral-500 mt-1">
+                                    Crea carpetas principales (ej. Red Principal, Servidores de Pruebas) y subcarpetas (ej. Proxies, Spigot, Bungee).
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                                {rootFolders.map((rf) => {
+                                    const subfolders = subfolderMap.get(rf.id) || [];
+                                    const isSelected = selectedFolder === String(rf.id);
+                                    return (
+                                        <div
+                                            key={rf.id}
+                                            className={`rounded-lg border p-3 transition space-y-2.5 ${
+                                                isSelected
+                                                    ? 'border-cyan-400 bg-cyan-950/40 shadow-[0_0_12px_rgba(34,211,238,0.15)]'
+                                                    : 'border-neutral-800/90 bg-neutral-900/60 hover:border-neutral-700'
+                                            }`}
+                                        >
+                                            <div className="flex items-center justify-between gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleSelectFolder(String(rf.id))}
+                                                    className="flex items-center gap-2 text-left min-w-0 flex-1 hover:text-cyan-300 transition"
+                                                >
+                                                    <Folder className="h-4 w-4 text-cyan-400 shrink-0" />
+                                                    <span className="text-xs font-bold truncate text-white">
+                                                        {rf.name}
+                                                    </span>
+                                                    {rf.servers_count !== undefined && (
+                                                        <span className="rounded-full bg-cyan-950 px-1.5 py-0.2 text-[10px] font-mono text-cyan-300 border border-cyan-800/50">
+                                                            {rf.servers_count}
+                                                        </span>
+                                                    )}
+                                                </button>
+                                                <div className="flex items-center gap-1 shrink-0">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleOpenCreateFolder(rf.id)}
+                                                        className="p-1 rounded text-neutral-400 hover:text-cyan-300 hover:bg-neutral-800"
+                                                        title="Agregar subcarpeta"
+                                                    >
+                                                        <Plus size={12} />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleOpenEditFolder(rf)}
+                                                        className="p-1 rounded text-neutral-400 hover:text-cyan-300 hover:bg-neutral-800"
+                                                        title="Editar nombre"
+                                                    >
+                                                        <Pencil size={12} />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => handleDeleteFolder(rf.id, e)}
+                                                        className="p-1 rounded text-neutral-400 hover:text-red-400 hover:bg-neutral-800"
+                                                        title="Eliminar carpeta"
+                                                    >
+                                                        <Trash2 size={12} />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Subcarpetas */}
+                                            {subfolders.length > 0 && (
+                                                <div className="pl-3 border-l border-cyan-900/50 space-y-1.5 pt-1">
+                                                    {subfolders.map((sf) => {
+                                                        const isSubSelected = selectedFolder === String(sf.id);
+                                                        return (
+                                                            <div
+                                                                key={sf.id}
+                                                                className={`flex items-center justify-between gap-2 rounded px-2 py-1 text-xs transition ${
+                                                                    isSubSelected
+                                                                        ? 'bg-cyan-500/20 text-cyan-200 font-semibold border border-cyan-500/40'
+                                                                        : 'text-neutral-300 hover:bg-neutral-800/70'
+                                                                }`}
+                                                            >
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleSelectFolder(String(sf.id))}
+                                                                    className="flex items-center gap-1.5 text-left truncate flex-1"
+                                                                >
+                                                                    <ChevronRight size={11} className="text-cyan-500 shrink-0" />
+                                                                    <Folder size={12} className="text-cyan-400 shrink-0" />
+                                                                    <span className="truncate">{sf.name}</span>
+                                                                    {sf.servers_count !== undefined && (
+                                                                        <span className="text-[10px] font-mono text-neutral-400">
+                                                                            ({sf.servers_count})
+                                                                        </span>
+                                                                    )}
+                                                                </button>
+                                                                <div className="flex items-center gap-0.5 shrink-0">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleOpenEditFolder(sf)}
+                                                                        className="p-0.5 text-neutral-400 hover:text-cyan-300"
+                                                                        title="Editar subcarpeta"
+                                                                    >
+                                                                        <Pencil size={11} />
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => handleDeleteFolder(sf.id, e)}
+                                                                        className="p-0.5 text-neutral-400 hover:text-red-400"
+                                                                        title="Eliminar subcarpeta"
+                                                                    >
+                                                                        <Trash2 size={11} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Cajón de Filtros Desplegable */}
                 {showFilters && (
@@ -1056,7 +1442,7 @@ export default function Servers() {
                                                         </div>
                                                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
                                                             {groupItems.map((item) => (
-                                                                <ServerCard key={item.id} item={item} />
+                                                                <ServerCard key={item.id} item={item} onOpenFolderModal={handleOpenAssign} />
                                                             ))}
                                                         </div>
                                                     </div>
@@ -1066,7 +1452,7 @@ export default function Servers() {
                                     ) : (
                                         <div className={`grid gap-6 w-full max-w-full ${filteredServers.length === 1 ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'}`}>
                                             {filteredServers.map((item) => (
-                                                <ServerCard key={item.id} item={item} />
+                                                <ServerCard key={item.id} item={item} onOpenFolderModal={handleOpenAssign} />
                                             ))}
                                         </div>
                                     )}
@@ -1186,6 +1572,12 @@ export default function Servers() {
                                                                 <div className="text-[10px] text-neutral-400 dark:text-neutral-500 truncate font-mono">
                                                                     {item.node}
                                                                 </div>
+                                                                {item.folder_path && (
+                                                                    <div className="text-[10px] text-cyan-400 truncate font-mono flex items-center gap-1 mt-0.5" title={`Carpeta: ${item.folder_path}`}>
+                                                                        <Folder size={10} className="shrink-0" />
+                                                                        <span className="truncate">{item.folder_path}</span>
+                                                                    </div>
+                                                                )}
                                                             </td>
                                                             <td className="hidden sm:table-cell px-3 py-3">
                                                                 <span className="flex items-center gap-2 text-xs text-neutral-700 dark:text-cyan-300 max-w-[170px]" title={item.egg}>
@@ -1218,6 +1610,13 @@ export default function Servers() {
                                                                             <ExternalLink size={11} /> Web
                                                                         </a>
                                                                     )}
+                                                                    <button
+                                                                        title="Organizar en carpeta"
+                                                                        onClick={() => handleOpenAssign(item)}
+                                                                        className="rounded border border-cyan-800/60 bg-cyan-950/40 p-1 text-cyan-300 hover:border-cyan-400 hover:text-white"
+                                                                    >
+                                                                        <Folder className="h-3.5 w-3.5" />
+                                                                    </button>
                                                                     <button
                                                                         title="Consola"
                                                                         onClick={() => router.visit(`/servers/${item.id}/console`)}
@@ -1305,6 +1704,12 @@ export default function Servers() {
                                                                         <div className="text-[10px] text-neutral-400 dark:text-neutral-500 truncate font-mono">
                                                                             {item.node}
                                                                         </div>
+                                                                        {item.folder_path && (
+                                                                            <div className="text-[10px] text-cyan-400 truncate font-mono flex items-center gap-1 mt-0.5" title={`Carpeta: ${item.folder_path}`}>
+                                                                                <Folder size={10} className="shrink-0" />
+                                                                                <span className="truncate">{item.folder_path}</span>
+                                                                            </div>
+                                                                        )}
                                                                     </td>
                                                                     <td className="hidden sm:table-cell px-3 py-3">
                                                                         <span className="flex items-center gap-2 text-xs text-neutral-700 dark:text-cyan-300 max-w-[170px]" title={item.egg}>
@@ -1323,6 +1728,13 @@ export default function Servers() {
                                                                     </td>
                                                                     <td className="px-3 py-3 text-right whitespace-nowrap">
                                                                     <div className="flex justify-end items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                                                        <button
+                                                                            title="Organizar en carpeta"
+                                                                            onClick={() => handleOpenAssign(item)}
+                                                                            className="rounded border border-cyan-800/60 bg-cyan-950/40 p-1 text-cyan-300 hover:border-cyan-400 hover:text-white"
+                                                                        >
+                                                                            <Folder className="h-3.5 w-3.5" />
+                                                                        </button>
                                                                         {item.category === 'web' && item.allocation && item.allocation !== '–' && (
                                                                             <a
                                                                                 href={`http://${item.allocation}`}
@@ -1461,6 +1873,251 @@ export default function Servers() {
                             </div>
                         </div>
                 </div>
+
+                {/* Modal Crear / Editar Carpeta */}
+                {isFolderModalOpen && (
+                    <div
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+                        onClick={() => setIsFolderModalOpen(false)}
+                    >
+                        <div
+                            className="w-full max-w-md rounded-2xl border border-cyan-800 bg-[#070b14] p-5 shadow-2xl space-y-4"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between border-b border-cyan-950 pb-3">
+                                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                                    <Folder className="h-5 w-5 text-cyan-400" />
+                                    <span>
+                                        {folderModalMode === 'create'
+                                            ? folderParentId
+                                                ? 'Crear Subcarpeta'
+                                                : 'Crear Carpeta'
+                                            : 'Editar Carpeta'}
+                                    </span>
+                                </h3>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsFolderModalOpen(false)}
+                                    className="text-neutral-400 hover:text-white"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleSaveFolder} className="space-y-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-neutral-300">
+                                        Nombre de la carpeta
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        autoFocus
+                                        placeholder="Ej. Red Principal, Spigot, Proxies..."
+                                        value={folderNameInput}
+                                        onChange={(e) => setFolderNameInput(e.target.value)}
+                                        className="w-full rounded-lg border border-neutral-800 bg-black/70 px-3 py-2 text-xs text-white focus:border-cyan-400 focus:outline-none"
+                                    />
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-semibold text-neutral-300">
+                                        Ubicación (Carpeta superior)
+                                    </label>
+                                    <select
+                                        value={folderParentId ?? ''}
+                                        onChange={(e) =>
+                                            setFolderParentId(e.target.value ? Number(e.target.value) : null)
+                                        }
+                                        className="w-full rounded-lg border border-neutral-800 bg-black/70 px-3 py-2 text-xs text-white focus:border-cyan-400 focus:outline-none"
+                                    >
+                                        <option value="">Ninguna (Carpeta Principal)</option>
+                                        {rootFolders
+                                            .filter((rf) => rf.id !== folderEditingId)
+                                            .map((rf) => (
+                                                <option key={rf.id} value={rf.id}>
+                                                    {rf.name}
+                                                </option>
+                                            ))}
+                                    </select>
+                                    <p className="text-[11px] text-neutral-500">
+                                        Selecciona una carpeta superior para crear una subcarpeta o déjalo vacío para que sea principal.
+                                    </p>
+                                </div>
+
+                                <div className="flex items-center justify-end gap-2 pt-2 border-t border-cyan-950">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsFolderModalOpen(false)}
+                                        className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs text-neutral-400 hover:text-white"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={isSavingFolder || !folderNameInput.trim()}
+                                        className="rounded-lg bg-cyan-500 hover:bg-cyan-400 px-4 py-1.5 text-xs font-bold text-black transition shadow-[0_0_15px_rgba(34,211,238,0.3)] disabled:opacity-40"
+                                    >
+                                        {isSavingFolder ? 'Guardando...' : 'Guardar'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Modal Organizar Servidor en Carpeta */}
+                {isAssignModalOpen && serverToAssign && (
+                    <div
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+                        onClick={() => setIsAssignModalOpen(false)}
+                    >
+                        <div
+                            className="w-full max-w-lg rounded-2xl border border-cyan-800 bg-[#070b14] p-5 shadow-2xl space-y-4 max-h-[85vh] flex flex-col"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between border-b border-cyan-950 pb-3">
+                                <div>
+                                    <h3 className="text-base font-bold text-white flex items-center gap-2">
+                                        <Folder className="h-5 w-5 text-cyan-400" />
+                                        <span>Organizar Servidor</span>
+                                    </h3>
+                                    <p className="text-xs text-cyan-300 font-mono mt-0.5 truncate max-w-sm">
+                                        {serverToAssign.name}
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsAssignModalOpen(false)}
+                                    className="text-neutral-400 hover:text-white"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleSaveAssign} className="space-y-4 flex-1 flex flex-col min-h-0">
+                                <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                                    <div className="text-xs text-neutral-400 mb-2">
+                                        Elige la carpeta o subcarpeta donde quieres ubicar este servidor:
+                                    </div>
+
+                                    {/* Opción Sin Carpeta */}
+                                    <label
+                                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${
+                                            targetFolderId === null
+                                                ? 'border-cyan-400 bg-cyan-950/40 text-cyan-200 shadow-sm'
+                                                : 'border-neutral-800 bg-neutral-900/40 text-neutral-300 hover:bg-neutral-900'
+                                        }`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="targetFolder"
+                                            checked={targetFolderId === null}
+                                            onChange={() => setTargetFolderId(null)}
+                                            className="text-cyan-500 focus:ring-cyan-400"
+                                        />
+                                        <div className="flex items-center gap-2 flex-1">
+                                            <Folder className="h-4 w-4 text-neutral-400" />
+                                            <div>
+                                                <div className="text-xs font-semibold">Sin carpeta</div>
+                                                <div className="text-[11px] text-neutral-500">Dejar el servidor fuera de cualquier carpeta</div>
+                                            </div>
+                                        </div>
+                                    </label>
+
+                                    {/* Lista de Carpetas y Subcarpetas */}
+                                    {rootFolders.map((rf) => {
+                                        const subfolders = subfolderMap.get(rf.id) || [];
+                                        const isChecked = targetFolderId === rf.id;
+                                        return (
+                                            <div key={rf.id} className="space-y-1.5">
+                                                <label
+                                                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${
+                                                        isChecked
+                                                            ? 'border-cyan-400 bg-cyan-950/40 text-cyan-200 shadow-sm'
+                                                            : 'border-neutral-800 bg-neutral-900/40 text-neutral-300 hover:bg-neutral-900'
+                                                    }`}
+                                                >
+                                                    <input
+                                                        type="radio"
+                                                        name="targetFolder"
+                                                        checked={isChecked}
+                                                        onChange={() => setTargetFolderId(rf.id)}
+                                                        className="text-cyan-500 focus:ring-cyan-400"
+                                                    />
+                                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                        <Folder className="h-4 w-4 text-cyan-400 shrink-0" />
+                                                        <span className="text-xs font-semibold truncate text-white">{rf.name}</span>
+                                                    </div>
+                                                </label>
+
+                                                {/* Subcarpetas con indentación */}
+                                                {subfolders.length > 0 && (
+                                                    <div className="ml-5 pl-3 border-l border-cyan-900/50 space-y-1">
+                                                        {subfolders.map((sf) => {
+                                                            const isSubChecked = targetFolderId === sf.id;
+                                                            return (
+                                                                <label
+                                                                    key={sf.id}
+                                                                    className={`flex items-center gap-2.5 p-2 rounded-lg border cursor-pointer transition text-xs ${
+                                                                        isSubChecked
+                                                                            ? 'border-cyan-400 bg-cyan-950/40 text-cyan-200 font-semibold shadow-sm'
+                                                                            : 'border-neutral-800/80 bg-neutral-900/30 text-neutral-300 hover:bg-neutral-900'
+                                                                    }`}
+                                                                >
+                                                                    <input
+                                                                        type="radio"
+                                                                        name="targetFolder"
+                                                                        checked={isSubChecked}
+                                                                        onChange={() => setTargetFolderId(sf.id)}
+                                                                        className="text-cyan-500 focus:ring-cyan-400"
+                                                                    />
+                                                                    <ChevronRight size={12} className="text-cyan-500 shrink-0" />
+                                                                    <Folder size={13} className="text-cyan-400 shrink-0" />
+                                                                    <span className="truncate">{sf.name}</span>
+                                                                </label>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="flex items-center justify-between gap-3 pt-3 border-t border-cyan-950">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsAssignModalOpen(false);
+                                            handleOpenCreateFolder(null);
+                                        }}
+                                        className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                                    >
+                                        <Plus size={13} /> Nueva carpeta
+                                    </button>
+
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsAssignModalOpen(false)}
+                                            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs text-neutral-400 hover:text-white"
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={isSavingAssign}
+                                            className="rounded-lg bg-cyan-500 hover:bg-cyan-400 px-4 py-1.5 text-xs font-bold text-black transition shadow-[0_0_15px_rgba(34,211,238,0.3)] disabled:opacity-40"
+                                        >
+                                            {isSavingAssign ? 'Guardando...' : 'Aplicar'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
             </div>
         </AppLayout>
     );
