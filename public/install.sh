@@ -26,7 +26,8 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 INSTALL_DIR="/var/www/cinammon-panel"
-RELEASE_URL="https://github.com/cinammon-net/panel/releases/latest/download/panel.tar.gz"
+PRIMARY_URL="https://docs.cinammon.net/panel.tar.gz"
+FALLBACK_URL="https://github.com/cinammon-net/panel/releases/latest/download/panel.tar.gz"
 
 # 2. Instalacion automatica de paquetes del sistema si estamos en Debian/Ubuntu
 if [ -f /etc/debian_version ]; then
@@ -58,7 +59,10 @@ cd "$INSTALL_DIR"
 
 # 4. Descarga del paquete oficial empaquetado (build de produccion)
 echo -e "${CYAN}-> [3/6] Descargando paquete oficial pre-construido...${NC}"
-curl -sSL -o panel.tar.gz "$RELEASE_URL"
+if ! curl -sSL -f -o panel.tar.gz "$PRIMARY_URL"; then
+    echo -e "${YELLOW}Descargando desde mirror secundario (GitHub Releases)...${NC}"
+    curl -sSL -f -o panel.tar.gz "$FALLBACK_URL"
+fi
 
 echo -e "${CYAN}-> [4/6] Desempaquetando archivos del panel...${NC}"
 tar -xzf panel.tar.gz

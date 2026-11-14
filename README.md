@@ -119,51 +119,42 @@ flowchart LR
 
 ---
 
-## 🛠️ // 04. LOCAL RUNTIME & DEPLOYMENT
+## 🛠️ // 04. DESPLIEGUE EN PRODUCCIÓN (SIN GIT NI COMPILACIÓN)
 
-### Requisitos del Sistema
-* **PHP**: 8.3+ con extensiones `pdo`, `mbstring`, `openssl`, `curl`, `zip`
-* **Node.js**: 20+ con NPM / PNPM
-* **Composer**: 2.7+
-* **Motor de Contenedores**: Docker Engine 24+ / Lima VM en macOS
+> **¿Prefieres no administrar servidores Linux?**  
+> Puedes contratar tu servidor de juegos listo para jugar en [Cinammon.net](https://cinammon.net) con despliegue instantáneo, almacenamiento NVMe y protección Anti-DDoS sin tocar ninguna terminal.
 
-### Inicialización Rápida (Entorno de Desarrollo)
+Para instalar Cinammon Panel en tu servidor no es necesario clonar este repositorio ni compilar Node.js o Composer. El software se distribuye en paquetes oficiales listos para desplegar:
 
-```bash
-# 1. Clonar el repositorio
-git clone https://github.com/cinammon-net/panel.git
-cd panel
-
-# 2. Instalar dependencias backend y frontend
-composer install
-npm install
-
-# 3. Configurar entorno
-cp .env.example .env
-php artisan key:generate
-
-# 4. Compilar assets con Vite
-npm run build
-
-# 5. Levantar el stack local
-./local/dev start
-```
-
-### Control de Servidores Locales
+### Opción A: Instalación Automática en 1 Comando (Recomendada)
 
 ```bash
-# Estado general de la infraestructura y contenedores
-./local/dev status
-
-# Ver logs del servidor Minecraft Paper
-./local/dev php local/paper-control.php logs
-
-# Enviar comando de consola al Bot de Discord
-./local/dev php local/discord-control.php test
-
-# Detener el clúster local para liberar memoria
-./local/dev stop
+curl -sSL https://docs.cinammon.net/install.sh | sudo bash
 ```
+
+*El script comprueba las dependencias del sistema, descarga el paquete pre-construido oficial, inicializa la base de datos limpia y crea tu usuario administrador.*
+
+### Opción B: Descarga Manual del Paquete Pre-construido
+
+```bash
+sudo mkdir -p /var/www/cinammon-panel
+cd /var/www/cinammon-panel
+
+# Descargar el paquete oficial
+curl -Lo panel.tar.gz https://docs.cinammon.net/panel.tar.gz
+sudo tar -xzvf panel.tar.gz
+sudo rm -f panel.tar.gz
+
+# Configurar entorno y base de datos
+sudo cp .env.example .env
+sudo php artisan key:generate --force
+sudo touch database/database.sqlite
+sudo php artisan migrate --force
+sudo php artisan db:seed --force
+sudo chown -R www-data:www-data storage bootstrap/cache database/
+```
+
+Consulta la guía técnica completa en la [Documentación Oficial de Cinammon](https://docs.cinammon.net).
 
 ---
 
