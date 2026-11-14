@@ -62,11 +62,17 @@
 
     <!-- Iconos y Logo -->
     @php
-        $cinSub = explode('.', request()->getHost())[0];
+        $cinHost = request()->getHost();
+        $parts = explode('.', $cinHost);
+        $cinSub = $parts[0];
         $knownSubs = ['panel', 'demo', 'store', 'billing', 'news', 'status', 'admin', 'database', 'mail', 'nodo', 'wings'];
-        $logoFile = in_array($cinSub, $knownSubs, true) ? "cinammon-{$cinSub}.png" : 'cinammon-panel.png';
-        $logoVer = @filemtime(public_path("logos/{$logoFile}")) ?: 2;
-        $cinLogo = "/logos/{$logoFile}?v={$logoVer}-v4";
+        if (count($parts) <= 2 || in_array($cinSub, ['www', 'cinammon', 'localhost'], true)) {
+            $logoFile = 'cinammon-net.png';
+        } else {
+            $logoFile = in_array($cinSub, $knownSubs, true) ? "cinammon-{$cinSub}.png" : 'cinammon-net.png';
+        }
+        $logoVer = @filemtime(public_path("logos/{$logoFile}")) ?: 6;
+        $cinLogo = "/logos/{$logoFile}?v={$logoVer}-v6";
 
         $loaderA = match ($cinSub) {
             'news' => '#eab308',
